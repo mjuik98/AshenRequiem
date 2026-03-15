@@ -23,6 +23,7 @@ export class DebugView {
 
     // FPS 측정: 최근 60프레임 dt 보관
     this._dtBuffer = [];
+    this._backtickWasDown = false;
   }
 
   /**
@@ -110,6 +111,16 @@ export class DebugView {
 
       <div class="dbg-hint">\` 로 토글</div>
     `;
+  }
+
+  /**
+   * 백쿼트(`) 키 엣지 감지 → 디버그 패널 토글.
+   * PlayScene.update() 에서 매 프레임 호출된다.
+   */
+  handleInput(input) {
+    const down = input.isKeyDown('Backquote');
+    if (down && !this._backtickWasDown) this.toggle();
+    this._backtickWasDown = down;
   }
 
   show()   { this.el.style.display = 'block'; }

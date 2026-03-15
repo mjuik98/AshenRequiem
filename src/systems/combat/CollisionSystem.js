@@ -7,9 +7,17 @@ import { distanceSq } from '../../math/Vector2.js';
  *            hitTargets.push(e.id)      → hitTargets.add(e.id)
  *            (createProjectile 및 _resetProjectile 도 함께 변경)
  */
+const CULL_MARGIN = 700;
+
 export const CollisionSystem = {
-  update({ player, enemies, projectiles, pickups, events }) {
+  update({ player, enemies, projectiles, pickups, events, camera }) {
     if (!player || !player.isAlive) return;
+
+    const hasCull = !!camera;
+    const cullMinX = hasCull ? camera.x - CULL_MARGIN : -Infinity;
+    const cullMaxX = hasCull ? camera.x + CULL_MARGIN : Infinity;
+    const cullMinY = hasCull ? camera.y - CULL_MARGIN : -Infinity;
+    const cullMaxY = hasCull ? camera.y + CULL_MARGIN : Infinity;
 
     // ── 투사체 vs 적 ──────────────────────────────────────────
     for (let i = 0; i < projectiles.length; i++) {
@@ -20,7 +28,8 @@ export const CollisionSystem = {
         const e = enemies[j];
         if (!e.isAlive || e.pendingDestroy) continue;
 
-        // FIX: Set.has() — O(1)
+        if (hasCull && (e.x < cullMinX || e.x > cullMaxX || e.y < cullMinY || e.y > cullMaxY)) continue;
+
         if (p.hitTargets.has(e.id)) continue;
 
         const rSum = p.radius + e.radius;

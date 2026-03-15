@@ -1,11 +1,13 @@
+import { EFFECT_DEFAULTS } from '../../data/constants.js';
+
 /**
  * DeathSystem — 사망 후처리
  *
  * 입력: events.deaths
- * 쓰기: killCount, spawnQueue (XP 픽업, 사망 이펙트, deathSpawn)
+ * 쓰기: worldState.killCount, worldState.playMode, spawnQueue (XP 픽업, 사망 이펙트, deathSpawn)
  */
 export const DeathSystem = {
-  update({ events, world, spawnQueue }) {
+  update({ events, worldState, spawnQueue }) {
     const deaths = events.deaths;
 
     for (let i = 0; i < deaths.length; i++) {
@@ -14,7 +16,7 @@ export const DeathSystem = {
 
       if (entity.type === 'enemy') {
         // 킬 카운트 증가
-        world.killCount++;
+        worldState.killCount++;
 
         // deathSpawn — 사망 시 파생 적 스폰 (슬라임 분열 등)
         if (entity.deathSpawn) {
@@ -51,14 +53,14 @@ export const DeathSystem = {
             effectType: 'burst',
             color: entity.color,
             radius: entity.radius * 1.5,
-            duration: 0.3,
+            duration: EFFECT_DEFAULTS.burstDuration,
           },
         });
       }
 
       if (entity.type === 'player') {
         // 플레이어 사망 → playMode 변경
-        world.playMode = 'dead';
+        worldState.playMode = 'dead';
       }
     }
   },

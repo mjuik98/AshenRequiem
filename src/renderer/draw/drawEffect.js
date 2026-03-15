@@ -6,9 +6,12 @@
  *   'levelFlash'  — 레벨업 전체 화면 플래시
  *   'burst'       — 파티클 링 + 중심 플래시 (기본)
  */
-export function drawEffect(ctx, effect, camera) {
+export function drawEffect(ctx, effect, camera, dpr) {
   if (!effect.isAlive) return;
   const progress = effect.lifetime / effect.maxLifetime; // 0 → 1
+
+  // dpr 폴백: 파라미터가 없으면 window 에서 읽기 (하위 호환)
+  const _dpr = dpr || window.devicePixelRatio || 1;
 
   ctx.save();
 
@@ -37,8 +40,8 @@ export function drawEffect(ctx, effect, camera) {
     ctx.fillStyle   = effect.color || '#ffd54f';
 
     // 화면 전체 (카메라 좌표 무시하고 스크린 기준)
-    const w = ctx.canvas.width  / (window.devicePixelRatio || 1);
-    const h = ctx.canvas.height / (window.devicePixelRatio || 1);
+    const w = ctx.canvas.width  / _dpr;
+    const h = ctx.canvas.height / _dpr;
     ctx.fillRect(-camera.x - w, -camera.y - h, w * 3, h * 3);
 
   } else {

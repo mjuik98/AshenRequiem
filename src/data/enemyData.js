@@ -1,14 +1,12 @@
 /**
  * enemyData.js — 적 타입 정의
  *
- * 단위: hp(정수), moveSpeed(px/s), damage(정수), xpValue(정수), radius(px)
- * behaviorId: 'chase'(기본) | 'dash' | 'circle_dash'
- * behaviorState: () => {} — 런타임 상태 초기값 팩토리 함수
- *
- * FIX(balance): 엘리트 다양성 추가
- *   이전: elite_golem 1종뿐
- *   이후: elite_bat(빠른 돌진), elite_skeleton(원형 이동+투사체) 추가
- *   → waveData 에서 웨이브별로 다른 엘리트를 배정 가능
+ * PATCH:
+ *   [refactor] knockbackResist 필드 추가 (0.0~1.0).
+ *     golem/보스 계열은 1.0(완전 무시), 기본값 0(미정의 시 createEnemy 에서 0 적용).
+ *   [refactor] elite_skeleton 에 projectileConfig 추가.
+ *     EliteBehaviorSystem 하드코딩 제거 후 데이터에서 참조.
+ *   [balance]  기존 엘리트 다양성 유지 (elite_golem, elite_bat, elite_skeleton).
  */
 export const enemyData = [
 
@@ -16,8 +14,9 @@ export const enemyData = [
   {
     id: 'zombie',
     name: 'Zombie',
-    hp: 3, moveSpeed: 60, damage: 5, xpValue: 1, radius: 12,
+    hp: 3, moveSpeed: 60, damage: 3, xpValue: 1, radius: 12,
     color: '#8bc34a',
+    // PATCH(balance): damage 5 → 3 (초반 생존성 개선)
   },
   {
     id: 'skeleton',
@@ -44,6 +43,7 @@ export const enemyData = [
     name: 'Golem',
     hp: 20, moveSpeed: 35, damage: 15, xpValue: 5, radius: 20,
     color: '#795548',
+    knockbackResist: 0.8,   // PATCH: golem은 넉백에 강함
   },
   {
     id: 'slime',
@@ -67,11 +67,11 @@ export const enemyData = [
     hp: 60, moveSpeed: 45, damage: 22, xpValue: 18, radius: 26,
     color: '#ff8f00',
     isElite: true,
+    knockbackResist: 1.0,   // PATCH: 엘리트 골렘은 넉백 완전 무시
     behaviorId: 'dash',
     behaviorState: () => ({ phase: 'idle', timer: 1.5, dashDirX: 0, dashDirY: 0 }),
   },
 
-  // FIX(balance): 엘리트 bat 추가 — 고속 돌진형, 빠르고 작음
   {
     id: 'elite_bat',
     name: 'Elite Bat',
@@ -80,54 +80,64 @@ export const enemyData = [
     isElite: true,
     behaviorId: 'dash',
     behaviorState: () => ({
-      phase: 'idle', timer: 0.8,   // 빠른 돌진 준비
+      phase: 'idle', timer: 0.8,
       dashDirX: 0, dashDirY: 0,
     }),
   },
 
-  // FIX(balance): 엘리트 skeleton 추가 — 원형 이동 + 4방향 투사체
   {
     id: 'elite_skeleton',
     name: 'Elite Skeleton',
-    hp: 35, moveSpeed: 90, damage: 16, xpValue: 20, radius: 18,
-    color: '#bdbdbd',
+    hp: 35, moveSpeed: 90, damage: 10, xpValue: 16, radius: 16,
+    color: '#b0bec5',
     isElite: true,
     behaviorId: 'circle_dash',
     behaviorState: () => ({
-      phase: 'circling', timer: 2.0,
+      phase: 'circling',
+      timer: 3.0,
+      orbitAngle: 0,
+      orbitRadius: 180,
+      orbitSpeed: 1.4,
       dashDirX: 0, dashDirY: 0,
-      orbitAngle: 0, orbitRadius: 110, orbitSpeed: 1.8,
     }),
+    // PATCH(refactor): 투사체 config 를 data 로 이동 (EliteBehaviorSystem 하드코딩 제거)
+    projectileConfig: {
+      damage: 8,
+      speed: 220,
+      radius: 7,
+      color: '#e0e0e0',
+      pierce: 1,
+    },
   },
 
   // ── 보스 ─────────────────────────────────────────────────────
   {
     id: 'boss_lich',
     name: 'Lich King',
-    hp: 250, moveSpeed: 70, damage: 18, xpValue: 50, radius: 30,
-    color: '#ce93d8',
+    hp: 500, moveSpeed: 55, damage: 25, xpValue: 100, radius: 32,
+    color: '#7c4dff',
     isBoss: true,
+    knockbackResist: 1.0,
     behaviorId: 'circle_dash',
     behaviorState: () => ({
-      phase: 'circling', timer: 2.8, dashDirX: 0, dashDirY: 0,
-      orbitAngle: 0, orbitRadius: 130, orbitSpeed: 1.4,
+      phase: 'circling',
+      timer: 2.5,
+      orbitAngle: 0,
+      orbitRadius: 200,
+      orbitSpeed: 1.2,
+      dashDirX: 0, dashDirY: 0,
     }),
-  },
-  {
-    id: 'boss_vampire',
-    name: 'Vampire Lord',
-    hp: 500, moveSpeed: 95, damage: 25, xpValue: 100, radius: 26,
-    color: '#ef5350',
-    isBoss: true,
-    behaviorId: 'circle_dash',
-    behaviorState: () => ({
-      phase: 'circling', timer: 2.0, dashDirX: 0, dashDirY: 0,
-      orbitAngle: 0, orbitRadius: 100, orbitSpeed: 2.2,
-    }),
+    projectileConfig: {
+      damage: 14,
+      speed: 260,
+      radius: 9,
+      color: '#7c4dff',
+      pierce: 2,
+    },
   },
 ];
 
 /** id로 적 데이터 조회 */
 export function getEnemyDataById(id) {
-  return enemyData.find(e => e.id === id) || null;
+  return enemyData.find(e => e.id === id) ?? null;
 }

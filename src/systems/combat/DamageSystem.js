@@ -4,6 +4,11 @@
  * 입력: events.hits
  * 쓰기: 대상 HP, 피격 상태, 사망 상태, 넉백 벡터
  * 출력: events.deaths, spawnQueue(이펙트)
+ *
+ * PATCH(refactor): knockbackResist 지원.
+ *   enemyData 에 knockbackResist(0~1) 필드 추가 후 createEnemy 를 통해 런타임 상태로 복사.
+ *   0 = 일반 넉백, 1 = 완전 무시.
+ *   golem 계열 / 보스에게 적용.
  */
 export const DamageSystem = {
   update({ events, player, spawnQueue }) {
@@ -20,9 +25,10 @@ export const DamageSystem = {
       if (target.type === 'enemy') {
         target.hitFlashTimer = 0.1;
 
-        // 넉백 — 투사체 방향 또는 플레이어→적 방향으로 밀어냄
+        // 넉백 — PATCH: knockbackResist 반영
         const KNOCKBACK_SPEED    = 180; // px/s
         const KNOCKBACK_DURATION = 0.10; // 초
+        const resist = target.knockbackResist ?? 0;
 
         let kx = 0, ky = 0;
         if (hit.projectile && (hit.projectile.dirX || hit.projectile.dirY)) {
@@ -36,10 +42,10 @@ export const DamageSystem = {
           ky = dy / len;
         }
 
-        if (kx !== 0 || ky !== 0) {
-          target.knockbackX = kx * KNOCKBACK_SPEED;
-          target.knockbackY = ky * KNOCKBACK_SPEED;
-          target.knockbackTimer = KNOCKBACK_DURATION;
+        if ((kx !== 0 || ky !== 0) && resist < 1) {
+          target.knockbackX = kx * KNOCKBACK_SPEED * (1 - resist);
+          target.knockbackY = ky * KNOCKBACK_SPEED * (1 - resist);
+          target.knockbackTimer = KNOCKBACK_DURATION * (1 - resist);
         }
 
         // 흡혈 — 적에게 입힌 데미지 비율만큼 플레이어 회복

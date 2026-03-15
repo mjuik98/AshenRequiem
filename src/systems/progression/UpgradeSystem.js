@@ -5,47 +5,63 @@ import { getWeaponDataById } from '../../data/weaponData.js';
 /**
  * UpgradeSystem — 업그레이드 선택지 생성 + 적용
  *
- * FIX(balance): stat 타입 업그레이드에 maxCount 상한 체크 추가.
- *   player.upgradeCounts[upgrade.id] >= upgrade.maxCount 이면 선택지에서 제외.
- *   applyUpgrade 에서 적용 시 upgradeCounts 를 기록.
+ * PATCH(balance): generateChoices 에서 무기 관련 업그레이드 최소 1개 보장.
+ *   이전: 전체 pool 랜덤 셔플 → stat 업그레이드만 나올 가능성 있음.
+ *   이후: weapon_new / weapon_upgrade 가 존재하면 반드시 1개 포함.
+ *         나머지 2 슬롯은 stat 업그레이드로 채움.
+ *         weapon 관련이 없으면 기존처럼 전체 랜덤.
  */
 export const UpgradeSystem = {
-  /**
-   * 플레이어 상태를 기반으로 최대 3개 선택지 생성
-   */
   generateChoices(player) {
-    const available = [];
+    const weaponPicks = [];
+    const statPicks   = [];
 
     for (const upgrade of upgradeData) {
       if (upgrade.type === 'weapon_new') {
-        // 이미 보유한 무기는 제외
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
-        if (!owned) available.push(upgrade);
+        if (!owned) weaponPicks.push(upgrade);
 
       } else if (upgrade.type === 'weapon_upgrade') {
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
         if (owned) {
           const def = getWeaponDataById(upgrade.weaponId);
           const maxLevel = def?.maxLevel ?? Infinity;
-          if (owned.level < maxLevel) available.push(upgrade);
+          if (owned.level < maxLevel) weaponPicks.push(upgrade);
         }
 
       } else {
-        // FIX(balance): stat 업그레이드 — maxCount 초과 시 제외
+        // stat — maxCount 초과 시 제외
         const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
         if (upgrade.maxCount === undefined || taken < upgrade.maxCount) {
-          available.push(upgrade);
+          statPicks.push(upgrade);
         }
       }
     }
 
-    const shuffled = shuffle(available);
-    return shuffled.slice(0, Math.min(3, shuffled.length));
+    // PATCH(balance): 무기 관련이 있으면 최소 1개 보장
+    const shuffledWeapon = shuffle(weaponPicks);
+    const shuffledStat   = shuffle(statPicks);
+
+    const result = [];
+
+    if (shuffledWeapon.length > 0) {
+      result.push(shuffledWeapon[0]);
+    }
+
+    // 나머지 슬롯을 stat 으로 채우되, 전체 3개 초과 방지
+    for (const s of shuffledStat) {
+      if (result.length >= 3) break;
+      result.push(s);
+    }
+
+    // weapon 만으로 3개 채울 수 있으면 추가
+    for (let i = 1; i < shuffledWeapon.length && result.length < 3; i++) {
+      result.push(shuffledWeapon[i]);
+    }
+
+    return shuffle(result).slice(0, Math.min(3, result.length));
   },
 
-  /**
-   * 선택한 업그레이드 적용
-   */
   applyUpgrade(player, upgrade) {
     if (upgrade.type === 'weapon_new') {
       const weaponDef = getWeaponDataById(upgrade.weaponId);
@@ -70,7 +86,7 @@ export const UpgradeSystem = {
       upgrade.apply(player);
     }
 
-    // FIX(balance): 적용 횟수 기록 (stat 타입뿐 아니라 전체 tracking)
+    // 적용 횟수 기록
     if (!player.upgradeCounts) player.upgradeCounts = {};
     player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] ?? 0) + 1;
   },

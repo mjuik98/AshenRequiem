@@ -3,13 +3,13 @@ import { distanceSq, normalize, sub } from '../../math/Vector2.js';
 /**
  * WeaponSystem — 무기 쿨다운 관리 + 공격 생성 요청
  *
- * 입력: player, enemies, deltaTime, spawnQueue
- * 읽기: 적 목록, 쿨다운, 무기 데이터
- * 쓰기: 무기 내부 상태 (currentCooldown)
- * 출력: spawnQueue에 투사체 생성 요청
- *
- * behaviorId 지원: 'targetProjectile' | 'areaBurst' | 'orbit'
- * multishot: weapon.projectileCount > 1 시 스프레드 발사
+ * PATCH:
+ *   [bug]  targetProjectile 타깃 없을 때 currentCooldown = 0.1 하드코딩 제거.
+ *          타깃이 없으면 currentCooldown 을 건드리지 않고 continue.
+ *          (currentCooldown 이 이미 0 이 됐으므로 다음 프레임에서 재검사)
+ *   [bug]  areaBurst maxLifetime 0.3 하드코딩 제거.
+ *          weapon.burstDuration ?? 0.3 으로 weaponData 에서 참조.
+ *   [balance] orbit lifetime 계수 0.97 → 1.02 (오브 교체 공백 제거).
  */
 export const WeaponSystem = {
   update({ player, enemies, deltaTime, spawnQueue }) {
@@ -24,8 +24,9 @@ export const WeaponSystem = {
 
       // ── orbit ──────────────────────────────────────────────
       if (weapon.behaviorId === 'orbit') {
-        const count    = weapon.orbitCount || 3;
-        const lifetime = weapon.cooldown * 0.97;
+        const count = weapon.orbitCount || 3;
+        // PATCH(balance): 0.97 → 1.02 (오브 전환 공백 제거)
+        const lifetime = weapon.cooldown * 1.02;
 
         for (let o = 0; o < count; o++) {
           const angle = (o / count) * Math.PI * 2;
@@ -43,7 +44,7 @@ export const WeaponSystem = {
               behaviorId: 'orbit',
               maxLifetime: lifetime,
               ownerId: player.id,
-              statusEffectId:    weapon.statusEffectId    || null,
+              statusEffectId:     weapon.statusEffectId    ?? null,
               statusEffectChance: weapon.statusEffectChance ?? 1.0,
               orbitAngle:  angle,
               orbitRadius: weapon.orbitRadius || 72,
@@ -65,9 +66,10 @@ export const WeaponSystem = {
             pierce: weapon.pierce,
             maxRange: 0,
             behaviorId: 'areaBurst',
-            maxLifetime: 0.3,
+            // PATCH(bug): 하드코딩 0.3 → weapon.burstDuration 참조
+            maxLifetime: weapon.burstDuration ?? 0.3,
             ownerId: player.id,
-            statusEffectId:    weapon.statusEffectId    || null,
+            statusEffectId:     weapon.statusEffectId    ?? null,
             statusEffectChance: weapon.statusEffectChance ?? 1.0,
           },
         });
@@ -75,7 +77,8 @@ export const WeaponSystem = {
       // ── targetProjectile (멀티샷 지원) ─────────────────────
       } else {
         const target = this._findClosestEnemy(player, enemies, weapon.range);
-        if (!target) { weapon.currentCooldown = 0.1; continue; }
+        // PATCH(bug): 타깃 없을 때 currentCooldown = 0.1 하드코딩 제거 → 그냥 skip
+        if (!target) continue;
 
         const dir    = normalize(sub({ x: target.x, y: target.y }, { x: player.x, y: player.y }));
         const count  = weapon.projectileCount || 1;
@@ -98,7 +101,7 @@ export const WeaponSystem = {
               maxRange: weapon.range,
               behaviorId: 'targetProjectile',
               ownerId: player.id,
-              statusEffectId:    weapon.statusEffectId    || null,
+              statusEffectId:     weapon.statusEffectId    ?? null,
               statusEffectChance: weapon.statusEffectChance ?? 1.0,
             },
           });

@@ -56,6 +56,7 @@ export const PICKUP_DEFAULTS = {
  * PlayScene._showLevelUpUI 에서 하드코딩(0.6)하던 수치를 여기서 관리.
  */
 export const EFFECT_DEFAULTS = {
-  duration: 0.4,           // 기본 이펙트 지속 시간 (초)
-  levelFlashDuration: 0.6, // 레벨업 플래시 지속 시간 (초)
+  duration:           0.4,  // 기본 이펙트 지속 시간 (초)
+  levelFlashDuration: 0.6,  // 레벨업 플래시 지속 시간 (초)
+  burstDuration:      0.3,  // 사망 burst 이펙트 지속 시간 (초)
 };

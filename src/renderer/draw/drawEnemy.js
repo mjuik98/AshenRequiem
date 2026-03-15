@@ -3,17 +3,20 @@
  *
  * 일반 적  : 피격 플래시 + 상태이상 링 + HP 바
  * 엘리트   : 주황 펄스 링 + 더 큰 HP 바
- * 보스     : 빨간 삼중 펄스 링 + windup 예고점 + 이름 레이블 + DOM 전용 HP 바
+ * 보스     : 빨간 삼중 펄스 링 + 이름 레이블 + DOM 전용 HP 바
  *
- * FIX(perf): Date.now() 를 매 적마다 개별 호출하던 방식 제거.
- *   이전: drawEnemy 내부에서 Date.now() * 0.004 등을 매 호출마다 계산
- *   이후: RenderSystem 이 프레임당 1회만 계산한 timestamp(초) 를 인수로 전달
- *   적이 100마리이면 이전엔 100회 호출 → 이후엔 1회로 감소
+ * PATCH:
+ *   [refactor] windup 예고 연출 판정을 behaviorState.phase === 'windup' 에서
+ *              enemy.chargeEffect 전용 플래그로 교체.
+ *              hitFlashTimer 는 '피격 플래시' 원래 용도만 유지.
+ *   [perf]    shadowBlur 를 필요한 경우에만 적용.
+ *              일반 적 몸체는 shadowBlur 없이 fillStyle 만 사용.
+ *              엘리트/보스 펄스 링, 피격 플래시, 충전 연출에만 glow 적용.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {object} enemy
  * @param {{ x: number, y: number }} camera
- * @param {number} timestamp  — RenderSystem 이 계산한 현재 시각 (초, performance.now()/1000)
+ * @param {number} timestamp  — RenderSystem 이 계산한 현재 시각 (초)
  */
 export function drawEnemy(ctx, enemy, camera, timestamp) {
   if (!enemy.isAlive) return;
@@ -25,7 +28,6 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
 
   // ─── 보스 장식 링 (삼중 펄스) ──────────────────────────────
   if (enemy.isBoss) {
-    // FIX: Date.now() * 0.004 → timestamp * 4 (동일 결과, 외부 계산)
     const t = timestamp * 4;
     for (let ring = 0; ring < 3; ring++) {
       const pulse = 0.5 + 0.5 * Math.sin(t + ring * 1.2);
@@ -44,7 +46,6 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
 
   // ─── 엘리트 장식 링 ─────────────────────────────────────────
   if (enemy.isElite && !enemy.isBoss) {
-    // FIX: Date.now() * 0.006 → timestamp * 6
     const pulse = 0.5 + 0.5 * Math.sin(timestamp * 6);
     ctx.globalAlpha = 0.55 + pulse * 0.4;
     ctx.strokeStyle = '#ff9800';
@@ -60,27 +61,31 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
 
   // ─── 몸체 ───────────────────────────────────────────────────
   if (enemy.hitFlashTimer > 0) {
+    // 피격 플래시 — shadowBlur 허용 (빈도 낮음)
     ctx.shadowColor = '#ffffff';
     ctx.shadowBlur  = 16;
     ctx.fillStyle   = '#ffffff';
   } else {
-    ctx.shadowColor = enemy.color;
-    ctx.shadowBlur  = enemy.isBoss ? 20 : enemy.isElite ? 14 : 8;
-    ctx.fillStyle   = enemy.color;
+    // PATCH(perf): 일반 적 몸체는 shadowBlur 0 — 매 프레임 비용 절감
+    ctx.shadowBlur = 0;
+    ctx.fillStyle  = enemy.color;
   }
   ctx.beginPath();
   ctx.arc(sx, sy, r, 0, Math.PI * 2);
   ctx.fill();
+  ctx.shadowBlur = 0;
 
-  // ─── windup 예고 (중심 흰 점) ──────────────────────────────
-  const phase = enemy.behaviorState?.phase;
-  if (phase === 'windup') {
-    ctx.shadowBlur  = 0;
+  // ─── 돌진 충전 예고 (중심 흰 점) ───────────────────────────
+  // PATCH(refactor): behaviorState.phase 직접 읽기 → chargeEffect 플래그 사용
+  if (enemy.chargeEffect) {
     ctx.globalAlpha = 0.85;
     ctx.fillStyle   = '#ffffff';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur  = 12;
     ctx.beginPath();
     ctx.arc(sx, sy, r * 0.35, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur  = 0;
     ctx.globalAlpha = 1;
   }
 
@@ -107,9 +112,9 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
     const barX = sx - barW / 2;
     const barY = sy - r - (enemy.isElite ? 10 : 8);
 
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur  = 0;
     ctx.globalAlpha = 0.85;
-    ctx.fillStyle = '#333';
+    ctx.fillStyle   = '#333';
     ctx.fillRect(barX, barY, barW, barH);
 
     ctx.fillStyle = enemy.isElite ? '#ff9800' : '#ef5350';

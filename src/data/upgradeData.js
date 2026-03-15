@@ -1,5 +1,3 @@
-import { getWeaponDataById } from '../data/weaponData.js';
-
 /**
  * upgradeData.js — 업그레이드 정의
  *
@@ -142,12 +140,12 @@ export const upgradeData = [
   {
     id: 'stat_lifesteal',
     type: 'stat',
-    maxCount: 4,          // FIX: 최대 4회 → 상한 0.5 (50%)
+    maxCount: 3,          // FIX: 4 -> 3
     name: '흡혈 +8%',
     description: '적에게 입힌 데미지의 8% 회복',
     icon: '🩸',
     apply(player) {
-      player.lifesteal = Math.min(0.5, (player.lifesteal || 0) + 0.08);
+      player.lifesteal = Math.min(0.3, (player.lifesteal || 0) + 0.08); // FIX: 상한 0.5 -> 0.3
     },
   },
   {

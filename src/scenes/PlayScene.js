@@ -1,14 +1,15 @@
+import { generateId } from '../utils/ids.js';
+import { compactWithPool, compactInPlace } from '../utils/compact.js';
+import { resetProjectile, resetEffect } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents } from '../state/createWorld.js';
 import { createUiState } from '../state/createUiState.js';
 import { createPlayer } from '../entities/createPlayer.js';
 import { createEnemy } from '../entities/createEnemy.js';
 import { createProjectile } from '../entities/createProjectile.js';
-import { createProjectile as createProjectileEntity } from '../entities/createProjectile.js'; // createProjectile duplicate import issue fix
 import { createPickup } from '../entities/createPickup.js';
 import { createEffect } from '../entities/createEffect.js';
 import { waveData } from '../data/waveData.js';
 import { bossData } from '../data/bossData.js';
-import { generateId } from '../utils/ids.js';
 import { EFFECT_DEFAULTS } from '../data/constants.js';
 
 import { PlayerMovementSystem }  from '../systems/movement/PlayerMovementSystem.js';
@@ -39,17 +40,6 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
 
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
- *
- * Scene 는 흐름 제어만 담당. 계산은 System 에 위임.
- *
- * FIX 목록:
- *   [bug]     파이프라인 재정렬 — applyFromHits → tick → DamageSystem 순으로 변경.
- *             poison hit 이 DamageSystem 을 통해 처리되도록 보장.
- *   [bug]     _showLevelUpUI 의 레벨업 플래시 이펙트를 spawnQueue 경로로 전환.
- *             spawnQueue push 후 즉시 _flushQueues() 호출
- *             (playMode === 'levelup' 이 되면 다음 프레임 update 가 skip 되므로 필요).
- *   [bug]     EFFECT_DEFAULTS.levelFlashDuration 상수 사용 (하드코딩 0.6 제거).
- *   [perf]    _resetProjectile — hitTargets.length = 0 → hitTargets.clear()  (Set)
  */
 export class PlayScene {
   constructor(game) {
@@ -65,7 +55,7 @@ export class PlayScene {
     this._projectilePool = null;
     this._effectPool = null;
     this._soundSystem = null;
-    this._backtickWasDown = false;
+    this._dpr = window.devicePixelRatio || 1;
   }
 
   enter() {
@@ -75,14 +65,15 @@ export class PlayScene {
 
     this.world.player = createPlayer(0, 0);
 
+    // FIX: projectilePool size 40 -> 80
     this._projectilePool = new ObjectPool(
       () => createProjectile({ x: 0, y: 0 }),
-      _resetProjectile,
-      40,
+      resetProjectile,
+      80,
     );
     this._effectPool = new ObjectPool(
       () => createEffect({ x: 0, y: 0 }),
-      _resetEffect,
+      resetEffect,
       60,
     );
 
@@ -96,6 +87,7 @@ export class PlayScene {
     this.debugView   = new DebugView(uiContainer);
     this.bossHudView = new BossHudView(uiContainer);
     this.hudView.show();
+    this._dpr = window.devicePixelRatio || 1;
   }
 
   update(dt) {
@@ -112,8 +104,7 @@ export class PlayScene {
 
     // 2. 게임 시간 갱신
     world.deltaTime = dt;
-    world.time += dt;
-    world.elapsedTime += dt;
+    world.elapsedTime += dt; // elapsedTime 으로 통일
 
     // 3. 스폰 처리
     SpawnSystem.update({
@@ -127,7 +118,7 @@ export class PlayScene {
     // 4. 플레이어 이동
     PlayerMovementSystem.update({ input, player: world.player, deltaTime: dt });
 
-    // 5. 적 이동 (chase 전용 + hitFlash/knockback 공통)
+    // 5. 적 이동
     EnemyMovementSystem.update({ player: world.player, enemies: world.enemies, deltaTime: dt });
 
     // 5.5. 엘리트/보스 행동 패턴
@@ -151,37 +142,20 @@ export class PlayScene {
       deltaTime:   dt,
     });
 
-    // 8. 충돌 판정 → events.hits 생성
+    // 8. 충돌 판정 (camera 전달로 컬링 활성화)
     CollisionSystem.update({
       player:      world.player,
       enemies:     world.enemies,
       projectiles: world.projectiles,
       pickups:     world.pickups,
       events:      world.events,
+      camera:      this.camera,
     });
 
-    // FIX(bug): 파이프라인 재정렬
-    //
-    // 이전 순서:
-    //   9.  DamageSystem
-    //   9.5 StatusEffectSystem.applyFromHits
-    //   9.7 StatusEffectSystem.tick  ← poison이 events.deaths 직접 push
-    //  10.  DeathSystem
-    //
-    // 이후 순서:
-    //   9.  StatusEffectSystem.applyFromHits  (충돌 hit → 상태이상 부여)
-    //   9.5 StatusEffectSystem.tick           (poison → events.hits 에 synthetic hit 추가)
-    //   9.7 DamageSystem                      (충돌 hit + poison hit 모두 처리)
-    //  10.  DeathSystem
-    //
-    // 효과: poison kill 도 DamageSystem → DeathSystem 경로를 따르므로
-    //       킬카운트 / XP / 사망 이펙트가 정상 발생.
-
-    // 9. 상태이상 부여 (충돌 hit → 효과 적용)
+    // 9. 상태이상 부여
     StatusEffectSystem.applyFromHits({ hits: world.events.hits });
 
-    // 9.5. 상태이상 틱 (poison → events.hits 에 synthetic hit)
-    // FIX: spawnQueue 인수 제거 (StatusEffectSystem 이 더 이상 사용 안 함)
+    // 9.5. 상태이상 틱
     StatusEffectSystem.tick({
       enemies:   world.enemies,
       player:    world.player,
@@ -189,11 +163,11 @@ export class PlayScene {
       events:    world.events,
     });
 
-    // 9.7. 데미지 적용 (충돌 hit + poison hit 모두 처리)
+    // 9.7. 데미지 적용
     DamageSystem.update({ events: world.events, player: world.player, spawnQueue: world.spawnQueue });
 
-    // 10. 사망 처리
-    DeathSystem.update({ events: world.events, world, spawnQueue: world.spawnQueue });
+    // 10. 사망 처리 (worldState 슬라이스 전달)
+    DeathSystem.update({ events: world.events, worldState: world, spawnQueue: world.spawnQueue });
 
     // 10.5. 사운드 처리
     this._soundSystem.processEvents(world.events);
@@ -206,8 +180,8 @@ export class PlayScene {
       deltaTime: dt,
     });
 
-    // 12. 레벨업 확인
-    LevelSystem.update({ player: world.player, world });
+    // 12. 레벨업 확인 (worldState 슬라이스 전달)
+    LevelSystem.update({ player: world.player, worldState: world });
 
     // 13. 큐 플러시
     this._flushQueues();
@@ -223,14 +197,11 @@ export class PlayScene {
     if (world.playMode === 'levelup') this._showLevelUpUI();
     if (world.playMode === 'dead')    this._showResultUI();
 
-    // HUD / 보스 HUD 갱신
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
 
-    // 디버그 백쿼트 토글
-    const backtickDown = input.isKeyDown('Backquote');
-    if (backtickDown && !this._backtickWasDown) this.debugView.toggle();
-    this._backtickWasDown = backtickDown;
+    // 디버그 입력 처리 위임
+    this.debugView.handleInput(input);
     this.debugView.update(
       world,
       { projectilePool: this._projectilePool, effectPool: this._effectPool },
@@ -239,7 +210,13 @@ export class PlayScene {
   }
 
   render() {
-    RenderSystem.update({ world: this.world, camera: this.camera, renderer: this.game.renderer });
+    // drawEffect 등에 전달할 dpr 포함
+    RenderSystem.update({ 
+      world: this.world, 
+      camera: this.camera, 
+      renderer: this.game.renderer,
+      dpr: this._dpr
+    });
   }
 
   exit() {
@@ -249,12 +226,14 @@ export class PlayScene {
     if (this.debugView)    this.debugView.destroy();
     if (this.bossHudView)  this.bossHudView.destroy();
     if (this._soundSystem) this._soundSystem.destroy();
+    
+    // GC leaks fix
+    this.world           = null;
+    this.uiState         = null;
     this._projectilePool = null;
     this._effectPool     = null;
     this._soundSystem    = null;
   }
-
-  // ─── 큐 플러시 ─────────────────────────────────────────────
 
   _flushQueues() {
     const world = this.world;
@@ -281,10 +260,12 @@ export class PlayScene {
       }
     }
     world.spawnQueue.length = 0;
-    _compactWithPool(world.projectiles, this._projectilePool);
-    _compactInPlace(world.enemies);
-    _compactInPlace(world.pickups);
-    _compactWithPool(world.effects, this._effectPool);
+    
+    // utility 로 분리됨
+    compactWithPool(world.projectiles, this._projectilePool);
+    compactInPlace(world.enemies);
+    compactInPlace(world.pickups);
+    compactWithPool(world.effects, this._effectPool);
   }
 
   _updateEffects(dt) {
@@ -296,15 +277,9 @@ export class PlayScene {
     }
   }
 
-  // ─── UI 전환 ───────────────────────────────────────────────
-
   _showLevelUpUI() {
     this._soundSystem.play('levelup');
 
-    // FIX(bug): 직접 push → spawnQueue + 즉시 플러시
-    // playMode === 'levelup' 로 인해 다음 프레임 update 가 skip 되므로
-    // 이 시점에 spawnQueue 를 즉시 비워야 이펙트가 화면에 나타난다.
-    // FIX(code): 하드코딩 0.6 → EFFECT_DEFAULTS.levelFlashDuration 상수 사용
     this.world.spawnQueue.push({
       type: 'effect',
       config: {
@@ -338,70 +313,4 @@ export class PlayScene {
       () => { this.game.sceneManager.changeScene(new PlayScene(this.game)); },
     );
   }
-}
-
-// ─── ObjectPool 리셋 함수 ─────────────────────────────────────
-
-function _resetProjectile(obj, cfg) {
-  obj.id   = generateId();
-  obj.type = 'projectile';
-  obj.x    = cfg.x || 0;
-  obj.y    = cfg.y || 0;
-  obj.dirX  = cfg.dirX  || 0;
-  obj.dirY  = cfg.dirY  || 0;
-  obj.speed  = cfg.speed  || 300;
-  obj.damage = cfg.damage || 1;
-  obj.radius = cfg.radius || 5;
-  obj.color  = cfg.color  || '#ffee58';
-  obj.pierce   = cfg.pierce   || 1;
-  obj.hitCount = 0;
-  // FIX(perf): hitTargets は Set — clear() でリセット
-  obj.hitTargets.clear();
-  obj.maxRange          = cfg.maxRange  || 400;
-  obj.distanceTraveled  = 0;
-  obj.behaviorId        = cfg.behaviorId  || 'targetProjectile';
-  obj.lifetime          = cfg.lifetime    || 0;
-  obj.maxLifetime       = cfg.maxLifetime || 0.3;
-  obj.ownerId           = cfg.ownerId     || null;
-  obj.statusEffectId     = cfg.statusEffectId     || null;
-  obj.statusEffectChance = cfg.statusEffectChance ?? 1.0;
-  obj.orbitAngle  = cfg.orbitAngle  ?? 0;
-  obj.orbitRadius = cfg.orbitRadius ?? 80;
-  obj.orbitSpeed  = cfg.orbitSpeed  ?? Math.PI;
-  obj.isAlive         = true;
-  obj.pendingDestroy  = false;
-}
-
-function _resetEffect(obj, cfg) {
-  obj.id   = generateId();
-  obj.type = 'effect';
-  obj.x    = cfg.x || 0;
-  obj.y    = cfg.y || 0;
-  obj.effectType  = cfg.effectType  || 'burst';
-  obj.color       = cfg.color       || '#ff5722';
-  obj.text        = cfg.text        || '';
-  obj.radius      = cfg.radius      || 15;
-  obj.lifetime    = 0;
-  // FIX(code): duration 필드 통일 — cfg.duration 우선, 없으면 EFFECT_DEFAULTS.duration
-  obj.maxLifetime = cfg.duration ?? EFFECT_DEFAULTS.duration;
-  obj.isAlive        = true;
-  obj.pendingDestroy = false;
-}
-
-function _compactWithPool(arr, pool) {
-  let write = 0;
-  for (let read = 0; read < arr.length; read++) {
-    const item = arr[read];
-    if (item.pendingDestroy) pool.release(item);
-    else arr[write++] = item;
-  }
-  arr.length = write;
-}
-
-function _compactInPlace(arr) {
-  let write = 0;
-  for (let read = 0; read < arr.length; read++) {
-    if (!arr[read].pendingDestroy) arr[write++] = arr[read];
-  }
-  arr.length = write;
 }

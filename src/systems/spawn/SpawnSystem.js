@@ -42,6 +42,10 @@ export const SpawnSystem = {
     this._spawnAccumulator = 0;
     this._spawnedBossAt.clear();
     this._lastBossSpawnTime = -Infinity;
+    // PATCH: 호출 확인용 로그
+    if (typeof console !== 'undefined') {
+      console.debug('[SpawnSystem] reset — 스폰 상태 초기화 완료');
+    }
   },
 
   update({ elapsedTime, waveData, bossData, player, spawnQueue, deltaTime }) {

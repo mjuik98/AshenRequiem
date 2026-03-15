@@ -1,10 +1,12 @@
 /**
  * weaponData.js — 무기 정의
  *
- * 단위: cooldown(초), damage(정수), projectileSpeed(px/s), range(px), radius(px)
- * statusEffectId: statusEffectData.js의 id (없으면 null)
- * statusEffectChance: 0.0~1.0 (발동 확률)
- * behaviorId: 'targetProjectile' | 'areaBurst' | 'orbit'
+ * PATCH:
+ *   [bug]  burstDuration 필드 추가 (areaBurst 무기 전용).
+ *          WeaponSystem 의 maxLifetime: 0.3 하드코딩 제거.
+ *          holy_aura / frost_nova 가 쿨다운에 맞는 지속시간을 갖도록 수정.
+ *   [balance] holy_aura: damage 1 → 2, cooldown 1.0 → 0.8 (단독 실용 수준 향상).
+ *   [balance] orbit lifetime 계수는 WeaponSystem 에서 1.02 로 수정 (orbit 공백 제거).
  */
 export const weaponData = [
   {
@@ -20,9 +22,11 @@ export const weaponData = [
     id: 'holy_aura',
     name: 'Holy Aura',
     description: '주변 적에게 지속 데미지',
-    damage: 1, cooldown: 1.0, range: 80, radius: 80,
+    // PATCH(balance): damage 1 → 2, cooldown 1.0 → 0.8, burstDuration 추가
+    damage: 2, cooldown: 0.8, range: 80, radius: 80,
     projectileSpeed: 0, pierce: 999, projectileColor: '#ffd54f',
     behaviorId: 'areaBurst', maxLevel: 5,
+    burstDuration: 0.5,   // PATCH: 시각적 지속 시간
     statusEffectId: 'poison', statusEffectChance: 0.2,
   },
   {
@@ -37,6 +41,7 @@ export const weaponData = [
     orbitRadius: 72,
     orbitSpeed: 2.8,
     statusEffectId: 'stun', statusEffectChance: 0.25,
+    // orbit lifetime 계수는 WeaponSystem 에서 cooldown * 1.02 로 계산
   },
   {
     id: 'frost_nova',
@@ -45,6 +50,7 @@ export const weaponData = [
     damage: 2, cooldown: 2.0, range: 100, radius: 100,
     projectileSpeed: 0, pierce: 999, projectileColor: '#80deea',
     behaviorId: 'areaBurst', maxLevel: 5,
+    burstDuration: 0.6,   // PATCH: 2.0s 쿨다운에 걸맞는 지속 시간
     statusEffectId: 'stun', statusEffectChance: 0.6,
   },
   {
@@ -61,5 +67,5 @@ export const weaponData = [
 
 /** id로 무기 데이터 조회 */
 export function getWeaponDataById(id) {
-  return weaponData.find(w => w.id === id) || null;
+  return weaponData.find(w => w.id === id) ?? null;
 }
