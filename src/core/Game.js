@@ -7,33 +7,23 @@ import { TitleScene } from '../scenes/TitleScene.js';
 
 /**
  * Game — 게임 최상위 진입점
- *
- * Canvas 초기화, Input/SceneManager 생성, GameLoop 시작
  */
 export class Game {
   constructor() {
-    // Canvas 설정
-    /** @type {HTMLCanvasElement} */
     this.canvas = document.getElementById('game-canvas');
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx    = this.canvas.getContext('2d');
     this._resizeCanvas();
     window.addEventListener('resize', () => this._resizeCanvas());
 
-    // 서비스 초기화
-    this.input = new Input();
+    this.input        = new Input();
     this.input.init();
-
     this.sceneManager = new SceneManager();
-    this.renderer = new CanvasRenderer(this.canvas, this.ctx);
-
-    // 게임 루프
-    this._loop = new GameLoop((dt) => this._tick(dt));
+    this.renderer     = new CanvasRenderer(this.canvas, this.ctx);
+    this._loop        = new GameLoop((dt) => this._tick(dt));
   }
 
   start() {
-    // 첫 씬은 TitleScene
-    const titleScene = new TitleScene(this);
-    this.sceneManager.changeScene(titleScene);
+    this.sceneManager.changeScene(new TitleScene(this));
     this._loop.start();
   }
 
@@ -44,20 +34,13 @@ export class Game {
 
   _resizeCanvas() {
     const dpr = GameConfig.useDevicePixelRatio ? (window.devicePixelRatio || 1) : 1;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    this.canvas.width = w * dpr;
+    const w = window.innerWidth, h = window.innerHeight;
+    this.canvas.width  = w * dpr;
     this.canvas.height = h * dpr;
-    this.canvas.style.width = w + 'px';
+    this.canvas.style.width  = w + 'px';
     this.canvas.style.height = h + 'px';
-
-    // 논리 해상도 업데이트
-    GameConfig.canvasWidth = w;
+    GameConfig.canvasWidth  = w;
     GameConfig.canvasHeight = h;
-
-    if (this.ctx) {
-      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+    if (this.ctx) this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 }

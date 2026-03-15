@@ -2,7 +2,7 @@
  * DamageSystem — 데미지 적용
  *
  * 입력: events.hits
- * 쓰기: 대상 HP, 피격 상태, 사망 상태
+ * 쓰기: 대상 HP, 피격 상태, 사망 상태, 넉백 벡터
  * 출력: events.deaths, spawnQueue(이펙트)
  */
 export const DamageSystem = {
@@ -17,9 +17,35 @@ export const DamageSystem = {
 
       target.hp -= hit.damage;
 
-      // 적에게 피격 플래시
       if (target.type === 'enemy') {
         target.hitFlashTimer = 0.1;
+
+        // 넉백 — 투사체 방향 또는 플레이어→적 방향으로 밀어냄
+        const KNOCKBACK_SPEED    = 180; // px/s
+        const KNOCKBACK_DURATION = 0.10; // 초
+
+        let kx = 0, ky = 0;
+        if (hit.projectile && (hit.projectile.dirX || hit.projectile.dirY)) {
+          kx = hit.projectile.dirX;
+          ky = hit.projectile.dirY;
+        } else if (player) {
+          const dx = target.x - player.x;
+          const dy = target.y - player.y;
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          kx = dx / len;
+          ky = dy / len;
+        }
+
+        if (kx !== 0 || ky !== 0) {
+          target.knockbackX = kx * KNOCKBACK_SPEED;
+          target.knockbackY = ky * KNOCKBACK_SPEED;
+          target.knockbackTimer = KNOCKBACK_DURATION;
+        }
+
+        // 흡혈 — 적에게 입힌 데미지 비율만큼 플레이어 회복
+        if (player && player.lifesteal > 0) {
+          player.hp = Math.min(player.maxHp, player.hp + hit.damage * player.lifesteal);
+        }
       }
 
       // 플레이어 피격 시 무적 부여

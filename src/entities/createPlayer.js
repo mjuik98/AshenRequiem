@@ -39,6 +39,9 @@ export function createPlayer(x = 0, y = 0) {
     invincibleTimer: 0,
     invincibleDuration: 0.5,
 
+    // 흡혈 비율 (0~0.5) — stat upgrade로 증가
+    lifesteal: 0,
+
     // 상태이상
     statusEffects: [],
     stunned: false,

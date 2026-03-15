@@ -22,15 +22,20 @@ export function createProjectile(config) {
     hitTargets: [],
     maxRange: config.maxRange || 400,
     distanceTraveled: 0,
-    /** behaviorId (areaBurst 등 특수 투사체 구분) */
+    /** behaviorId: 'targetProjectile' | 'areaBurst' | 'orbit' */
     behaviorId: config.behaviorId || 'targetProjectile',
-    /** areaBurst용 수명 */
+    /** areaBurst / orbit 공용 수명 */
     lifetime: config.lifetime || 0,
     maxLifetime: config.maxLifetime || 0.3,
     ownerId: config.ownerId || null,
 
     statusEffectId: config.statusEffectId || null,
     statusEffectChance: config.statusEffectChance ?? 1.0,
+
+    // orbit 전용 필드
+    orbitAngle:  config.orbitAngle  ?? 0,
+    orbitRadius: config.orbitRadius ?? 80,
+    orbitSpeed:  config.orbitSpeed  ?? Math.PI,
 
     isAlive: true,
     pendingDestroy: false,
