@@ -1,4 +1,5 @@
 import { distanceSq } from '../../math/Vector2.js';
+import { COLLISION_CULL_MARGIN } from '../../data/constants.js';
 
 /**
  * CollisionSystem — 충돌 판정 전용
@@ -6,18 +7,19 @@ import { distanceSq } from '../../math/Vector2.js';
  * FIX(perf): hitTargets.includes(e.id) O(n) → hitTargets.has(e.id) O(1)
  *            hitTargets.push(e.id)      → hitTargets.add(e.id)
  *            (createProjectile 및 _resetProjectile 도 함께 변경)
+ *
+ * FIX(refactor): CULL_MARGIN 하드코딩 → constants.js 의 COLLISION_CULL_MARGIN 으로 이관.
+ *   해상도/카메라 zoom 변경 시 constants.js 한 곳만 수정하면 된다.
  */
-const CULL_MARGIN = 700;
-
 export const CollisionSystem = {
   update({ player, enemies, projectiles, pickups, events, camera }) {
     if (!player || !player.isAlive) return;
 
     const hasCull = !!camera;
-    const cullMinX = hasCull ? camera.x - CULL_MARGIN : -Infinity;
-    const cullMaxX = hasCull ? camera.x + CULL_MARGIN : Infinity;
-    const cullMinY = hasCull ? camera.y - CULL_MARGIN : -Infinity;
-    const cullMaxY = hasCull ? camera.y + CULL_MARGIN : Infinity;
+    const cullMinX = hasCull ? camera.x - COLLISION_CULL_MARGIN : -Infinity;
+    const cullMaxX = hasCull ? camera.x + COLLISION_CULL_MARGIN : Infinity;
+    const cullMinY = hasCull ? camera.y - COLLISION_CULL_MARGIN : -Infinity;
+    const cullMaxY = hasCull ? camera.y + COLLISION_CULL_MARGIN : Infinity;
 
     // ── 투사체 vs 적 ──────────────────────────────────────────
     for (let i = 0; i < projectiles.length; i++) {

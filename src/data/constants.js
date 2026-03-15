@@ -60,3 +60,22 @@ export const EFFECT_DEFAULTS = {
   levelFlashDuration: 0.6,  // 레벨업 플래시 지속 시간 (초)
   burstDuration:      0.3,  // 사망 burst 이펙트 지속 시간 (초)
 };
+
+/**
+ * 넉백 물리 상수
+ *
+ * FIX(refactor): DamageSystem 내 하드코딩 제거 → 여기서 관리.
+ * 넉백 저항(knockbackResist)은 enemyData 에서 적별로 정의.
+ */
+export const KNOCKBACK = {
+  speed:    180,  // px/s — 넉백 이동 속도
+  duration: 0.10, // 초  — 넉백 지속 시간
+};
+
+/**
+ * CollisionSystem 화면 외곽 컬링 마진 (px)
+ *
+ * FIX(refactor): CollisionSystem 내 하드코딩 제거 → 여기서 관리.
+ * 해상도 또는 카메라 zoom 변경 시 이 값만 조정한다.
+ */
+export const COLLISION_CULL_MARGIN = 700;

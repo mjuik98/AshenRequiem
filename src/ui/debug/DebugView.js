@@ -12,6 +12,10 @@ import { getXpForLevel } from '../../data/constants.js';
  *   PLAYER       — HP, 레벨, XP, 속도, 흡수 범위
  *   WEAPONS      — 보유 무기별 레벨·데미지·쿨다운
  *   WAVE         — 경과 시간, 킬수, 현재 spawnPerSecond, 적 종류
+ *
+ * PATCH(perf): DOM 갱신 주기를 매 4프레임 1회로 제한.
+ *   이전: 패널이 열려 있으면 매 프레임 innerHTML 전체 교체 → FPS 저하 시 악순환.
+ *   이후: _updateCounter % 4 === 0 일 때만 innerHTML 갱신 (FPS 측정 버퍼는 매 프레임 유지).
  */
 export class DebugView {
   constructor(container) {
@@ -24,6 +28,9 @@ export class DebugView {
     // FPS 측정: 최근 60프레임 dt 보관
     this._dtBuffer = [];
     this._backtickWasDown = false;
+
+    // PATCH(perf): DOM 갱신 throttle 카운터
+    this._updateCounter = 0;
   }
 
   /**
@@ -38,8 +45,12 @@ export class DebugView {
     this._dtBuffer.push(dt);
     if (this._dtBuffer.length > 60) this._dtBuffer.shift();
 
-    // 패널이 숨겨져 있으면 DOM 갱신 생략 (비용 절감)
+    // 패널이 숨겨져 있으면 DOM 갱신 생략
     if (this.el.style.display === 'none') return;
+
+    // PATCH(perf): 4프레임마다 1회만 innerHTML 갱신
+    this._updateCounter++;
+    if (this._updateCounter % 4 !== 0) return;
 
     const avgDt  = this._dtBuffer.reduce((a, b) => a + b, 0) / this._dtBuffer.length;
     const fps    = avgDt > 0 ? Math.round(1 / avgDt) : 0;
@@ -125,8 +136,9 @@ export class DebugView {
 
   show()   { this.el.style.display = 'block'; }
   hide()   { this.el.style.display = 'none';  }
-  toggle() { this.el.style.display === 'none' ? this.show() : this.hide(); }
-  get visible() { return this.el.style.display !== 'none'; }
+  toggle() {
+    this.el.style.display === 'none' ? this.show() : this.hide();
+  }
   destroy() { this.el.remove(); }
 
   _injectStyles() {
@@ -135,57 +147,29 @@ export class DebugView {
     style.id = 'debug-styles';
     style.textContent = `
       #debug-panel {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 256px;
-        background: rgba(0, 0, 0, 0.80);
-        border: 1px solid rgba(255, 255, 255, 0.10);
+        position: absolute; top: 12px; right: 12px;
+        background: rgba(0,0,0,0.82);
+        border: 1px solid #333;
         border-radius: 6px;
-        padding: 8px 10px;
-        font-family: 'Consolas', 'Menlo', 'Monaco', monospace;
+        padding: 10px 14px;
+        font-family: 'Courier New', monospace;
         font-size: 11px;
-        color: #c0c0c0;
-        pointer-events: none;
+        color: #ccc;
+        min-width: 220px;
         z-index: 200;
-        user-select: none;
-        line-height: 1;
+        pointer-events: none;
       }
-      .dbg-section  { margin-bottom: 9px; }
-      .dbg-title {
-        font-size: 9px;
-        font-weight: bold;
-        color: #555;
-        letter-spacing: 1.2px;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-        padding-bottom: 2px;
-        border-bottom: 1px solid rgba(255,255,255,0.07);
-      }
-      .dbg-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        line-height: 1.75;
-      }
-      .dbg-sep {
-        height: 4px;
-        border-top: 1px solid rgba(255,255,255,0.06);
-        margin: 2px 0;
-      }
-      .dbg-key   { color: #666; }
-      .dbg-val   { color: #ddd; text-align: right; max-width: 155px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .dbg-small { font-size: 10px; }
-      .dbg-ok      { color: #81c784; }
-      .dbg-caution { color: #ffb74d; }
-      .dbg-warn    { color: #e57373; }
-      .dbg-hint {
-        text-align: center;
-        color: #333;
-        font-size: 9px;
-        margin-top: 2px;
-        letter-spacing: 0.5px;
-      }
+      .dbg-section { margin-bottom: 8px; }
+      .dbg-title { color: #4fc3f7; font-weight: bold; font-size: 10px; letter-spacing: 1px; margin-bottom: 3px; }
+      .dbg-row { display: flex; justify-content: space-between; margin: 1px 0; }
+      .dbg-key { color: #888; }
+      .dbg-val { color: #eee; }
+      .dbg-val.dbg-ok     { color: #66bb6a; }
+      .dbg-val.dbg-caution { color: #ffa726; }
+      .dbg-val.dbg-warn   { color: #ef5350; }
+      .dbg-val.dbg-small  { font-size: 10px; }
+      .dbg-sep { border-top: 1px solid #333; margin: 4px 0; }
+      .dbg-hint { color: #444; font-size: 10px; text-align: right; margin-top: 4px; }
     `;
     document.head.appendChild(style);
   }

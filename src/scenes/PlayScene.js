@@ -1,4 +1,3 @@
-import { generateId } from '../utils/ids.js';
 import { compactWithPool, compactInPlace } from '../utils/compact.js';
 import { resetProjectile, resetEffect } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents } from '../state/createWorld.js';
@@ -40,6 +39,15 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
 
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
+ *
+ * FIX(cleanup): generateId 미사용 import 제거.
+ *   PlayScene 내부에서 직접 호출하는 곳이 없었음.
+ *
+ * FIX(bug): _showLevelUpUI 에서 spawnQueue.push + _flushQueues() 수동 호출 제거.
+ *   이전: levelFlash 이펙트를 spawnQueue 에 넣고 즉시 _flushQueues() 를 호출.
+ *         → 파이프라인 13단계 외부에서 큐 플러시가 발생, compactWith* 도 이중 실행.
+ *   이후: effectPool.acquire() 로 직접 world.effects 에 push.
+ *         _flushQueues() 수동 호출 불필요.
  */
 export class PlayScene {
   constructor(game) {
@@ -215,7 +223,7 @@ export class PlayScene {
       world: this.world, 
       camera: this.camera, 
       renderer: this.game.renderer,
-      dpr: this._dpr
+      dpr: this._dpr,
     });
   }
 
@@ -226,7 +234,7 @@ export class PlayScene {
     if (this.debugView)    this.debugView.destroy();
     if (this.bossHudView)  this.bossHudView.destroy();
     if (this._soundSystem) this._soundSystem.destroy();
-    
+
     // GC leaks fix
     this.world           = null;
     this.uiState         = null;
@@ -260,7 +268,7 @@ export class PlayScene {
       }
     }
     world.spawnQueue.length = 0;
-    
+
     // utility 로 분리됨
     compactWithPool(world.projectiles, this._projectilePool);
     compactInPlace(world.enemies);
@@ -277,21 +285,26 @@ export class PlayScene {
     }
   }
 
+  /**
+   * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 → effectPool.acquire 직접 push.
+   *
+   * _flushQueues() 를 파이프라인 외부(13단계 이후)에서 다시 호출하면
+   * compactWith* 가 이중 실행되고 spawnQueue 처리 타이밍이 어긋남.
+   * levelFlash 이펙트는 단순 시각 효과이므로 풀에서 직접 꺼내 effects 에 넣는다.
+   */
   _showLevelUpUI() {
     this._soundSystem.play('levelup');
 
-    this.world.spawnQueue.push({
-      type: 'effect',
-      config: {
-        x: this.world.player.x,
-        y: this.world.player.y,
-        effectType: 'levelFlash',
-        color: '#ffd54f',
-        radius: 1,
-        duration: EFFECT_DEFAULTS.levelFlashDuration,
-      },
-    });
-    this._flushQueues();
+    // FIX: spawnQueue 우회 — effectPool 에서 직접 꺼내 world.effects 에 push
+    this.world.effects.push(this._effectPool.acquire({
+      x: this.world.player.x,
+      y: this.world.player.y,
+      effectType: 'levelFlash',
+      color: '#ffd54f',
+      radius: 1,
+      duration: EFFECT_DEFAULTS.levelFlashDuration,
+    }));
+    // FIX: _flushQueues() 수동 호출 제거
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) { this.world.playMode = 'playing'; return; }

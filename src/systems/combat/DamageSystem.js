@@ -1,3 +1,5 @@
+import { KNOCKBACK } from '../../data/constants.js';
+
 /**
  * DamageSystem — 데미지 적용
  *
@@ -9,6 +11,14 @@
  *   enemyData 에 knockbackResist(0~1) 필드 추가 후 createEnemy 를 통해 런타임 상태로 복사.
  *   0 = 일반 넉백, 1 = 완전 무시.
  *   golem 계열 / 보스에게 적용.
+ *
+ * FIX(bug): pendingDestroy 가드 추가.
+ *   같은 프레임에 poison tick + 일반 투사체가 동일 대상을 처리할 때,
+ *   첫 번째 hit 이 isAlive = false 를 설정한 후에도 두 번째 hit 이
+ *   진입할 수 있었음. pendingDestroy 도 함께 확인해 이중 처리를 차단.
+ *
+ * FIX(refactor): KNOCKBACK_SPEED / KNOCKBACK_DURATION 하드코딩 제거.
+ *   → src/data/constants.js 의 KNOCKBACK 상수로 이관.
  */
 export const DamageSystem = {
   update({ events, player, spawnQueue }) {
@@ -18,16 +28,15 @@ export const DamageSystem = {
       const hit = hits[i];
       const target = hit.target;
 
-      if (!target || !target.isAlive) continue;
+      // FIX(bug): isAlive 뿐 아니라 pendingDestroy 도 확인 (이중 처리 방지)
+      if (!target || !target.isAlive || target.pendingDestroy) continue;
 
       target.hp -= hit.damage;
 
       if (target.type === 'enemy') {
         target.hitFlashTimer = 0.1;
 
-        // 넉백 — PATCH: knockbackResist 반영
-        const KNOCKBACK_SPEED    = 180; // px/s
-        const KNOCKBACK_DURATION = 0.10; // 초
+        // 넉백 — FIX(refactor): KNOCKBACK 상수 사용
         const resist = target.knockbackResist ?? 0;
 
         let kx = 0, ky = 0;
@@ -43,9 +52,9 @@ export const DamageSystem = {
         }
 
         if ((kx !== 0 || ky !== 0) && resist < 1) {
-          target.knockbackX = kx * KNOCKBACK_SPEED * (1 - resist);
-          target.knockbackY = ky * KNOCKBACK_SPEED * (1 - resist);
-          target.knockbackTimer = KNOCKBACK_DURATION * (1 - resist);
+          target.knockbackX     = kx * KNOCKBACK.speed    * (1 - resist);
+          target.knockbackY     = ky * KNOCKBACK.speed    * (1 - resist);
+          target.knockbackTimer = KNOCKBACK.duration * (1 - resist);
         }
 
         // 흡혈 — 적에게 입힌 데미지 비율만큼 플레이어 회복
