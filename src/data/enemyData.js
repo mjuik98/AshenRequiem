@@ -4,9 +4,15 @@
  * 단위: hp(정수), moveSpeed(px/s), damage(정수), xpValue(정수), radius(px)
  * behaviorId: 'chase'(기본) | 'dash' | 'circle_dash'
  * behaviorState: () => {} — 런타임 상태 초기값 팩토리 함수
+ *
+ * FIX(balance): 엘리트 다양성 추가
+ *   이전: elite_golem 1종뿐
+ *   이후: elite_bat(빠른 돌진), elite_skeleton(원형 이동+투사체) 추가
+ *   → waveData 에서 웨이브별로 다른 엘리트를 배정 가능
  */
 export const enemyData = [
-  // ── 기본 적 ─────────────────────────────────────────────
+
+  // ── 기본 적 ─────────────────────────────────────────────────
   {
     id: 'zombie',
     name: 'Zombie',
@@ -26,7 +32,7 @@ export const enemyData = [
     color: '#7e57c2',
   },
 
-  // ── 중반 적 ─────────────────────────────────────────────
+  // ── 중반 적 ─────────────────────────────────────────────────
   {
     id: 'ghost',
     name: 'Ghost',
@@ -44,7 +50,6 @@ export const enemyData = [
     name: 'Slime',
     hp: 6, moveSpeed: 50, damage: 4, xpValue: 3, radius: 14,
     color: '#26a69a',
-    // 사망 시 mini_slime 2마리 분열
     deathSpawn: { enemyId: 'mini_slime', count: 2 },
   },
   {
@@ -54,7 +59,8 @@ export const enemyData = [
     color: '#80cbc4',
   },
 
-  // ── 엘리트 ───────────────────────────────────────────────
+  // ── 엘리트 ───────────────────────────────────────────────────
+
   {
     id: 'elite_golem',
     name: 'Elite Golem',
@@ -65,7 +71,36 @@ export const enemyData = [
     behaviorState: () => ({ phase: 'idle', timer: 1.5, dashDirX: 0, dashDirY: 0 }),
   },
 
-  // ── 보스 ─────────────────────────────────────────────────
+  // FIX(balance): 엘리트 bat 추가 — 고속 돌진형, 빠르고 작음
+  {
+    id: 'elite_bat',
+    name: 'Elite Bat',
+    hp: 18, moveSpeed: 160, damage: 12, xpValue: 14, radius: 14,
+    color: '#ab47bc',
+    isElite: true,
+    behaviorId: 'dash',
+    behaviorState: () => ({
+      phase: 'idle', timer: 0.8,   // 빠른 돌진 준비
+      dashDirX: 0, dashDirY: 0,
+    }),
+  },
+
+  // FIX(balance): 엘리트 skeleton 추가 — 원형 이동 + 4방향 투사체
+  {
+    id: 'elite_skeleton',
+    name: 'Elite Skeleton',
+    hp: 35, moveSpeed: 90, damage: 16, xpValue: 20, radius: 18,
+    color: '#bdbdbd',
+    isElite: true,
+    behaviorId: 'circle_dash',
+    behaviorState: () => ({
+      phase: 'circling', timer: 2.0,
+      dashDirX: 0, dashDirY: 0,
+      orbitAngle: 0, orbitRadius: 110, orbitSpeed: 1.8,
+    }),
+  },
+
+  // ── 보스 ─────────────────────────────────────────────────────
   {
     id: 'boss_lich',
     name: 'Lich King',

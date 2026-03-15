@@ -5,7 +5,9 @@ import { getWeaponDataById } from '../../data/weaponData.js';
 /**
  * UpgradeSystem — 업그레이드 선택지 생성 + 적용
  *
- * 입력: player 상태, 보유 무기, upgradeData
+ * FIX(balance): stat 타입 업그레이드에 maxCount 상한 체크 추가.
+ *   player.upgradeCounts[upgrade.id] >= upgrade.maxCount 이면 선택지에서 제외.
+ *   applyUpgrade 에서 적용 시 upgradeCounts 를 기록.
  */
 export const UpgradeSystem = {
   /**
@@ -23,20 +25,21 @@ export const UpgradeSystem = {
       } else if (upgrade.type === 'weapon_upgrade') {
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
         if (owned) {
-          // maxLevel 초과 무기는 선택지에서 제외
           const def = getWeaponDataById(upgrade.weaponId);
           const maxLevel = def?.maxLevel ?? Infinity;
           if (owned.level < maxLevel) available.push(upgrade);
         }
 
       } else {
-        // 스탯 업그레이드는 항상 후보
-        available.push(upgrade);
+        // FIX(balance): stat 업그레이드 — maxCount 초과 시 제외
+        const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
+        if (upgrade.maxCount === undefined || taken < upgrade.maxCount) {
+          available.push(upgrade);
+        }
       }
     }
 
     const shuffled = shuffle(available);
-    // 선택지가 3개 미만이어도 안전하게 처리
     return shuffled.slice(0, Math.min(3, shuffled.length));
   },
 
@@ -55,7 +58,6 @@ export const UpgradeSystem = {
       }
 
     } else if (upgrade.type === 'weapon_upgrade') {
-      // weapon_upgrade 전용 분기 — level 증가 후 apply
       const owned = player.weapons.find(w => w.id === upgrade.weaponId);
       const def = getWeaponDataById(upgrade.weaponId);
       const maxLevel = def?.maxLevel ?? Infinity;
@@ -67,5 +69,9 @@ export const UpgradeSystem = {
     } else if (upgrade.apply) {
       upgrade.apply(player);
     }
+
+    // FIX(balance): 적용 횟수 기록 (stat 타입뿐 아니라 전체 tracking)
+    if (!player.upgradeCounts) player.upgradeCounts = {};
+    player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] ?? 0) + 1;
   },
 };

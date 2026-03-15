@@ -4,6 +4,10 @@ import { getWeaponDataById } from '../data/weaponData.js';
 
 /**
  * createPlayer — 플레이어 엔티티 생성
+ *
+ * FIX(balance): upgradeCounts 필드 추가.
+ *   stat 업그레이드의 maxCount 초과 여부를 UpgradeSystem 이 판단할 때 사용.
+ *   { [upgradeId]: number } 형태로 관리.
  */
 export function createPlayer(x = 0, y = 0) {
   const startWeapon = getWeaponDataById('magic_bolt');
@@ -39,8 +43,15 @@ export function createPlayer(x = 0, y = 0) {
     invincibleTimer: 0,
     invincibleDuration: 0.5,
 
-    // 흡혈 비율 (0~0.5) — stat upgrade로 증가
+    // 흡혈 비율 (0~0.5) — stat upgrade 로 증가
     lifesteal: 0,
+
+    /**
+     * FIX(balance): 업그레이드 적용 횟수 추적
+     * UpgradeSystem.generateChoices 에서 maxCount 초과 stat 을 제외하는 데 사용.
+     * { [upgradeId: string]: number }
+     */
+    upgradeCounts: {},
 
     // 상태이상
     statusEffects: [],

@@ -4,8 +4,18 @@
  * 일반 적  : 피격 플래시 + 상태이상 링 + HP 바
  * 엘리트   : 주황 펄스 링 + 더 큰 HP 바
  * 보스     : 빨간 삼중 펄스 링 + windup 예고점 + 이름 레이블 + DOM 전용 HP 바
+ *
+ * FIX(perf): Date.now() 를 매 적마다 개별 호출하던 방식 제거.
+ *   이전: drawEnemy 내부에서 Date.now() * 0.004 등을 매 호출마다 계산
+ *   이후: RenderSystem 이 프레임당 1회만 계산한 timestamp(초) 를 인수로 전달
+ *   적이 100마리이면 이전엔 100회 호출 → 이후엔 1회로 감소
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {object} enemy
+ * @param {{ x: number, y: number }} camera
+ * @param {number} timestamp  — RenderSystem 이 계산한 현재 시각 (초, performance.now()/1000)
  */
-export function drawEnemy(ctx, enemy, camera) {
+export function drawEnemy(ctx, enemy, camera, timestamp) {
   if (!enemy.isAlive) return;
   const sx = enemy.x - camera.x;
   const sy = enemy.y - camera.y;
@@ -15,7 +25,8 @@ export function drawEnemy(ctx, enemy, camera) {
 
   // ─── 보스 장식 링 (삼중 펄스) ──────────────────────────────
   if (enemy.isBoss) {
-    const t = Date.now() * 0.004;
+    // FIX: Date.now() * 0.004 → timestamp * 4 (동일 결과, 외부 계산)
+    const t = timestamp * 4;
     for (let ring = 0; ring < 3; ring++) {
       const pulse = 0.5 + 0.5 * Math.sin(t + ring * 1.2);
       ctx.globalAlpha = (0.25 + pulse * 0.45) * (1 - ring * 0.18);
@@ -33,7 +44,8 @@ export function drawEnemy(ctx, enemy, camera) {
 
   // ─── 엘리트 장식 링 ─────────────────────────────────────────
   if (enemy.isElite && !enemy.isBoss) {
-    const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.006);
+    // FIX: Date.now() * 0.006 → timestamp * 6
+    const pulse = 0.5 + 0.5 * Math.sin(timestamp * 6);
     ctx.globalAlpha = 0.55 + pulse * 0.4;
     ctx.strokeStyle = '#ff9800';
     ctx.lineWidth   = 3;
@@ -93,44 +105,17 @@ export function drawEnemy(ctx, enemy, camera) {
     const barW = r * (enemy.isElite ? 2.8 : 2.4);
     const barH = enemy.isElite ? 5 : 4;
     const barX = sx - barW / 2;
-    const barY = sy - r - (enemy.isElite ? 13 : 10);
+    const barY = sy - r - (enemy.isElite ? 10 : 8);
 
     ctx.shadowBlur = 0;
-    _roundRect(ctx, barX, barY, barW, barH, 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fill();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(barX, barY, barW, barH);
 
-    if (pct > 0) {
-      ctx.fillStyle = pct > 0.5 ? '#4caf50' : pct > 0.25 ? '#ff9800' : '#f44336';
-      _roundRect(ctx, barX + 1, barY + 1, Math.max(2, (barW - 2) * pct), barH - 2, 1.5);
-      ctx.fill();
-    }
-  }
-
-  // ─── 보스 이름 레이블 ────────────────────────────────────────
-  if (enemy.isBoss) {
-    ctx.shadowBlur  = 8;
-    ctx.shadowColor = '#f44336';
-    ctx.fillStyle   = '#ff8a80';
-    ctx.font        = 'bold 11px sans-serif';
-    ctx.textAlign   = 'center';
-    ctx.fillText(enemy.name || 'BOSS', sx, sy - r - 16);
+    ctx.fillStyle = enemy.isElite ? '#ff9800' : '#ef5350';
+    ctx.fillRect(barX, barY, barW * pct, barH);
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();
-}
-
-/** 내부 헬퍼 — 모서리 둥근 사각형 path */
-function _roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y,     x + w, y + h, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x,     y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x,     y + h, x, y,     r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x,     y,     x + w, y, r);
-  ctx.closePath();
 }

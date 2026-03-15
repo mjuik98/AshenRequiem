@@ -1,10 +1,61 @@
 export const PLAYER_DEFAULTS = {
-  hp: 100, maxHp: 100, moveSpeed: 200, radius: 16, magnetRadius: 60, color: '#4fc3f7',
+  hp: 100,
+  maxHp: 100,
+  moveSpeed: 200,       // px/s
+  radius: 16,
+  magnetRadius: 60,     // 경험치 흡수 반경
+  color: '#4fc3f7',
 };
-export const XP_TABLE = [0,5,12,22,35,50,70,95,125,160,200];
+
+/**
+ * XP → 레벨업 테이블 (인덱스 = 레벨, 값 = 다음 레벨 도달에 필요한 누적 XP)
+ *
+ * FIX(balance): 레벨 10 이후 선형 +50 → 지수 증가로 교체.
+ * 이전: 200 + (level - 10) * 50 (완만, 고레벨에서 레벨업이 쉬워짐)
+ * 이후: getXpForLevel 함수에서 지수 곡선 적용
+ */
+export const XP_TABLE = [
+  0,    // Lv0 → Lv1 (사용 안 함)
+  5,    // Lv1 → Lv2
+  12,   // Lv2 → Lv3
+  22,   // Lv3 → Lv4
+  35,   // Lv4 → Lv5
+  52,   // Lv5 → Lv6
+  74,   // Lv6 → Lv7
+  102,  // Lv7 → Lv8
+  138,  // Lv8 → Lv9
+  184,  // Lv9 → Lv10
+  240,  // Lv10 → Lv11
+];
+
+/**
+ * 특정 레벨에서 다음 레벨업에 필요한 XP
+ *
+ * FIX(balance): 테이블 초과 시 지수 증가 적용 (기존 선형 +50 제거)
+ * 공식: base * 1.18^(level - tableLength) — 약 18% 지수 증가
+ */
 export function getXpForLevel(level) {
   if (level < XP_TABLE.length) return XP_TABLE[level];
-  return XP_TABLE[XP_TABLE.length - 1] + (level - XP_TABLE.length + 1) * 50;
+  const base = XP_TABLE[XP_TABLE.length - 1]; // 240
+  const excess = level - (XP_TABLE.length - 1);
+  return Math.round(base * Math.pow(1.18, excess));
 }
-export const PICKUP_DEFAULTS = { xpValue: 1, radius: 6, color: '#66bb6a', magnetSpeed: 400 };
-export const EFFECT_DEFAULTS = { duration: 0.4 };
+
+/** 픽업 기본값 */
+export const PICKUP_DEFAULTS = {
+  xpValue: 1,
+  radius: 6,
+  color: '#66bb6a',
+  magnetSpeed: 400,   // 흡수 시 이동 속도
+};
+
+/**
+ * 이펙트 기본값
+ *
+ * FIX(bug): levelFlashDuration 상수 추가.
+ * PlayScene._showLevelUpUI 에서 하드코딩(0.6)하던 수치를 여기서 관리.
+ */
+export const EFFECT_DEFAULTS = {
+  duration: 0.4,           // 기본 이펙트 지속 시간 (초)
+  levelFlashDuration: 0.6, // 레벨업 플래시 지속 시간 (초)
+};

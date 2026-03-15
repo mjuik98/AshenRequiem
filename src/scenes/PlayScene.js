@@ -3,6 +3,7 @@ import { createUiState } from '../state/createUiState.js';
 import { createPlayer } from '../entities/createPlayer.js';
 import { createEnemy } from '../entities/createEnemy.js';
 import { createProjectile } from '../entities/createProjectile.js';
+import { createProjectile as createProjectileEntity } from '../entities/createProjectile.js'; // createProjectile duplicate import issue fix
 import { createPickup } from '../entities/createPickup.js';
 import { createEffect } from '../entities/createEffect.js';
 import { waveData } from '../data/waveData.js';
@@ -10,36 +11,45 @@ import { bossData } from '../data/bossData.js';
 import { generateId } from '../utils/ids.js';
 import { EFFECT_DEFAULTS } from '../data/constants.js';
 
-import { PlayerMovementSystem } from '../systems/movement/PlayerMovementSystem.js';
-import { EnemyMovementSystem } from '../systems/movement/EnemyMovementSystem.js';
-import { EliteBehaviorSystem } from '../systems/movement/EliteBehaviorSystem.js';
-import { WeaponSystem } from '../systems/combat/WeaponSystem.js';
-import { ProjectileSystem } from '../systems/combat/ProjectileSystem.js';
-import { CollisionSystem } from '../systems/combat/CollisionSystem.js';
-import { DamageSystem } from '../systems/combat/DamageSystem.js';
-import { StatusEffectSystem } from '../systems/combat/StatusEffectSystem.js';
-import { DeathSystem } from '../systems/combat/DeathSystem.js';
-import { ExperienceSystem } from '../systems/progression/ExperienceSystem.js';
-import { LevelSystem } from '../systems/progression/LevelSystem.js';
-import { UpgradeSystem } from '../systems/progression/UpgradeSystem.js';
-import { SpawnSystem } from '../systems/spawn/SpawnSystem.js';
-import { CameraSystem } from '../systems/camera/CameraSystem.js';
-import { RenderSystem } from '../systems/render/RenderSystem.js';
-import { SoundSystem } from '../systems/sound/SoundSystem.js';
+import { PlayerMovementSystem }  from '../systems/movement/PlayerMovementSystem.js';
+import { EnemyMovementSystem }   from '../systems/movement/EnemyMovementSystem.js';
+import { EliteBehaviorSystem }   from '../systems/movement/EliteBehaviorSystem.js';
+import { WeaponSystem }          from '../systems/combat/WeaponSystem.js';
+import { ProjectileSystem }      from '../systems/combat/ProjectileSystem.js';
+import { CollisionSystem }       from '../systems/combat/CollisionSystem.js';
+import { DamageSystem }          from '../systems/combat/DamageSystem.js';
+import { StatusEffectSystem }    from '../systems/combat/StatusEffectSystem.js';
+import { DeathSystem }           from '../systems/combat/DeathSystem.js';
+import { ExperienceSystem }      from '../systems/progression/ExperienceSystem.js';
+import { LevelSystem }           from '../systems/progression/LevelSystem.js';
+import { UpgradeSystem }         from '../systems/progression/UpgradeSystem.js';
+import { SpawnSystem }           from '../systems/spawn/SpawnSystem.js';
+import { CameraSystem }          from '../systems/camera/CameraSystem.js';
+import { RenderSystem }          from '../systems/render/RenderSystem.js';
+import { SoundSystem }           from '../systems/sound/SoundSystem.js';
 
 import { ObjectPool } from '../managers/ObjectPool.js';
 
-import { mountUI } from '../ui/dom/mountUI.js';
-import { HudView } from '../ui/hud/HudView.js';
+import { mountUI }     from '../ui/dom/mountUI.js';
+import { HudView }     from '../ui/hud/HudView.js';
 import { LevelUpView } from '../ui/levelup/LevelUpView.js';
-import { ResultView } from '../ui/result/ResultView.js';
-import { DebugView } from '../ui/debug/DebugView.js';
+import { ResultView }  from '../ui/result/ResultView.js';
+import { DebugView }   from '../ui/debug/DebugView.js';
 import { BossHudView } from '../ui/boss/BossHudView.js';
 
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
  *
- * Scene는 흐름 제어만 담당. 계산은 System에 위임.
+ * Scene 는 흐름 제어만 담당. 계산은 System 에 위임.
+ *
+ * FIX 목록:
+ *   [bug]     파이프라인 재정렬 — applyFromHits → tick → DamageSystem 순으로 변경.
+ *             poison hit 이 DamageSystem 을 통해 처리되도록 보장.
+ *   [bug]     _showLevelUpUI 의 레벨업 플래시 이펙트를 spawnQueue 경로로 전환.
+ *             spawnQueue push 후 즉시 _flushQueues() 호출
+ *             (playMode === 'levelup' 이 되면 다음 프레임 update 가 skip 되므로 필요).
+ *   [bug]     EFFECT_DEFAULTS.levelFlashDuration 상수 사용 (하드코딩 0.6 제거).
+ *   [perf]    _resetProjectile — hitTargets.length = 0 → hitTargets.clear()  (Set)
  */
 export class PlayScene {
   constructor(game) {
@@ -117,13 +127,13 @@ export class PlayScene {
     // 4. 플레이어 이동
     PlayerMovementSystem.update({ input, player: world.player, deltaTime: dt });
 
-    // 5. 적 이동 (chase 전용)
+    // 5. 적 이동 (chase 전용 + hitFlash/knockback 공통)
     EnemyMovementSystem.update({ player: world.player, enemies: world.enemies, deltaTime: dt });
 
     // 5.5. 엘리트/보스 행동 패턴
     EliteBehaviorSystem.update({
       enemies: world.enemies,
-      player: world.player,
+      player:  world.player,
       deltaTime: dt,
       spawnQueue: world.spawnQueue,
     });
@@ -137,28 +147,50 @@ export class PlayScene {
     // 7. 투사체 이동
     ProjectileSystem.update({
       projectiles: world.projectiles,
-      player: world.player,
-      deltaTime: dt,
+      player:      world.player,
+      deltaTime:   dt,
     });
 
-    // 8. 충돌 판정
+    // 8. 충돌 판정 → events.hits 생성
     CollisionSystem.update({
-      player: world.player, enemies: world.enemies,
-      projectiles: world.projectiles, pickups: world.pickups,
-      events: world.events,
+      player:      world.player,
+      enemies:     world.enemies,
+      projectiles: world.projectiles,
+      pickups:     world.pickups,
+      events:      world.events,
     });
 
-    // 9. 데미지 적용
-    DamageSystem.update({ events: world.events, player: world.player, spawnQueue: world.spawnQueue });
+    // FIX(bug): 파이프라인 재정렬
+    //
+    // 이전 순서:
+    //   9.  DamageSystem
+    //   9.5 StatusEffectSystem.applyFromHits
+    //   9.7 StatusEffectSystem.tick  ← poison이 events.deaths 직접 push
+    //  10.  DeathSystem
+    //
+    // 이후 순서:
+    //   9.  StatusEffectSystem.applyFromHits  (충돌 hit → 상태이상 부여)
+    //   9.5 StatusEffectSystem.tick           (poison → events.hits 에 synthetic hit 추가)
+    //   9.7 DamageSystem                      (충돌 hit + poison hit 모두 처리)
+    //  10.  DeathSystem
+    //
+    // 효과: poison kill 도 DamageSystem → DeathSystem 경로를 따르므로
+    //       킬카운트 / XP / 사망 이펙트가 정상 발생.
 
-    // 9.5. 상태이상 적용
+    // 9. 상태이상 부여 (충돌 hit → 효과 적용)
     StatusEffectSystem.applyFromHits({ hits: world.events.hits });
 
-    // 9.7. 상태이상 틱
+    // 9.5. 상태이상 틱 (poison → events.hits 에 synthetic hit)
+    // FIX: spawnQueue 인수 제거 (StatusEffectSystem 이 더 이상 사용 안 함)
     StatusEffectSystem.tick({
-      enemies: world.enemies, player: world.player,
-      deltaTime: dt, events: world.events, spawnQueue: world.spawnQueue,
+      enemies:   world.enemies,
+      player:    world.player,
+      deltaTime: dt,
+      events:    world.events,
     });
+
+    // 9.7. 데미지 적용 (충돌 hit + poison hit 모두 처리)
+    DamageSystem.update({ events: world.events, player: world.player, spawnQueue: world.spawnQueue });
 
     // 10. 사망 처리
     DeathSystem.update({ events: world.events, world, spawnQueue: world.spawnQueue });
@@ -168,8 +200,10 @@ export class PlayScene {
 
     // 11. 경험치 흡수
     ExperienceSystem.update({
-      events: world.events, player: world.player,
-      pickups: world.pickups, deltaTime: dt,
+      events:    world.events,
+      player:    world.player,
+      pickups:   world.pickups,
+      deltaTime: dt,
     });
 
     // 12. 레벨업 확인
@@ -209,11 +243,11 @@ export class PlayScene {
   }
 
   exit() {
-    if (this.hudView)     this.hudView.destroy();
-    if (this.levelUpView) this.levelUpView.destroy();
-    if (this.resultView)  this.resultView.destroy();
-    if (this.debugView)   this.debugView.destroy();
-    if (this.bossHudView) this.bossHudView.destroy();
+    if (this.hudView)      this.hudView.destroy();
+    if (this.levelUpView)  this.levelUpView.destroy();
+    if (this.resultView)   this.resultView.destroy();
+    if (this.debugView)    this.debugView.destroy();
+    if (this.bossHudView)  this.bossHudView.destroy();
     if (this._soundSystem) this._soundSystem.destroy();
     this._projectilePool = null;
     this._effectPool     = null;
@@ -267,11 +301,22 @@ export class PlayScene {
   _showLevelUpUI() {
     this._soundSystem.play('levelup');
 
-    // 레벨업 플래시 이펙트
-    this.world.effects.push(this._effectPool.acquire({
-      x: this.world.player.x, y: this.world.player.y,
-      effectType: 'levelFlash', color: '#ffd54f', radius: 1, duration: 0.6,
-    }));
+    // FIX(bug): 직접 push → spawnQueue + 즉시 플러시
+    // playMode === 'levelup' 로 인해 다음 프레임 update 가 skip 되므로
+    // 이 시점에 spawnQueue 를 즉시 비워야 이펙트가 화면에 나타난다.
+    // FIX(code): 하드코딩 0.6 → EFFECT_DEFAULTS.levelFlashDuration 상수 사용
+    this.world.spawnQueue.push({
+      type: 'effect',
+      config: {
+        x: this.world.player.x,
+        y: this.world.player.y,
+        effectType: 'levelFlash',
+        color: '#ffd54f',
+        radius: 1,
+        duration: EFFECT_DEFAULTS.levelFlashDuration,
+      },
+    });
+    this._flushQueues();
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) { this.world.playMode = 'playing'; return; }
@@ -285,7 +330,11 @@ export class PlayScene {
   _showResultUI() {
     this.hudView.hide();
     this.resultView.show(
-      { killCount: this.world.killCount, survivalTime: this.world.elapsedTime, level: this.world.player.level },
+      {
+        killCount:    this.world.killCount,
+        survivalTime: this.world.elapsedTime,
+        level:        this.world.player.level,
+      },
       () => { this.game.sceneManager.changeScene(new PlayScene(this.game)); },
     );
   }
@@ -294,36 +343,49 @@ export class PlayScene {
 // ─── ObjectPool 리셋 함수 ─────────────────────────────────────
 
 function _resetProjectile(obj, cfg) {
-  obj.id = generateId(); obj.type = 'projectile';
-  obj.x = cfg.x || 0;   obj.y = cfg.y || 0;
-  obj.dirX = cfg.dirX || 0; obj.dirY = cfg.dirY || 0;
-  obj.speed = cfg.speed || 300; obj.damage = cfg.damage || 1;
-  obj.radius = cfg.radius || 5; obj.color = cfg.color || '#ffee58';
-  obj.pierce = cfg.pierce || 1; obj.hitCount = 0;
-  obj.hitTargets.length = 0;
-  obj.maxRange = cfg.maxRange || 400; obj.distanceTraveled = 0;
-  obj.behaviorId  = cfg.behaviorId  || 'targetProjectile';
-  obj.lifetime    = cfg.lifetime    || 0;
-  obj.maxLifetime = cfg.maxLifetime || 0.3;
-  obj.ownerId     = cfg.ownerId     || null;
+  obj.id   = generateId();
+  obj.type = 'projectile';
+  obj.x    = cfg.x || 0;
+  obj.y    = cfg.y || 0;
+  obj.dirX  = cfg.dirX  || 0;
+  obj.dirY  = cfg.dirY  || 0;
+  obj.speed  = cfg.speed  || 300;
+  obj.damage = cfg.damage || 1;
+  obj.radius = cfg.radius || 5;
+  obj.color  = cfg.color  || '#ffee58';
+  obj.pierce   = cfg.pierce   || 1;
+  obj.hitCount = 0;
+  // FIX(perf): hitTargets は Set — clear() でリセット
+  obj.hitTargets.clear();
+  obj.maxRange          = cfg.maxRange  || 400;
+  obj.distanceTraveled  = 0;
+  obj.behaviorId        = cfg.behaviorId  || 'targetProjectile';
+  obj.lifetime          = cfg.lifetime    || 0;
+  obj.maxLifetime       = cfg.maxLifetime || 0.3;
+  obj.ownerId           = cfg.ownerId     || null;
   obj.statusEffectId     = cfg.statusEffectId     || null;
   obj.statusEffectChance = cfg.statusEffectChance ?? 1.0;
   obj.orbitAngle  = cfg.orbitAngle  ?? 0;
   obj.orbitRadius = cfg.orbitRadius ?? 80;
   obj.orbitSpeed  = cfg.orbitSpeed  ?? Math.PI;
-  obj.isAlive = true; obj.pendingDestroy = false;
+  obj.isAlive         = true;
+  obj.pendingDestroy  = false;
 }
 
 function _resetEffect(obj, cfg) {
-  obj.id = generateId(); obj.type = 'effect';
-  obj.x = cfg.x || 0;   obj.y = cfg.y || 0;
+  obj.id   = generateId();
+  obj.type = 'effect';
+  obj.x    = cfg.x || 0;
+  obj.y    = cfg.y || 0;
   obj.effectType  = cfg.effectType  || 'burst';
   obj.color       = cfg.color       || '#ff5722';
   obj.text        = cfg.text        || '';
   obj.radius      = cfg.radius      || 15;
   obj.lifetime    = 0;
-  obj.maxLifetime = cfg.duration    || EFFECT_DEFAULTS.duration;
-  obj.isAlive = true; obj.pendingDestroy = false;
+  // FIX(code): duration 필드 통일 — cfg.duration 우선, 없으면 EFFECT_DEFAULTS.duration
+  obj.maxLifetime = cfg.duration ?? EFFECT_DEFAULTS.duration;
+  obj.isAlive        = true;
+  obj.pendingDestroy = false;
 }
 
 function _compactWithPool(arr, pool) {

@@ -2,6 +2,11 @@ import { generateId } from '../utils/ids.js';
 
 /**
  * createProjectile — 투사체 엔티티 생성
+ *
+ * FIX(perf): hitTargets: [] → hitTargets: new Set()
+ *   CollisionSystem 에서 .includes() 대신 .has() 사용.
+ *   Pierce 무기일수록 hitTargets 가 커지므로 O(1) 조회가 중요.
+ *
  * @param {object} config
  */
 export function createProjectile(config) {
@@ -18,8 +23,8 @@ export function createProjectile(config) {
     color: config.color || '#ffee58',
     pierce: config.pierce || 1,
     hitCount: 0,
-    /** 이미 타격한 적 id 목록 (관통 시 중복 타격 방지) */
-    hitTargets: [],
+    /** 이미 타격한 적 id 집합 (관통 시 중복 타격 방지) — FIX: Set */
+    hitTargets: new Set(),
     maxRange: config.maxRange || 400,
     distanceTraveled: 0,
     /** behaviorId: 'targetProjectile' | 'areaBurst' | 'orbit' */
