@@ -29,6 +29,9 @@ export function createProjectile(config) {
     maxLifetime: config.maxLifetime || 0.3,
     ownerId: config.ownerId || null,
 
+    statusEffectId: config.statusEffectId || null,
+    statusEffectChance: config.statusEffectChance ?? 1.0,
+
     isAlive: true,
     pendingDestroy: false,
   };

@@ -40,6 +40,8 @@ export const WeaponSystem = {
             behaviorId: 'areaBurst',
             maxLifetime: 0.3,
             ownerId: player.id,
+            statusEffectId: weapon.statusEffectId || null,
+            statusEffectChance: weapon.statusEffectChance ?? 1.0,
           },
         });
       } else {
@@ -71,6 +73,8 @@ export const WeaponSystem = {
             maxRange: weapon.range,
             behaviorId: 'targetProjectile',
             ownerId: player.id,
+            statusEffectId: weapon.statusEffectId || null,
+            statusEffectChance: weapon.statusEffectChance ?? 1.0,
           },
         });
       }

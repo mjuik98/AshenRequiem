@@ -31,6 +31,10 @@ export function createEnemy(enemyId, x, y) {
     // 피격 플래시
     hitFlashTimer: 0,
 
+    // 상태이상
+    statusEffects: [],
+    stunned: false,
+
     isAlive: true,
     pendingDestroy: false,
   };

@@ -14,6 +14,9 @@ export const EnemyMovementSystem = {
     for (let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i];
       if (!enemy.isAlive || enemy.pendingDestroy) continue;
+      
+      // 스턴 중이면 이동 스킵
+      if (enemy.stunned) continue;
 
       const dir = normalize(sub(
         { x: player.x, y: player.y },

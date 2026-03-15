@@ -24,6 +24,21 @@ export function drawEnemy(ctx, enemy, camera) {
   ctx.arc(sx, sy, enemy.radius, 0, Math.PI * 2);
   ctx.fill();
 
+  // 상태이상 링
+  if (enemy.statusEffects && enemy.statusEffects.length > 0) {
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < enemy.statusEffects.length; i++) {
+      const effect = enemy.statusEffects[i];
+      ctx.strokeStyle = effect.color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.arc(sx, sy, enemy.radius + 3 + i * 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // HP바 (풀 HP가 아닐 때만)
   if (enemy.hp < enemy.maxHp) {
     const barW = enemy.radius * 2;

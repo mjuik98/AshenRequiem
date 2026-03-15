@@ -39,6 +39,10 @@ export function createPlayer(x = 0, y = 0) {
     invincibleTimer: 0,
     invincibleDuration: 0.5,
 
+    // 상태이상
+    statusEffects: [],
+    stunned: false,
+
     isAlive: true,
     pendingDestroy: false,
   };
