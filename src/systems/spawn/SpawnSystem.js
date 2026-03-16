@@ -1,71 +1,42 @@
 import { randomPick, randomRange } from '../../utils/random.js';
-import { GameConfig } from '../../core/GameConfig.js';
+import { GameConfig }              from '../../core/GameConfig.js';
 
 /**
  * SpawnSystem — 시간 기반 적 스폰
  *
- * 계약:
- *   입력: elapsedTime, waveData, bossData, player 위치, spawnQueue, deltaTime
- *   쓰기: 직접 배열 삽입 금지
- *   출력: spawnQueue 에 적 생성 요청
- *
- * 보스: bossData[].at 시각에 1회만 스폰
- * 엘리트: waveData[].eliteChance 확률로 일반 적 대신 엘리트 스폰
- *
- * FIX(balance): 보스 등장 후 일정 시간(BOSS_SUPPRESSION_DURATION) 동안
- *   일반 스폰을 억제 (spawnPerSecond × BOSS_SPAWN_MULTIPLIER).
- *
- * FIX(code): 모듈 레벨 싱글톤 상태 의존성 명시.
- *   PlayScene.enter() 에서 반드시 SpawnSystem.reset() 을 호출해야 함.
- *
- * DEBUG: getDebugInfo(elapsedTime) — DebugView 에 보스 억제 상태 노출.
+ * FIX(code): 싱글톤 상태 → PlayScene.enter() 에서 반드시 reset() 호출 필요
+ * FIX(balance): 보스 등장 후 BOSS_SUPPRESSION_DURATION 동안 일반 스폰 억제
  */
-
-/** 보스 등장 후 일반 스폰 억제 구간 (초) */
 const BOSS_SUPPRESSION_DURATION = 30;
-/** 억제 구간 중 spawnPerSecond 배율 */
-const BOSS_SPAWN_MULTIPLIER = 0.45;
+const BOSS_SPAWN_MULTIPLIER     = 0.45;
 
 export const SpawnSystem = {
-  /** @type {number} 누적 스폰 카운터 */
   _spawnAccumulator: 0,
-  /** @type {Set<number>} 이미 스폰된 보스 at 값 */
-  _spawnedBossAt: new Set(),
-  /**
-   * 마지막 보스 스폰 시각 (elapsedTime 기준).
-   * -Infinity 면 보스가 아직 등장하지 않음.
-   */
+  _spawnedBossAt:    new Set(),
   _lastBossSpawnTime: -Infinity,
 
   reset() {
-    this._spawnAccumulator = 0;
+    this._spawnAccumulator  = 0;
     this._spawnedBossAt.clear();
     this._lastBossSpawnTime = -Infinity;
-    if (typeof console !== 'undefined') {
-      console.debug('[SpawnSystem] reset — 스폰 상태 초기화 완료');
-    }
+    console.debug('[SpawnSystem] reset 완료');
   },
 
-  /**
-   * DEBUG: 보스 억제 상태 정보 반환 (DebugView 용)
-   * @param {number} elapsedTime - 현재 경과 시간 (초)
-   * @returns {{ hasBossSpawned: boolean, isSuppressed: boolean, suppressionRemaining: number }}
-   */
   getDebugInfo(elapsedTime) {
     const timeSinceBoss = elapsedTime - this._lastBossSpawnTime;
     const isSuppressed  = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
     return {
-      hasBossSpawned:        this._lastBossSpawnTime > -Infinity,
+      hasBossSpawned:       this._lastBossSpawnTime > -Infinity,
       isSuppressed,
-      suppressionRemaining:  isSuppressed ? BOSS_SUPPRESSION_DURATION - timeSinceBoss : 0,
-      bossSpawnedAt:         this._lastBossSpawnTime > -Infinity ? this._lastBossSpawnTime : null,
+      suppressionRemaining: isSuppressed ? BOSS_SUPPRESSION_DURATION - timeSinceBoss : 0,
+      bossSpawnedAt:        this._lastBossSpawnTime > -Infinity ? this._lastBossSpawnTime : null,
     };
   },
 
   update({ elapsedTime, waveData, bossData, player, spawnQueue, deltaTime }) {
-    if (!player || !player.isAlive) return;
+    if (!player?.isAlive) return;
 
-    // ─── 보스 스폰 (타이밍 기반, 1회) ───────────────────────
+    // 보스 스폰
     if (bossData) {
       for (let b = 0; b < bossData.length; b++) {
         const boss = bossData[b];
@@ -78,7 +49,7 @@ export const SpawnSystem = {
       }
     }
 
-    // ─── 일반/엘리트 스폰 ────────────────────────────────────
+    // 일반 / 엘리트 스폰
     let activeWave = null;
     for (let i = 0; i < waveData.length; i++) {
       const w = waveData[i];
@@ -86,9 +57,8 @@ export const SpawnSystem = {
     }
     if (!activeWave) return;
 
-    // FIX(balance): 보스 활성 구간 판단 → 스폰율 감소
-    const timeSinceLastBoss = elapsedTime - this._lastBossSpawnTime;
-    const isBossActive = timeSinceLastBoss >= 0 && timeSinceLastBoss < BOSS_SUPPRESSION_DURATION;
+    const timeSinceBoss = elapsedTime - this._lastBossSpawnTime;
+    const isBossActive  = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
     const effectiveRate = isBossActive
       ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER
       : activeWave.spawnPerSecond;
@@ -99,11 +69,8 @@ export const SpawnSystem = {
       this._spawnAccumulator -= 1;
 
       let enemyId;
-      if (
-        activeWave.eliteChance > 0 &&
-        activeWave.eliteIds?.length > 0 &&
-        Math.random() < activeWave.eliteChance
-      ) {
+      if (activeWave.eliteChance > 0 && activeWave.eliteIds?.length > 0
+          && Math.random() < activeWave.eliteChance) {
         enemyId = randomPick(activeWave.eliteIds);
       } else {
         enemyId = randomPick(activeWave.enemyIds);
@@ -114,7 +81,6 @@ export const SpawnSystem = {
     }
   },
 
-  /** 화면 밖 랜덤 위치 생성 */
   _randomOffscreenPosition(player) {
     const margin = 80;
     const halfW  = GameConfig.canvasWidth  / 2 + margin;
@@ -125,7 +91,7 @@ export const SpawnSystem = {
       case 0: x = player.x + randomRange(-halfW, halfW); y = player.y - halfH; break;
       case 1: x = player.x + randomRange(-halfW, halfW); y = player.y + halfH; break;
       case 2: x = player.x - halfW; y = player.y + randomRange(-halfH, halfH); break;
-      default: x = player.x + halfW; y = player.y + randomRange(-halfH, halfH); break;
+      default:x = player.x + halfW; y = player.y + randomRange(-halfH, halfH); break;
     }
     return { x, y };
   },

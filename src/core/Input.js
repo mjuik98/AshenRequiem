@@ -1,42 +1,47 @@
 /**
  * Input — 키보드 입력 수집
+ *
+ * FIX(web): 화살표 키 / 스페이스바 등 브라우저 기본 동작 충돌 방지
  */
+const PREVENT_KEYS = new Set([
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ',
+]);
+
 export class Input {
   constructor() {
-    this._keysDown = new Set();
-    this._onKeyDown = this._onKeyDown.bind(this);
-    this._onKeyUp   = this._onKeyUp.bind(this);
+    this._keys = new Set();
   }
 
   init() {
-    window.addEventListener('keydown', this._onKeyDown);
-    window.addEventListener('keyup',   this._onKeyUp);
+    window.addEventListener('keydown', (e) => {
+      if (PREVENT_KEYS.has(e.key)) e.preventDefault();
+      this._keys.add(e.key.toLowerCase());
+    });
+    window.addEventListener('keyup', (e) => {
+      this._keys.delete(e.key.toLowerCase());
+    });
+    // FIX(web): 포커스 잃으면 키 상태 초기화 (DOM 클릭 시 입력 유지 방지)
+    window.addEventListener('blur', () => this._keys.clear());
   }
 
-  destroy() {
-    window.removeEventListener('keydown', this._onKeyDown);
-    window.removeEventListener('keyup',   this._onKeyUp);
+  isDown(key) {
+    return this._keys.has(key.toLowerCase());
   }
 
+  /**
+   * WASD + 화살표 키 → 정규화된 방향 벡터
+   * @returns {{ x: number, y: number }}
+   */
   getDirection() {
     let x = 0, y = 0;
-    if (this._keysDown.has('KeyW') || this._keysDown.has('ArrowUp'))    y -= 1;
-    if (this._keysDown.has('KeyS') || this._keysDown.has('ArrowDown'))  y += 1;
-    if (this._keysDown.has('KeyA') || this._keysDown.has('ArrowLeft'))  x -= 1;
-    if (this._keysDown.has('KeyD') || this._keysDown.has('ArrowRight')) x += 1;
-    const len = Math.sqrt(x * x + y * y);
-    if (len > 0) { x /= len; y /= len; }
+    if (this.isDown('arrowleft')  || this.isDown('a')) x -= 1;
+    if (this.isDown('arrowright') || this.isDown('d')) x += 1;
+    if (this.isDown('arrowup')    || this.isDown('w')) y -= 1;
+    if (this.isDown('arrowdown')  || this.isDown('s')) y += 1;
+    if (x !== 0 && y !== 0) {
+      const inv = 1 / Math.sqrt(2);
+      x *= inv; y *= inv;
+    }
     return { x, y };
   }
-
-  isKeyDown(code) { return this._keysDown.has(code); }
-
-  _onKeyDown(e) {
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) {
-      e.preventDefault();
-    }
-    this._keysDown.add(e.code);
-  }
-
-  _onKeyUp(e) { this._keysDown.delete(e.code); }
 }

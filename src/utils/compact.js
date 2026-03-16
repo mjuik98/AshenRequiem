@@ -1,4 +1,10 @@
-// [리팩터링] PlayScene.js 하단에 있던 _compactWithPool / _compactInPlace 를 분리.
+/**
+ * compact.js — pendingDestroy 항목 배열 정리 유틸
+ *
+ * FIX(pattern): 순회 중 즉시 splice 삭제 금지 → 이 함수들로 일괄 처리
+ */
+
+/** pendingDestroy 항목을 풀로 반환하면서 배열 압축 */
 export function compactWithPool(arr, pool) {
   let write = 0;
   for (let read = 0; read < arr.length; read++) {
@@ -11,6 +17,8 @@ export function compactWithPool(arr, pool) {
   }
   arr.length = write;
 }
+
+/** pendingDestroy 항목을 버리면서 배열 압축 */
 export function compactInPlace(arr) {
   let write = 0;
   for (let read = 0; read < arr.length; read++) {

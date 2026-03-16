@@ -1,7 +1,9 @@
+/** createUiState — UI 상태 초기화 */
 export function createUiState() {
   return {
-    showHud: false,
-    levelUp: { visible: false, choices: [], onSelect: null },
-    result:  { visible: false, killCount: 0, survivalTime: 0, level: 1 },
+    hudVisible:    false,
+    levelUpOpen:   false,
+    resultOpen:    false,
+    debugOpen:     false,
   };
 }

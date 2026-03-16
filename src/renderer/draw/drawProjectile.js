@@ -1,23 +1,8 @@
 /**
  * drawProjectile — 투사체 렌더링
  *
- * behaviorId:
- *   'orbit'           — 전기 구체 (강한 글로우 + 외곽 링)
- *   'areaBurst'       — 범위 공격 (반투명 원 + 테두리)
- *   'targetProjectile'— 일반 빛나는 원
- */
-/**
- * drawProjectile — 투사체 렌더링
- *
- * behaviorId:
- *   'orbit'            — 전기 구체 (강한 글로우 + 외곽 링)
- *   'areaBurst'        — 범위 공격 (반투명 원 + 테두리)
- *   'targetProjectile' — 일반 빛나는 원
- *
- * PATCH(perf): targetProjectile 에서 shadowBlur 제거.
- *   orbit/areaBurst 는 개수가 적으므로 glow 유지.
- *   targetProjectile 은 투사체 수가 가장 많아 shadowBlur 비용 집중.
- *   → shadowBlur 없이 fillStyle + 작은 백색 하이라이트로 시각 퀄리티 유지.
+ * PERF: targetProjectile 은 shadowBlur 제거 → 중심 하이라이트로 대체
+ *       (투사체가 가장 많아 shadowBlur 비용이 집중되는 타입)
  */
 export function drawProjectile(ctx, proj, camera) {
   if (!proj.isAlive) return;
@@ -27,7 +12,7 @@ export function drawProjectile(ctx, proj, camera) {
   ctx.save();
 
   if (proj.behaviorId === 'orbit') {
-    // 전기 구체 — 강한 글로우 + 외곽 링 (개수 적으므로 glow 유지)
+    // 전기 구체 — 강한 글로우 + 외곽 링
     ctx.shadowColor = proj.color;
     ctx.shadowBlur  = 18;
     ctx.fillStyle   = proj.color;
@@ -45,7 +30,7 @@ export function drawProjectile(ctx, proj, camera) {
 
   } else if (proj.behaviorId === 'areaBurst') {
     // 범위 공격 — 수명에 따라 페이드 아웃
-    const alpha = 1 - (proj.lifetime / proj.maxLifetime);
+    const alpha = Math.max(0, 1 - (proj.lifetime / proj.maxLifetime));
     ctx.globalAlpha = alpha * 0.4;
     ctx.fillStyle   = proj.color;
     ctx.beginPath();
@@ -60,18 +45,21 @@ export function drawProjectile(ctx, proj, camera) {
     ctx.stroke();
 
   } else {
-    // 일반 투사체 — PATCH(perf): shadowBlur 제거
-    // 작은 하이라이트(반투명 백색 원)로 glow 느낌 대체
+    // 일반 투사체 — shadowBlur 없이 하이라이트로 대체
     ctx.fillStyle = proj.color;
     ctx.beginPath();
     ctx.arc(sx, sy, proj.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // 중심 하이라이트
     ctx.globalAlpha = 0.5;
     ctx.fillStyle   = '#ffffff';
     ctx.beginPath();
-    ctx.arc(sx - proj.radius * 0.25, sy - proj.radius * 0.25, proj.radius * 0.4, 0, Math.PI * 2);
+    ctx.arc(
+      sx - proj.radius * 0.25,
+      sy - proj.radius * 0.25,
+      proj.radius * 0.4,
+      0, Math.PI * 2,
+    );
     ctx.fill();
   }
 

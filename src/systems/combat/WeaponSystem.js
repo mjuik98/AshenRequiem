@@ -3,24 +3,14 @@ import { distanceSq, normalize, sub } from '../../math/Vector2.js';
 /**
  * WeaponSystem — 무기 쿨다운 관리 + 공격 생성 요청
  *
- * FIX(bug): areaBurst — 타겟 탐색을 spawnQueue push 이전으로 이동.
- *   이전: areaBurst 투사체를 먼저 push → 타겟 없으면 쿨다운 0 리셋.
- *         타겟 없는 프레임마다 areaBurst 폭발이 연속 발생하고 쿨다운이 0으로 유지됨.
- *   이후: 타겟 탐색 먼저 → 타겟 없으면 쿨다운 0 후 continue (areaBurst push 없음).
- *         areaBurst + targetProjectile 복합 패턴도 타겟 확인 후 양쪽 모두 push.
- *
- * REF(refactor): areaBurst 복합 패턴에 주석 추가.
- *   holy_aura, frost_nova: areaBurst(범위 폭발) + targetProjectile(유도탄) 동시 발사.
- *   weaponData에 projectileCount 가 설정된 경우에만 targetProjectile push.
- *
- * FIX(bug): targetProjectile 타깃 없을 때 continue (쿨다운 건드리지 않음).
- * FIX(bug): areaBurst maxLifetime → weapon.burstDuration ?? 0.3.
- * FIX(perf): console.log 제거.
- * BAL: orbit lifetime 계수 0.97 → 1.02 (오브 교체 공백 제거).
+ * FIX(bug): areaBurst — 타겟 탐색을 spawnQueue push 이전으로 이동
+ *   타겟 없으면 쿨다운 0 후 continue → 연속 발동 방지
+ * FIX(bug): targetProjectile 타깃 없으면 쿨다운 유지 후 continue
+ * BAL: orbit lifetime 계수 1.02 (공백 제거)
  */
 export const WeaponSystem = {
   update({ player, enemies, deltaTime, spawnQueue }) {
-    if (!player || !player.isAlive) return;
+    if (!player?.isAlive) return;
 
     for (let i = 0; i < player.weapons.length; i++) {
       const weapon = player.weapons[i];
@@ -31,9 +21,8 @@ export const WeaponSystem = {
 
       // ── orbit ──────────────────────────────────────────────
       if (weapon.behaviorId === 'orbit') {
-        const count = weapon.orbitCount || 3;
-        // BAL: 0.97 → 1.02 (오브 전환 공백 제거)
-        const lifetime = weapon.cooldown * 1.02;
+        const count    = weapon.orbitCount || 3;
+        const lifetime = weapon.cooldown * 1.02; // BAL: 공백 방지
 
         for (let o = 0; o < count; o++) {
           const angle = (o / count) * Math.PI * 2;
@@ -61,20 +50,11 @@ export const WeaponSystem = {
         }
 
       // ── areaBurst ──────────────────────────────────────────
-      // FIX(bug): 타겟 탐색을 areaBurst push 이전으로 이동.
-      //   areaBurst 단독 무기(holy_aura, frost_nova): 범위 내 적이 있을 때만 발동.
-      //   areaBurst + targetProjectile 복합 패턴도 타겟 확인 후 양쪽 push.
       } else if (weapon.behaviorId === 'areaBurst') {
-        // 타겟 탐색 먼저
+        // FIX(bug): 타겟 확인 먼저 — 없으면 areaBurst push 없이 즉시 재시도
         const target = this._findClosestEnemy(player, enemies, weapon.range);
+        if (!target) { weapon.currentCooldown = 0; continue; }
 
-        // 범위 내 적 없으면 다음 프레임 즉시 재시도 (areaBurst push 없음)
-        if (!target) {
-          weapon.currentCooldown = 0;
-          continue;
-        }
-
-        // 타겟이 있을 때만 areaBurst 투사체 push
         spawnQueue.push({
           type: 'projectile',
           config: {
@@ -93,14 +73,11 @@ export const WeaponSystem = {
           },
         });
 
-        // REF: areaBurst + targetProjectile 복합 패턴
-        //   weaponData에 projectileCount 가 정의된 경우에만 유도탄 추가 발사.
-        //   (holy_aura, frost_nova 등 areaBurst 단독 무기는 projectileCount 미정의)
+        // areaBurst + targetProjectile 복합 패턴
         if (weapon.projectileCount && weapon.projectileCount > 0) {
-          const dir   = normalize(sub({ x: target.x, y: target.y }, { x: player.x, y: player.y }));
-          const count = weapon.projectileCount;
-          const spread = Math.PI / 14; // ~12.8도
-
+          const dir    = normalize(sub(target, player));
+          const count  = weapon.projectileCount;
+          const spread = Math.PI / 14;
           for (let p = 0; p < count; p++) {
             const offset = (p - (count - 1) / 2) * spread;
             const cos = Math.cos(offset), sin = Math.sin(offset);
@@ -128,11 +105,11 @@ export const WeaponSystem = {
       // ── targetProjectile ───────────────────────────────────
       } else {
         const target = this._findClosestEnemy(player, enemies, weapon.range);
-        if (!target) continue; // 쿨다운 유지 (다음 tick에 다시 시도)
+        if (!target) continue; // 쿨다운 유지
 
-        const dir    = normalize(sub({ x: target.x, y: target.y }, { x: player.x, y: player.y }));
-        const count  = weapon.projectileCount || 1;
-        const spread = Math.PI / 14; // ~12.8도
+        const dir   = normalize(sub(target, player));
+        const count = weapon.projectileCount || 1;
+        const spread = Math.PI / 14;
 
         for (let p = 0; p < count; p++) {
           const offset = (p - (count - 1) / 2) * spread;
@@ -160,7 +137,6 @@ export const WeaponSystem = {
     }
   },
 
-  /** 범위 내 가장 가까운 적 찾기 */
   _findClosestEnemy(player, enemies, range) {
     let closest = null, closestDistSq = range * range;
     for (let i = 0; i < enemies.length; i++) {

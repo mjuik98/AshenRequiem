@@ -1,4 +1,6 @@
 import { GameConfig } from '../../core/GameConfig.js';
+
+/** CameraSystem — 플레이어 중심 카메라 */
 export const CameraSystem = {
   update({ player, camera }) {
     if (!player) return;

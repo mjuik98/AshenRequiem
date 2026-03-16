@@ -1,82 +1,71 @@
-import { compactWithPool, compactInPlace } from '../utils/compact.js';
 import { resetProjectile, resetEffect } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents } from '../state/createWorld.js';
-import { createUiState } from '../state/createUiState.js';
+import { createUiState }    from '../state/createUiState.js';
 import { createPlayer }     from '../entities/createPlayer.js';
 import { createProjectile } from '../entities/createProjectile.js';
 import { createEffect }     from '../entities/createEffect.js';
-import { waveData } from '../data/waveData.js';
-import { bossData } from '../data/bossData.js';
-import { EFFECT_DEFAULTS } from '../data/constants.js';
+import { waveData }         from '../data/waveData.js';
+import { bossData }         from '../data/bossData.js';
+import { EFFECT_DEFAULTS }  from '../data/constants.js';
 
-import { PlayerMovementSystem }  from '../systems/movement/PlayerMovementSystem.js';
-import { EnemyMovementSystem }   from '../systems/movement/EnemyMovementSystem.js';
-import { EliteBehaviorSystem }   from '../systems/movement/EliteBehaviorSystem.js';
-import { WeaponSystem }          from '../systems/combat/WeaponSystem.js';
-import { ProjectileSystem }      from '../systems/combat/ProjectileSystem.js';
-import { CollisionSystem }       from '../systems/combat/CollisionSystem.js';
-import { DamageSystem }          from '../systems/combat/DamageSystem.js';
-import { StatusEffectSystem }    from '../systems/combat/StatusEffectSystem.js';
-import { DeathSystem }           from '../systems/combat/DeathSystem.js';
-import { ExperienceSystem }      from '../systems/progression/ExperienceSystem.js';
-import { LevelSystem }           from '../systems/progression/LevelSystem.js';
-import { UpgradeSystem }         from '../systems/progression/UpgradeSystem.js';
-import { SpawnSystem }           from '../systems/spawn/SpawnSystem.js';
-import { CameraSystem }          from '../systems/camera/CameraSystem.js';
-import { RenderSystem }          from '../systems/render/RenderSystem.js';
-import { SoundSystem }           from '../systems/sound/SoundSystem.js';
-import { FlushSystem }           from '../systems/spawn/FlushSystem.js';
+import { PlayerMovementSystem } from '../systems/movement/PlayerMovementSystem.js';
+import { EnemyMovementSystem }  from '../systems/movement/EnemyMovementSystem.js';
+import { EliteBehaviorSystem }  from '../systems/movement/EliteBehaviorSystem.js';
+import { WeaponSystem }         from '../systems/combat/WeaponSystem.js';
+import { ProjectileSystem }     from '../systems/combat/ProjectileSystem.js';
+import { CollisionSystem }      from '../systems/combat/CollisionSystem.js';
+import { DamageSystem }         from '../systems/combat/DamageSystem.js';
+import { StatusEffectSystem }   from '../systems/combat/StatusEffectSystem.js';
+import { DeathSystem }          from '../systems/combat/DeathSystem.js';
+import { ExperienceSystem }     from '../systems/progression/ExperienceSystem.js';
+import { LevelSystem }          from '../systems/progression/LevelSystem.js';
+import { UpgradeSystem }        from '../systems/progression/UpgradeSystem.js';
+import { SpawnSystem }          from '../systems/spawn/SpawnSystem.js';
+import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
+import { CameraSystem }         from '../systems/camera/CameraSystem.js';
+import { RenderSystem }         from '../systems/render/RenderSystem.js';
+import { SoundSystem }          from '../systems/sound/SoundSystem.js';
 
-import { ObjectPool } from '../managers/ObjectPool.js';
-
-import { mountUI }     from '../ui/dom/mountUI.js';
-import { HudView }     from '../ui/hud/HudView.js';
-import { LevelUpView } from '../ui/levelup/LevelUpView.js';
-import { ResultView }  from '../ui/result/ResultView.js';
-import { DebugView }   from '../ui/debug/DebugView.js';
-import { BossHudView } from '../ui/boss/BossHudView.js';
+import { ObjectPool }   from '../managers/ObjectPool.js';
+import { mountUI }      from '../ui/dom/mountUI.js';
+import { HudView }      from '../ui/hud/HudView.js';
+import { LevelUpView }  from '../ui/levelup/LevelUpView.js';
+import { ResultView }   from '../ui/result/ResultView.js';
+import { DebugView }    from '../ui/debug/DebugView.js';
+import { BossHudView }  from '../ui/boss/BossHudView.js';
 
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
  *
- * FIX(safety): update() / render() 최상단에 null guard 명시.
- *   exit() 에서 this.world = null 처리 후 SceneManager 타이밍으로 1프레임이
- *   더 호출될 경우 NPE 를 방지한다.
- *   null guard 이전에 debugView / hudView 접근도 없도록 순서 보정.
- *
- * FIX(bug): _showLevelUpUI 에서 spawnQueue.push + _flushQueues() 수동 호출 제거.
- *   이후: effectPool.acquire() 로 직접 world.effects 에 push.
- *
- * REF(safety): SpawnSystem.reset() 을 enter() 최상단으로 이동 (주석 아닌 코드로 보호).
- *   싱글톤 상태 오염 방지 — 재시작 시 보스 미등장 / 스폰 누적 버그 예방.
- *
- * DEBUG: DebugView.update 에 SpawnSystem.getDebugInfo() 결과를 전달.
- *   보스 억제 구간 잔여 시간을 디버그 패널에 실시간 표시.
+ * FIX(safety): update() / render() 최상단 null guard
+ *   exit() → world = null 후 SceneManager 타이밍으로 1프레임 더 호출 방지
+ * FIX(bug): _showLevelUpUI — effectPool.acquire() 직접 push
+ * REF(safety): SpawnSystem.reset() enter() 최상단 배치 (재시작 상태 오염 방지)
  */
 export class PlayScene {
   constructor(game) {
-    this.game = game;
-    this.world = null;
-    this.uiState = null;
-    this.camera = { x: 0, y: 0 };
-    this.hudView = null;
-    this.levelUpView = null;
-    this.resultView = null;
-    this.debugView = null;
-    this.bossHudView = null;
+    this.game         = game;
+    this.world        = null;
+    this.uiState      = null;
+    this.camera       = { x: 0, y: 0 };
+    this.hudView      = null;
+    this.levelUpView  = null;
+    this.resultView   = null;
+    this.debugView    = null;
+    this.bossHudView  = null;
     this._projectilePool = null;
-    this._effectPool = null;
-    this._soundSystem = null;
-    this._dpr = window.devicePixelRatio || 1;
+    this._effectPool     = null;
+    this._soundSystem    = null;
+    this._dpr         = 1;
   }
 
   enter() {
-    // REF(safety): SpawnSystem.reset() 을 enter() 첫 줄에 배치 — 재시작 상태 오염 방지
+    // REF(safety): 재시작 시 싱글톤 상태 오염 방지
     SpawnSystem.reset();
 
-    this.world = createWorld();
-    this.uiState = createUiState();
-    this.world.player = createPlayer(0, 0);
+    this.world          = createWorld();
+    this.uiState        = createUiState();
+    this.world.player   = createPlayer(0, 0);
 
     this._projectilePool = new ObjectPool(
       () => createProjectile({ x: 0, y: 0 }),
@@ -99,18 +88,18 @@ export class PlayScene {
     this.debugView   = new DebugView(uiContainer);
     this.bossHudView = new BossHudView(uiContainer);
     this.hudView.show();
+
     this._dpr = window.devicePixelRatio || 1;
   }
 
   update(dt) {
-    // FIX(safety): null guard 최상단 — exit() 후 1프레임 추가 호출 방지
+    // FIX(safety): null guard 최상단
     if (!this.world) return;
 
     const world = this.world;
     const input = this.game.input;
 
-    // FIX(bug): DebugView 입력 처리 + FPS 버퍼 갱신은 playMode 와 무관하게 항상 먼저 실행.
-    //   dead / levelup 상태에서 early return 되어도 FPS 데이터가 연속적으로 유지됨.
+    // DebugView + FPS 갱신은 playMode 무관하게 항상 먼저
     this.debugView.handleInput(input);
     this.debugView.update(
       world,
@@ -120,25 +109,25 @@ export class PlayScene {
       SpawnSystem.getDebugInfo(world.elapsedTime),
     );
 
-    if (world.playMode === 'dead') return;
+    if (world.playMode === 'dead')    return;
     if (world.playMode === 'levelup') return;
 
-    // ─── 프레임 파이프라인 ─────────────────────────────────────
+    // ──────────────── 프레임 파이프라인 ────────────────────────
 
     // 1. 프레임 이벤트 초기화
     clearFrameEvents(world);
 
     // 2. 게임 시간 갱신
-    world.deltaTime = dt;
+    world.deltaTime    = dt;
     world.elapsedTime += dt;
 
     // 3. 스폰 처리
     SpawnSystem.update({
       elapsedTime: world.elapsedTime,
       waveData, bossData,
-      player: world.player,
+      player:     world.player,
       spawnQueue: world.spawnQueue,
-      deltaTime: dt,
+      deltaTime:  dt,
     });
 
     // 4. 플레이어 이동
@@ -147,18 +136,20 @@ export class PlayScene {
     // 5. 적 이동
     EnemyMovementSystem.update({ player: world.player, enemies: world.enemies, deltaTime: dt });
 
-    // 5.5. 엘리트/보스 행동 패턴
+    // 5.5. 엘리트 / 보스 행동 패턴
     EliteBehaviorSystem.update({
-      enemies: world.enemies,
-      player:  world.player,
-      deltaTime: dt,
+      enemies:    world.enemies,
+      player:     world.player,
+      deltaTime:  dt,
       spawnQueue: world.spawnQueue,
     });
 
     // 6. 무기 발동
     WeaponSystem.update({
-      player: world.player, enemies: world.enemies,
-      deltaTime: dt, spawnQueue: world.spawnQueue,
+      player:     world.player,
+      enemies:    world.enemies,
+      deltaTime:  dt,
+      spawnQueue: world.spawnQueue,
     });
 
     // 7. 투사체 이동
@@ -212,7 +203,7 @@ export class PlayScene {
     // 13. 큐 플러시
     FlushSystem.update({
       world,
-      pools: { projectile: this._projectilePool, effect: this._effectPool }
+      pools: { projectile: this._projectilePool, effect: this._effectPool },
     });
 
     // 14. 이펙트 수명 갱신
@@ -221,8 +212,7 @@ export class PlayScene {
     // 15. 카메라 갱신
     CameraSystem.update({ player: world.player, camera: this.camera });
 
-    // ─── 후처리 ──────────────────────────────────────────────
-
+    // ─── 후처리 ─────────────────────────────────────────────────
     if (world.playMode === 'levelup') this._showLevelUpUI();
     if (world.playMode === 'dead')    this._showResultUI();
 
@@ -231,9 +221,7 @@ export class PlayScene {
   }
 
   render() {
-    // FIX(safety): null guard — exit() 후 1프레임 추가 호출 방지
     if (!this.world) return;
-
     RenderSystem.update({
       world:    this.world,
       camera:   this.camera,
@@ -243,15 +231,14 @@ export class PlayScene {
   }
 
   exit() {
-    // DOM 뷰 cleanup — 재시작 반복 시 노드 누적 방지
-    if (this.hudView)      this.hudView.destroy();
-    if (this.levelUpView)  this.levelUpView.destroy();
-    if (this.resultView)   this.resultView.destroy();
-    if (this.debugView)    this.debugView.destroy();
-    if (this.bossHudView)  this.bossHudView.destroy();
-    if (this._soundSystem) this._soundSystem.destroy();
+    // DOM 뷰 cleanup (재시작 반복 시 노드 누적 방지)
+    this.hudView?.destroy();
+    this.levelUpView?.destroy();
+    this.resultView?.destroy();
+    this.debugView?.destroy();
+    this.bossHudView?.destroy();
+    this._soundSystem?.destroy();
 
-    // null 처리 — update/render null guard 가 이후 호출을 차단
     this.world           = null;
     this.uiState         = null;
     this._projectilePool = null;
@@ -259,19 +246,23 @@ export class PlayScene {
     this._soundSystem    = null;
   }
 
+  // ─── 내부 헬퍼 ──────────────────────────────────────────────
+
   /**
-   * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 → effectPool.acquire 직접 push.
+   * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 →
+   *           effectPool.acquire() 직접 world.effects 에 push
    */
   _showLevelUpUI() {
-    this._soundSystem.play('levelup');
+    this._soundSystem?.play('levelup');
 
+    // FIX(bug): levelFlashDuration 이 constants 에 정의됨 (undefined 방지)
     this.world.effects.push(this._effectPool.acquire({
-      x: this.world.player.x,
-      y: this.world.player.y,
+      x:          this.world.player.x,
+      y:          this.world.player.y,
       effectType: 'levelFlash',
-      color: '#ffd54f',
-      radius: 1,
-      duration: EFFECT_DEFAULTS.levelFlashDuration,
+      color:      '#ffd54f',
+      radius:     1,
+      duration:   EFFECT_DEFAULTS.levelFlashDuration,
     }));
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
@@ -291,7 +282,9 @@ export class PlayScene {
         survivalTime: this.world.elapsedTime,
         level:        this.world.player.level,
       },
-      () => { this.game.sceneManager.changeScene(new PlayScene(this.game)); },
+      () => {
+        this.game.sceneManager.changeScene(new PlayScene(this.game));
+      },
     );
   }
 }

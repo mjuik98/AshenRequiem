@@ -1,19 +1,17 @@
 import { GameConfig } from './GameConfig.js';
 
-/**
- * GameLoop — requestAnimationFrame 기반 게임 루프
- */
+/** GameLoop — requestAnimationFrame 기반 게임 루프 */
 export class GameLoop {
   constructor(tickFn) {
-    this._tickFn = tickFn;
+    this._tickFn   = tickFn;
     this._lastTime = null;
-    this._rafId = null;
-    this._bound = this._frame.bind(this);
+    this._rafId    = null;
+    this._bound    = this._frame.bind(this);
   }
 
   start() {
     this._lastTime = performance.now();
-    this._rafId = requestAnimationFrame(this._bound);
+    this._rafId    = requestAnimationFrame(this._bound);
   }
 
   stop() {
@@ -25,6 +23,7 @@ export class GameLoop {
 
   _frame(now) {
     const raw = (now - this._lastTime) / 1000;
+    // FIX(web): 비정상적으로 큰 deltaTime 상한 적용 (탭 전환 / 백그라운드 복귀 대비)
     const dt  = Math.min(raw, GameConfig.maxDeltaTime);
     this._lastTime = now;
     this._tickFn(dt);

@@ -1,22 +1,25 @@
 /**
  * SceneManager — 씬 전환 관리
+ * 각 Scene은 { enter(), update(dt), render(), exit() } 인터페이스를 구현한다.
  */
 export class SceneManager {
   constructor() {
-    this._current = null;
+    this._currentScene = null;
   }
 
+  get currentScene() { return this._currentScene; }
+
   changeScene(newScene) {
-    if (this._current?.exit) this._current.exit();
-    this._current = newScene;
-    if (this._current?.enter) this._current.enter();
+    if (this._currentScene?.exit) this._currentScene.exit();
+    this._currentScene = newScene;
+    if (this._currentScene?.enter) this._currentScene.enter();
   }
 
   update(dt) {
-    if (this._current?.update) this._current.update(dt);
+    this._currentScene?.update(dt);
   }
 
   render() {
-    if (this._current?.render) this._current.render();
+    this._currentScene?.render();
   }
 }

@@ -1,136 +1,54 @@
 /**
  * enemyData.js — 적 타입 정의
- *
- * PATCH:
- *   [refactor] knockbackResist 필드 추가 (0.0~1.0).
- *     golem/보스 계열은 1.0(완전 무시), 기본값 0(미정의 시 createEnemy 에서 0 적용).
- *   [refactor] elite_skeleton 에 projectileConfig 추가.
- *     EliteBehaviorSystem 하드코딩 제거 후 데이터에서 참조.
- *   [balance]  기존 엘리트 다양성 유지 (elite_golem, elite_bat, elite_skeleton).
  */
 export const enemyData = [
-
   // ── 기본 적 ─────────────────────────────────────────────────
-  {
-    id: 'zombie',
-    name: 'Zombie',
-    hp: 3, moveSpeed: 60, damage: 3, xpValue: 1, radius: 12,
-    color: '#8bc34a',
-    // PATCH(balance): damage 5 → 3 (초반 생존성 개선)
-  },
-  {
-    id: 'skeleton',
-    name: 'Skeleton',
-    // BAL-1: damage 8 → 6 (초반 2~3타 즉사 방지)
-    hp: 5, moveSpeed: 80, damage: 6, xpValue: 2, radius: 12,
-    color: '#e0e0e0',
-  },
-  {
-    id: 'bat',
-    name: 'Bat',
-    hp: 2, moveSpeed: 120, damage: 3, xpValue: 1, radius: 8,
-    color: '#7e57c2',
-  },
+  { id: 'zombie',    name: 'Zombie',    hp: 3,  moveSpeed: 60,  damage: 3,  xpValue: 1, radius: 12, color: '#8bc34a' },
+  { id: 'skeleton',  name: 'Skeleton',  hp: 5,  moveSpeed: 80,  damage: 6,  xpValue: 2, radius: 12, color: '#e0e0e0' },
+  { id: 'bat',       name: 'Bat',       hp: 2,  moveSpeed: 120, damage: 3,  xpValue: 1, radius: 8,  color: '#7e57c2' },
 
   // ── 중반 적 ─────────────────────────────────────────────────
+  { id: 'ghost',     name: 'Ghost',     hp: 8,  moveSpeed: 160, damage: 6,  xpValue: 3, radius: 10, color: '#b0bec5' },
+  { id: 'golem',     name: 'Golem',     hp: 20, moveSpeed: 35,  damage: 15, xpValue: 5, radius: 20, color: '#795548', knockbackResist: 0.8 },
   {
-    id: 'ghost',
-    name: 'Ghost',
-    // BAL(balance): hp 2 → 8, xpValue 2 → 3
-    // 이동속도 160, 데미지 6의 위협적인 적으로서 적절한 내구도 부여
-    hp: 8, moveSpeed: 160, damage: 6, xpValue: 3, radius: 10,
-    color: '#b0bec5',
-  },
-  {
-    id: 'golem',
-    name: 'Golem',
-    hp: 20, moveSpeed: 35, damage: 15, xpValue: 5, radius: 20,
-    color: '#795548',
-    knockbackResist: 0.8,
-  },
-  {
-    id: 'slime',
-    name: 'Slime',
-    hp: 6, moveSpeed: 50, damage: 4, xpValue: 3, radius: 14,
-    color: '#26a69a',
+    id: 'slime', name: 'Slime',
+    hp: 6, moveSpeed: 50, damage: 4, xpValue: 3, radius: 14, color: '#26a69a',
     deathSpawn: { enemyId: 'mini_slime', count: 2 },
   },
-  {
-    id: 'mini_slime',
-    name: 'Mini Slime',
-    hp: 2, moveSpeed: 70, damage: 2, xpValue: 1, radius: 7,
-    color: '#80cbc4',
-  },
+  { id: 'mini_slime', name: 'Mini Slime', hp: 2, moveSpeed: 70, damage: 2, xpValue: 1, radius: 7,  color: '#80cbc4' },
 
   // ── 엘리트 ───────────────────────────────────────────────────
-
   {
-    id: 'elite_golem',
-    name: 'Elite Golem',
-    hp: 60, moveSpeed: 45, damage: 22, xpValue: 18, radius: 26,
-    color: '#ff8f00',
-    isElite: true,
-    knockbackResist: 1.0,
+    id: 'elite_golem', name: 'Elite Golem',
+    hp: 60, moveSpeed: 45, damage: 22, xpValue: 18, radius: 26, color: '#ff8f00',
+    isElite: true, knockbackResist: 1.0,
     behaviorId: 'dash',
     behaviorState: () => ({ phase: 'idle', timer: 1.5, dashDirX: 0, dashDirY: 0 }),
   },
-
   {
-    id: 'elite_bat',
-    name: 'Elite Bat',
-    hp: 18, moveSpeed: 160, damage: 12, xpValue: 14, radius: 14,
-    color: '#ab47bc',
+    id: 'elite_bat', name: 'Elite Bat',
+    hp: 18, moveSpeed: 160, damage: 12, xpValue: 14, radius: 14, color: '#ab47bc',
     isElite: true,
     behaviorId: 'dash',
-    behaviorState: () => ({
-      phase: 'idle', timer: 0.8,
-      dashDirX: 0, dashDirY: 0,
-    }),
+    behaviorState: () => ({ phase: 'idle', timer: 0.8, dashDirX: 0, dashDirY: 0 }),
   },
-
   {
-    id: 'elite_skeleton',
-    name: 'Elite Skeleton',
-    hp: 35, moveSpeed: 90, damage: 10, xpValue: 16, radius: 16,
-    color: '#b0bec5',
+    id: 'elite_skeleton', name: 'Elite Skeleton',
+    hp: 35, moveSpeed: 90, damage: 10, xpValue: 16, radius: 16, color: '#eeeeee',
     isElite: true,
     behaviorId: 'circle_dash',
-    behaviorState: () => ({
-      phase: 'idle', timer: 1.2,
-      orbitAngle: 0, orbitRadius: 100,
-      dashDirX: 0, dashDirY: 0,
-    }),
-    projectileConfig: {
-      speed: 200, damage: 8, radius: 6,
-      color: '#e0e0e0', pierce: 1, maxRange: 300,
-      behaviorId: 'targetProjectile',
-    },
+    behaviorState: () => ({ phase: 'idle', timer: 1.2, orbitAngle: 0, dashDirX: 0, dashDirY: 0 }),
+    projectileConfig: { damage: 6, speed: 200, radius: 6, color: '#e0e0e0', pierce: 1 },
   },
 
-  // ── 보스 ─────────────────────────────────────────────────────
+  // ── 보스 ──────────────────────────────────────────────────────
   {
-    id: 'boss_lich',
-    name: 'Lich King',
-    hp: 500, moveSpeed: 55, damage: 25, xpValue: 100, radius: 32,
-    color: '#7c4dff',
-    isBoss: true,
-    knockbackResist: 1.0,
+    id: 'boss_lich', name: 'The Lich',
+    hp: 300, moveSpeed: 55, damage: 20, xpValue: 60, radius: 32, color: '#b39ddb',
+    isBoss: true, knockbackResist: 1.0,
     behaviorId: 'circle_dash',
-    behaviorState: () => ({
-      phase: 'circling',
-      timer: 2.5,
-      orbitAngle: 0,
-      orbitRadius: 200,
-      orbitSpeed: 1.2,
-      dashDirX: 0, dashDirY: 0,
-    }),
-    projectileConfig: {
-      damage: 14,
-      speed: 260,
-      radius: 9,
-      color: '#7c4dff',
-      pierce: 2,
-    },
+    behaviorState: () => ({ phase: 'idle', timer: 2.0, orbitAngle: 0, dashDirX: 0, dashDirY: 0 }),
+    projectileConfig: { damage: 12, speed: 240, radius: 8, color: '#b39ddb', pierce: 2 },
   },
 ];
 
