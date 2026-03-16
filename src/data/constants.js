@@ -4,21 +4,16 @@
  * 단위 규약:
  *   cooldown: 초 / moveSpeed: px/s / projectileSpeed: px/s
  *   range: px / radius: px / rotationSpeed: rad/s / spawnPerSecond: 개/s
- *
- * FIX(bug): EFFECT_DEFAULTS에 levelFlashDuration / burstDuration 추가.
- *   이전: 누락으로 PlayScene._showLevelUpUI 에서 undefined 전달 → 이펙트 즉시 만료.
- * FIX(bug): DAMAGE_TEXT / KNOCKBACK / COLLISION_CULL_MARGIN / ELITE_BEHAVIOR
- *   상수 정의를 한 곳에 통합.
  */
 
 /** 플레이어 기본값 */
 export const PLAYER_DEFAULTS = {
-  hp: 100,
-  maxHp: 100,
-  moveSpeed: 200,
-  radius: 16,
+  hp:           100,
+  maxHp:        100,
+  moveSpeed:    200,
+  radius:       16,
   magnetRadius: 60,
-  color: '#4fc3f7',
+  color:        '#4fc3f7',
 };
 
 /** XP → 레벨업 테이블 (인덱스 = 현재 레벨, 값 = 다음 레벨에 필요한 XP) */
@@ -48,9 +43,9 @@ export function getXpForLevel(level) {
 
 /** 픽업 기본값 */
 export const PICKUP_DEFAULTS = {
-  xpValue:    1,
-  radius:     6,
-  color:      '#66bb6a',
+  xpValue:     1,
+  radius:      6,
+  color:       '#66bb6a',
   magnetSpeed: 400,
 };
 
@@ -66,7 +61,7 @@ export const EFFECT_DEFAULTS = {
 
 /**
  * 데미지 텍스트 설정
- * FIX(perf): 프레임당 최대 이펙트 수 상한
+ * PERF: 프레임당 최대 이펙트 수 상한
  */
 export const DAMAGE_TEXT = {
   MAX_PER_FRAME: 12,
@@ -83,7 +78,7 @@ export const KNOCKBACK = {
 
 /**
  * 충돌 컬링 마진 (픽셀)
- * FIX(perf): 화면 밖 적 필터링 기준 — canvasWidth/2 + 마진 정도
+ * PERF: 화면 밖 적 필터링 기준
  */
 export const COLLISION_CULL_MARGIN = 600;
 
@@ -92,3 +87,6 @@ export const ELITE_BEHAVIOR = {
   DASH_SPEED:        520,
   CIRCLE_DASH_SPEED: 480,
 };
+
+/** 렌더링 컬링 마진 (픽셀) — 화면 밖 엔티티 스킵 */
+export const RENDER_CULL_MARGIN = 80;

@@ -5,22 +5,19 @@ import { COLLISION_CULL_MARGIN } from '../../data/constants.js';
  * CollisionSystem — 충돌 판정 전용
  *
  * PERF: 투사체 루프 진입 전 nearEnemies 사전 필터링으로 O(n×m) 완화
- *   이전: 매 투사체마다 전체 enemies 배열 순회
- *   이후: 카메라 컬링 범위 내 살아있는 적만 추려 재사용
- *
  * 계약: 직접 상태 수정 금지 → events.hits / events.pickupCollected 에만 기록
  */
 export const CollisionSystem = {
   update({ player, enemies, projectiles, pickups, events, camera }) {
     if (!player?.isAlive) return;
 
-    const hasCull = !!camera;
+    const hasCull  = !!camera;
     const cullMinX = hasCull ? camera.x - COLLISION_CULL_MARGIN : -Infinity;
     const cullMaxX = hasCull ? camera.x + COLLISION_CULL_MARGIN :  Infinity;
     const cullMinY = hasCull ? camera.y - COLLISION_CULL_MARGIN : -Infinity;
     const cullMaxY = hasCull ? camera.y + COLLISION_CULL_MARGIN :  Infinity;
 
-    // PERF: 사전 필터
+    // PERF: 사전 필터 — 화면 근처의 살아있는 적만 추림
     const nearEnemies = [];
     for (let j = 0; j < enemies.length; j++) {
       const e = enemies[j];

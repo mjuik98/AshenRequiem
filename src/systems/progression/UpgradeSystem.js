@@ -1,13 +1,14 @@
-import { upgradeData }      from '../../data/upgradeData.js';
-import { shuffle }          from '../../utils/random.js';
-import { getWeaponDataById } from '../../data/weaponData.js';
+import { upgradeData }       from '../../data/upgradeData.js';
+import { shuffle }            from '../../utils/random.js';
+import { getWeaponDataById }  from '../../data/weaponData.js';
 
 /**
  * UpgradeSystem — 업그레이드 선택지 생성 + 적용
  *
- * FIX(bug): 선택지 1~2개 반환 시 LevelUpView 레이아웃이 깨지던 문제 수정
- *   → _buildFallbackChoices() 로 항상 3개 보장
- * PATCH: 무기 관련 업그레이드 최소 1개 보장 유지
+ * FIX(bug): 선택지 1~2개 반환 시 LevelUpView 레이아웃 깨짐 → 항상 3개 보장
+ * FIX(bug): weapon_upgrade 강화 수치가 upgradeData 필드에서 읽힘
+ *   (damageDelta / cooldownMult / orbitRadiusDelta / pierceDelta)
+ * FIX(bug): _buildFallbackChoices — 이미 포함된 항목 제외 후 반환
  */
 export const UpgradeSystem = {
   generateChoices(player) {
@@ -30,8 +31,9 @@ export const UpgradeSystem = {
 
     for (const upgrade of upgradeData) {
       if (upgrade.type === 'weapon_new') {
-        if (!player.weapons.find(w => w.id === upgrade.weaponId)) weaponPicks.push(upgrade);
-
+        if (!player.weapons.find(w => w.id === upgrade.weaponId)) {
+          weaponPicks.push(upgrade);
+        }
       } else if (upgrade.type === 'weapon_upgrade') {
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
         if (owned) {
@@ -39,10 +41,11 @@ export const UpgradeSystem = {
           const maxLevel = def?.maxLevel ?? Infinity;
           if (owned.level < maxLevel) weaponPicks.push(upgrade);
         }
-
       } else {
         const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
-        if (upgrade.maxCount === undefined || taken < upgrade.maxCount) statPicks.push(upgrade);
+        if (upgrade.maxCount === undefined || taken < upgrade.maxCount) {
+          statPicks.push(upgrade);
+        }
       }
     }
 
@@ -59,6 +62,7 @@ export const UpgradeSystem = {
     return result;
   },
 
+  /** FIX(bug): existingIds 제외 + 중복 없이 반환 */
   _buildFallbackChoices(player, existing) {
     const existingIds = new Set(existing.map(u => u.id));
     return upgradeData.filter(u => !existingIds.has(u.id));
@@ -73,13 +77,22 @@ export const UpgradeSystem = {
       const owned = player.weapons.find(w => w.id === upgrade.weaponId);
       if (owned) {
         owned.level++;
-        owned.damage   = (owned.damage   || 1) + 1;
-        owned.cooldown = Math.max(0.1, (owned.cooldown || 1) * 0.92);
-        if (owned.behaviorId === 'orbit' && owned.orbitRadius) {
-          owned.orbitRadius += 4;
+
+        // FIX: 데이터 필드에서 강화 수치 읽기 (하드코딩 제거)
+        const dmgDelta      = upgrade.damageDelta      ?? 1;
+        const cdMult        = upgrade.cooldownMult     ?? 0.92;
+        const orbitRDelta   = upgrade.orbitRadiusDelta ?? 0;
+        const pierceDelta   = upgrade.pierceDelta      ?? 0;
+
+        owned.damage   = (owned.damage   || 1) + dmgDelta;
+        owned.cooldown = Math.max(0.1, (owned.cooldown || 1) * cdMult);
+
+        if (orbitRDelta > 0 && owned.orbitRadius !== undefined) {
+          owned.orbitRadius += orbitRDelta;
         }
-        if (owned.pierce && owned.behaviorId !== 'orbit' && owned.behaviorId !== 'areaBurst') {
-          owned.pierce++;
+        if (pierceDelta > 0 && owned.pierce !== undefined
+            && owned.behaviorId !== 'orbit' && owned.behaviorId !== 'areaBurst') {
+          owned.pierce += pierceDelta;
         }
       }
 
@@ -95,7 +108,6 @@ export const UpgradeSystem = {
           player[eff.stat] += eff.value;
         }
       }
-      // 적용 횟수 추적
       player.upgradeCounts = player.upgradeCounts || {};
       player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] || 0) + 1;
     }

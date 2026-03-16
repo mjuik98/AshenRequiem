@@ -19,34 +19,33 @@ export class SoundSystem {
 
   play(type) {
     if (!this._enabled || !this._ctx) return;
-    // suspended 상태면 resume
     if (this._ctx.state === 'suspended') this._ctx.resume();
 
     try {
       switch (type) {
-        case 'hit':     this._beep(440, 0.05, 'square', 0.08); break;
-        case 'death':   this._beep(200, 0.12, 'sawtooth', 0.15); break;
+        case 'hit':     this._beep(440,  0.05, 'square',   0.08); break;
+        case 'death':   this._beep(200,  0.12, 'sawtooth', 0.15); break;
         case 'levelup': this._chord([523, 659, 784], 0.2, 'sine', 0.18); break;
-        case 'pickup':  this._beep(880, 0.04, 'sine', 0.06); break;
-        case 'damage':  this._beep(180, 0.08, 'sawtooth', 0.1); break;
+        case 'pickup':  this._beep(880,  0.04, 'sine',     0.06); break;
+        case 'damage':  this._beep(180,  0.08, 'sawtooth', 0.1);  break;
       }
     } catch { /* 무음 처리 */ }
   }
 
   processEvents(events) {
     if (!this._enabled) return;
-    if (events.deaths.length > 0)         this.play('death');
-    if (events.hits.some(h => h.target?.type === 'player')) this.play('damage');
-    if (events.pickupCollected.length > 0) this.play('pickup');
+    if (events.deaths.length > 0)                                    this.play('death');
+    if (events.hits.some(h => h.target?.type === 'player'))          this.play('damage');
+    if (events.pickupCollected.length > 0)                           this.play('pickup');
   }
 
   _beep(freq, duration, type, volume) {
-    const ctx = this._ctx;
-    const osc = ctx.createOscillator();
+    const ctx  = this._ctx;
+    const osc  = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.type      = type;
+    osc.type = type;
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
     gain.gain.setValueAtTime(volume, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);

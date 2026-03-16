@@ -1,12 +1,12 @@
-import { ELITE_BEHAVIOR } from '../../data/constants.js';
-
 /**
  * EnemyMovementSystem — 적 이동 + 넉백 + separation
  *
- * PERF: separation 패스 — 적 겹침 방지 (CollisionSystem 동일 위치 다수 타격 완화)
+ * PERF: separation — 적 수가 SEPARATION_MAX_ENEMIES 초과 시 연산 스킵
+ *   대규모 스폰 상황에서 O(n²) 병목 완화
  */
-const SEPARATION_STRENGTH = 0.35;
-const SEPARATION_MAX_DIST = 60;
+const SEPARATION_STRENGTH  = 0.35;
+const SEPARATION_MAX_DIST  = 60;
+const SEPARATION_MAX_ENEMIES = 80; // 이 수 이하일 때만 separation 실행
 
 export const EnemyMovementSystem = {
   update({ player, enemies, deltaTime }) {
@@ -35,18 +35,17 @@ export const EnemyMovementSystem = {
       // 스턴 중
       if (e.stunned) continue;
 
-      // 엘리트 / 보스 behaviorId !== 'chase' 는 EliteBehaviorSystem 이 담당
+      // 엘리트 / 보스 중 chase 가 아닌 것은 EliteBehaviorSystem이 담당
       if (e.behaviorId !== 'chase' && (e.isElite || e.isBoss)) continue;
 
       // 플레이어 추적
-      const dx = player.x - e.x;
-      const dy = player.y - e.y;
+      const dx   = player.x - e.x;
+      const dy   = player.y - e.y;
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-      // slow 상태이상
-      const slow = e.statusEffects?.find(s => s.type === 'slow');
+      const slow      = e.statusEffects?.find(s => s.type === 'slow');
       const speedMult = slow ? (1 - slow.magnitude) : 1;
-      const speed = (e.moveSpeed ?? 80) * speedMult * deltaTime;
+      const speed     = (e.moveSpeed ?? 80) * speedMult * deltaTime;
 
       if (dist > 1) {
         e.x += (dx / dist) * speed;
@@ -54,7 +53,10 @@ export const EnemyMovementSystem = {
       }
     }
 
-    this._applySeparation(enemies);
+    // PERF: 적 수 임계값 초과 시 separation 스킵
+    if (enemies.length <= SEPARATION_MAX_ENEMIES) {
+      this._applySeparation(enemies);
+    }
   },
 
   _applySeparation(enemies) {

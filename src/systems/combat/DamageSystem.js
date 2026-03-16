@@ -4,8 +4,7 @@ import { KNOCKBACK, DAMAGE_TEXT } from '../../data/constants.js';
  * DamageSystem — 데미지 적용
  *
  * FIX(bug): pendingDestroy 가드 — 동일 프레임 poison tick + 투사체 이중 처리 차단
- * FIX(perf): 데미지 텍스트 프레임당 DAMAGE_TEXT.MAX_PER_FRAME 상한
- * REF: KNOCKBACK / DAMAGE_TEXT 상수 참조 (하드코딩 제거)
+ * PERF: 데미지 텍스트 프레임당 DAMAGE_TEXT.MAX_PER_FRAME 상한
  */
 export const DamageSystem = {
   update({ events, player, spawnQueue }) {
@@ -28,12 +27,12 @@ export const DamageSystem = {
         const resist = target.knockbackResist ?? 0;
         let kx = 0, ky = 0;
 
-        if (hit.projectile?.dirX || hit.projectile?.dirY) {
+        if (hit.projectile?.dirX !== undefined || hit.projectile?.dirY !== undefined) {
           kx = hit.projectile.dirX;
           ky = hit.projectile.dirY;
         } else if (player) {
-          const dx = target.x - player.x;
-          const dy = target.y - player.y;
+          const dx  = target.x - player.x;
+          const dy  = target.y - player.y;
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
           kx = dx / len; ky = dy / len;
         }
@@ -57,8 +56,8 @@ export const DamageSystem = {
 
       // 사망 판정
       if (target.hp <= 0 && !target.pendingDestroy) {
-        target.hp = 0;
-        target.isAlive = false;
+        target.hp             = 0;
+        target.isAlive        = false;
         target.pendingDestroy = true;
         events.deaths.push({ entity: target });
       }
@@ -76,7 +75,7 @@ export const DamageSystem = {
             color:      target.type === 'player'
               ? DAMAGE_TEXT.COLOR_PLAYER
               : DAMAGE_TEXT.COLOR_ENEMY,
-            duration:   DAMAGE_TEXT.DURATION,
+            duration: DAMAGE_TEXT.DURATION,
           },
         });
       }

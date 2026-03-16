@@ -6,8 +6,8 @@
  *   'levelFlash'  — 레벨업 전체 화면 플래시
  *   'burst'       — 파티클 링 + 중심 플래시
  *
- * FIX(bug): levelFlash 카메라 transform 을 setTransform(1,0,0,1,0,0) 으로 초기화하여
- *   정확하게 전체 화면을 커버.
+ * FIX(bug): levelFlash — setTransform(1,0,0,1,0,0) 으로 카메라 transform 초기화해
+ *   전체 화면을 정확히 커버
  */
 export function drawEffect(ctx, effect, camera, dpr) {
   if (!effect.isAlive) return;
@@ -74,7 +74,7 @@ export function drawEffect(ctx, effect, camera, dpr) {
       const angle  = (i / PARTICLE_COUNT) * Math.PI * 2;
       const spread = progress * 0.6;
       const jAngle = angle + spread * (i % 2 === 0 ? 1 : -1);
-      const r = maxR * (0.6 + (i % 3) * 0.15);
+      const r      = maxR * (0.6 + (i % 3) * 0.15);
       ctx.beginPath();
       ctx.arc(sx + Math.cos(jAngle) * r, sy + Math.sin(jAngle) * r, 3, 0, Math.PI * 2);
       ctx.fill();

@@ -1,6 +1,5 @@
 /**
  * compact.js — pendingDestroy 항목 배열 정리 유틸
- *
  * FIX(pattern): 순회 중 즉시 splice 삭제 금지 → 이 함수들로 일괄 처리
  */
 

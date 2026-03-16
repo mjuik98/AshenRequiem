@@ -3,9 +3,9 @@ import { PlayScene } from './PlayScene.js';
 /** TitleScene — 타이틀 화면 */
 export class TitleScene {
   constructor(game) {
-    this.game    = game;
-    this._el     = null;
-    this._bound  = null;
+    this.game   = game;
+    this._el    = null;
+    this._bound = null;
   }
 
   enter() {
@@ -18,7 +18,7 @@ export class TitleScene {
         <button class="title-start-btn" id="title-start">게임 시작</button>
         <div class="title-hints">
           <span>이동: WASD / 화살표</span>
-          <span>디버그: ` + '`' + `</span>
+          <span>디버그: \`</span>
         </div>
       </div>
     `;
@@ -56,7 +56,6 @@ export class TitleScene {
         background: linear-gradient(135deg, #4fc3f7, #b39ddb, #ef5350);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         background-clip: text;
-        text-shadow: none;
         animation: title-glow 3s ease-in-out infinite alternate;
       }
       @keyframes title-glow {

@@ -5,7 +5,7 @@
 export class LevelUpView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.id = 'levelup-overlay';
+    this.el.className = 'levelup-overlay';
     this.el.style.display = 'none';
     this._injectStyles();
     container.appendChild(this.el);
@@ -16,9 +16,9 @@ export class LevelUpView {
     this._onSelect = onSelectCallback;
     this.el.innerHTML = `
       <div class="levelup-title">⬆ LEVEL UP</div>
-      <div class="levelup-cards" id="levelup-cards"></div>
+      <div class="levelup-cards"></div>
     `;
-    const cardsEl = document.getElementById('levelup-cards');
+    const cardsEl = this.el.querySelector('.levelup-cards');
     choices.forEach(upgrade => {
       const card = document.createElement('div');
       card.className = 'levelup-card';
@@ -46,7 +46,7 @@ export class LevelUpView {
     const s = document.createElement('style');
     s.id = 'levelup-styles';
     s.textContent = `
-      #levelup-overlay {
+      .levelup-overlay {
         position: absolute; inset: 0;
         background: rgba(0,0,0,0.72);
         display: flex; flex-direction: column;

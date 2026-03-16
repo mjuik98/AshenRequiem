@@ -21,8 +21,7 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
   }
 
   // 피격 플래시
-  const flashColor = enemy.hitFlashTimer > 0 ? '#ffffff' : enemy.color;
-  ctx.fillStyle = flashColor;
+  ctx.fillStyle = enemy.hitFlashTimer > 0 ? '#ffffff' : enemy.color;
 
   ctx.beginPath();
   ctx.arc(sx, sy, enemy.radius, 0, Math.PI * 2);
@@ -67,11 +66,6 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
     ctx.arc(sx + enemy.radius * 0.6, sy - enemy.radius * 0.6, 3, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
-  }
-
-  // hitFlashTimer 감소 (렌더 레이어에서 처리 — 시각 효과 전용)
-  if (enemy.hitFlashTimer > 0) {
-    // NOTE: hitFlashTimer 감소는 EnemyMovementSystem 에서 처리됨. 여기선 읽기 전용.
   }
 
   ctx.restore();

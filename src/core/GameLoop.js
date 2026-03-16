@@ -23,7 +23,6 @@ export class GameLoop {
 
   _frame(now) {
     const raw = (now - this._lastTime) / 1000;
-    // FIX(web): 비정상적으로 큰 deltaTime 상한 적용 (탭 전환 / 백그라운드 복귀 대비)
     const dt  = Math.min(raw, GameConfig.maxDeltaTime);
     this._lastTime = now;
     this._tickFn(dt);

@@ -75,20 +75,16 @@ export const StatusEffectSystem = {
     }
 
     entity.statusEffects.push({
-      id:               generateId(),
-      type:             def.type,
-      remaining:        def.duration,
-      magnitude:        def.magnitude,
-      tickInterval:     def.tickInterval,
-      tickAccumulator:  0,
-      color:            def.color,
+      id:              generateId(),
+      type:            def.type,
+      remaining:       def.duration,
+      magnitude:       def.magnitude,
+      tickInterval:    def.tickInterval,
+      tickAccumulator: 0,
+      color:           def.color,
     });
 
-    // 상태이상 즉시 적용
     if (def.type === 'stun') entity.stunned = true;
-    if (def.type === 'slow' && entity.moveSpeed) {
-      // moveSpeed 는 EnemyMovementSystem/PlayerMovementSystem 에서 magnitude 로 처리
-    }
   },
 
   _removeEffect(entity, effect, idx) {

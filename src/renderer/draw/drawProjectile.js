@@ -2,7 +2,7 @@
  * drawProjectile — 투사체 렌더링
  *
  * PERF: targetProjectile 은 shadowBlur 제거 → 중심 하이라이트로 대체
- *       (투사체가 가장 많아 shadowBlur 비용이 집중되는 타입)
+ *   (투사체가 가장 많아 shadowBlur 비용이 집중되는 타입)
  */
 export function drawProjectile(ctx, proj, camera) {
   if (!proj.isAlive) return;

@@ -39,33 +39,37 @@ import { BossHudView }  from '../ui/boss/BossHudView.js';
  *
  * FIX(safety): update() / render() 최상단 null guard
  *   exit() → world = null 후 SceneManager 타이밍으로 1프레임 더 호출 방지
- * FIX(bug): _showLevelUpUI — effectPool.acquire() 직접 push
- * REF(safety): SpawnSystem.reset() enter() 최상단 배치 (재시작 상태 오염 방지)
+ * FIX(bug): _showLevelUpUI — effectPool.acquire() 직접 world.effects 에 push
+ * FIX(safety): SpawnSystem.reset() enter() 최상단 배치 (재시작 상태 오염 방지)
+ * FIX(bug): DebugView 에 poolProjectile/poolEffect 키 일치 전달
  */
 export class PlayScene {
   constructor(game) {
-    this.game         = game;
-    this.world        = null;
-    this.uiState      = null;
-    this.camera       = { x: 0, y: 0 };
-    this.hudView      = null;
-    this.levelUpView  = null;
-    this.resultView   = null;
-    this.debugView    = null;
-    this.bossHudView  = null;
+    this.game            = game;
+    this.world           = null;
+    this.uiState         = null;
+    this.camera          = { x: 0, y: 0 };
+    this.hudView         = null;
+    this.levelUpView     = null;
+    this.resultView      = null;
+    this.debugView       = null;
+    this.bossHudView     = null;
     this._projectilePool = null;
     this._effectPool     = null;
     this._soundSystem    = null;
-    this._dpr         = 1;
+    this._dpr            = 1;
+    // 레벨업 UI 중복 표시 방지 플래그
+    this._levelUpShown   = false;
+    this._deadShown      = false;
   }
 
   enter() {
-    // REF(safety): 재시작 시 싱글톤 상태 오염 방지
+    // 재시작 시 싱글톤 상태 오염 방지
     SpawnSystem.reset();
 
-    this.world          = createWorld();
-    this.uiState        = createUiState();
-    this.world.player   = createPlayer(0, 0);
+    this.world        = createWorld();
+    this.uiState      = createUiState();
+    this.world.player = createPlayer(0, 0);
 
     this._projectilePool = new ObjectPool(
       () => createProjectile({ x: 0, y: 0 }),
@@ -80,6 +84,9 @@ export class PlayScene {
 
     this._soundSystem = new SoundSystem();
     this._soundSystem.init();
+
+    this._levelUpShown = false;
+    this._deadShown    = false;
 
     const uiContainer = mountUI();
     this.hudView     = new HudView(uiContainer);
@@ -109,8 +116,20 @@ export class PlayScene {
       SpawnSystem.getDebugInfo(world.elapsedTime),
     );
 
-    if (world.playMode === 'dead')    return;
-    if (world.playMode === 'levelup') return;
+    if (world.playMode === 'dead') {
+      if (!this._deadShown) {
+        this._deadShown = true;
+        this._showResultUI();
+      }
+      return;
+    }
+    if (world.playMode === 'levelup') {
+      if (!this._levelUpShown) {
+        this._levelUpShown = true;
+        this._showLevelUpUI();
+      }
+      return;
+    }
 
     // ──────────────── 프레임 파이프라인 ────────────────────────
 
@@ -213,9 +232,6 @@ export class PlayScene {
     CameraSystem.update({ player: world.player, camera: this.camera });
 
     // ─── 후처리 ─────────────────────────────────────────────────
-    if (world.playMode === 'levelup') this._showLevelUpUI();
-    if (world.playMode === 'dead')    this._showResultUI();
-
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
   }
@@ -248,14 +264,10 @@ export class PlayScene {
 
   // ─── 내부 헬퍼 ──────────────────────────────────────────────
 
-  /**
-   * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 →
-   *           effectPool.acquire() 직접 world.effects 에 push
-   */
   _showLevelUpUI() {
     this._soundSystem?.play('levelup');
 
-    // FIX(bug): levelFlashDuration 이 constants 에 정의됨 (undefined 방지)
+    // 레벨업 플래시 이펙트를 직접 effectPool 에서 취득해 world.effects에 push
     this.world.effects.push(this._effectPool.acquire({
       x:          this.world.player.x,
       y:          this.world.player.y,
@@ -266,11 +278,16 @@ export class PlayScene {
     }));
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
-    if (choices.length === 0) { this.world.playMode = 'playing'; return; }
+    if (choices.length === 0) {
+      this.world.playMode  = 'playing';
+      this._levelUpShown   = false;
+      return;
+    }
 
     this.levelUpView.show(choices, (selectedUpgrade) => {
       UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
       this.world.playMode = 'playing';
+      this._levelUpShown  = false;
     });
   }
 

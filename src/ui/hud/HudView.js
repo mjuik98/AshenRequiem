@@ -2,12 +2,15 @@ import { getXpForLevel } from '../../data/constants.js';
 
 /**
  * HudView — 상단 HUD (HP 바, XP 바, 레벨, 킬 수, 경과 시간)
+ *
+ * FIX(bug): document.getElementById → this.el.querySelector
+ *   PlayScene 재시작 시 이전 HUD 노드의 id와 충돌하지 않도록 scoped 탐색
  * PERF: textContent / style.width 만 갱신 (innerHTML 전체 교체 없음)
  */
 export class HudView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.id = 'hud';
+    this.el.className = 'hud-root';
     this.el.style.display = 'none';
     this._injectStyles();
     this._buildDOM();
@@ -18,25 +21,26 @@ export class HudView {
     this.el.innerHTML = `
       <div class="hud-top">
         <div class="hud-stats">
-          <span id="hud-level">Lv.1</span>
-          <span id="hud-kills">킬: 0</span>
-          <span id="hud-time">0:00</span>
+          <span class="hud-level">Lv.1</span>
+          <span class="hud-kills">킬: 0</span>
+          <span class="hud-time">0:00</span>
         </div>
         <div class="hud-xp-bar-container">
-          <div class="hud-xp-bar" id="hud-xp-bar"></div>
+          <div class="hud-xp-bar"></div>
         </div>
       </div>
       <div class="hud-hp-container">
-        <div class="hud-hp-bar" id="hud-hp-bar"></div>
-        <div class="hud-hp-text" id="hud-hp-text"></div>
+        <div class="hud-hp-bar"></div>
+        <div class="hud-hp-text"></div>
       </div>
     `;
-    this._elLevel  = document.getElementById('hud-level');
-    this._elKills  = document.getElementById('hud-kills');
-    this._elTime   = document.getElementById('hud-time');
-    this._elXpBar  = document.getElementById('hud-xp-bar');
-    this._elHpBar  = document.getElementById('hud-hp-bar');
-    this._elHpText = document.getElementById('hud-hp-text');
+    // FIX(bug): id 대신 className + querySelector로 scoped 탐색
+    this._elLevel  = this.el.querySelector('.hud-level');
+    this._elKills  = this.el.querySelector('.hud-kills');
+    this._elTime   = this.el.querySelector('.hud-time');
+    this._elXpBar  = this.el.querySelector('.hud-xp-bar');
+    this._elHpBar  = this.el.querySelector('.hud-hp-bar');
+    this._elHpText = this.el.querySelector('.hud-hp-text');
   }
 
   show() { this.el.style.display = 'block'; }
@@ -52,12 +56,12 @@ export class HudView {
     const mm       = Math.floor(secs / 60);
     const ss       = String(secs % 60).padStart(2, '0');
 
-    this._elLevel.textContent        = `Lv.${player.level}`;
-    this._elKills.textContent        = `킬: ${world.killCount}`;
-    this._elTime.textContent         = `${mm}:${ss}`;
-    this._elXpBar.style.width        = `${xpPct}%`;
-    this._elHpBar.style.width        = `${hpPct}%`;
-    this._elHpText.textContent       = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+    this._elLevel.textContent  = `Lv.${player.level}`;
+    this._elKills.textContent  = `킬: ${world.killCount}`;
+    this._elTime.textContent   = `${mm}:${ss}`;
+    this._elXpBar.style.width  = `${xpPct}%`;
+    this._elHpBar.style.width  = `${hpPct}%`;
+    this._elHpText.textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
   }
 
   destroy() { this.el.remove(); }
@@ -67,7 +71,7 @@ export class HudView {
     const s = document.createElement('style');
     s.id = 'hud-styles';
     s.textContent = `
-      #hud {
+      .hud-root {
         position: absolute; top: 12px; left: 12px; right: 12px;
         pointer-events: none;
       }

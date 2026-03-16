@@ -1,21 +1,24 @@
-import { GameConfig }    from './GameConfig.js';
-import { GameLoop }      from './GameLoop.js';
-import { SceneManager }  from './SceneManager.js';
-import { Input }         from './Input.js';
+import { GameConfig }     from './GameConfig.js';
+import { GameLoop }       from './GameLoop.js';
+import { SceneManager }   from './SceneManager.js';
+import { Input }          from './Input.js';
 import { CanvasRenderer } from '../renderer/CanvasRenderer.js';
-import { TitleScene }    from '../scenes/TitleScene.js';
+import { TitleScene }     from '../scenes/TitleScene.js';
 import { validateGameData } from '../utils/validateGameData.js';
-import { upgradeData }   from '../data/upgradeData.js';
-import { weaponData }    from '../data/weaponData.js';
-import { waveData }      from '../data/waveData.js';
+import { upgradeData }    from '../data/upgradeData.js';
+import { weaponData }     from '../data/weaponData.js';
+import { waveData }       from '../data/waveData.js';
 
 /** Game — 게임 최상위 진입점 */
 export class Game {
   constructor() {
     this.canvas = document.getElementById('game-canvas');
     this.ctx    = this.canvas.getContext('2d');
+
+    // FIX(memory): resize 핸들러를 인스턴스에 저장해 나중에 제거 가능하도록
+    this._onResize = () => this._resizeCanvas();
     this._resizeCanvas();
-    window.addEventListener('resize', () => this._resizeCanvas());
+    window.addEventListener('resize', this._onResize);
 
     this.input        = new Input();
     this.input.init();
@@ -25,10 +28,15 @@ export class Game {
   }
 
   start() {
-    // 개발 빌드: 데이터 무결성 검증
     validateGameData({ upgradeData, weaponData, waveData });
     this.sceneManager.changeScene(new TitleScene(this));
     this._loop.start();
+  }
+
+  destroy() {
+    this._loop.stop();
+    this.input.destroy();
+    window.removeEventListener('resize', this._onResize);
   }
 
   _tick(dt) {
@@ -36,7 +44,7 @@ export class Game {
     this.sceneManager.render();
   }
 
-  /** FIX(web): devicePixelRatio 대응 + 리사이즈 시 캔버스/카메라 동기화 */
+  /** FIX(web): devicePixelRatio 대응 + 리사이즈 시 캔버스 동기화 */
   _resizeCanvas() {
     const dpr = GameConfig.useDevicePixelRatio ? (window.devicePixelRatio || 1) : 1;
     const w = window.innerWidth, h = window.innerHeight;

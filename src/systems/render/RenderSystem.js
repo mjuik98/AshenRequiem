@@ -2,12 +2,15 @@ import { drawPlayer }             from '../../renderer/draw/drawPlayer.js';
 import { drawEnemy }              from '../../renderer/draw/drawEnemy.js';
 import { drawProjectile }         from '../../renderer/draw/drawProjectile.js';
 import { drawEffect, drawPickup } from '../../renderer/draw/drawEffect.js';
+import { GameConfig, }            from '../../core/GameConfig.js';
+import { RENDER_CULL_MARGIN }     from '../../data/constants.js';
 
 /**
  * RenderSystem — 렌더링 순서 제어
  *
  * PERF: effects 이중 순회 → 단일 순회 + _damageTextBuffer 배열 재사용
  * PERF: 투사체 수 > GLOW_THRESHOLD 시 shadowBlur 전역 비활성화
+ * PERF: 화면 밖 적 / 투사체 / 픽업 렌더 스킵 (culling)
  */
 const GLOW_THRESHOLD = 50;
 
@@ -25,9 +28,18 @@ export const RenderSystem = {
 
     const timestamp = performance.now() / 1000;
 
+    // 컬링 경계 계산
+    const cMinX = camera.x - RENDER_CULL_MARGIN;
+    const cMaxX = camera.x + GameConfig.canvasWidth  + RENDER_CULL_MARGIN;
+    const cMinY = camera.y - RENDER_CULL_MARGIN;
+    const cMaxY = camera.y + GameConfig.canvasHeight + RENDER_CULL_MARGIN;
+
     // 픽업
     for (let i = 0; i < world.pickups.length; i++) {
-      drawPickup(ctx, world.pickups[i], camera);
+      const pk = world.pickups[i];
+      if (!pk.isAlive || pk.pendingDestroy) continue;
+      if (pk.x < cMinX || pk.x > cMaxX || pk.y < cMinY || pk.y > cMaxY) continue;
+      drawPickup(ctx, pk, camera);
     }
 
     // PERF: 단일 순회 — damageText는 버퍼로 수집, 나머지는 즉시 렌더
@@ -42,14 +54,20 @@ export const RenderSystem = {
       }
     }
 
-    // 적
+    // 적 (컬링 적용)
     for (let i = 0; i < world.enemies.length; i++) {
-      drawEnemy(ctx, world.enemies[i], camera, timestamp);
+      const e = world.enemies[i];
+      if (!e.isAlive || e.pendingDestroy) continue;
+      if (e.x < cMinX || e.x > cMaxX || e.y < cMinY || e.y > cMaxY) continue;
+      drawEnemy(ctx, e, camera, timestamp);
     }
 
-    // 투사체
+    // 투사체 (컬링 적용)
     for (let i = 0; i < world.projectiles.length; i++) {
-      drawProjectile(ctx, world.projectiles[i], camera);
+      const p = world.projectiles[i];
+      if (!p.isAlive) continue;
+      if (p.x < cMinX || p.x > cMaxX || p.y < cMinY || p.y > cMaxY) continue;
+      drawProjectile(ctx, p, camera);
     }
 
     // 플레이어
@@ -57,7 +75,7 @@ export const RenderSystem = {
       drawPlayer(ctx, world.player, camera);
     }
 
-    // 데미지 텍스트 — 최상단 레이어 (버퍼에서 일괄 렌더)
+    // 데미지 텍스트 — 최상단 레이어
     for (let i = 0; i < this._damageTextBuffer.length; i++) {
       drawEffect(ctx, this._damageTextBuffer[i], camera, dpr);
     }

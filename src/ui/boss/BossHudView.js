@@ -1,20 +1,21 @@
 /**
  * BossHudView — 보스 HP 바 (DOM UI)
  *
- * FIX(perf): 보스가 교체됐을 때만 innerHTML 갱신 (매 프레임 DOM 재파싱 방지)
- * 규칙: 읽기 전용 표현 계층
+ * FIX(bug): document.getElementById → this.el.querySelector
+ *   재시작 시 이전 DOM id와 충돌하지 않도록 scoped 탐색
+ * PERF: 보스가 교체됐을 때만 innerHTML 갱신 (매 프레임 DOM 재파싱 방지)
  */
 export class BossHudView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.id = 'boss-hud';
+    this.el.className = 'boss-hud';
     this.el.style.display = 'none';
     this._injectStyles();
     container.appendChild(this.el);
 
     this._currentBossId = null;
-    this._fillEl  = null;
-    this._labelEl = null;
+    this._fillEl        = null;
+    this._labelEl       = null;
   }
 
   update(enemies) {
@@ -22,23 +23,24 @@ export class BossHudView {
     if (!boss) {
       if (this.el.style.display !== 'none') this.el.style.display = 'none';
       this._currentBossId = null;
-      this._fillEl  = null;
-      this._labelEl = null;
+      this._fillEl        = null;
+      this._labelEl       = null;
       return;
     }
 
-    // FIX(perf): 보스가 교체됐을 때만 DOM 재구성
+    // FIX: 보스가 교체됐을 때만 DOM 재구성
     if (this._currentBossId !== boss.id) {
       this._currentBossId = boss.id;
       this.el.innerHTML = `
         <div class="boss-name">${boss.name || 'BOSS'}</div>
         <div class="boss-bar-wrap">
-          <div class="boss-hp-fill" id="boss-hp-fill"></div>
+          <div class="boss-hp-fill"></div>
         </div>
-        <span class="boss-hp-label" id="boss-hp-label"></span>
+        <span class="boss-hp-label"></span>
       `;
-      this._fillEl  = document.getElementById('boss-hp-fill');
-      this._labelEl = document.getElementById('boss-hp-label');
+      // FIX(bug): scoped querySelector
+      this._fillEl  = this.el.querySelector('.boss-hp-fill');
+      this._labelEl = this.el.querySelector('.boss-hp-label');
     }
 
     const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
@@ -54,7 +56,7 @@ export class BossHudView {
     const s = document.createElement('style');
     s.id = 'boss-hud-styles';
     s.textContent = `
-      #boss-hud {
+      .boss-hud {
         position: absolute; bottom: 52px; left: 50%;
         transform: translateX(-50%);
         display: none; flex-direction: column; align-items: center;
@@ -74,9 +76,7 @@ export class BossHudView {
         background: linear-gradient(90deg, #ff1744, #ff4081);
         border-radius: 5px; transition: width 0.2s ease;
       }
-      .boss-hp-label {
-        font-size: 11px; color: #aaa;
-      }
+      .boss-hp-label { font-size: 11px; color: #aaa; }
     `;
     document.head.appendChild(s);
   }

@@ -1,5 +1,5 @@
-import { generateId }      from '../utils/ids.js';
-import { PLAYER_DEFAULTS } from '../data/constants.js';
+import { generateId }       from '../utils/ids.js';
+import { PLAYER_DEFAULTS }  from '../data/constants.js';
 import { getWeaponDataById } from '../data/weaponData.js';
 
 /** createPlayer — 플레이어 엔티티 생성 */

@@ -14,7 +14,7 @@ export const LevelSystem = {
 
     const xpNeeded = getXpForLevel(player.level);
     if (player.xp >= xpNeeded) {
-      player.xp -= xpNeeded;
+      player.xp   -= xpNeeded;
       player.level++;
       worldState.playMode = 'levelup';
     }

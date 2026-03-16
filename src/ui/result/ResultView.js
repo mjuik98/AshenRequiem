@@ -5,7 +5,7 @@
 export class ResultView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.id = 'result-overlay';
+    this.el.className = 'result-overlay';
     this.el.style.display = 'none';
     this._injectStyles();
     container.appendChild(this.el);
@@ -22,10 +22,10 @@ export class ResultView {
           <div class="result-row"><span>최종 레벨</span><span>Lv.${stats.level}</span></div>
           <div class="result-row"><span>총 킬 수</span><span>${stats.killCount}</span></div>
         </div>
-        <button class="result-restart-btn" id="result-restart">다시 시작</button>
+        <button class="result-restart-btn">다시 시작</button>
       </div>
     `;
-    document.getElementById('result-restart')
+    this.el.querySelector('.result-restart-btn')
       .addEventListener('click', () => {
         this.el.style.display = 'none';
         this.el.innerHTML = '';
@@ -41,7 +41,7 @@ export class ResultView {
     const s = document.createElement('style');
     s.id = 'result-styles';
     s.textContent = `
-      #result-overlay {
+      .result-overlay {
         position: absolute; inset: 0;
         background: rgba(0,0,0,0.8);
         display: flex; align-items: center; justify-content: center;
@@ -60,28 +60,29 @@ export class ResultView {
         to   { transform: scale(1);   opacity: 1; }
       }
       .result-title {
-        font-size: 32px; font-weight: 800;
-        color: #ef5350; text-shadow: 0 0 20px #ef5350;
-        margin-bottom: 28px; letter-spacing: 3px;
+        font-size: 28px; font-weight: 800; color: #ef5350;
+        letter-spacing: 3px; margin-bottom: 24px;
+        text-shadow: 0 0 20px rgba(239,83,80,0.5);
       }
-      .result-stats { margin-bottom: 28px; }
+      .result-stats {
+        display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px;
+      }
       .result-row {
-        display: flex; justify-content: space-between; gap: 32px;
-        font-size: 14px; color: #ccc; padding: 6px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
+        display: flex; justify-content: space-between;
+        font-size: 14px; color: #ccc; gap: 32px;
       }
       .result-row span:last-child { color: #fff; font-weight: 600; }
       .result-restart-btn {
-        padding: 12px 32px; border: none; border-radius: 8px;
+        padding: 12px 40px; border: none; border-radius: 8px;
         background: linear-gradient(90deg, #ef5350, #ff7043);
         color: #fff; font-size: 15px; font-weight: 700;
         cursor: pointer; letter-spacing: 1px;
         transition: transform 0.15s, box-shadow 0.15s;
-        box-shadow: 0 4px 16px rgba(239,83,80,0.4);
+        box-shadow: 0 4px 16px rgba(239,83,80,0.3);
       }
       .result-restart-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(239,83,80,0.6);
+        box-shadow: 0 6px 22px rgba(239,83,80,0.5);
       }
     `;
     document.head.appendChild(s);

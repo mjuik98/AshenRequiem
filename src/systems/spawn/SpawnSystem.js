@@ -4,15 +4,15 @@ import { GameConfig }              from '../../core/GameConfig.js';
 /**
  * SpawnSystem — 시간 기반 적 스폰
  *
- * FIX(code): 싱글톤 상태 → PlayScene.enter() 에서 반드시 reset() 호출 필요
+ * 싱글톤 상태 → PlayScene.enter() 에서 반드시 reset() 호출 필요
  * FIX(balance): 보스 등장 후 BOSS_SUPPRESSION_DURATION 동안 일반 스폰 억제
  */
 const BOSS_SUPPRESSION_DURATION = 30;
 const BOSS_SPAWN_MULTIPLIER     = 0.45;
 
 export const SpawnSystem = {
-  _spawnAccumulator: 0,
-  _spawnedBossAt:    new Set(),
+  _spawnAccumulator:  0,
+  _spawnedBossAt:     new Set(),
   _lastBossSpawnTime: -Infinity,
 
   reset() {

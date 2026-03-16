@@ -4,8 +4,7 @@ import { getXpForLevel } from '../../data/constants.js';
  * DebugView — 백쿼트(`) 토글 디버그 패널
  *
  * PERF: innerHTML 전체 교체 → 생성자에서 DOM 1회 구성 후 textContent 만 갱신
- *       (reflow 없이 텍스트 노드만 바뀌어 개발 중 오픈 상태에서도 성능 영향 최소화)
- * PATCH: 갱신 주기 4프레임 1회 throttle 유지
+ * PATCH: 갱신 주기 4프레임 1회 throttle
  */
 export class DebugView {
   constructor(container) {
@@ -15,7 +14,7 @@ export class DebugView {
     this._injectStyles();
     container.appendChild(this.el);
 
-    this._dtBuffer       = [];
+    this._dtBuffer        = [];
     this._backtickWasDown = false;
     this._updateCounter   = 0;
     this._vals            = {};
@@ -42,7 +41,7 @@ export class DebugView {
       sec.appendChild(titleEl);
 
       fields.forEach(([key, id]) => {
-        const row  = document.createElement('div');
+        const row   = document.createElement('div');
         row.className = 'dbg-row';
 
         const keyEl = document.createElement('span');
@@ -72,60 +71,63 @@ export class DebugView {
   }
 
   update(world, pools, dt, waveData, spawnDebug) {
-    // FPS 버퍼 갱신 (항상)
     this._dtBuffer.push(dt);
     if (this._dtBuffer.length > 60) this._dtBuffer.shift();
 
     if (this.el.style.display === 'none') return;
 
-    // throttle: 4프레임 1회
     this._updateCounter++;
     if (this._updateCounter % 4 !== 0) return;
 
     const fps = this._dtBuffer.length > 0
       ? Math.round(1 / (this._dtBuffer.reduce((a, b) => a + b, 0) / this._dtBuffer.length))
       : 0;
-    const frameMs = dt > 0 ? (dt * 1000).toFixed(1) : '-';
+    const frameMs = dt > 0 ? (dt * 1000).toFixed(1) : '0';
 
-    const player  = world.player;
-    const secs    = Math.floor(world.elapsedTime);
-    const mm      = Math.floor(secs / 60);
-    const ss      = String(secs % 60).padStart(2, '0');
+    const player   = world.player;
+    const xpNeeded = player ? getXpForLevel(player.level) : 0;
 
-    let activeWaveRate = '-';
-    if (waveData) {
-      const w = waveData.find(w => world.elapsedTime >= w.from && world.elapsedTime < w.to);
-      if (w) activeWaveRate = w.spawnPerSecond.toFixed(1) + '/s';
+    // 활성 웨이브 탐색
+    let activeWave = null;
+    for (let i = 0; i < waveData.length; i++) {
+      const w = waveData[i];
+      if (world.elapsedTime >= w.from && world.elapsedTime < w.to) { activeWave = w; break; }
     }
-
-    const waveEnemies = waveData
-      ? (waveData.find(w => world.elapsedTime >= w.from && world.elapsedTime < w.to)?.enemyIds?.join(', ') ?? '-')
-      : '-';
 
     const set = (id, val) => { if (this._vals[id]) this._vals[id].textContent = val; };
 
-    set('dbg-fps',         `${fps} FPS`);
-    set('dbg-frame',       `${frameMs} ms`);
-    set('dbg-enemies',     world.enemies.length);
-    set('dbg-proj',        world.projectiles.length);
-    set('dbg-pickups',     world.pickups.length);
-    set('dbg-effects',     world.effects.length);
-    set('dbg-pool-proj',   pools.projectilePool?.available ?? '-');
-    set('dbg-pool-fx',     pools.effectPool?.available ?? '-');
-    set('dbg-hp',          player ? `${Math.ceil(player.hp)} / ${player.maxHp}` : '-');
-    set('dbg-level',       player?.level ?? '-');
-    set('dbg-xp',          player ? `${player.xp} / ${getXpForLevel(player.level)}` : '-');
-    set('dbg-speed',       player ? player.moveSpeed.toFixed(0) : '-');
-    set('dbg-magnet',      player ? player.magnetRadius.toFixed(0) : '-');
-    set('dbg-status',      player?.statusEffects?.map(e => e.type).join(', ') || 'none');
-    set('dbg-weapons',     player?.weapons?.map(w => `${w.id}(Lv${w.level})`).join(', ') || '-');
-    set('dbg-time',        `${mm}:${ss}`);
-    set('dbg-kills',       world.killCount);
-    set('dbg-rate',        activeWaveRate);
-    set('dbg-wave-enemies',waveEnemies);
-    set('dbg-boss-status', spawnDebug?.hasBossSpawned ? '등장함' : '미등장');
-    set('dbg-boss-at',     spawnDebug?.bossSpawnedAt != null ? spawnDebug.bossSpawnedAt.toFixed(0) + 's' : '-');
-    set('dbg-boss-sup',    spawnDebug?.isSuppressed ? `${spawnDebug.suppressionRemaining.toFixed(1)}s 남음` : 'No');
+    set('dbg-fps',        `${fps} fps`);
+    set('dbg-frame',      `${frameMs} ms`);
+    set('dbg-enemies',    world.enemies.length);
+    set('dbg-proj',       world.projectiles.length);
+    set('dbg-pickups',    world.pickups.length);
+    set('dbg-effects',    world.effects.length);
+    set('dbg-pool-proj',  pools.projectilePool?.available ?? '—');
+    set('dbg-pool-fx',    pools.effectPool?.available     ?? '—');
+
+    if (player) {
+      set('dbg-hp',     `${Math.ceil(player.hp)} / ${player.maxHp}`);
+      set('dbg-level',  player.level);
+      set('dbg-xp',     `${player.xp} / ${xpNeeded}`);
+      set('dbg-speed',  player.moveSpeed.toFixed(0));
+      set('dbg-magnet', player.magnetRadius.toFixed(0));
+      set('dbg-status', player.statusEffects.map(e => e.type).join(', ') || '—');
+      set('dbg-weapons',player.weapons.map(w => `${w.name} Lv${w.level}`).join(' | ') || '—');
+    }
+
+    const elapsed = world.elapsedTime;
+    const mm  = Math.floor(elapsed / 60);
+    const sec = String(Math.floor(elapsed % 60)).padStart(2, '0');
+    set('dbg-time',         `${mm}:${sec}`);
+    set('dbg-kills',        world.killCount);
+    set('dbg-rate',         activeWave ? activeWave.spawnPerSecond.toFixed(1) + '/s' : '—');
+    set('dbg-wave-enemies', activeWave ? activeWave.enemyIds.join(', ') : '—');
+
+    if (spawnDebug) {
+      set('dbg-boss-status', spawnDebug.hasBossSpawned ? '등장' : '대기');
+      set('dbg-boss-at',     spawnDebug.bossSpawnedAt !== null ? spawnDebug.bossSpawnedAt.toFixed(1) + 's' : '—');
+      set('dbg-boss-sup',    spawnDebug.isSuppressed ? spawnDebug.suppressionRemaining.toFixed(1) + 's' : '—');
+    }
   }
 
   destroy() { this.el.remove(); }
@@ -136,22 +138,18 @@ export class DebugView {
     s.id = 'debug-styles';
     s.textContent = `
       #debug-panel {
-        position: absolute; top: 8px; right: 8px;
-        background: rgba(10,12,20,0.88); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px; padding: 10px 14px;
-        font-size: 11px; font-family: 'Consolas', monospace; color: #ccc;
-        min-width: 220px; z-index: 50; pointer-events: none;
-        line-height: 1.6;
+        position: absolute; top: 60px; right: 12px;
+        background: rgba(0,0,0,0.82); border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px; padding: 12px 14px;
+        font-size: 11px; font-family: monospace; color: #ccc;
+        z-index: 100; min-width: 220px; max-height: 80vh; overflow-y: auto;
+        pointer-events: none;
       }
-      .dbg-section { margin-bottom: 8px; }
-      .dbg-title {
-        font-size: 10px; font-weight: 700; color: #4fc3f7;
-        letter-spacing: 1px; border-bottom: 1px solid rgba(79,195,247,0.2);
-        padding-bottom: 2px; margin-bottom: 2px;
-      }
-      .dbg-row { display: flex; justify-content: space-between; gap: 12px; }
+      .dbg-section { margin-bottom: 10px; }
+      .dbg-title { color: #4fc3f7; font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
+      .dbg-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
       .dbg-key { color: #888; }
-      .dbg-val { color: #fff; font-weight: 600; }
+      .dbg-val { color: #eee; text-align: right; }
     `;
     document.head.appendChild(s);
   }

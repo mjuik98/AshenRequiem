@@ -1,6 +1,5 @@
 /**
  * Input — 키보드 입력 수집
- *
  * FIX(web): 화살표 키 / 스페이스바 등 브라우저 기본 동작 충돌 방지
  */
 const PREVENT_KEYS = new Set([
@@ -10,18 +9,33 @@ const PREVENT_KEYS = new Set([
 export class Input {
   constructor() {
     this._keys = new Set();
+    this._onKeyDown = null;
+    this._onKeyUp   = null;
+    this._onBlur    = null;
   }
 
   init() {
-    window.addEventListener('keydown', (e) => {
+    this._onKeyDown = (e) => {
       if (PREVENT_KEYS.has(e.key)) e.preventDefault();
       this._keys.add(e.key.toLowerCase());
-    });
-    window.addEventListener('keyup', (e) => {
+    };
+    this._onKeyUp = (e) => {
       this._keys.delete(e.key.toLowerCase());
-    });
-    // FIX(web): 포커스 잃으면 키 상태 초기화 (DOM 클릭 시 입력 유지 방지)
-    window.addEventListener('blur', () => this._keys.clear());
+    };
+    // FIX(web): 포커스 잃으면 키 상태 초기화
+    this._onBlur = () => this._keys.clear();
+
+    window.addEventListener('keydown', this._onKeyDown);
+    window.addEventListener('keyup',   this._onKeyUp);
+    window.addEventListener('blur',    this._onBlur);
+  }
+
+  /** FIX(memory): 이벤트 리스너 정리 */
+  destroy() {
+    if (this._onKeyDown) window.removeEventListener('keydown', this._onKeyDown);
+    if (this._onKeyUp)   window.removeEventListener('keyup',   this._onKeyUp);
+    if (this._onBlur)    window.removeEventListener('blur',    this._onBlur);
+    this._keys.clear();
   }
 
   isDown(key) {

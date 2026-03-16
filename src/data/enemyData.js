@@ -15,7 +15,7 @@ export const enemyData = [
     hp: 6, moveSpeed: 50, damage: 4, xpValue: 3, radius: 14, color: '#26a69a',
     deathSpawn: { enemyId: 'mini_slime', count: 2 },
   },
-  { id: 'mini_slime', name: 'Mini Slime', hp: 2, moveSpeed: 70, damage: 2, xpValue: 1, radius: 7,  color: '#80cbc4' },
+  { id: 'mini_slime', name: 'Mini Slime', hp: 2, moveSpeed: 70, damage: 2, xpValue: 1, radius: 7, color: '#80cbc4' },
 
   // ── 엘리트 ───────────────────────────────────────────────────
   {

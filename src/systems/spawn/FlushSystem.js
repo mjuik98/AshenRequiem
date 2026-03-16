@@ -1,13 +1,9 @@
-import { createEnemy }                from '../../entities/createEnemy.js';
-import { createPickup }               from '../../entities/createPickup.js';
+import { createEnemy }                    from '../../entities/createEnemy.js';
+import { createPickup }                   from '../../entities/createPickup.js';
 import { compactWithPool, compactInPlace } from '../../utils/compact.js';
 
 /**
  * FlushSystem — spawnQueue 처리 + pendingDestroy 정리 + 이펙트 수명 틱
- *
- * FIX(bug): template literal 이스케이프 오류 수정 (${req.type} 정상 보간)
- * REF: tickEffects — 이펙트 수명 틱을 Scene 에서 이곳으로 이전
- *      (Scene에 게임 로직 누수 방지)
  */
 export const FlushSystem = {
   update({ world, pools }) {
@@ -44,17 +40,14 @@ export const FlushSystem = {
     compactWithPool(world.effects, effectPool);
   },
 
-  /**
-   * tickEffects — 이펙트 수명 갱신
-   * FIX(bug): !isAlive || pendingDestroy 이중 가드
-   */
+  /** tickEffects — 이펙트 수명 갱신 */
   tickEffects({ effects, deltaTime }) {
     for (let i = 0; i < effects.length; i++) {
       const e = effects[i];
       if (!e.isAlive || e.pendingDestroy) continue;
       e.lifetime += deltaTime;
       if (e.lifetime >= e.maxLifetime) {
-        e.isAlive       = false;
+        e.isAlive        = false;
         e.pendingDestroy = true;
       }
     }

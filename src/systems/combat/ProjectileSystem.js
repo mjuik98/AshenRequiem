@@ -1,6 +1,5 @@
 /**
  * ProjectileSystem — 투사체 이동 + 수명 관리
- *
  * FIX(bug): orbit 투사체 — player null 시 즉시 pendingDestroy
  */
 export const ProjectileSystem = {
@@ -10,7 +9,6 @@ export const ProjectileSystem = {
       if (!p.isAlive || p.pendingDestroy) continue;
 
       if (p.behaviorId === 'orbit') {
-        // FIX(bug): player 없으면 즉시 제거
         if (!player) { p.isAlive = false; p.pendingDestroy = true; continue; }
         p.orbitAngle += p.orbitSpeed * deltaTime;
         p.x = player.x + Math.cos(p.orbitAngle) * p.orbitRadius;

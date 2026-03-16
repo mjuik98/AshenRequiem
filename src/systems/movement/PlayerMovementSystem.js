@@ -5,7 +5,6 @@ export const PlayerMovementSystem = {
 
     const dir = input.getDirection();
     if (dir.x !== 0 || dir.y !== 0) {
-      // slow 상태이상 속도 감소 적용
       const slow = player.statusEffects?.find(e => e.type === 'slow');
       const speedMult = slow ? (1 - slow.magnitude) : 1;
 
