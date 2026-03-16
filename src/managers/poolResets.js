@@ -1,46 +1,14 @@
-import { generateId } from '../utils/ids.js';
-import { EFFECT_DEFAULTS } from '../data/constants.js';
-
-export function resetProjectile(obj, cfg) {
-  obj.id   = generateId();
-  obj.type = 'projectile';
-  obj.x    = cfg.x ?? 0;
-  obj.y    = cfg.y ?? 0;
-  obj.dirX  = cfg.dirX  ?? 0;
-  obj.dirY  = cfg.dirY  ?? 0;
-  obj.speed  = cfg.speed  ?? 300;
-  obj.damage = cfg.damage ?? 1;
-  obj.radius = cfg.radius ?? 5;
-  obj.color  = cfg.color  ?? '#ffee58';
-  obj.pierce = cfg.pierce ?? 1;
-  obj.hitCount = 0;
-  obj.hitTargets.clear();
-  obj.maxRange         = cfg.maxRange  ?? 400;
-  obj.distanceTraveled = 0;
-  obj.behaviorId       = cfg.behaviorId  ?? 'targetProjectile';
-  obj.lifetime    = cfg.lifetime    ?? 0;
-  obj.maxLifetime = cfg.maxLifetime ?? 0.3;
-  obj.ownerId            = cfg.ownerId            ?? null;
-  obj.statusEffectId     = cfg.statusEffectId     ?? null;
-  obj.statusEffectChance = cfg.statusEffectChance ?? 1.0;
-  obj.orbitAngle  = cfg.orbitAngle  ?? 0;
-  obj.orbitRadius = cfg.orbitRadius ?? 80;
-  obj.orbitSpeed  = cfg.orbitSpeed  ?? Math.PI;
-  obj.isAlive        = true;
-  obj.pendingDestroy = false;
-}
-
-export function resetEffect(obj, cfg) {
-  obj.id   = generateId();
-  obj.type = 'effect';
-  obj.x    = cfg.x ?? 0;
-  obj.y    = cfg.y ?? 0;
-  obj.effectType = cfg.effectType ?? 'burst';
-  obj.color      = cfg.color      ?? '#ff5722';
-  obj.text       = cfg.text       ?? '';
-  obj.radius     = cfg.radius     ?? 15;
-  obj.lifetime   = 0;
-  obj.maxLifetime = cfg.duration ?? EFFECT_DEFAULTS.duration;
-  obj.isAlive        = true;
-  obj.pendingDestroy = false;
-}
+/**
+ * poolResets.js — ObjectPool 리셋 함수 모음
+ *
+ * REF(refactor): resetProjectile / resetEffect 위치 통일.
+ *   이전: resetProjectile 은 createProjectile.js 와 poolResets.js 두 곳에 중복 정의.
+ *         resetEffect   는 createEffect.js   와 poolResets.js 두 곳에 중복 정의.
+ *   이후: 각 entity 파일(createProjectile.js, createEffect.js) 이 정식 위치.
+ *         poolResets.js 는 re-export 허브 역할만 수행 → 기존 import 경로 유지 가능.
+ *
+ * 변경 영향 없음 — PlayScene 의 import 경로가 poolResets.js 를 가리키더라도
+ * 동일한 함수 참조를 받으므로 동작에 차이가 없다.
+ */
+export { resetProjectile } from '../entities/createProjectile.js';
+export { resetEffect }     from '../entities/createEffect.js';

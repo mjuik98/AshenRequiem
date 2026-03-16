@@ -12,6 +12,12 @@ import { compactWithPool, compactInPlace } from '../../utils/compact.js';
  * REF(refactor): tickEffects 메서드 추가.
  *   이전: PlayScene._updateEffects() 에서 이펙트 수명을 직접 갱신 (Scene에 게임 로직 누수).
  *   이후: FlushSystem.tickEffects() 로 책임 이전 → AGENTS.md "Scene은 흐름만" 원칙 준수.
+ *
+ * FIX(bug): tickEffects — pendingDestroy 가드 추가.
+ *   이전: isAlive 만 체크.
+ *   이후: !isAlive || pendingDestroy 로 방어적 처리.
+ *         PlayScene._showLevelUpUI 에서 effectPool.acquire() 로 직접 push 된 이펙트는
+ *         동일 프레임에 tickEffects 를 통과하므로 일관성 확보.
  */
 export const FlushSystem = {
   update({ world, pools }) {
@@ -39,7 +45,6 @@ export const FlushSystem = {
           break;
         }
         default:
-          // FIX(bug): \${req.type} → ${req.type} (template literal 이스케이프 제거)
           console.warn(`[FlushSystem] 알 수 없는 spawnQueue 타입: ${req.type}`);
       }
     }
@@ -60,13 +65,16 @@ export const FlushSystem = {
    *
    * PlayScene 호출 위치: 13단계 FlushSystem.update() 직후, 14단계로 호출.
    *
+   * FIX(bug): !isAlive || pendingDestroy 이중 가드 추가.
+   *
    * @param {object[]} effects  - world.effects 배열
    * @param {number}   deltaTime - 이번 프레임 경과 시간 (초)
    */
   tickEffects({ effects, deltaTime }) {
     for (let i = 0; i < effects.length; i++) {
       const e = effects[i];
-      if (!e.isAlive) continue;
+      // FIX: pendingDestroy 가드 추가 (방어적 처리)
+      if (!e.isAlive || e.pendingDestroy) continue;
       e.lifetime += deltaTime;
       if (e.lifetime >= e.maxLifetime) {
         e.isAlive = false;

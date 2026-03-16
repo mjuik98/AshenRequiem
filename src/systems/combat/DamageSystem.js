@@ -16,10 +16,19 @@ import { KNOCKBACK, DAMAGE_TEXT } from '../../data/constants.js';
  * REF(refactor): DAMAGE_TEXT 상수 사용.
  *   이전: color '#ef5350' / '#ffffff', duration 0.5 가 이 파일에 하드코딩.
  *   이후: src/data/constants.js 의 DAMAGE_TEXT 로 이관 → 튜닝 시 한 곳만 수정.
+ *
+ * FIX(perf): 데미지 텍스트 프레임당 상한 적용.
+ *   이전: 모든 hit 에 무조건 데미지 텍스트 이펙트 생성.
+ *         areaBurst + 고밀도 적 조합에서 프레임당 수십 개 생성 → 성능 저하.
+ *   이후: DAMAGE_TEXT.MAX_PER_FRAME(12) 초과 시 해당 프레임 텍스트 이펙트 생략.
+ *         데미지/사망 판정 자체는 상한과 무관하게 전부 처리.
  */
 export const DamageSystem = {
   update({ events, player, spawnQueue }) {
     const hits = events.hits;
+
+    // FIX(perf): 프레임당 데미지 텍스트 생성 수 추적
+    let damageTextCount = 0;
 
     for (let i = 0; i < hits.length; i++) {
       const hit = hits[i];
@@ -65,18 +74,22 @@ export const DamageSystem = {
         target.invincibleTimer = target.invincibleDuration;
       }
 
-      // 데미지 텍스트 이펙트 — REF: DAMAGE_TEXT 상수 사용 (하드코딩 제거)
-      spawnQueue.push({
-        type: 'effect',
-        config: {
-          x: target.x,
-          y: target.y - target.radius,
-          effectType: 'damageText',
-          text: `-${hit.damage}`,
-          color: target.type === 'player' ? DAMAGE_TEXT.playerColor : DAMAGE_TEXT.enemyColor,
-          duration: DAMAGE_TEXT.duration,
-        },
-      });
+      // FIX(perf): 프레임당 최대 DAMAGE_TEXT.MAX_PER_FRAME 개만 이펙트 생성
+      // 데미지/사망 판정은 상한 없이 전부 처리하되 시각 효과만 제한
+      if (damageTextCount < DAMAGE_TEXT.MAX_PER_FRAME) {
+        spawnQueue.push({
+          type: 'effect',
+          config: {
+            x: target.x,
+            y: target.y - target.radius,
+            effectType: 'damageText',
+            text: `-${hit.damage}`,
+            color: target.type === 'player' ? DAMAGE_TEXT.playerColor : DAMAGE_TEXT.enemyColor,
+            duration: DAMAGE_TEXT.duration,
+          },
+        });
+        damageTextCount++;
+      }
 
       // 사망 판정
       if (target.hp <= 0) {

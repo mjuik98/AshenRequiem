@@ -50,6 +50,10 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
  * REF(safety): SpawnSystem.reset() 을 enter() 최상단으로 이동 (주석 아닌 코드로 보호).
  *   싱글톤 상태 오염 방지 — 재시작 시 보스 미등장 / 스폰 누적 버그 예방.
  *
+ * FIX(safety): update() / render() 에 null guard 추가.
+ *   exit() 에서 this.world = null 처리 후 SceneManager 타이밍으로 1프레임이
+ *   더 호출될 경우 NPE 를 방지한다.
+ *
  * DEBUG: DebugView.update 에 SpawnSystem.getDebugInfo() 결과를 전달.
  *   보스 억제 구간 잔여 시간을 디버그 패널에 실시간 표시.
  */
@@ -104,6 +108,9 @@ export class PlayScene {
   }
 
   update(dt) {
+    // FIX(safety): exit() 이후 SceneManager 타이밍 이슈로 1프레임 더 호출될 때 방지
+    if (!this.world) return;
+
     const world = this.world;
     const input = this.game.input;
 
@@ -131,7 +138,7 @@ export class PlayScene {
     // 4. 플레이어 이동
     PlayerMovementSystem.update({ input, player: world.player, deltaTime: dt });
 
-    // 5. 적 이동
+    // 5. 적 이동 + 공통 타이머 틱 (hitFlashTimer, knockbackTimer)
     EnemyMovementSystem.update({ player: world.player, enemies: world.enemies, deltaTime: dt });
 
     // 5.5. 엘리트/보스 행동 패턴
@@ -228,6 +235,9 @@ export class PlayScene {
   }
 
   render() {
+    // FIX(safety): exit() 이후 null guard
+    if (!this.world) return;
+
     RenderSystem.update({
       world: this.world,
       camera: this.camera,
@@ -257,35 +267,42 @@ export class PlayScene {
    * levelFlash 이펙트는 단순 시각 효과이므로 풀에서 직접 꺼내 effects 에 넣는다.
    */
   _showLevelUpUI() {
-    this._soundSystem.play('levelup');
+    if (this.uiState.levelUpOpen) return;
+    this.uiState.levelUpOpen = true;
 
-    this.world.effects.push(this._effectPool.acquire({
+    // levelFlash 이펙트 — effectPool 에서 직접 획득해 effects 에 push
+    const flash = this._effectPool.acquire({
       x: this.world.player.x,
       y: this.world.player.y,
       effectType: 'levelFlash',
       color: '#ffd54f',
-      radius: 1,
+      radius: 60,
       duration: EFFECT_DEFAULTS.levelFlashDuration,
-    }));
+    });
+    this.world.effects.push(flash);
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
-    if (choices.length === 0) { this.world.playMode = 'playing'; return; }
-
-    this.levelUpView.show(choices, (selectedUpgrade) => {
-      UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
+    this.levelUpView.show(choices, (choice) => {
+      UpgradeSystem.applyChoice(this.world.player, choice);
       this.world.playMode = 'playing';
+      this.uiState.levelUpOpen = false;
     });
   }
 
   _showResultUI() {
+    if (this.uiState.resultOpen) return;
+    this.uiState.resultOpen = true;
+
     this.hudView.hide();
     this.resultView.show(
       {
         killCount:    this.world.killCount,
         survivalTime: this.world.elapsedTime,
-        level:        this.world.player.level,
+        level:        this.world.player?.level ?? 1,
       },
-      () => { this.game.sceneManager.changeScene(new PlayScene(this.game)); },
+      () => {
+        this.game.sceneManager.changeScene(new PlayScene(this.game));
+      },
     );
   }
 }

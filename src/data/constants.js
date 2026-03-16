@@ -88,11 +88,16 @@ export const COLLISION_CULL_MARGIN = 480;
  * 데미지 텍스트 이펙트 상수
  *
  * REF(refactor): DamageSystem 내 하드코딩 제거.
+ *
+ * FIX(perf): MAX_PER_FRAME 추가.
+ *   areaBurst + 다수 적 조합에서 한 프레임에 수십 개의 데미지 텍스트가 생성되는 것을 방지.
+ *   상한 초과 시 해당 프레임의 남은 데미지 텍스트 이펙트를 생략.
  */
 export const DAMAGE_TEXT = {
   duration:     0.5,       // 이펙트 표시 지속 시간 (초)
   playerColor:  '#ef5350', // 플레이어 피격 시 텍스트 색상 (빨간색)
   enemyColor:   '#ffffff', // 적 피격 시 텍스트 색상 (흰색)
+  MAX_PER_FRAME: 12,       // PERF: 프레임당 최대 데미지 텍스트 생성 수
 };
 
 /**

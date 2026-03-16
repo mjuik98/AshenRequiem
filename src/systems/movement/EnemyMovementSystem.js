@@ -1,10 +1,18 @@
 import { normalize, sub } from '../../math/Vector2.js';
 
 /**
- * EnemyMovementSystem — chase 패턴 전용 이동
+ * EnemyMovementSystem — 적 공통 타이머 틱 + chase 이동
  *
- * 엘리트/보스의 dash·circle_dash는 EliteBehaviorSystem이 담당.
- * hitFlashTimer·knockback 처리는 behaviorId 무관 모든 적에 적용.
+ * 책임:
+ *   1) 모든 적 공통: hitFlashTimer 감소, knockbackTimer 감소 및 넉백 이동
+ *   2) chase 패턴 전용: 플레이어 방향 추적 이동
+ *
+ * NOTE(design): hitFlashTimer 는 렌더러의 피격 플래시 표현을 위한 값이지만,
+ *   매 프레임 감소가 필요하므로 이 시스템에서 처리한다.
+ *   DamageSystem 이 피격 시 세팅하고, EnemyMovementSystem 이 매 프레임 소모한다.
+ *   향후 적 수가 크게 늘어나면 EnemyTimerSystem 으로 분리를 검토할 수 있다.
+ *
+ * 엘리트/보스의 dash·circle_dash 는 EliteBehaviorSystem 이 담당.
  *
  * 입력: player, enemies, deltaTime
  * 쓰기: 적 위치, hitFlashTimer, knockbackTimer
@@ -17,7 +25,8 @@ export const EnemyMovementSystem = {
       const e = enemies[i];
       if (!e.isAlive || e.pendingDestroy) continue;
 
-      // ─── 모든 적 공통 처리 ───────────────────────────────
+      // ─── 모든 적 공통: 타이머 틱 ─────────────────────────
+      // hitFlashTimer: DamageSystem 이 피격 시 0.1 로 세팅, 여기서 소모
       if (e.hitFlashTimer > 0) {
         e.hitFlashTimer = Math.max(0, e.hitFlashTimer - deltaTime);
       }
@@ -32,7 +41,7 @@ export const EnemyMovementSystem = {
       }
 
       // ─── chase 전용 이동 ────────────────────────────────
-      // 엘리트/보스의 dash·circle_dash는 EliteBehaviorSystem에서 처리
+      // 엘리트/보스의 dash·circle_dash 는 EliteBehaviorSystem 에서 처리
       if (e.behaviorId !== 'chase') continue;
       if (e.stunned) continue;
 
