@@ -1,4 +1,4 @@
-import { KNOCKBACK } from '../../data/constants.js';
+import { KNOCKBACK, DAMAGE_TEXT } from '../../data/constants.js';
 
 /**
  * DamageSystem — 데미지 적용
@@ -9,16 +9,13 @@ import { KNOCKBACK } from '../../data/constants.js';
  *
  * PATCH(refactor): knockbackResist 지원.
  *   enemyData 에 knockbackResist(0~1) 필드 추가 후 createEnemy 를 통해 런타임 상태로 복사.
- *   0 = 일반 넉백, 1 = 완전 무시.
- *   golem 계열 / 보스에게 적용.
  *
  * FIX(bug): pendingDestroy 가드 추가.
- *   같은 프레임에 poison tick + 일반 투사체가 동일 대상을 처리할 때,
- *   첫 번째 hit 이 isAlive = false 를 설정한 후에도 두 번째 hit 이
- *   진입할 수 있었음. pendingDestroy 도 함께 확인해 이중 처리를 차단.
+ *   같은 프레임에 poison tick + 일반 투사체가 동일 대상을 처리할 때 이중 처리 차단.
  *
- * FIX(refactor): KNOCKBACK_SPEED / KNOCKBACK_DURATION 하드코딩 제거.
- *   → src/data/constants.js 의 KNOCKBACK 상수로 이관.
+ * REF(refactor): DAMAGE_TEXT 상수 사용.
+ *   이전: color '#ef5350' / '#ffffff', duration 0.5 가 이 파일에 하드코딩.
+ *   이후: src/data/constants.js 의 DAMAGE_TEXT 로 이관 → 튜닝 시 한 곳만 수정.
  */
 export const DamageSystem = {
   update({ events, player, spawnQueue }) {
@@ -36,7 +33,7 @@ export const DamageSystem = {
       if (target.type === 'enemy') {
         target.hitFlashTimer = 0.1;
 
-        // 넉백 — FIX(refactor): KNOCKBACK 상수 사용
+        // 넉백
         const resist = target.knockbackResist ?? 0;
 
         let kx = 0, ky = 0;
@@ -68,7 +65,7 @@ export const DamageSystem = {
         target.invincibleTimer = target.invincibleDuration;
       }
 
-      // 데미지 텍스트 이펙트
+      // 데미지 텍스트 이펙트 — REF: DAMAGE_TEXT 상수 사용 (하드코딩 제거)
       spawnQueue.push({
         type: 'effect',
         config: {
@@ -76,8 +73,8 @@ export const DamageSystem = {
           y: target.y - target.radius,
           effectType: 'damageText',
           text: `-${hit.damage}`,
-          color: target.type === 'player' ? '#ef5350' : '#ffffff',
-          duration: 0.5,
+          color: target.type === 'player' ? DAMAGE_TEXT.playerColor : DAMAGE_TEXT.enemyColor,
+          duration: DAMAGE_TEXT.duration,
         },
       });
 

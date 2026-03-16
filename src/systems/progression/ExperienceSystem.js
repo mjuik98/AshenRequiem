@@ -1,21 +1,45 @@
 import { distanceSq } from '../../math/Vector2.js';
-import { normalize, sub } from '../../math/Vector2.js';
 import { PICKUP_DEFAULTS } from '../../data/constants.js';
+
+/**
+ * ExperienceSystem — 픽업 자기력 흡수 + XP 적용
+ *
+ * PERF(refactor): normalize(sub(...)) 매 프레임 임시 객체 생성 제거.
+ *   이전: const dir = normalize(sub(player, pk)) → sub() 1회, normalize() 1회 객체 할당.
+ *         픽업이 많을 때 (후반 대량 킬) GC 압박으로 FPS 저하 유발.
+ *   이후: dx/dy 인라인 계산 → 임시 객체 0개.
+ *         Vector2 import 도 distanceSq 만 유지 (normalize, sub 제거).
+ */
 export const ExperienceSystem = {
   update({ events, player, pickups, deltaTime }) {
     if (!player || !player.isAlive) return;
+
     const magnetRadSq = player.magnetRadius * player.magnetRadius;
+    const speed       = PICKUP_DEFAULTS.magnetSpeed * deltaTime;
+
     for (let i = 0; i < pickups.length; i++) {
       const pk = pickups[i];
       if (!pk.isAlive || pk.pendingDestroy) continue;
-      if (distanceSq(player, pk) <= magnetRadSq) pk.magnetized = true;
+
+      // 자기력 범위 내 진입 시 magnetized 활성화
+      if (!pk.magnetized && distanceSq(player, pk) <= magnetRadSq) {
+        pk.magnetized = true;
+      }
+
+      // PERF: normalize(sub(...)) 임시 객체 제거 → 인라인 계산
       if (pk.magnetized) {
-        const dir = normalize(sub(player, pk));
-        pk.x += dir.x * PICKUP_DEFAULTS.magnetSpeed * deltaTime;
-        pk.y += dir.y * PICKUP_DEFAULTS.magnetSpeed * deltaTime;
+        const dx = player.x - pk.x;
+        const dy = player.y - pk.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        pk.x += (dx / len) * speed;
+        pk.y += (dy / len) * speed;
       }
     }
+
+    // XP 적용
     const collected = events.pickupCollected;
-    for (let i = 0; i < collected.length; i++) player.xp += collected[i].pickup.xpValue;
+    for (let i = 0; i < collected.length; i++) {
+      player.xp += collected[i].pickup.xpValue;
+    }
   },
 };

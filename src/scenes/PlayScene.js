@@ -2,11 +2,10 @@ import { compactWithPool, compactInPlace } from '../utils/compact.js';
 import { resetProjectile, resetEffect } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents } from '../state/createWorld.js';
 import { createUiState } from '../state/createUiState.js';
-import { createPlayer } from '../entities/createPlayer.js';
-import { createEnemy } from '../entities/createEnemy.js';
+import { createPlayer }     from '../entities/createPlayer.js';
+// REF(cleanup): createEnemy, createPickup — FlushSystem 이 담당하므로 PlayScene 에서 제거.
 import { createProjectile } from '../entities/createProjectile.js';
-import { createPickup } from '../entities/createPickup.js';
-import { createEffect } from '../entities/createEffect.js';
+import { createEffect }     from '../entities/createEffect.js';
 import { waveData } from '../data/waveData.js';
 import { bossData } from '../data/bossData.js';
 import { EFFECT_DEFAULTS } from '../data/constants.js';
@@ -41,14 +40,18 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
  *
- * FIX(cleanup): generateId 미사용 import 제거.
- *   PlayScene 내부에서 직접 호출하는 곳이 없었음.
+ * REF(cleanup): createEnemy, createPickup 미사용 import 제거.
+ *   두 팩토리는 FlushSystem 이 내부적으로 호출하므로 PlayScene 에서 직접 참조 불필요.
+ *
+ * REF(refactor): _updateEffects() 제거 → FlushSystem.tickEffects() 위임.
+ *   이펙트 수명 갱신은 게임 로직이므로 Scene 이 아닌 System 이 담당.
+ *   14단계: this._updateEffects(dt) → FlushSystem.tickEffects({ effects, deltaTime })
  *
  * FIX(bug): _showLevelUpUI 에서 spawnQueue.push + _flushQueues() 수동 호출 제거.
- *   이전: levelFlash 이펙트를 spawnQueue 에 넣고 즉시 _flushQueues() 를 호출.
- *         → 파이프라인 13단계 외부에서 큐 플러시가 발생, compactWith* 도 이중 실행.
  *   이후: effectPool.acquire() 로 직접 world.effects 에 push.
- *         _flushQueues() 수동 호출 불필요.
+ *
+ * REF(safety): SpawnSystem.reset() 을 enter() 최상단으로 이동 (주석 아닌 코드로 보호).
+ *   싱글톤 상태 오염 방지 — 재시작 시 보스 미등장 / 스폰 누적 버그 예방.
  */
 export class PlayScene {
   constructor(game) {
@@ -68,13 +71,14 @@ export class PlayScene {
   }
 
   enter() {
+    // REF(safety): SpawnSystem.reset() 을 enter() 첫 줄에 배치 — 재시작 상태 오염 방지
+    SpawnSystem.reset();
+
     this.world = createWorld();
     this.uiState = createUiState();
-    SpawnSystem.reset();
 
     this.world.player = createPlayer(0, 0);
 
-    // FIX: projectilePool size 40 -> 80
     this._projectilePool = new ObjectPool(
       () => createProjectile({ x: 0, y: 0 }),
       resetProjectile,
@@ -113,7 +117,7 @@ export class PlayScene {
 
     // 2. 게임 시간 갱신
     world.deltaTime = dt;
-    world.elapsedTime += dt; // elapsedTime 으로 통일
+    world.elapsedTime += dt;
 
     // 3. 스폰 처리
     SpawnSystem.update({
@@ -151,7 +155,7 @@ export class PlayScene {
       deltaTime:   dt,
     });
 
-    // 8. 충돌 판정 (camera 전달로 컬링 활성화)
+    // 8. 충돌 판정
     CollisionSystem.update({
       player:      world.player,
       enemies:     world.enemies,
@@ -160,7 +164,6 @@ export class PlayScene {
       events:      world.events,
       camera:      this.camera,
     });
-    // console.debug('[PlayScene] Post-Collision projectiles:', world.projectiles.length);
 
     // 9. 상태이상 부여
     StatusEffectSystem.applyFromHits({ hits: world.events.hits });
@@ -176,7 +179,7 @@ export class PlayScene {
     // 9.7. 데미지 적용
     DamageSystem.update({ events: world.events, player: world.player, spawnQueue: world.spawnQueue });
 
-    // 10. 사망 처리 (worldState 슬라이스 전달)
+    // 10. 사망 처리
     DeathSystem.update({ events: world.events, worldState: world, spawnQueue: world.spawnQueue });
 
     // 10.5. 사운드 처리
@@ -190,7 +193,7 @@ export class PlayScene {
       deltaTime: dt,
     });
 
-    // 12. 레벨업 확인 (worldState 슬라이스 전달)
+    // 12. 레벨업 확인
     LevelSystem.update({ player: world.player, worldState: world });
 
     // 13. 큐 플러시
@@ -199,8 +202,8 @@ export class PlayScene {
       pools: { projectile: this._projectilePool, effect: this._effectPool }
     });
 
-    // 14. 이펙트 수명 갱신
-    this._updateEffects(dt);
+    // 14. 이펙트 수명 갱신 — REF: _updateEffects() 제거, FlushSystem.tickEffects() 위임
+    FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
 
     // 15. 카메라 갱신
     CameraSystem.update({ player: world.player, camera: this.camera });
@@ -213,7 +216,6 @@ export class PlayScene {
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
 
-    // 디버그 입력 처리 위임
     this.debugView.handleInput(input);
     this.debugView.update(
       world,
@@ -223,10 +225,9 @@ export class PlayScene {
   }
 
   render() {
-    // drawEffect 등에 전달할 dpr 포함
-    RenderSystem.update({ 
-      world: this.world, 
-      camera: this.camera, 
+    RenderSystem.update({
+      world: this.world,
+      camera: this.camera,
       renderer: this.game.renderer,
       dpr: this._dpr,
     });
@@ -248,27 +249,15 @@ export class PlayScene {
     this._soundSystem    = null;
   }
 
-
-  _updateEffects(dt) {
-    for (let i = 0; i < this.world.effects.length; i++) {
-      const e = this.world.effects[i];
-      if (!e.isAlive) continue;
-      e.lifetime += dt;
-      if (e.lifetime >= e.maxLifetime) { e.isAlive = false; e.pendingDestroy = true; }
-    }
-  }
+  // REF(refactor): _updateEffects() 제거 — FlushSystem.tickEffects() 로 이전됨.
 
   /**
    * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 → effectPool.acquire 직접 push.
-   *
-   * _flushQueues() 를 파이프라인 외부(13단계 이후)에서 다시 호출하면
-   * compactWith* 가 이중 실행되고 spawnQueue 처리 타이밍이 어긋남.
    * levelFlash 이펙트는 단순 시각 효과이므로 풀에서 직접 꺼내 effects 에 넣는다.
    */
   _showLevelUpUI() {
     this._soundSystem.play('levelup');
 
-    // FIX: spawnQueue 우회 — effectPool 에서 직접 꺼내 world.effects 에 push
     this.world.effects.push(this._effectPool.acquire({
       x: this.world.player.x,
       y: this.world.player.y,
@@ -277,7 +266,6 @@ export class PlayScene {
       radius: 1,
       duration: EFFECT_DEFAULTS.levelFlashDuration,
     }));
-    // FIX: _flushQueues() 수동 호출 제거
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) { this.world.playMode = 'playing'; return; }

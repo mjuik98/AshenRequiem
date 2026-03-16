@@ -11,8 +11,6 @@ export const PLAYER_DEFAULTS = {
  * XP → 레벨업 테이블 (인덱스 = 레벨, 값 = 다음 레벨 도달에 필요한 누적 XP)
  *
  * FIX(balance): 레벨 10 이후 선형 +50 → 지수 증가로 교체.
- * 이전: 200 + (level - 10) * 50 (완만, 고레벨에서 레벨업이 쉬워짐)
- * 이후: getXpForLevel 함수에서 지수 곡선 적용
  */
 export const XP_TABLE = [
   0,    // Lv0 → Lv1 (사용 안 함)
@@ -53,7 +51,6 @@ export const PICKUP_DEFAULTS = {
  * 이펙트 기본값
  *
  * FIX(bug): levelFlashDuration 상수 추가.
- * PlayScene._showLevelUpUI 에서 하드코딩(0.6)하던 수치를 여기서 관리.
  */
 export const EFFECT_DEFAULTS = {
   duration:           0.4,  // 기본 이펙트 지속 시간 (초)
@@ -65,7 +62,6 @@ export const EFFECT_DEFAULTS = {
  * 넉백 물리 상수
  *
  * FIX(refactor): DamageSystem 내 하드코딩 제거 → 여기서 관리.
- * 넉백 저항(knockbackResist)은 enemyData 에서 적별로 정의.
  */
 export const KNOCKBACK = {
   speed:    180,  // px/s — 넉백 이동 속도
@@ -75,10 +71,20 @@ export const KNOCKBACK = {
 /**
  * CollisionSystem 화면 외곽 컬링 마진 (px)
  *
- * FIX(refactor): CollisionSystem 내 하드코딩 제거 → 여기서 관리.
  * PERF: 700 → 480 으로 축소.
  *   후반 고밀도 웨이브에서 충돌 체크 대상을 줄여 CPU 부하를 낮춤.
- *   480px 은 일반 해상도(1280×720)의 카메라 반경보다 약간 크므로
- *   화면 내 모든 적을 커버하면서 불필요한 원거리 적 체크를 제거한다.
  */
 export const COLLISION_CULL_MARGIN = 480;
+
+/**
+ * 데미지 텍스트 이펙트 상수
+ *
+ * REF(refactor): DamageSystem 내 하드코딩 제거.
+ *   이전: color, duration 이 DamageSystem 에 직접 리터럴로 존재.
+ *   이후: 여기서 일괄 관리 → 튜닝 시 한 곳만 수정.
+ */
+export const DAMAGE_TEXT = {
+  duration:     0.5,       // 이펙트 표시 지속 시간 (초)
+  playerColor:  '#ef5350', // 플레이어 피격 시 텍스트 색상 (빨간색)
+  enemyColor:   '#ffffff', // 적 피격 시 텍스트 색상 (흰색)
+};
