@@ -8,6 +8,8 @@ import { validateGameData } from '../utils/validateGameData.js';
 import { upgradeData }    from '../data/upgradeData.js';
 import { weaponData }     from '../data/weaponData.js';
 import { waveData }       from '../data/waveData.js';
+import { AssetManager }   from '../managers/AssetManager.js';
+import { createSessionState } from '../state/createSessionState.js';
 
 /** Game — 게임 최상위 진입점 */
 export class Game {
@@ -22,13 +24,19 @@ export class Game {
 
     this.input        = new Input();
     this.input.init();
+    this.assets       = new AssetManager();
+    this.session      = createSessionState();
     this.sceneManager = new SceneManager();
     this.renderer     = new CanvasRenderer(this.canvas, this.ctx);
     this._loop        = new GameLoop((dt) => this._tick(dt));
   }
 
-  start() {
+  async start() {
     validateGameData({ upgradeData, weaponData, waveData });
+    
+    // 에셋 로드 시작 (MVP: 현재는 등록된 에셋이 없으므로 즉시 완료됨)
+    await this.assets.loadAll();
+    
     this.sceneManager.changeScene(new TitleScene(this));
     this._loop.start();
   }

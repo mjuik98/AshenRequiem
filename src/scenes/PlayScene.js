@@ -9,6 +9,7 @@ import { waveData }         from '../data/waveData.js';
 import { bossData }         from '../data/bossData.js';
 import { upgradeData }      from '../data/upgradeData.js';
 import { EFFECT_DEFAULTS }  from '../data/constants.js';
+import { updateSessionBest, saveSession } from '../state/createSessionState.js';
 
 import { PlayerMovementSystem } from '../systems/movement/PlayerMovementSystem.js';
 import { EnemyMovementSystem }  from '../systems/movement/EnemyMovementSystem.js';
@@ -281,6 +282,15 @@ export class PlayScene {
 
   _showResultUI() {
     this.hudView.hide();
+
+    // 세션 기록 갱신 및 저장
+    updateSessionBest(this.game.session, {
+      killCount:    this.world.killCount,
+      elapsedTime:  this.world.elapsedTime,
+      playerLevel:  this.world.player.level,
+    });
+    saveSession(this.game.session);
+
     this.resultView.show(
       {
         killCount:    this.world.killCount,

@@ -1,0 +1,13 @@
+{
+  "name": "ashen-requiem",
+  "version": "1.0.0",
+  "description": "HTML / JavaScript vampire-survivors-like MVP",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules tests/DamageSystem.test.js && node --experimental-vm-modules tests/ExperienceSystem.test.js && node --experimental-vm-modules tests/SpawnSystem.test.js && node --experimental-vm-modules tests/CollisionSystem.test.js && node --experimental-vm-modules tests/UpgradeSystem.test.js && node --experimental-vm-modules tests/StatusEffectSystem.test.js",
+    "validate": "node scripts/validateData.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
