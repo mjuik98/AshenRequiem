@@ -5,10 +5,16 @@
  *   'damageText'  — 데미지 숫자 부유
  *   'levelFlash'  — 레벨업 전체 화면 플래시
  *   'burst'       — 파티클 링 + 중심 플래시 (기본)
+ *
+ * FIX(bug): levelFlash 이중 오프셋 수정.
+ *   이후: ctx.setTransform(1,0,0,1,0,0) 으로 카메라 transform 초기화 →
+ *         fillRect(0, 0, w, h) 로 정확히 전체 화면 커버.
+ *
+ * FIX(bug): burst 파티클 jAngle 삼항 연산자 완성.
  */
 export function drawEffect(ctx, effect, camera, dpr) {
   if (!effect.isAlive) return;
-  const progress = effect.lifetime / effect.maxLifetime; // 0 → 1
+  const progress = Math.min(1, effect.lifetime / effect.maxLifetime); // 0 → 1 (clamp)
 
   // dpr 폴백: 파라미터가 없으면 window 에서 읽기 (하위 호환)
   const _dpr = dpr || window.devicePixelRatio || 1;
@@ -31,7 +37,6 @@ export function drawEffect(ctx, effect, camera, dpr) {
 
   } else if (effect.effectType === 'levelFlash') {
     // ─── 레벨업 전체 화면 플래시 ────────────────────────────
-    // progress 0→0.3: 빠르게 밝아짐 / 0.3→1: 천천히 사라짐
     const alpha = progress < 0.3
       ? progress / 0.3
       : 1 - (progress - 0.3) / 0.7;
@@ -39,10 +44,10 @@ export function drawEffect(ctx, effect, camera, dpr) {
     ctx.globalAlpha = Math.max(0, alpha) * 0.35;
     ctx.fillStyle   = effect.color || '#ffd54f';
 
-    // 화면 전체 (카메라 좌표 무시하고 스크린 기준)
     const w = ctx.canvas.width  / _dpr;
     const h = ctx.canvas.height / _dpr;
-    ctx.fillRect(-camera.x - w, -camera.y - h, w * 3, h * 3);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillRect(0, 0, w, h);
 
   } else {
     // ─── burst 파티클 링 ────────────────────────────────────
@@ -53,7 +58,7 @@ export function drawEffect(ctx, effect, camera, dpr) {
     const maxR = effect.radius * (1 + progress * 1.8);
     const fade = Math.max(0, 1 - progress);
 
-    // 중심 플래시 (초반에만)
+    // 중심 플래시
     if (progress < 0.4) {
       const flashAlpha = (1 - progress / 0.4) * 0.55;
       ctx.globalAlpha = flashAlpha;
@@ -76,9 +81,11 @@ export function drawEffect(ctx, effect, camera, dpr) {
       const angle  = (i / PARTICLE_COUNT) * Math.PI * 2;
       const spread = progress * 0.6;
       const jAngle = angle + spread * (i % 2 === 0 ? 1 : -1);
-      const px = sx + Math.cos(jAngle) * maxR;
-      const py = sy + Math.sin(jAngle) * maxR;
-      const pr = Math.max(1, (1 - progress) * effect.radius * 0.35);
+
+      const r  = maxR * (0.7 + 0.3 * ((i % 3) / 3));
+      const px = sx + Math.cos(jAngle) * r;
+      const py = sy + Math.sin(jAngle) * r;
+      const pr = Math.max(1, effect.radius * 0.22 * (1 - progress * 0.5));
 
       ctx.beginPath();
       ctx.arc(px, py, pr, 0, Math.PI * 2);
@@ -89,7 +96,7 @@ export function drawEffect(ctx, effect, camera, dpr) {
   ctx.restore();
 }
 
-/** 픽업 렌더링 */
+/** 픽업 렌더링 (Manually Merged) */
 export function drawPickup(ctx, pickup, camera) {
   if (!pickup.isAlive) return;
   const sx = pickup.x - camera.x;

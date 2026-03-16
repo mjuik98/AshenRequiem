@@ -3,7 +3,6 @@ import { resetProjectile, resetEffect } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents } from '../state/createWorld.js';
 import { createUiState } from '../state/createUiState.js';
 import { createPlayer }     from '../entities/createPlayer.js';
-// createProjectile, createEffect: ObjectPool 팩토리 인자로 사용 (직접 제거 불가)
 import { createProjectile } from '../entities/createProjectile.js';
 import { createEffect }     from '../entities/createEffect.js';
 import { waveData } from '../data/waveData.js';
@@ -40,19 +39,16 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
  *
- * REF(refactor): _updateEffects() 제거 → FlushSystem.tickEffects() 위임.
- *   이펙트 수명 갱신은 게임 로직이므로 Scene 이 아닌 System 이 담당.
- *   14단계: this._updateEffects(dt) → FlushSystem.tickEffects({ effects, deltaTime })
+ * FIX(safety): update() / render() 최상단에 null guard 명시.
+ *   exit() 에서 this.world = null 처리 후 SceneManager 타이밍으로 1프레임이
+ *   더 호출될 경우 NPE 를 방지한다.
+ *   null guard 이전에 debugView / hudView 접근도 없도록 순서 보정.
  *
  * FIX(bug): _showLevelUpUI 에서 spawnQueue.push + _flushQueues() 수동 호출 제거.
  *   이후: effectPool.acquire() 로 직접 world.effects 에 push.
  *
  * REF(safety): SpawnSystem.reset() 을 enter() 최상단으로 이동 (주석 아닌 코드로 보호).
  *   싱글톤 상태 오염 방지 — 재시작 시 보스 미등장 / 스폰 누적 버그 예방.
- *
- * FIX(safety): update() / render() 에 null guard 추가.
- *   exit() 에서 this.world = null 처리 후 SceneManager 타이밍으로 1프레임이
- *   더 호출될 경우 NPE 를 방지한다.
  *
  * DEBUG: DebugView.update 에 SpawnSystem.getDebugInfo() 결과를 전달.
  *   보스 억제 구간 잔여 시간을 디버그 패널에 실시간 표시.
@@ -80,7 +76,6 @@ export class PlayScene {
 
     this.world = createWorld();
     this.uiState = createUiState();
-
     this.world.player = createPlayer(0, 0);
 
     this._projectilePool = new ObjectPool(
@@ -108,12 +103,14 @@ export class PlayScene {
   }
 
   update(dt) {
+    // FIX(safety): null guard 최상단 — exit() 후 1프레임 추가 호출 방지
+    if (!this.world) return;
+
     const world = this.world;
     const input = this.game.input;
 
     // FIX(bug): DebugView 입력 처리 + FPS 버퍼 갱신은 playMode 와 무관하게 항상 먼저 실행.
     //   dead / levelup 상태에서 early return 되어도 FPS 데이터가 연속적으로 유지됨.
-    //   이전: debugView 호출이 파이프라인 맨 끝에 있어 early return 시 FPS 버퍼 정지.
     this.debugView.handleInput(input);
     this.debugView.update(
       world,
@@ -202,7 +199,6 @@ export class PlayScene {
     this._soundSystem.processEvents(world.events);
 
     // 11. 경험치 흡수
-    // FIX(contract): CollisionSystem 계약 준수 — 픽업 비활성화가 ExperienceSystem 으로 이전됨.
     ExperienceSystem.update({
       events:    world.events,
       player:    world.player,
@@ -219,7 +215,7 @@ export class PlayScene {
       pools: { projectile: this._projectilePool, effect: this._effectPool }
     });
 
-    // 14. 이펙트 수명 갱신 — REF: FlushSystem.tickEffects() 위임
+    // 14. 이펙트 수명 갱신
     FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
 
     // 15. 카메라 갱신
@@ -235,15 +231,19 @@ export class PlayScene {
   }
 
   render() {
+    // FIX(safety): null guard — exit() 후 1프레임 추가 호출 방지
+    if (!this.world) return;
+
     RenderSystem.update({
-      world: this.world,
-      camera: this.camera,
+      world:    this.world,
+      camera:   this.camera,
       renderer: this.game.renderer,
-      dpr: this._dpr,
+      dpr:      this._dpr,
     });
   }
 
   exit() {
+    // DOM 뷰 cleanup — 재시작 반복 시 노드 누적 방지
     if (this.hudView)      this.hudView.destroy();
     if (this.levelUpView)  this.levelUpView.destroy();
     if (this.resultView)   this.resultView.destroy();
@@ -251,7 +251,7 @@ export class PlayScene {
     if (this.bossHudView)  this.bossHudView.destroy();
     if (this._soundSystem) this._soundSystem.destroy();
 
-    // GC leaks 방지
+    // null 처리 — update/render null guard 가 이후 호출을 차단
     this.world           = null;
     this.uiState         = null;
     this._projectilePool = null;
@@ -261,7 +261,6 @@ export class PlayScene {
 
   /**
    * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 → effectPool.acquire 직접 push.
-   * levelFlash 이펙트는 단순 시각 효과이므로 풀에서 직접 꺼내 effects 에 넣는다.
    */
   _showLevelUpUI() {
     this._soundSystem.play('levelup');

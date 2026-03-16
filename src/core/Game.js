@@ -5,6 +5,11 @@ import { Input } from './Input.js';
 import { CanvasRenderer } from '../renderer/CanvasRenderer.js';
 import { TitleScene } from '../scenes/TitleScene.js';
 
+import { validateGameData } from '../utils/validateGameData.js';
+import { upgradeData } from '../data/upgradeData.js';
+import { weaponData } from '../data/weaponData.js';
+import { waveData } from '../data/waveData.js';
+
 /**
  * Game — 게임 최상위 진입점
  */
@@ -23,6 +28,9 @@ export class Game {
   }
 
   start() {
+    // 개발 환경에서 데이터 무결성 검증
+    validateGameData({ upgradeData, weaponData, waveData });
+
     this.sceneManager.changeScene(new TitleScene(this));
     this._loop.start();
   }

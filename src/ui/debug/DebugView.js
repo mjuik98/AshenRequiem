@@ -6,18 +6,14 @@ import { getXpForLevel } from '../../data/constants.js';
  * 규칙: 읽기 전용 표현 계층 — world / pools 상태를 직접 수정하지 않음
  * 위치: 화면 우상단
  *
- * 표시 항목:
- *   PERFORMANCE  — FPS, 프레임 시간
- *   ENTITIES     — 적·투사체·픽업·이펙트 수, 풀 잔여
- *   PLAYER       — HP, 레벨, XP, 속도, 흡수 범위, 상태이상
- *   WEAPONS      — 보유 무기별 레벨·데미지·쿨다운
- *   WAVE         — 경과 시간, 킬수, 현재 spawnPerSecond, 적 종류
- *   BOSS         — 보스 등장 여부, 억제 구간 잔여 시간 (DEBUG 추가)
+ * PERF(refactor): innerHTML 전체 교체 → element 참조 기반 textContent 갱신.
+ *   이전: 4프레임마다 패널 전체 innerHTML 을 문자열로 교체 → DOM 재파싱 비용.
+ *   이후: 생성자에서 섹션/행 DOM 을 한 번만 구성 → update() 에서 값 노드만 교체.
+ *         reflow 없이 텍스트 노드만 바뀌므로 개발 중 패널 오픈 상태에서도 성능 영향 최소화.
  *
- * PATCH(perf): DOM 갱신 주기를 매 4프레임 1회로 제한.
+ * PATCH(perf): DOM 갱신 주기를 매 4프레임 1회로 유지 (값 노드 교체도 throttle).
  * DEBUG(feature): PLAYER 섹션에 상태이상(Status) 항목 추가.
- * DEBUG(feature): BOSS 섹션 추가 — 보스 억제 상태를 실시간으로 확인.
- *   입력: spawnDebugInfo = SpawnSystem.getDebugInfo(elapsedTime)
+ * DEBUG(feature): BOSS 섹션 — 보스 억제 상태 실시간 표시.
  */
 export class DebugView {
   constructor(container) {
@@ -27,22 +23,100 @@ export class DebugView {
     this._injectStyles();
     container.appendChild(this.el);
 
-    // FPS 측정: 최근 60프레임 dt 보관
     this._dtBuffer = [];
     this._backtickWasDown = false;
-
-    // PATCH(perf): DOM 갱신 throttle 카운터
     this._updateCounter = 0;
+
+    // 패널 내부 DOM 구조를 한 번만 생성
+    this._buildDOM();
   }
 
-  /**
-   * 매 프레임 호출 (visible 일 때만 DOM 갱신)
-   * @param {object} world          — 월드 상태 (읽기 전용)
-   * @param {object} pools          — { projectilePool, effectPool }
-   * @param {number} dt             — 이번 프레임 deltaTime (초)
-   * @param {Array}  waveData       — waveData 배열
-   * @param {object} spawnDebugInfo — SpawnSystem.getDebugInfo() 결과 (보스 억제 상태)
-   */
+  /** 패널 구조를 한 번만 생성하고 값 노드 참조를 저장 */
+  _buildDOM() {
+    const rows = [
+      // [섹션 타이틀, [[key, valueId], ...]]
+      ['PERFORMANCE', [
+        ['FPS',   'dbg-fps'],
+        ['Frame', 'dbg-frame'],
+      ]],
+      ['ENTITIES', [
+        ['Enemies',     'dbg-enemies'],
+        ['Projectiles', 'dbg-proj'],
+        ['Pickups',     'dbg-pickups'],
+        ['Effects',     'dbg-effects'],
+        ['Pool Proj',   'dbg-pool-proj'],
+        ['Pool Effect', 'dbg-pool-fx'],
+      ]],
+      ['PLAYER', [
+        ['HP',     'dbg-hp'],
+        ['Level',  'dbg-level'],
+        ['XP',     'dbg-xp'],
+        ['Speed',  'dbg-speed'],
+        ['Magnet', 'dbg-magnet'],
+        ['Status', 'dbg-status'],
+      ]],
+      ['WEAPONS', [
+        ['Equipped', 'dbg-weapons'],
+      ]],
+      ['WAVE', [
+        ['Time',    'dbg-time'],
+        ['Kills',   'dbg-kills'],
+        ['Rate',    'dbg-rate'],
+        ['Enemies', 'dbg-wave-enemies'],
+      ]],
+      ['BOSS', [
+        ['Status',    'dbg-boss-status'],
+        ['Spawned at','dbg-boss-at'],
+        ['Suppressed','dbg-boss-sup'],
+      ]],
+    ];
+
+    this._vals = {};
+
+    rows.forEach(([title, fields]) => {
+      const section = document.createElement('div');
+      section.className = 'dbg-section';
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'dbg-title';
+      titleEl.textContent = title;
+      section.appendChild(titleEl);
+
+      fields.forEach(([key, id]) => {
+        const row = document.createElement('div');
+        row.className = 'dbg-row';
+
+        const keyEl = document.createElement('span');
+        keyEl.className = 'dbg-key';
+        keyEl.textContent = key;
+
+        const valEl = document.createElement('span');
+        valEl.className = 'dbg-val';
+        valEl.textContent = '-';
+
+        row.appendChild(keyEl);
+        row.appendChild(valEl);
+        section.appendChild(row);
+
+        this._vals[id] = valEl;
+      });
+
+      this.el.appendChild(section);
+    });
+  }
+
+  /** 값 노드 참조를 통한 갱신 (textContent 만 교체 — reflow 없음) */
+  _set(id, text, cls) {
+    const el = this._vals[id];
+    if (!el) return;
+    el.textContent = text;
+    if (cls) {
+      el.className = 'dbg-val ' + cls;
+    } else {
+      el.className = 'dbg-val';
+    }
+  }
+
   update(world, pools, dt, waveData, spawnDebugInfo = null) {
     // FPS 버퍼 갱신은 항상 수행 (숨겨 있어도 데이터 유지)
     this._dtBuffer.push(dt);
@@ -50,105 +124,67 @@ export class DebugView {
 
     if (this.el.style.display === 'none') return;
 
-    // PATCH(perf): 4프레임마다 1회만 innerHTML 갱신
+    // PERF: 4프레임마다 1회만 DOM 갱신
     this._updateCounter++;
     if (this._updateCounter % 4 !== 0) return;
 
     const avgDt   = this._dtBuffer.reduce((a, b) => a + b, 0) / this._dtBuffer.length;
     const fps     = avgDt > 0 ? Math.round(1 / avgDt) : 0;
     const frameMs = (avgDt * 1000).toFixed(1);
-    const fpsClass = fps < 30 ? 'dbg-warn' : fps < 50 ? 'dbg-caution' : 'dbg-ok';
+    const fpsCls  = fps < 30 ? 'dbg-val dbg-warn' : fps < 50 ? 'dbg-val dbg-caution' : 'dbg-val dbg-ok';
 
+    // PERFORMANCE
+    const fpsEl = this._vals['dbg-fps'];
+    if (fpsEl) { fpsEl.textContent = fps; fpsEl.className = fpsCls; }
+    this._set('dbg-frame', `${frameMs} ms`);
+
+    // ENTITIES
+    const pp = pools.projectilePool;
+    const ep = pools.effectPool;
+    this._set('dbg-enemies',   world.enemies?.length     ?? 0);
+    this._set('dbg-proj',      world.projectiles?.length ?? 0);
+    this._set('dbg-pickups',   world.pickups?.length     ?? 0);
+    this._set('dbg-effects',   world.effects?.length     ?? 0);
+    this._set('dbg-pool-proj', pp ? `${pp.activeCount}/${pp.totalCount}` : '-');
+    this._set('dbg-pool-fx',   ep ? `${ep.activeCount}/${ep.totalCount}` : '-');
+
+    // PLAYER
+    const p = world.player;
+    const xpNeeded = p ? getXpForLevel(p.level) : 0;
+    this._set('dbg-hp',     p ? `${Math.ceil(p.hp)}/${p.maxHp}` : '-');
+    this._set('dbg-level',  p?.level ?? '-');
+    this._set('dbg-xp',     p ? `${p.xp}/${xpNeeded}` : '-');
+    this._set('dbg-speed',  p?.moveSpeed ?? '-');
+    this._set('dbg-magnet', p?.magnetRadius ?? '-');
+    const statusText = p?.statusEffects?.length
+      ? p.statusEffects.map(e => `${e.type}(${e.remaining.toFixed(1)}s)`).join(' ')
+      : '-';
+    this._set('dbg-status', statusText);
+
+    // WEAPONS
+    const weaponText = p?.weapons?.length
+      ? p.weapons.map(w => `${w.id} Lv${w.level ?? 1}`).join(', ')
+      : '-';
+    this._set('dbg-weapons', weaponText);
+
+    // WAVE
     const elapsed = world.elapsedTime ?? 0;
     let activeWave = null;
     for (const wave of waveData) {
       if (elapsed >= wave.from && elapsed < wave.to) { activeWave = wave; break; }
     }
+    this._set('dbg-time',         elapsed.toFixed(1) + 's');
+    this._set('dbg-kills',        world.killCount ?? 0);
+    this._set('dbg-rate',         activeWave ? activeWave.spawnPerSecond.toFixed(2) + '/s' : '-');
+    this._set('dbg-wave-enemies', activeWave ? activeWave.enemyIds.join(', ') : '-');
 
-    const p        = world.player;
-    const xpNeeded = p ? getXpForLevel(p.level) : 0;
-
-    // PLAYER 섹션: 상태이상 포맷팅 — "type(남은초s)" 형식
-    const statusText = p?.statusEffects?.length
-      ? p.statusEffects.map(e => `${e.type}(${e.remaining.toFixed(1)}s)`).join(' ')
-      : '-';
-
-    // BOSS 섹션: 억제 상태 포맷팅
-    let bossHtml = '';
+    // BOSS
     if (spawnDebugInfo) {
       const { hasBossSpawned, isSuppressed, suppressionRemaining, bossSpawnedAt } = spawnDebugInfo;
-      const bossStatus = !hasBossSpawned
-        ? '<span class="dbg-val">미등장</span>'
-        : isSuppressed
-          ? `<span class="dbg-val dbg-warn">억제 중 (${suppressionRemaining.toFixed(1)}s)</span>`
-          : '<span class="dbg-val dbg-ok">정상</span>';
-      const spawnAtText = bossSpawnedAt !== null
-        ? `${bossSpawnedAt.toFixed(1)}s`
-        : '-';
-
-      bossHtml = `
-      <div class="dbg-section">
-        <div class="dbg-title">BOSS</div>
-        <div class="dbg-row"><span class="dbg-key">Status</span>${bossStatus}</div>
-        <div class="dbg-row"><span class="dbg-key">Spawned at</span><span class="dbg-val">${spawnAtText}</span></div>
-      </div>`;
+      this._set('dbg-boss-status', !hasBossSpawned ? '미등장' : isSuppressed ? '억제 중' : '활성');
+      this._set('dbg-boss-at',     bossSpawnedAt !== null ? bossSpawnedAt.toFixed(1) + 's' : '-');
+      this._set('dbg-boss-sup',    isSuppressed ? suppressionRemaining.toFixed(1) + 's' : '-');
     }
-
-    this.el.innerHTML = `
-      <div class="dbg-section">
-        <div class="dbg-title">PERFORMANCE</div>
-        <div class="dbg-row">
-          <span class="dbg-key">FPS</span>
-          <span class="dbg-val ${fpsClass}">${fps}</span>
-        </div>
-        <div class="dbg-row">
-          <span class="dbg-key">Frame</span>
-          <span class="dbg-val">${frameMs} ms</span>
-        </div>
-      </div>
-
-      <div class="dbg-section">
-        <div class="dbg-title">ENTITIES</div>
-        <div class="dbg-row"><span class="dbg-key">Enemies</span>     <span class="dbg-val">${world.enemies.length}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Projectiles</span> <span class="dbg-val">${world.projectiles.length}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Pickups</span>     <span class="dbg-val">${world.pickups.length}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Effects</span>     <span class="dbg-val">${world.effects.length}</span></div>
-        <div class="dbg-sep"></div>
-        <div class="dbg-row"><span class="dbg-key">Pool proj</span>   <span class="dbg-val">${pools.projectilePool?.available ?? '-'} avail</span></div>
-        <div class="dbg-row"><span class="dbg-key">Pool effect</span> <span class="dbg-val">${pools.effectPool?.available ?? '-'} avail</span></div>
-      </div>
-
-      <div class="dbg-section">
-        <div class="dbg-title">PLAYER</div>
-        ${p ? `
-        <div class="dbg-row"><span class="dbg-key">HP</span>        <span class="dbg-val">${Math.ceil(p.hp)} / ${p.maxHp}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Level</span>     <span class="dbg-val">${p.level}</span></div>
-        <div class="dbg-row"><span class="dbg-key">XP</span>        <span class="dbg-val">${p.xp} / ${xpNeeded}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Speed</span>     <span class="dbg-val">${Math.round(p.moveSpeed)} px/s</span></div>
-        <div class="dbg-row"><span class="dbg-key">Magnet</span>    <span class="dbg-val">${Math.round(p.magnetRadius)} px</span></div>
-        <div class="dbg-row"><span class="dbg-key">Lifesteal</span> <span class="dbg-val">${((p.lifesteal || 0) * 100).toFixed(0)}%</span></div>
-        <div class="dbg-row"><span class="dbg-key">Invincible</span><span class="dbg-val">${p.invincibleTimer > 0 ? p.invincibleTimer.toFixed(2) + 's' : '-'}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Status</span>    <span class="dbg-val">${statusText}</span></div>
-        ` : '<div class="dbg-row"><span class="dbg-val">없음</span></div>'}
-      </div>
-
-      <div class="dbg-section">
-        <div class="dbg-title">WEAPONS</div>
-        ${p?.weapons?.length ? p.weapons.map(w => `
-          <div class="dbg-row"><span class="dbg-key">${w.name}</span><span class="dbg-val">Lv${w.level} | ${w.damage}dmg | ${w.cooldown.toFixed(2)}s</span></div>
-        `).join('') : '<div class="dbg-row"><span class="dbg-val">없음</span></div>'}
-      </div>
-
-      <div class="dbg-section">
-        <div class="dbg-title">WAVE</div>
-        <div class="dbg-row"><span class="dbg-key">Time</span>     <span class="dbg-val">${elapsed.toFixed(1)}s</span></div>
-        <div class="dbg-row"><span class="dbg-key">Kills</span>    <span class="dbg-val">${world.killCount ?? 0}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Rate</span>     <span class="dbg-val">${activeWave?.spawnPerSecond?.toFixed(2) ?? '-'}/s</span></div>
-        <div class="dbg-row"><span class="dbg-key">Enemies</span>  <span class="dbg-val">${activeWave?.enemyIds?.join(', ') ?? '-'}</span></div>
-      </div>
-
-      ${bossHtml}
-    `;
   }
 
   handleInput(input) {
