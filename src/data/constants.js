@@ -76,6 +76,9 @@ export const KNOCKBACK = {
  * CollisionSystem 화면 외곽 컬링 마진 (px)
  *
  * FIX(refactor): CollisionSystem 내 하드코딩 제거 → 여기서 관리.
- * 해상도 또는 카메라 zoom 변경 시 이 값만 조정한다.
+ * PERF: 700 → 480 으로 축소.
+ *   후반 고밀도 웨이브에서 충돌 체크 대상을 줄여 CPU 부하를 낮춤.
+ *   480px 은 일반 해상도(1280×720)의 카메라 반경보다 약간 크므로
+ *   화면 내 모든 적을 커버하면서 불필요한 원거리 적 체크를 제거한다.
  */
-export const COLLISION_CULL_MARGIN = 700;
+export const COLLISION_CULL_MARGIN = 480;

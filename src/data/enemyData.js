@@ -21,7 +21,8 @@ export const enemyData = [
   {
     id: 'skeleton',
     name: 'Skeleton',
-    hp: 5, moveSpeed: 80, damage: 8, xpValue: 2, radius: 12,
+    // BAL-1: damage 8 → 6 (초반 2~3타 즉사 방지)
+    hp: 5, moveSpeed: 80, damage: 6, xpValue: 2, radius: 12,
     color: '#e0e0e0',
   },
   {

@@ -1,4 +1,4 @@
-[리팩터링] PlayScene.js 하단에 있던 _compactWithPool / _compactInPlace 를 분리.
+// [리팩터링] PlayScene.js 하단에 있던 _compactWithPool / _compactInPlace 를 분리.
 export function compactWithPool(arr, pool) {
   let write = 0;
   for (let read = 0; read < arr.length; read++) {

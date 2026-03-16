@@ -30,12 +30,18 @@ export const CollisionSystem = {
         const e = enemies[j];
         if (!e.isAlive || e.pendingDestroy) continue;
 
-        if (hasCull && (e.x < cullMinX || e.x > cullMaxX || e.y < cullMinY || e.y > cullMaxY)) continue;
+        if (hasCull && (e.x < cullMinX || e.x > cullMaxX || e.y < cullMinY || e.y > cullMaxY)) {
+            continue;
+        }
 
-        if (p.hitTargets.has(e.id)) continue;
+        if (p.hitTargets.has(e.id)) {
+            continue;
+        }
 
         const rSum = p.radius + e.radius;
-        if (distanceSq(p, e) <= rSum * rSum) {
+        const dSq = distanceSq(p, e);
+
+        if (dSq <= rSum * rSum) {
           events.hits.push({
             attackerId:  p.ownerId,
             targetId:    e.id,
@@ -44,7 +50,6 @@ export const CollisionSystem = {
             projectileId: p.id,
             projectile:  p,
           });
-          // FIX: Set.add()
           p.hitTargets.add(e.id);
           p.hitCount++;
         }

@@ -27,6 +27,7 @@ import { SpawnSystem }           from '../systems/spawn/SpawnSystem.js';
 import { CameraSystem }          from '../systems/camera/CameraSystem.js';
 import { RenderSystem }          from '../systems/render/RenderSystem.js';
 import { SoundSystem }           from '../systems/sound/SoundSystem.js';
+import { FlushSystem }           from '../systems/spawn/FlushSystem.js';
 
 import { ObjectPool } from '../managers/ObjectPool.js';
 
@@ -159,6 +160,7 @@ export class PlayScene {
       events:      world.events,
       camera:      this.camera,
     });
+    // console.debug('[PlayScene] Post-Collision projectiles:', world.projectiles.length);
 
     // 9. 상태이상 부여
     StatusEffectSystem.applyFromHits({ hits: world.events.hits });
@@ -192,7 +194,10 @@ export class PlayScene {
     LevelSystem.update({ player: world.player, worldState: world });
 
     // 13. 큐 플러시
-    this._flushQueues();
+    FlushSystem.update({
+      world,
+      pools: { projectile: this._projectilePool, effect: this._effectPool }
+    });
 
     // 14. 이펙트 수명 갱신
     this._updateEffects(dt);
@@ -243,38 +248,6 @@ export class PlayScene {
     this._soundSystem    = null;
   }
 
-  _flushQueues() {
-    const world = this.world;
-    for (let i = 0; i < world.spawnQueue.length; i++) {
-      const req = world.spawnQueue[i];
-      switch (req.type) {
-        case 'enemy': {
-          const enemy = createEnemy(req.config.enemyId, req.config.x, req.config.y);
-          if (enemy) world.enemies.push(enemy);
-          break;
-        }
-        case 'projectile': {
-          world.projectiles.push(this._projectilePool.acquire(req.config));
-          break;
-        }
-        case 'pickup': {
-          world.pickups.push(createPickup(req.config.x, req.config.y, req.config.xpValue));
-          break;
-        }
-        case 'effect': {
-          world.effects.push(this._effectPool.acquire(req.config));
-          break;
-        }
-      }
-    }
-    world.spawnQueue.length = 0;
-
-    // utility 로 분리됨
-    compactWithPool(world.projectiles, this._projectilePool);
-    compactInPlace(world.enemies);
-    compactInPlace(world.pickups);
-    compactWithPool(world.effects, this._effectPool);
-  }
 
   _updateEffects(dt) {
     for (let i = 0; i < this.world.effects.length; i++) {

@@ -77,9 +77,12 @@ export const WeaponSystem = {
       // ── targetProjectile (멀티샷 지원) ─────────────────────
       } else {
         const target = this._findClosestEnemy(player, enemies, weapon.range);
-        // PATCH(bug): 타깃 없을 때 currentCooldown = 0.1 하드코딩 제거 → 그냥 skip
-        if (!target) continue;
+        if (!target) {
+            // console.debug('[WeaponSystem] No target in range for', weapon.name);
+            continue;
+        }
 
+        console.log('[WeaponSystem] Firing at target:', target.enemyDataId, 'HP:', target.hp);
         const dir    = normalize(sub({ x: target.x, y: target.y }, { x: player.x, y: player.y }));
         const count  = weapon.projectileCount || 1;
         const spread = Math.PI / 14; // ~12.8도
