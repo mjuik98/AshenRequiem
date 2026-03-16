@@ -4,23 +4,30 @@ import { GameConfig }              from '../../core/GameConfig.js';
 /**
  * SpawnSystem — 시간 기반 적 스폰
  *
- * 싱글톤 상태 → PlayScene.enter() 에서 반드시 reset() 호출 필요
- * FIX(balance): 보스 등장 후 BOSS_SUPPRESSION_DURATION 동안 일반 스폰 억제
+ * CHANGE(P1-①): 싱글톤 객체 리터럴 → 클래스로 전환
+ *   - 이전: `export const SpawnSystem = { ... }` + 수동 reset() 호출 필수
+ *   - 이후: `new SpawnSystem()` 으로 PlayScene.enter() 에서 인스턴스 생성
+ *   - 재시작 시 PlayScene이 새 인스턴스를 만들면 상태 오염이 구조적으로 불가능
+ *   - reset() 메서드 유지 (혹시 동일 인스턴스를 재사용하는 경우를 위한 안전망)
  */
+
 const BOSS_SUPPRESSION_DURATION = 30;
 const BOSS_SPAWN_MULTIPLIER     = 0.45;
 
-export const SpawnSystem = {
-  _spawnAccumulator:  0,
-  _spawnedBossAt:     new Set(),
-  _lastBossSpawnTime: -Infinity,
+export class SpawnSystem {
+  constructor() {
+    this._spawnAccumulator  = 0;
+    this._spawnedBossAt     = new Set();
+    this._lastBossSpawnTime = -Infinity;
+  }
 
+  /** 동일 인스턴스 재사용 시 안전망용 — 새 인스턴스 생성이 권장 방식 */
   reset() {
     this._spawnAccumulator  = 0;
     this._spawnedBossAt.clear();
     this._lastBossSpawnTime = -Infinity;
     console.debug('[SpawnSystem] reset 완료');
-  },
+  }
 
   getDebugInfo(elapsedTime) {
     const timeSinceBoss = elapsedTime - this._lastBossSpawnTime;
@@ -31,7 +38,7 @@ export const SpawnSystem = {
       suppressionRemaining: isSuppressed ? BOSS_SUPPRESSION_DURATION - timeSinceBoss : 0,
       bossSpawnedAt:        this._lastBossSpawnTime > -Infinity ? this._lastBossSpawnTime : null,
     };
-  },
+  }
 
   update({ elapsedTime, waveData, bossData, player, spawnQueue, deltaTime }) {
     if (!player?.isAlive) return;
@@ -79,7 +86,7 @@ export const SpawnSystem = {
       const pos = this._randomOffscreenPosition(player);
       spawnQueue.push({ type: 'enemy', config: { enemyId, x: pos.x, y: pos.y } });
     }
-  },
+  }
 
   _randomOffscreenPosition(player) {
     const margin = 80;
@@ -94,5 +101,5 @@ export const SpawnSystem = {
       default:x = player.x + halfW; y = player.y + randomRange(-halfH, halfH); break;
     }
     return { x, y };
-  },
-};
+  }
+}

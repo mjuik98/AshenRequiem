@@ -8,6 +8,9 @@ export function createWorld() {
     /** 'playing' | 'levelup' | 'dead' */
     playMode:    'playing',
 
+    /** 카메라 상태 — CameraSystem이 매 프레임 갱신 */
+    camera: { x: 0, y: 0 },
+
     player:      null,
     enemies:     [],
     projectiles: [],

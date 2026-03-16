@@ -3,3 +3,4 @@
  */
 export { resetProjectile } from '../entities/createProjectile.js';
 export { resetEffect }     from '../entities/createEffect.js';
+export { resetEnemy }      from '../entities/createEnemy.js';

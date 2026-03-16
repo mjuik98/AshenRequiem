@@ -1,14 +1,14 @@
-import { getStatusEffectData } from '../../data/statusEffectData.js';
-import { generateId }          from '../../utils/ids.js';
+import { getStatusEffectData }  from '../../data/statusEffectData.js';
+import { statusEffectRegistry }  from '../../data/statusEffectRegistry.js';
+import { generateId }            from '../../utils/ids.js';
 
 /**
  * StatusEffectSystem — 상태이상 부여 + 틱 처리
  *
- * FIX(bug): poison 데미지를 events.hits 에 synthetic hit 으로 push → DamageSystem 일관 처리
- * FIX(bug): _removeEffect — splice 후 남은 stun 여부로 stunned 재계산
- * SAFETY: unknown effectId 에 warn 로그
+ * CHANGE(P3-⑨): 레지스트리 기반으로 리팩터링
  */
 export const StatusEffectSystem = {
+
   applyFromHits({ hits }) {
     for (let i = 0; i < hits.length; i++) {
       const hit  = hits[i];
@@ -36,21 +36,14 @@ export const StatusEffectSystem = {
     if (!entity.statusEffects?.length) return;
 
     for (let i = entity.statusEffects.length - 1; i >= 0; i--) {
-      const effect = entity.statusEffects[i];
-      effect.remaining -= deltaTime;
+      const effect  = entity.statusEffects[i];
+      const handler = statusEffectRegistry[effect.type];
 
-      // poison 데미지 → synthetic hit → DamageSystem 에 위임
-      if (effect.type === 'poison' && effect.tickInterval > 0) {
-        effect.tickAccumulator = (effect.tickAccumulator || 0) + deltaTime;
-        while (effect.tickAccumulator >= effect.tickInterval) {
-          effect.tickAccumulator -= effect.tickInterval;
-          if (!entity.isAlive || entity.pendingDestroy) break;
-          events.hits.push({
-            attackerId: 'poison', targetId: entity.id, target: entity,
-            damage: effect.magnitude, projectileId: null, projectile: null,
-          });
-        }
+      if (handler?.onTick) {
+        handler.onTick(entity, effect, deltaTime, events);
       }
+
+      effect.remaining -= deltaTime;
 
       if (effect.remaining <= 0 && !entity.pendingDestroy) {
         this._removeEffect(entity, effect, i);
@@ -65,7 +58,6 @@ export const StatusEffectSystem = {
       return;
     }
 
-    // slow / poison: 중첩 시 기존 효과 갱신 (최대 지속)
     if (def.type === 'slow' || def.type === 'poison') {
       const existing = entity.statusEffects.find(e => e.type === def.type);
       if (existing) {
@@ -74,7 +66,7 @@ export const StatusEffectSystem = {
       }
     }
 
-    entity.statusEffects.push({
+    const effect = {
       id:              generateId(),
       type:            def.type,
       remaining:       def.duration,
@@ -82,16 +74,22 @@ export const StatusEffectSystem = {
       tickInterval:    def.tickInterval,
       tickAccumulator: 0,
       color:           def.color,
-    });
+    };
 
-    if (def.type === 'stun') entity.stunned = true;
+    entity.statusEffects.push(effect);
+
+    const handler = statusEffectRegistry[def.type];
+    if (handler?.onApply) {
+      handler.onApply(entity, effect, def);
+    }
   },
 
   _removeEffect(entity, effect, idx) {
     entity.statusEffects.splice(idx, 1);
-    if (effect.type === 'stun') {
-      // FIX(bug): splice 후 남은 stun 여부로 재계산
-      entity.stunned = entity.statusEffects.some(e => e.type === 'stun');
+
+    const handler = statusEffectRegistry[effect.type];
+    if (handler?.onRemove) {
+      handler.onRemove(entity, effect);
     }
   },
 };

@@ -34,3 +34,55 @@ export function createEnemy(enemyId, x, y) {
     pendingDestroy:  false,
   };
 }
+
+/**
+ * resetEnemy — ObjectPool 반환 후 재초기화
+ *
+ * CHANGE(P2-④): enemy ObjectPool 지원을 위해 추가
+ *   - createFn: () => createEnemy('zombie', 0, 0)  (더미 초기값)
+ *   - resetFn:  (enemy, config) => resetEnemy(enemy, config)
+ *
+ * @param {object} enemy  - 풀에서 꺼낸 기존 적 객체
+ * @param {{ enemyId: string, x: number, y: number }} config
+ * @returns {object|null} 초기화된 enemy, 알 수 없는 id면 null
+ */
+export function resetEnemy(enemy, config) {
+  const { enemyId, x, y } = config;
+  const data = getEnemyDataById(enemyId);
+  if (!data) {
+    console.warn(`[resetEnemy] Unknown enemy id: ${enemyId}`);
+    return null;
+  }
+
+  enemy.id               = generateId();
+  enemy.type             = 'enemy';
+  enemy.enemyDataId      = data.id;
+  enemy.name             = data.name;
+  enemy.x                = x;
+  enemy.y                = y;
+  enemy.hp               = data.hp;
+  enemy.maxHp            = data.hp;
+  enemy.moveSpeed        = data.moveSpeed;
+  enemy.damage           = data.damage;
+  enemy.xpValue          = data.xpValue;
+  enemy.radius           = data.radius;
+  enemy.color            = data.color;
+  enemy.hitFlashTimer    = 0;
+  enemy.chargeEffect     = false;
+  enemy.knockbackX       = 0;
+  enemy.knockbackY       = 0;
+  enemy.knockbackTimer   = 0;
+  enemy.knockbackResist  = data.knockbackResist ?? 0;
+  enemy.statusEffects    = [];
+  enemy.stunned          = false;
+  enemy.isElite          = data.isElite  || false;
+  enemy.isBoss           = data.isBoss   || false;
+  enemy.behaviorId       = data.behaviorId     ?? 'chase';
+  enemy.behaviorState    = data.behaviorState  ? data.behaviorState() : null;
+  enemy.projectileConfig = data.projectileConfig ?? null;
+  enemy.deathSpawn       = data.deathSpawn ?? null;
+  enemy.isAlive          = true;
+  enemy.pendingDestroy   = false;
+
+  return enemy;
+}
