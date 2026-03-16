@@ -1,14 +1,18 @@
 import { normalize, sub } from '../../math/Vector2.js';
+import { ELITE_BEHAVIOR } from '../../data/constants.js';
 
 /**
  * EliteBehaviorSystem — 엘리트/보스 전용 이동 패턴
  *
- * PATCH:
- *   [refactor] windup 페이즈 hitFlashTimer 남용 → chargeEffect 전용 플래그로 교체.
+ * REF(refactor): windup 페이즈 hitFlashTimer 남용 → chargeEffect 전용 플래그로 교체.
  *              hitFlashTimer 는 '피격 플래시'라는 원래 용도만 유지.
- *   [refactor] circle_dash 투사체 설정 하드코딩 제거.
+ * REF(refactor): circle_dash 투사체 설정 하드코딩 제거.
  *              e.projectileConfig(enemyData 에서 복사) 를 참조.
  *              fallback 기본값은 내부 DEFAULT_PROJECTILE_CONFIG 사용.
+ * REF(refactor): DASH_SPEED 하드코딩 제거.
+ *   이전: 각 메서드 내에 const DASH_SPEED = 520 / 480 리터럴.
+ *   이후: constants.js ELITE_BEHAVIOR.DASH_SPEED / CIRCLE_DASH_SPEED 참조.
+ *         밸런스 조정 시 constants.js 한 곳만 수정하면 된다.
  */
 
 const DEFAULT_PROJECTILE_CONFIG = {
@@ -59,7 +63,7 @@ export const EliteBehaviorSystem = {
       }
 
     } else if (s.phase === 'windup') {
-      // PATCH(refactor): hitFlashTimer 남용 제거 → chargeEffect 전용 플래그
+      // REF: hitFlashTimer 남용 제거 → chargeEffect 전용 플래그
       e.chargeEffect = true;
       s.timer -= deltaTime;
       if (s.timer <= 0) {
@@ -69,9 +73,9 @@ export const EliteBehaviorSystem = {
       }
 
     } else if (s.phase === 'dashing') {
-      const DASH_SPEED = 520;
-      e.x += s.dashDirX * DASH_SPEED * deltaTime;
-      e.y += s.dashDirY * DASH_SPEED * deltaTime;
+      // REF: 하드코딩 520 → ELITE_BEHAVIOR.DASH_SPEED
+      e.x += s.dashDirX * ELITE_BEHAVIOR.DASH_SPEED * deltaTime;
+      e.y += s.dashDirY * ELITE_BEHAVIOR.DASH_SPEED * deltaTime;
 
       s.timer -= deltaTime;
       if (s.timer <= 0) {
@@ -85,7 +89,7 @@ export const EliteBehaviorSystem = {
 
   _updateCircleDash(e, player, deltaTime, spawnQueue) {
     const s = e.behaviorState;
-    // PATCH(refactor): 투사체 config 를 enemyData 에서 가져옴
+    // REF: 투사체 config 를 enemyData 에서 가져옴
     const projCfg = e.projectileConfig ?? DEFAULT_PROJECTILE_CONFIG;
 
     if (s.phase === 'circling') {
@@ -107,12 +111,12 @@ export const EliteBehaviorSystem = {
       }
 
     } else if (s.phase === 'windup') {
-      // PATCH(refactor): chargeEffect 플래그 사용
+      // REF: chargeEffect 플래그 사용
       e.chargeEffect = true;
       s.timer -= deltaTime;
       if (s.timer <= 0) {
         e.chargeEffect = false;
-        // 4방향 투사체 발사 — PATCH: projCfg 참조
+        // 4방향 투사체 발사
         for (let d = 0; d < 4; d++) {
           const angle = (d / 4) * Math.PI * 2;
           spawnQueue.push({
@@ -137,9 +141,9 @@ export const EliteBehaviorSystem = {
       }
 
     } else if (s.phase === 'dashing') {
-      const DASH_SPEED = 480;
-      e.x += s.dashDirX * DASH_SPEED * deltaTime;
-      e.y += s.dashDirY * DASH_SPEED * deltaTime;
+      // REF: 하드코딩 480 → ELITE_BEHAVIOR.CIRCLE_DASH_SPEED
+      e.x += s.dashDirX * ELITE_BEHAVIOR.CIRCLE_DASH_SPEED * deltaTime;
+      e.y += s.dashDirY * ELITE_BEHAVIOR.CIRCLE_DASH_SPEED * deltaTime;
 
       s.timer -= deltaTime;
       if (s.timer <= 0) {

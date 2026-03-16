@@ -3,7 +3,7 @@ import { resetProjectile, resetEffect } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents } from '../state/createWorld.js';
 import { createUiState } from '../state/createUiState.js';
 import { createPlayer }     from '../entities/createPlayer.js';
-// REF(cleanup): createEnemy, createPickup — FlushSystem 이 담당하므로 PlayScene 에서 제거.
+// createProjectile, createEffect: ObjectPool 팩토리 인자로 사용 (직접 제거 불가)
 import { createProjectile } from '../entities/createProjectile.js';
 import { createEffect }     from '../entities/createEffect.js';
 import { waveData } from '../data/waveData.js';
@@ -40,9 +40,6 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
 /**
  * PlayScene — 전투 씬 (16단계 프레임 파이프라인)
  *
- * REF(cleanup): createEnemy, createPickup 미사용 import 제거.
- *   두 팩토리는 FlushSystem 이 내부적으로 호출하므로 PlayScene 에서 직접 참조 불필요.
- *
  * REF(refactor): _updateEffects() 제거 → FlushSystem.tickEffects() 위임.
  *   이펙트 수명 갱신은 게임 로직이므로 Scene 이 아닌 System 이 담당.
  *   14단계: this._updateEffects(dt) → FlushSystem.tickEffects({ effects, deltaTime })
@@ -52,6 +49,9 @@ import { BossHudView } from '../ui/boss/BossHudView.js';
  *
  * REF(safety): SpawnSystem.reset() 을 enter() 최상단으로 이동 (주석 아닌 코드로 보호).
  *   싱글톤 상태 오염 방지 — 재시작 시 보스 미등장 / 스폰 누적 버그 예방.
+ *
+ * DEBUG: DebugView.update 에 SpawnSystem.getDebugInfo() 결과를 전달.
+ *   보스 억제 구간 잔여 시간을 디버그 패널에 실시간 표시.
  */
 export class PlayScene {
   constructor(game) {
@@ -202,7 +202,7 @@ export class PlayScene {
       pools: { projectile: this._projectilePool, effect: this._effectPool }
     });
 
-    // 14. 이펙트 수명 갱신 — REF: _updateEffects() 제거, FlushSystem.tickEffects() 위임
+    // 14. 이펙트 수명 갱신 — REF: FlushSystem.tickEffects() 위임
     FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
 
     // 15. 카메라 갱신
@@ -217,10 +217,13 @@ export class PlayScene {
     this.bossHudView.update(world.enemies);
 
     this.debugView.handleInput(input);
+    // DEBUG: SpawnSystem.getDebugInfo 를 전달 → 보스 억제 상태 표시
     this.debugView.update(
       world,
       { projectilePool: this._projectilePool, effectPool: this._effectPool },
-      dt, waveData,
+      dt,
+      waveData,
+      SpawnSystem.getDebugInfo(world.elapsedTime),
     );
   }
 
@@ -241,15 +244,13 @@ export class PlayScene {
     if (this.bossHudView)  this.bossHudView.destroy();
     if (this._soundSystem) this._soundSystem.destroy();
 
-    // GC leaks fix
+    // GC leaks 방지
     this.world           = null;
     this.uiState         = null;
     this._projectilePool = null;
     this._effectPool     = null;
     this._soundSystem    = null;
   }
-
-  // REF(refactor): _updateEffects() 제거 — FlushSystem.tickEffects() 로 이전됨.
 
   /**
    * FIX(bug): spawnQueue.push + _flushQueues() 수동 호출 → effectPool.acquire 직접 push.

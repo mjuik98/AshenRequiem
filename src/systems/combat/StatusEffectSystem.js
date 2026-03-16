@@ -10,6 +10,12 @@ import { generateId } from '../../utils/ids.js';
  *   이렇게 하면 poison 킬도 DamageSystem → DeathSystem 경로를 통해
  *   킬 카운트 증가 / XP 드랍 / 사망 이펙트가 정상 발생한다.
  *
+ * FIX(bug): _removeEffect stun 중첩 해제 버그 수정.
+ *   이전: stun 효과 제거 시 무조건 entity.stunned = false
+ *         → 동일 타입은 refresh 되므로 실질적으로 발생하지 않지만,
+ *           방어적 코드로 splice 후 남은 stun 재확인.
+ *   이후: splice 먼저 → 남아있는 stun 여부로 entity.stunned 재계산.
+ *
  * FIX(code): tick() 시그니처에서 spawnQueue 제거
  *   (poison 데미지 텍스트는 DamageSystem 이 생성하므로 불필요)
  *
@@ -121,13 +127,24 @@ export const StatusEffectSystem = {
     target.statusEffects.push(effect);
   },
 
+  /**
+   * FIX(bug): stun 중첩 해제 버그 수정.
+   *   이전: entity.stunned = false 를 splice 전에 무조건 설정
+   *         → 동일 프레임에 stun 2개가 쌓이면 1개 만료 시 나머지 stun 무시.
+   *   이후: splice 먼저 수행 후, 남은 statusEffects 에 stun 이 있는지 재확인.
+   *         현재는 _applyEffect 에서 동일 타입 refresh 로 stun 중첩이 발생하지 않지만,
+   *         방어적 코드로 올바른 순서를 유지한다.
+   */
   _removeEffect(entity, effect, index) {
     if (effect.type === 'slow' && effect._savedMoveSpeed !== undefined) {
       entity.moveSpeed = effect._savedMoveSpeed;
     }
-    if (effect.type === 'stun') {
-      entity.stunned = false;
-    }
+
+    // FIX: splice 먼저 → 남은 stun 여부로 stunned 재계산 (순서 중요)
     entity.statusEffects.splice(index, 1);
+
+    if (effect.type === 'stun') {
+      entity.stunned = entity.statusEffects.some(e => e.type === 'stun');
+    }
   },
 };

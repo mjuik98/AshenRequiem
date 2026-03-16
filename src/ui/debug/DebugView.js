@@ -12,13 +12,12 @@ import { getXpForLevel } from '../../data/constants.js';
  *   PLAYER       — HP, 레벨, XP, 속도, 흡수 범위, 상태이상
  *   WEAPONS      — 보유 무기별 레벨·데미지·쿨다운
  *   WAVE         — 경과 시간, 킬수, 현재 spawnPerSecond, 적 종류
+ *   BOSS         — 보스 등장 여부, 억제 구간 잔여 시간 (DEBUG 추가)
  *
  * PATCH(perf): DOM 갱신 주기를 매 4프레임 1회로 제한.
- *
  * DEBUG(feature): PLAYER 섹션에 상태이상(Status) 항목 추가.
- *   이전: statusEffects 가 표시되지 않아 디버깅 불편.
- *   이후: 현재 걸린 상태이상 타입과 남은 시간을 한눈에 확인 가능.
- *         예) slow(1.2s) poison(0.8s)
+ * DEBUG(feature): BOSS 섹션 추가 — 보스 억제 상태를 실시간으로 확인.
+ *   입력: spawnDebugInfo = SpawnSystem.getDebugInfo(elapsedTime)
  */
 export class DebugView {
   constructor(container) {
@@ -38,12 +37,13 @@ export class DebugView {
 
   /**
    * 매 프레임 호출 (visible 일 때만 DOM 갱신)
-   * @param {object} world    — 월드 상태 (읽기 전용)
-   * @param {object} pools    — { projectilePool, effectPool }
-   * @param {number} dt       — 이번 프레임 deltaTime (초)
-   * @param {Array}  waveData — waveData 배열
+   * @param {object} world          — 월드 상태 (읽기 전용)
+   * @param {object} pools          — { projectilePool, effectPool }
+   * @param {number} dt             — 이번 프레임 deltaTime (초)
+   * @param {Array}  waveData       — waveData 배열
+   * @param {object} spawnDebugInfo — SpawnSystem.getDebugInfo() 결과 (보스 억제 상태)
    */
-  update(world, pools, dt, waveData) {
+  update(world, pools, dt, waveData, spawnDebugInfo = null) {
     // FPS 버퍼 갱신은 항상 수행 (숨겨 있어도 데이터 유지)
     this._dtBuffer.push(dt);
     if (this._dtBuffer.length > 60) this._dtBuffer.shift();
@@ -68,10 +68,31 @@ export class DebugView {
     const p        = world.player;
     const xpNeeded = p ? getXpForLevel(p.level) : 0;
 
-    // DEBUG(feature): 상태이상 포맷팅 — "type(남은초s)" 형식
+    // PLAYER 섹션: 상태이상 포맷팅 — "type(남은초s)" 형식
     const statusText = p?.statusEffects?.length
       ? p.statusEffects.map(e => `${e.type}(${e.remaining.toFixed(1)}s)`).join(' ')
       : '-';
+
+    // BOSS 섹션: 억제 상태 포맷팅
+    let bossHtml = '';
+    if (spawnDebugInfo) {
+      const { hasBossSpawned, isSuppressed, suppressionRemaining, bossSpawnedAt } = spawnDebugInfo;
+      const bossStatus = !hasBossSpawned
+        ? '<span class="dbg-val">미등장</span>'
+        : isSuppressed
+          ? `<span class="dbg-val dbg-warn">억제 중 (${suppressionRemaining.toFixed(1)}s)</span>`
+          : '<span class="dbg-val dbg-ok">정상</span>';
+      const spawnAtText = bossSpawnedAt !== null
+        ? `${bossSpawnedAt.toFixed(1)}s`
+        : '-';
+
+      bossHtml = `
+      <div class="dbg-section">
+        <div class="dbg-title">BOSS</div>
+        <div class="dbg-row"><span class="dbg-key">Status</span>${bossStatus}</div>
+        <div class="dbg-row"><span class="dbg-key">Spawned at</span><span class="dbg-val">${spawnAtText}</span></div>
+      </div>`;
+    }
 
     this.el.innerHTML = `
       <div class="dbg-section">
@@ -107,50 +128,37 @@ export class DebugView {
         <div class="dbg-row"><span class="dbg-key">Magnet</span>    <span class="dbg-val">${Math.round(p.magnetRadius)} px</span></div>
         <div class="dbg-row"><span class="dbg-key">Lifesteal</span> <span class="dbg-val">${((p.lifesteal || 0) * 100).toFixed(0)}%</span></div>
         <div class="dbg-row"><span class="dbg-key">Invincible</span><span class="dbg-val">${p.invincibleTimer > 0 ? p.invincibleTimer.toFixed(2) + 's' : '-'}</span></div>
-        <div class="dbg-row">
-          <span class="dbg-key">Status</span>
-          <span class="dbg-val dbg-small ${p.statusEffects?.length ? 'dbg-status-active' : ''}">${statusText}</span>
-        </div>
-        ` : '<div class="dbg-row"><span class="dbg-key">-</span></div>'}
+        <div class="dbg-row"><span class="dbg-key">Status</span>    <span class="dbg-val">${statusText}</span></div>
+        ` : '<div class="dbg-row"><span class="dbg-val">없음</span></div>'}
       </div>
 
       <div class="dbg-section">
         <div class="dbg-title">WEAPONS</div>
-        ${p?.weapons?.length ?
-          p.weapons.map(w => `
-          <div class="dbg-row">
-            <span class="dbg-key">${w.id}</span>
-            <span class="dbg-val">Lv${w.level} dmg:${w.damage} cd:${w.cooldown.toFixed(2)}s</span>
-          </div>`).join('') : '<div class="dbg-row"><span class="dbg-key">없음</span></div>'}
+        ${p?.weapons?.length ? p.weapons.map(w => `
+          <div class="dbg-row"><span class="dbg-key">${w.name}</span><span class="dbg-val">Lv${w.level} | ${w.damage}dmg | ${w.cooldown.toFixed(2)}s</span></div>
+        `).join('') : '<div class="dbg-row"><span class="dbg-val">없음</span></div>'}
       </div>
 
       <div class="dbg-section">
         <div class="dbg-title">WAVE</div>
-        <div class="dbg-row"><span class="dbg-key">Time</span>        <span class="dbg-val">${Math.floor(elapsed)}s</span></div>
-        <div class="dbg-row"><span class="dbg-key">Kills</span>       <span class="dbg-val">${world.killCount}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Spawn/s</span>     <span class="dbg-val">${activeWave?.spawnPerSecond ?? '-'}</span></div>
-        <div class="dbg-row"><span class="dbg-key">EliteChance</span> <span class="dbg-val">${activeWave?.eliteChance ? (activeWave.eliteChance * 100).toFixed(0) + '%' : '-'}</span></div>
-        <div class="dbg-row"><span class="dbg-key">Types</span>       <span class="dbg-val dbg-small">${activeWave?.enemyIds?.join(', ') ?? '-'}</span></div>
+        <div class="dbg-row"><span class="dbg-key">Time</span>     <span class="dbg-val">${elapsed.toFixed(1)}s</span></div>
+        <div class="dbg-row"><span class="dbg-key">Kills</span>    <span class="dbg-val">${world.killCount ?? 0}</span></div>
+        <div class="dbg-row"><span class="dbg-key">Rate</span>     <span class="dbg-val">${activeWave?.spawnPerSecond?.toFixed(2) ?? '-'}/s</span></div>
+        <div class="dbg-row"><span class="dbg-key">Enemies</span>  <span class="dbg-val">${activeWave?.enemyIds?.join(', ') ?? '-'}</span></div>
       </div>
 
-      <div class="dbg-hint">\` 로 토글</div>
+      ${bossHtml}
     `;
   }
 
-  /**
-   * 백쿼트(`) 키 엣지 감지 → 디버그 패널 토글.
-   */
   handleInput(input) {
-    const down = input.isKeyDown('Backquote');
-    if (down && !this._backtickWasDown) this.toggle();
-    this._backtickWasDown = down;
+    const isDown = input.isKeyDown('Backquote') || input.isKeyDown('`');
+    if (isDown && !this._backtickWasDown) {
+      this.el.style.display = this.el.style.display === 'none' ? 'block' : 'none';
+    }
+    this._backtickWasDown = isDown;
   }
 
-  show()   { this.el.style.display = 'block'; }
-  hide()   { this.el.style.display = 'none';  }
-  toggle() {
-    this.el.style.display === 'none' ? this.show() : this.hide();
-  }
   destroy() { this.el.remove(); }
 
   _injectStyles() {
@@ -159,30 +167,44 @@ export class DebugView {
     style.id = 'debug-styles';
     style.textContent = `
       #debug-panel {
-        position: absolute; top: 12px; right: 12px;
-        background: rgba(0,0,0,0.82);
-        border: 1px solid #333;
-        border-radius: 6px;
+        position: absolute; top: 8px; right: 8px;
+        background: rgba(10,10,15,0.92);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
         padding: 10px 14px;
-        font-family: 'Courier New', monospace;
+        font-family: 'Consolas','Courier New',monospace;
         font-size: 11px;
         color: #ccc;
-        min-width: 240px;
         z-index: 200;
+        min-width: 240px;
+        max-height: 90vh;
+        overflow-y: auto;
         pointer-events: none;
       }
       .dbg-section { margin-bottom: 8px; }
-      .dbg-title { color: #4fc3f7; font-weight: bold; font-size: 10px; letter-spacing: 1px; margin-bottom: 3px; }
-      .dbg-row { display: flex; justify-content: space-between; margin: 1px 0; }
-      .dbg-key { color: #888; }
-      .dbg-val { color: #eee; }
-      .dbg-val.dbg-ok      { color: #66bb6a; }
-      .dbg-val.dbg-caution { color: #ffa726; }
-      .dbg-val.dbg-warn    { color: #ef5350; }
-      .dbg-val.dbg-small   { font-size: 10px; max-width: 140px; word-break: break-all; }
-      .dbg-val.dbg-status-active { color: #ffb74d; }
-      .dbg-sep { border-top: 1px solid #333; margin: 4px 0; }
-      .dbg-hint { color: #444; font-size: 10px; text-align: right; margin-top: 4px; }
+      .dbg-title {
+        color: #4fc3f7;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+      }
+      .dbg-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        line-height: 1.5;
+      }
+      .dbg-key { color: #888; white-space: nowrap; }
+      .dbg-val { color: #eee; text-align: right; word-break: break-all; }
+      .dbg-ok      { color: #66bb6a; }
+      .dbg-caution { color: #ffa726; }
+      .dbg-warn    { color: #ef5350; }
+      .dbg-sep {
+        border-top: 1px solid rgba(255,255,255,0.07);
+        margin: 4px 0;
+      }
     `;
     document.head.appendChild(style);
   }

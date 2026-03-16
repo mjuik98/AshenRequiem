@@ -14,12 +14,11 @@ import { GameConfig } from '../../core/GameConfig.js';
  *
  * FIX(balance): 보스 등장 후 일정 시간(BOSS_SUPPRESSION_DURATION) 동안
  *   일반 스폰을 억제 (spawnPerSecond × BOSS_SPAWN_MULTIPLIER).
- *   이전: 보스 등장 중에도 일반 스폰율 그대로 유지 → 혼돈
- *   이후: 보스 등장 직후 30초는 스폰율 50%로 감소
  *
  * FIX(code): 모듈 레벨 싱글톤 상태 의존성 명시.
  *   PlayScene.enter() 에서 반드시 SpawnSystem.reset() 을 호출해야 함.
- *   (현재 구조상 인스턴스 기반으로 이전 시 영향 범위가 넓으므로 reset 방식 유지)
+ *
+ * DEBUG: getDebugInfo(elapsedTime) — DebugView 에 보스 억제 상태 노출.
  */
 
 /** 보스 등장 후 일반 스폰 억제 구간 (초) */
@@ -33,7 +32,7 @@ export const SpawnSystem = {
   /** @type {Set<number>} 이미 스폰된 보스 at 값 */
   _spawnedBossAt: new Set(),
   /**
-   * FIX(balance): 마지막 보스 스폰 시각 (elapsedTime 기준).
+   * 마지막 보스 스폰 시각 (elapsedTime 기준).
    * -Infinity 면 보스가 아직 등장하지 않음.
    */
   _lastBossSpawnTime: -Infinity,
@@ -42,10 +41,25 @@ export const SpawnSystem = {
     this._spawnAccumulator = 0;
     this._spawnedBossAt.clear();
     this._lastBossSpawnTime = -Infinity;
-    // PATCH: 호출 확인용 로그
     if (typeof console !== 'undefined') {
       console.debug('[SpawnSystem] reset — 스폰 상태 초기화 완료');
     }
+  },
+
+  /**
+   * DEBUG: 보스 억제 상태 정보 반환 (DebugView 용)
+   * @param {number} elapsedTime - 현재 경과 시간 (초)
+   * @returns {{ hasBossSpawned: boolean, isSuppressed: boolean, suppressionRemaining: number }}
+   */
+  getDebugInfo(elapsedTime) {
+    const timeSinceBoss = elapsedTime - this._lastBossSpawnTime;
+    const isSuppressed  = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
+    return {
+      hasBossSpawned:        this._lastBossSpawnTime > -Infinity,
+      isSuppressed,
+      suppressionRemaining:  isSuppressed ? BOSS_SUPPRESSION_DURATION - timeSinceBoss : 0,
+      bossSpawnedAt:         this._lastBossSpawnTime > -Infinity ? this._lastBossSpawnTime : null,
+    };
   },
 
   update({ elapsedTime, waveData, bossData, player, spawnQueue, deltaTime }) {
@@ -57,7 +71,6 @@ export const SpawnSystem = {
         const boss = bossData[b];
         if (elapsedTime >= boss.at && !this._spawnedBossAt.has(boss.at)) {
           this._spawnedBossAt.add(boss.at);
-          // FIX: 보스 스폰 시각 기록
           this._lastBossSpawnTime = elapsedTime;
           const pos = this._randomOffscreenPosition(player);
           spawnQueue.push({ type: 'enemy', config: { enemyId: boss.enemyId, x: pos.x, y: pos.y } });

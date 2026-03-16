@@ -3,13 +3,12 @@ import { distanceSq, normalize, sub } from '../../math/Vector2.js';
 /**
  * WeaponSystem — 무기 쿨다운 관리 + 공격 생성 요청
  *
- * PATCH:
- *   [bug]  targetProjectile 타깃 없을 때 currentCooldown = 0.1 하드코딩 제거.
- *          타깃이 없으면 currentCooldown 을 건드리지 않고 continue.
- *          (currentCooldown 이 이미 0 이 됐으므로 다음 프레임에서 재검사)
- *   [bug]  areaBurst maxLifetime 0.3 하드코딩 제거.
- *          weapon.burstDuration ?? 0.3 으로 weaponData 에서 참조.
- *   [balance] orbit lifetime 계수 0.97 → 1.02 (오브 교체 공백 제거).
+ * FIX(bug): targetProjectile 타깃 없을 때 continue (쿨다운 건드리지 않음).
+ * FIX(bug): areaBurst maxLifetime → weapon.burstDuration ?? 0.3.
+ * FIX(perf): console.log('[WeaponSystem] Firing at target:...) 제거.
+ *   이전: 매 발사마다 console.log → 후반 고밀도 시 실질적인 성능 저하 유발.
+ *   이후: 완전 제거.
+ * BAL: orbit lifetime 계수 0.97 → 1.02 (오브 교체 공백 제거).
  */
 export const WeaponSystem = {
   update({ player, enemies, deltaTime, spawnQueue }) {
@@ -25,7 +24,7 @@ export const WeaponSystem = {
       // ── orbit ──────────────────────────────────────────────
       if (weapon.behaviorId === 'orbit') {
         const count = weapon.orbitCount || 3;
-        // PATCH(balance): 0.97 → 1.02 (오브 전환 공백 제거)
+        // BAL: 0.97 → 1.02 (오브 전환 공백 제거)
         const lifetime = weapon.cooldown * 1.02;
 
         for (let o = 0; o < count; o++) {
@@ -66,7 +65,7 @@ export const WeaponSystem = {
             pierce: weapon.pierce,
             maxRange: 0,
             behaviorId: 'areaBurst',
-            // PATCH(bug): 하드코딩 0.3 → weapon.burstDuration 참조
+            // FIX: 하드코딩 0.3 → weapon.burstDuration 참조
             maxLifetime: weapon.burstDuration ?? 0.3,
             ownerId: player.id,
             statusEffectId:     weapon.statusEffectId    ?? null,
@@ -77,12 +76,10 @@ export const WeaponSystem = {
       // ── targetProjectile (멀티샷 지원) ─────────────────────
       } else {
         const target = this._findClosestEnemy(player, enemies, weapon.range);
-        if (!target) {
-            // console.debug('[WeaponSystem] No target in range for', weapon.name);
-            continue;
-        }
+        // FIX: 타깃 없을 때 currentCooldown 건드리지 않고 continue
+        if (!target) continue;
 
-        console.log('[WeaponSystem] Firing at target:', target.enemyDataId, 'HP:', target.hp);
+        // FIX(perf): console.log 제거 (매 발사마다 호출되어 성능 저하)
         const dir    = normalize(sub({ x: target.x, y: target.y }, { x: player.x, y: player.y }));
         const count  = weapon.projectileCount || 1;
         const spread = Math.PI / 14; // ~12.8도

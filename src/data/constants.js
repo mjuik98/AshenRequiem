@@ -11,6 +11,9 @@ export const PLAYER_DEFAULTS = {
  * XP → 레벨업 테이블 (인덱스 = 레벨, 값 = 다음 레벨 도달에 필요한 누적 XP)
  *
  * FIX(balance): 레벨 10 이후 선형 +50 → 지수 증가로 교체.
+ * FIX(balance): Lv11~15 구간 명시적 항목 추가 — 지수 공식 시작점을 Lv16으로 미룸.
+ *   이전: Lv11 이후 바로 1.18^n 적용 → Lv15에 466, Lv20에 1068 → 후반 레벨업 체감 느림.
+ *   이후: Lv15까지 완만한 증가 유지, Lv16+ 부터 지수 증가.
  */
 export const XP_TABLE = [
   0,    // Lv0 → Lv1 (사용 안 함)
@@ -24,19 +27,24 @@ export const XP_TABLE = [
   138,  // Lv8 → Lv9
   184,  // Lv9 → Lv10
   240,  // Lv10 → Lv11
+  300,  // Lv11 → Lv12
+  368,  // Lv12 → Lv13
+  444,  // Lv13 → Lv14
+  530,  // Lv14 → Lv15
+  620,  // Lv15 → Lv16
 ];
 
 /**
  * 특정 레벨에서 다음 레벨업에 필요한 XP
  *
- * FIX(balance): 테이블 초과 시 지수 증가 적용 (기존 선형 +50 제거)
- * 공식: base * 1.18^(level - tableLength) — 약 18% 지수 증가
+ * FIX(balance): Lv16+ 부터 지수 증가 (기준 620 × 1.15^n)
+ *   Lv16: 713, Lv18: 942, Lv20: 1245 — 이전 대비 완만한 경사 유지.
  */
 export function getXpForLevel(level) {
   if (level < XP_TABLE.length) return XP_TABLE[level];
-  const base = XP_TABLE[XP_TABLE.length - 1]; // 240
+  const base   = XP_TABLE[XP_TABLE.length - 1]; // 620
   const excess = level - (XP_TABLE.length - 1);
-  return Math.round(base * Math.pow(1.18, excess));
+  return Math.round(base * Math.pow(1.15, excess));
 }
 
 /** 픽업 기본값 */
@@ -80,11 +88,23 @@ export const COLLISION_CULL_MARGIN = 480;
  * 데미지 텍스트 이펙트 상수
  *
  * REF(refactor): DamageSystem 내 하드코딩 제거.
- *   이전: color, duration 이 DamageSystem 에 직접 리터럴로 존재.
- *   이후: 여기서 일괄 관리 → 튜닝 시 한 곳만 수정.
  */
 export const DAMAGE_TEXT = {
   duration:     0.5,       // 이펙트 표시 지속 시간 (초)
   playerColor:  '#ef5350', // 플레이어 피격 시 텍스트 색상 (빨간색)
   enemyColor:   '#ffffff', // 적 피격 시 텍스트 색상 (흰색)
+};
+
+/**
+ * 엘리트/보스 행동 패턴 상수
+ *
+ * REF(refactor): EliteBehaviorSystem 내 하드코딩 제거 → 여기서 일괄 관리.
+ *   이전: DASH_SPEED = 520, CIRCLE_DASH_SPEED = 480 이 각 메서드 내에 직접 리터럴.
+ *   이후: 여기서 정의 → 밸런스 조정 시 한 곳만 수정.
+ */
+export const ELITE_BEHAVIOR = {
+  /** dash 패턴: 돌진 속도 (px/s) */
+  DASH_SPEED: 520,
+  /** circle_dash 패턴: 돌진 속도 (px/s) */
+  CIRCLE_DASH_SPEED: 480,
 };
