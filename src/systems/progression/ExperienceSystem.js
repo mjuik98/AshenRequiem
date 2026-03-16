@@ -36,10 +36,21 @@ export const ExperienceSystem = {
       }
     }
 
-    // XP 적용
+    // XP 적용 + 픽업 비활성화
+    // FIX(contract): CollisionSystem 에서 이곳으로 이전.
+    //   XP 를 먼저 적용한 뒤 픽업을 비활성화하여 같은 프레임 이중 수집 방지.
     const collected = events.pickupCollected;
     for (let i = 0; i < collected.length; i++) {
-      player.xp += collected[i].pickup.xpValue;
+      const pk = collected[i].pickup;
+
+      // FIX(bug): 방어적 중복 수집 가드 (같은 프레임 두 번 처리 차단)
+      if (!pk.isAlive || pk.pendingDestroy) continue;
+
+      player.xp += pk.xpValue;
+
+      // FIX(contract): 픽업 비활성화는 ExperienceSystem 이 담당
+      pk.isAlive        = false;
+      pk.pendingDestroy = true;
     }
   },
 };

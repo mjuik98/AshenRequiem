@@ -108,11 +108,20 @@ export class PlayScene {
   }
 
   update(dt) {
-    // FIX(safety): exit() 이후 SceneManager 타이밍 이슈로 1프레임 더 호출될 때 방지
-    if (!this.world) return;
-
     const world = this.world;
     const input = this.game.input;
+
+    // FIX(bug): DebugView 입력 처리 + FPS 버퍼 갱신은 playMode 와 무관하게 항상 먼저 실행.
+    //   dead / levelup 상태에서 early return 되어도 FPS 데이터가 연속적으로 유지됨.
+    //   이전: debugView 호출이 파이프라인 맨 끝에 있어 early return 시 FPS 버퍼 정지.
+    this.debugView.handleInput(input);
+    this.debugView.update(
+      world,
+      { projectilePool: this._projectilePool, effectPool: this._effectPool },
+      dt,
+      waveData,
+      SpawnSystem.getDebugInfo(world.elapsedTime),
+    );
 
     if (world.playMode === 'dead') return;
     if (world.playMode === 'levelup') return;
@@ -138,7 +147,7 @@ export class PlayScene {
     // 4. 플레이어 이동
     PlayerMovementSystem.update({ input, player: world.player, deltaTime: dt });
 
-    // 5. 적 이동 + 공통 타이머 틱 (hitFlashTimer, knockbackTimer)
+    // 5. 적 이동
     EnemyMovementSystem.update({ player: world.player, enemies: world.enemies, deltaTime: dt });
 
     // 5.5. 엘리트/보스 행동 패턴
@@ -193,6 +202,7 @@ export class PlayScene {
     this._soundSystem.processEvents(world.events);
 
     // 11. 경험치 흡수
+    // FIX(contract): CollisionSystem 계약 준수 — 픽업 비활성화가 ExperienceSystem 으로 이전됨.
     ExperienceSystem.update({
       events:    world.events,
       player:    world.player,
@@ -222,22 +232,9 @@ export class PlayScene {
 
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
-
-    this.debugView.handleInput(input);
-    // DEBUG: SpawnSystem.getDebugInfo 를 전달 → 보스 억제 상태 표시
-    this.debugView.update(
-      world,
-      { projectilePool: this._projectilePool, effectPool: this._effectPool },
-      dt,
-      waveData,
-      SpawnSystem.getDebugInfo(world.elapsedTime),
-    );
   }
 
   render() {
-    // FIX(safety): exit() 이후 null guard
-    if (!this.world) return;
-
     RenderSystem.update({
       world: this.world,
       camera: this.camera,
@@ -267,42 +264,35 @@ export class PlayScene {
    * levelFlash 이펙트는 단순 시각 효과이므로 풀에서 직접 꺼내 effects 에 넣는다.
    */
   _showLevelUpUI() {
-    if (this.uiState.levelUpOpen) return;
-    this.uiState.levelUpOpen = true;
+    this._soundSystem.play('levelup');
 
-    // levelFlash 이펙트 — effectPool 에서 직접 획득해 effects 에 push
-    const flash = this._effectPool.acquire({
+    this.world.effects.push(this._effectPool.acquire({
       x: this.world.player.x,
       y: this.world.player.y,
       effectType: 'levelFlash',
       color: '#ffd54f',
-      radius: 60,
+      radius: 1,
       duration: EFFECT_DEFAULTS.levelFlashDuration,
-    });
-    this.world.effects.push(flash);
+    }));
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
-    this.levelUpView.show(choices, (choice) => {
-      UpgradeSystem.applyChoice(this.world.player, choice);
+    if (choices.length === 0) { this.world.playMode = 'playing'; return; }
+
+    this.levelUpView.show(choices, (selectedUpgrade) => {
+      UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
       this.world.playMode = 'playing';
-      this.uiState.levelUpOpen = false;
     });
   }
 
   _showResultUI() {
-    if (this.uiState.resultOpen) return;
-    this.uiState.resultOpen = true;
-
     this.hudView.hide();
     this.resultView.show(
       {
         killCount:    this.world.killCount,
         survivalTime: this.world.elapsedTime,
-        level:        this.world.player?.level ?? 1,
+        level:        this.world.player.level,
       },
-      () => {
-        this.game.sceneManager.changeScene(new PlayScene(this.game));
-      },
+      () => { this.game.sceneManager.changeScene(new PlayScene(this.game)); },
     );
   }
 }

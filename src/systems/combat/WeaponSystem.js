@@ -73,13 +73,16 @@ export const WeaponSystem = {
           },
         });
 
-      // ── targetProjectile (멀티샷 지원) ─────────────────────
-      } else {
         const target = this._findClosestEnemy(player, enemies, weapon.range);
-        // FIX: 타깃 없을 때 currentCooldown 건드리지 않고 continue
-        if (!target) continue;
 
-        // FIX(perf): console.log 제거 (매 발사마다 호출되어 성능 저하)
+        // FIX(bug): 타깃 없으면 쿨다운을 0으로 되돌려 다음 프레임 즉시 재시도.
+        //   이전: weapon.currentCooldown 이 이미 리셋된 후 continue → 풀 쿨다운 낭비.
+        //   이후: 쿨다운 = 0 → 다음 프레임에서 즉시 재탐색.
+        if (!target) {
+          weapon.currentCooldown = 0;
+          continue;
+        }
+
         const dir    = normalize(sub({ x: target.x, y: target.y }, { x: player.x, y: player.y }));
         const count  = weapon.projectileCount || 1;
         const spread = Math.PI / 14; // ~12.8도

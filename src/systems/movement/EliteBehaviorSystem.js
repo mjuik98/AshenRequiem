@@ -29,10 +29,19 @@ export const EliteBehaviorSystem = {
 
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
-      if (!e.isAlive || e.pendingDestroy) continue;
-      if (e.stunned) continue;
-      // knockback 중에는 EliteBehavior도 스킵
-      if (e.knockbackTimer > 0) continue;
+
+      // FIX(bug): 사망/소멸 상태 → chargeEffect 즉시 클리어 후 skip
+      if (!e.isAlive || e.pendingDestroy) {
+        if (e.chargeEffect) e.chargeEffect = false;
+        continue;
+      }
+
+      // FIX(bug): 스턴/넉백 중 → chargeEffect 해제 후 skip
+      //   windup 페이즈에서 스턴/넉백이 발생하면 chargeEffect = true 가 잔류하던 버그 수정.
+      if (e.stunned || e.knockbackTimer > 0) {
+        if (e.chargeEffect) e.chargeEffect = false;
+        continue;
+      }
 
       if (e.behaviorId === 'dash') {
         this._updateDash(e, player, deltaTime);

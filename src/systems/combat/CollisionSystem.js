@@ -11,13 +11,17 @@ import { COLLISION_CULL_MARGIN } from '../../data/constants.js';
  * FIX(refactor): CULL_MARGIN 하드코딩 → constants.js 의 COLLISION_CULL_MARGIN 으로 이관.
  *   해상도/카메라 zoom 변경 시 constants.js 한 곳만 수정하면 된다.
  *
- * FIX(bug): 적 vs 플레이어 충돌에서 break 제거.
- *   이전: 같은 프레임에 여러 적이 동시에 닿아도 첫 번째 적의 데미지만 처리.
- *         후반 고밀도 상황에서 체감 데미지가 의도보다 훨씬 낮아지는 원인.
- *   이후: break 제거 → 동일 프레임에 닿은 모든 적의 데미지를 events.hits 에 기록.
- *         연속 피격 보호는 player.invincibleTimer 가 담당.
- *         (DamageSystem 에서 invincibleTimer 를 세팅하고,
- *          CollisionSystem 에서 invincibleTimer <= 0 인 경우에만 피격 판정 수행)
+ * FIX(contract): 픽업 상태 직접 수정 제거 — 계약 위반 수정.
+ *   이전: events.pickupCollected.push 후 pk.isAlive = false, pk.pendingDestroy = true 직접 설정.
+ *         → CollisionSystem 계약("쓰기: 직접 체력 수정 금지, events 에만 출력")을 위반.
+ *   이후: events.pickupCollected.push 만 수행.
+ *         픽업 비활성화는 ExperienceSystem.update() 에서 XP 적용 후 일괄 처리.
+ *
+ * 계약:
+ *   입력: player, enemies, projectiles, pickups, events, camera
+ *   읽기: 위치, 반지름, 생존 상태
+ *   쓰기: 없음 (직접 상태 수정 금지)
+ *   출력: events.hits, events.pickupCollected
  */
 export const CollisionSystem = {
   update({ player, enemies, projectiles, pickups, events, camera }) {
@@ -64,10 +68,7 @@ export const CollisionSystem = {
       }
     }
 
-    // ── 적 vs 플레이어 ────────────────────────────────────────
-    // 무적 중에는 피격 판정 전체 스킵.
-    // 연속 피격 보호는 DamageSystem 이 invincibleTimer 를 설정함으로써 이루어진다.
-    // FIX: 이전의 break 제거 → 같은 프레임에 닿은 모든 적을 처리.
+    // ── 적 vs 플레이어 (무적 중 스킵) ────────────────────────
     if (player.invincibleTimer <= 0) {
       for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
@@ -82,29 +83,21 @@ export const CollisionSystem = {
             projectileId: null,
             projectile:  null,
           });
-          // NOTE: break 없음 — 다중 적 동시 피격을 허용하고
-          //       invincibleTimer 로 다음 프레임 피격을 차단.
-          // 한 프레임에 여러 hit 이 등록되지만 DamageSystem 에서
-          // 첫 hit 처리 시 invincibleTimer 를 세팅하므로,
-          // 같은 프레임 내 후속 hit 들은 pendingDestroy 가드에 걸려 무시된다.
-          // 따라서 한 프레임에 한 번만 실질적 데미지가 들어간다.
-          break;
-          // TODO: 완전한 다중 피격을 원한다면 위 break 를 제거하고
-          //       DamageSystem 의 pendingDestroy 가드가 중복 처리를 막는 것에 의존한다.
-          //       현재는 뱀서라이크 장르 관례상 프레임당 1피격 유지.
+          break; // 프레임당 1회만 피격
         }
       }
     }
 
     // ── 픽업 vs 플레이어 ──────────────────────────────────────
+    // FIX(contract): pk.isAlive = false, pk.pendingDestroy = true 직접 설정 제거.
+    //   픽업 비활성화는 ExperienceSystem 에서 XP 적용 후 일괄 처리.
+    //   CollisionSystem 은 events.pickupCollected 에 기록만 한다.
     for (let i = 0; i < pickups.length; i++) {
       const pk = pickups[i];
       if (!pk.isAlive || pk.pendingDestroy) continue;
       const rSum = player.radius + pk.radius;
       if (distanceSq(player, pk) <= rSum * rSum) {
         events.pickupCollected.push({ pickupId: pk.id, pickup: pk, playerId: player.id });
-        pk.isAlive = false;
-        pk.pendingDestroy = true;
       }
     }
   },
