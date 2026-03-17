@@ -10,7 +10,7 @@ export function createWorld() {
     playMode:    'playing',
 
     /** 카메라 상태 — CameraSystem이 매 프레임 갱신 */
-    camera: { x: 0, y: 0 },
+    camera: { x: 0, y: 0, width: 800, height: 600 },
 
     player:      null,
     enemies:     [],
