@@ -56,6 +56,7 @@ function makeEvents(overrides = {}) {
     deaths: [],
     pickupCollected: [],
     levelUpRequested: [],
+    statusApplied: [],
     ...overrides,
   };
 }
@@ -99,15 +100,17 @@ test('statusEffectId 없는 투사체 → 상태이상 미부여', () => {
   assert.equal(enemy.statusEffects.length, 0);
 });
 
-test('statusEffectId 있는 투사체 → 대상에 상태이상 부여', () => {
-  const enemy = makeEnemy();
-  const proj  = { id: 'p1', statusEffectId: 'slow', statusEffectChance: 1.0 };
-  const hits  = [makeHit(enemy, proj)];
+test('statusEffectId 있는 투사체 → 이벤트 큐에 상태이상 부여 예약', () => {
+  const enemy  = makeEnemy();
+  const proj   = { id: 'p1', statusEffectId: 'slow', statusEffectChance: 1.0 };
+  const hits   = [makeHit(enemy, proj)];
+  const events = makeEvents();
 
-  StatusEffectSystem.applyFromHits({ hits });
+  StatusEffectSystem.applyFromHits({ hits, events });
 
-  assert.ok(enemy.statusEffects.length >= 1, '상태이상이 부여되지 않음');
-  assert.ok(enemy.statusEffects.some(e => e.type === 'slow'), 'slow 상태이상 없음');
+  assert.equal(enemy.statusEffects.length, 0, '직접 부여되지 않아야 함');
+  assert.ok(events.statusApplied.length >= 1, '상태이상이 큐에 예약되지 않음');
+  assert.equal(events.statusApplied[0].effect.type, 'slow', 'slow 상태이상 없음');
 });
 
 test('statusEffectChance=0 → 상태이상 미부여', () => {
@@ -120,15 +123,15 @@ test('statusEffectChance=0 → 상태이상 미부여', () => {
   assert.equal(enemy.statusEffects.length, 0);
 });
 
-test('같은 타입 중복 부여 → 중복 추가 없이 remaining 갱신', () => {
-  const enemy = makeEnemy();
-  const proj  = { id: 'p1', statusEffectId: 'slow', statusEffectChance: 1.0 };
-  const hits  = [makeHit(enemy, proj), makeHit(enemy, { ...proj, id: 'p2' })];
+test('같은 타입 중복 부여 이벤트 예약', () => {
+  const enemy  = makeEnemy();
+  const proj   = { id: 'p1', statusEffectId: 'slow', statusEffectChance: 1.0 };
+  const hits   = [makeHit(enemy, proj), makeHit(enemy, { ...proj, id: 'p2' })];
+  const events = makeEvents();
 
-  StatusEffectSystem.applyFromHits({ hits });
+  StatusEffectSystem.applyFromHits({ hits, events });
 
-  const slowEffects = enemy.statusEffects.filter(e => e.type === 'slow');
-  assert.equal(slowEffects.length, 1, `slow 상태이상이 ${slowEffects.length}개`);
+  assert.equal(events.statusApplied.length, 2, '중복 처리(합산 등)는 EventRegistry 핸들러에서 수행되므로 이벤트 큐에는 2개 모두 들어가야 함');
 });
 
 test('pendingDestroy 대상에는 상태이상 미부여', () => {

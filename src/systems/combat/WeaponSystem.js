@@ -18,7 +18,7 @@
 import { getWeaponBehavior } from '../../behaviors/weaponBehaviorRegistry.js';
 
 export const WeaponSystem = {
-  update({ player, enemies, deltaTime, spawnQueue }) {
+  update({ world: { player, enemies, deltaTime, spawnQueue } }) {
     if (!player?.isAlive) return;
 
     for (let i = 0; i < player.weapons.length; i++) {

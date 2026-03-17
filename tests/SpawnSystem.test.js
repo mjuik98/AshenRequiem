@@ -42,8 +42,8 @@ if (SpawnSystem) {
     const sysB = new SpawnSystem();
     const queueA = [];
     sysA.update({
-      elapsedTime: 1, waveData: testWave, bossData: [],
-      player: testPlayer, spawnQueue: queueA, deltaTime: 10,
+      world: { elapsedTime: 1, player: testPlayer, spawnQueue: queueA, deltaTime: 10 },
+      data: { waveData: testWave, bossData: [] }
     });
     assert.equal(sysB._spawnAccumulator, 0);
   });

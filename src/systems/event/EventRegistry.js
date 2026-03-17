@@ -110,6 +110,11 @@ export const EventRegistry = {
         const events = ctx.world?.events;
         if (!events) return;
 
+        // 프레임 시작 시 사운드 중복 방지 플래그 초기화
+        _soundsPlayedThisFrame.death = false;
+        _soundsPlayedThisFrame.damage = false;
+        _soundsPlayedThisFrame.pickup = false;
+
         for (const [type, handler] of _handlers) {
           const list = events[type];
           if (!list?.length) continue;
@@ -163,4 +168,28 @@ EventRegistry.register('statusApplied', (evt, _ctx) => {
   } else {
     evt.target.statusEffects.push({ ...evt.effect });
   }
+});
+
+// ── 사운드 핸들러 (P3 Pub/Sub 적용) ──────────────────────────────
+export const _soundsPlayedThisFrame = { death: false, damage: false, pickup: false };
+
+EventRegistry.register('deaths', (evt, ctx) => {
+    if (!_soundsPlayedThisFrame.death) {
+        ctx.services.soundSystem?.play('death');
+        _soundsPlayedThisFrame.death = true;
+    }
+});
+
+EventRegistry.register('hits', (evt, ctx) => {
+    if (evt.target?.type === 'player' && !_soundsPlayedThisFrame.damage) {
+        ctx.services.soundSystem?.play('damage');
+        _soundsPlayedThisFrame.damage = true;
+    }
+});
+
+EventRegistry.register('pickupCollected', (evt, ctx) => {
+    if (!_soundsPlayedThisFrame.pickup) {
+        ctx.services.soundSystem?.play('pickup');
+        _soundsPlayedThisFrame.pickup = true;
+    }
 });

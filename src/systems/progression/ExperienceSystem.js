@@ -6,7 +6,7 @@ import { PICKUP_DEFAULTS } from '../../data/constants.js';
  * PERF: normalize(sub(...)) 임시 객체 제거 → 인라인 계산
  */
 export const ExperienceSystem = {
-  update({ events, player, pickups, deltaTime }) {
+  update({ world: { events, player, pickups, deltaTime } }) {
     if (!player?.isAlive) return;
 
     const magnetRadSq = player.magnetRadius * player.magnetRadius;
@@ -24,9 +24,14 @@ export const ExperienceSystem = {
       if (pk.magnetized) {
         const dx  = player.x - pk.x;
         const dy  = player.y - pk.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const distSq2 = dx * dx + dy * dy;
+        const len = Math.sqrt(distSq2) || 1;
         pk.x += (dx / len) * speed;
         pk.y += (dy / len) * speed;
+
+        if (distSq2 < (player.radius + pk.radius) * (player.radius + pk.radius)) {
+          events.pickupCollected.push({ pickup: pk, playerId: player.id });
+        }
       }
     }
 

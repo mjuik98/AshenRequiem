@@ -11,6 +11,7 @@ import { updateSessionBest, saveSession } from '../state/createSessionState.js';
 import { UpgradeSystem }        from '../systems/progression/UpgradeSystem.js';
 import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
 import { RenderSystem }         from '../systems/render/RenderSystem.js';
+import { EventRegistry }        from '../systems/event/EventRegistry.js';
 
 import { mountUI }      from '../ui/dom/mountUI.js';
 import { HudView }      from '../ui/hud/HudView.js';
@@ -63,6 +64,8 @@ export class PlayScene {
     this._pipeline    = pipeline;
     this._pipelineCtx = pipelineCtx;
 
+    EventRegistry.initWorldEvents(this.world);
+
     this._uiState = new PlayModeStateMachine({
       onLevelUp: () => this._showLevelUpUI(),
       onDead:    () => this._showResultUI(),
@@ -102,18 +105,13 @@ export class PlayScene {
     const world = this.world;
     if (!world) return;
 
-    // TODO: EventRegistry 도입 후 clearFrameEvents 대체 예정
-    // clearFrameEvents(world); 
-    import('../systems/event/EventRegistry.js').then(({ EventRegistry }) => {
-      EventRegistry.clearAll(world.events);
-    });
+    EventRegistry.clearAll(world.events);
 
     world.deltaTime    = dt;
     world.elapsedTime += dt;
 
     this._pipeline.run(this._pipelineCtx);
 
-    this._ctx.soundSystem?.processEvents(world.events);
     FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
 
     this.hudView.update(world.player, world);
@@ -147,8 +145,8 @@ export class PlayScene {
   }
 
   _showLevelUpUI() {
-    this._soundSystem?.play('levelup');
-    this.world.effects.push(this._effectPool.acquire({
+    this._ctx?.soundSystem?.play('levelup');
+    this.world.effects.push(this._ctx.effectPool.acquire({
       x:          this.world.player.x,
       y:          this.world.player.y,
       effectType: 'levelFlash',
@@ -164,12 +162,11 @@ export class PlayScene {
       return;
     }
 
-    this.levelUpView.show(choices, (selectedUpgrade) => {
+    this.levelUpView.show(choices, async (selectedUpgrade) => {
       UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
       // CHANGE(P-③): 시너지 시스템 적용
-      import('../systems/progression/SynergySystem.js').then(({ SynergySystem }) => {
-        SynergySystem.applyAll({ player: this.world.player, upgradeData });
-      });
+      const { SynergySystem } = await import('../systems/progression/SynergySystem.js');
+      SynergySystem.applyAll({ player: this.world.player, upgradeData });
       this.world.playMode = 'playing';
     });
   }

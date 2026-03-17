@@ -50,16 +50,15 @@ function makePlayer(overrides = {}) {
 }
 
 function makeContext(deathEntities = []) {
-  return {
+  const world = {
     events: {
       deaths: deathEntities.map(entity => ({ entity })),
     },
-    worldState: {
-      killCount: 0,
-      playMode:  'playing',
-    },
+    killCount: 0,
+    playMode:  'playing',
     spawnQueue: [],
   };
+  return { world, worldState: world, spawnQueue: world.spawnQueue };
 }
 
 // ─── DeathSystem import ───────────────────────────────────────────────

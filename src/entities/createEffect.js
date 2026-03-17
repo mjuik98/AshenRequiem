@@ -2,7 +2,7 @@ import { generateId }    from '../utils/ids.js';
 import { EFFECT_DEFAULTS } from '../data/constants.js';
 
 /** createEffect — 시각 이펙트 엔티티 생성 */
-export function createEffect(config) {
+export function createEffect(config = {}) {
   return {
     id:             generateId(),
     type:           'effect',

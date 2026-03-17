@@ -52,6 +52,9 @@ export const CollisionSystem = {
             projectileId: p.id,
             projectile:   p,
           });
+
+          // FIX(bug): Pierce Leak
+          if (p.hitCount >= p.pierce) break;
         }
       }
     }

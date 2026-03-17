@@ -6,7 +6,9 @@ import { EFFECT_DEFAULTS } from '../../data/constants.js';
  * 출력: spawnQueue (XP 픽업, 사망 이펙트, deathSpawn), worldState.playMode 변경
  */
 export const DeathSystem = {
-  update({ events, worldState, spawnQueue }) {
+  update({ world }) {
+    const { events, spawnQueue } = world;
+    const worldState = world;
     for (let i = 0; i < events.deaths.length; i++) {
       const { entity } = events.deaths[i];
 

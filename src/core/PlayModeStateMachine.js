@@ -56,6 +56,11 @@ export class PlayModeStateMachine {
       return true;
     }
 
+    if (currentMode === 'paused') {
+      this._prev = 'paused';
+      return true;
+    }
+
     if (currentMode === 'playing' && this._prev !== 'playing') {
       this._firedLevelUp = false;
       this._onResume?.();

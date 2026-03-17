@@ -30,6 +30,7 @@
  */
 
 const STORAGE_KEY = 'vamplike_session';
+const CURRENT_STORAGE_VERSION = 1;
 
 // ── 타입 정의 (JSDoc) ─────────────────────────────────────────
 /**
@@ -41,6 +42,7 @@ const STORAGE_KEY = 'vamplike_session';
 
 /**
  * @typedef {Object} SessionState
+ * @property {number} version    - 스토리지 아키텍처 버전
  * @property {RunResult} best    - 역대 최고 기록
  * @property {RunResult|null} last - 마지막 런 결과
  * @property {{ soundOn: boolean }} options - 사용자 설정
@@ -56,6 +58,42 @@ function defaultOptions() {
   return { soundOn: true };
 }
 
+// ── 런타임 마이그레이션 ────────────────────────────────────────
+/**
+ * @param {object|null} saved 
+ * @returns {SessionState}
+ */
+function _migrateSession(saved) {
+  if (!saved) {
+    return {
+      version: CURRENT_STORAGE_VERSION,
+      best: defaultBest(),
+      last: null,
+      options: defaultOptions(),
+    };
+  }
+
+  // 버전이 아예 없던 레거시 대응
+  const v = saved.version || 0;
+
+  // 마이그레이션 (0 -> 1 등, 현재는 1이 최신이므로 기본 병합만 처리)
+  // if (v < 1) { ... }
+  // if (v < 2) { ... }
+
+  return {
+    version: CURRENT_STORAGE_VERSION,
+    best: {
+      killCount:   saved.best?.killCount   ?? 0,
+      elapsedTime: saved.best?.elapsedTime ?? 0,
+      playerLevel: saved.best?.playerLevel ?? 1,
+    },
+    last: null,
+    options: {
+      soundOn: saved.options?.soundOn ?? true,
+    },
+  };
+}
+
 // ── 생성 ──────────────────────────────────────────────────────
 
 /**
@@ -66,18 +104,7 @@ function defaultOptions() {
  */
 export function createSessionState() {
   const saved = _loadFromStorage();
-
-  return {
-    best: {
-      killCount:   saved?.best?.killCount   ?? 0,
-      elapsedTime: saved?.best?.elapsedTime ?? 0,
-      playerLevel: saved?.best?.playerLevel ?? 1,
-    },
-    last: null, // 이번 세션 내 마지막 런 결과 (저장 안 함)
-    options: {
-      soundOn: saved?.options?.soundOn ?? true,
-    },
-  };
+  return _migrateSession(saved);
 }
 
 // ── 갱신 ──────────────────────────────────────────────────────
@@ -138,6 +165,7 @@ export function setSessionSound(session, enabled) {
 export function saveSession(session) {
   try {
     const payload = {
+      version: CURRENT_STORAGE_VERSION,
       best:    session.best,
       options: session.options,
       savedAt: Date.now(),
@@ -174,6 +202,7 @@ function _loadFromStorage() {
  * @param {SessionState} session
  */
 export function resetSession(session) {
+  session.version = CURRENT_STORAGE_VERSION;
   session.best    = defaultBest();
   session.last    = null;
   session.options = defaultOptions();

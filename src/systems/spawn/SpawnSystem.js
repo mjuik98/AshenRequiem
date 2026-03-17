@@ -40,7 +40,7 @@ export class SpawnSystem {
     };
   }
 
-  update({ elapsedTime, waveData, bossData, player, spawnQueue, deltaTime }) {
+  update({ world: { elapsedTime, player, spawnQueue, deltaTime }, data: { waveData, bossData } }) {
     if (!player?.isAlive) return;
 
     // 보스 스폰

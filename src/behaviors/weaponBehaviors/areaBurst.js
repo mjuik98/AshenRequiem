@@ -46,9 +46,8 @@ function findClosestEnemy(player, enemies, range) {
  * @returns {boolean} 타겟이 있어서 실제 발동하면 true, 없으면 false
  */
 export function areaBurst({ weapon, player, enemies, spawnQueue }) {
-  // 범위 안에 적이 없으면 쿨다운을 0으로 돌려 즉시 재시도 (WeaponSystem 규약)
+  // 범위 안에 적이 없어도 중심 폭발 투사체는 발사되어야 함
   const target = findClosestEnemy(player, enemies, weapon.range);
-  if (!target) return false;
 
   // ── 범위 폭발 투사체 ───────────────────────────────────────
   spawnQueue.push({
@@ -73,9 +72,9 @@ export function areaBurst({ weapon, player, enemies, spawnQueue }) {
   });
 
   // ── areaBurst + targetProjectile 복합 패턴 ────────────────
-  // projectileCount가 있으면 확산 투사체도 함께 발사
+  // projectileCount가 있고 타겟이 존재하면 확산 투사체 발사
   const projCount = weapon.projectileCount ?? 0;
-  if (projCount > 0) {
+  if (projCount > 0 && target) {
     const dir    = normalize(sub(target, player));
     const spread = Math.PI / 14;
     for (let i = 0; i < projCount; i++) {

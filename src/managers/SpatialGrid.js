@@ -43,6 +43,9 @@ export class SpatialGrid {
     this.cellSize = cellSize;
     /** @type {Map<number, object[]>} hash → 엔티티 목록 */
     this._cells   = new Map();
+    // PERF(P2): queryUnique() 시 사용할 재사용 버퍼 (GC 방지)
+    this._queryBuffer = [];
+    this._seenIds = new Set();
   }
 
   // ── 셀 키 계산 ──────────────────────────────────────────────
@@ -123,26 +126,27 @@ export class SpatialGrid {
 
   /**
    * 중복 없는 후보 목록을 반환한다.
-   * query() 대비 Set 생성 비용이 있으므로 필요한 경우에만 사용.
+   * PERF(P2): 임시 구조체(new Set, new Array) 대신 인스턴스의 재사용 버퍼(_queryBuffer)를 반환한다.
    *
    * @param {object} entity
-   * @returns {object[]}
+   * @returns {object[]} 반환된 배열은 다음 queryUnique 호출까지만 유효하다.
    */
   queryUnique(entity) {
-    const seen   = new Set();
-    const result = [];
+    this._seenIds.clear();
+    this._queryBuffer.length = 0;
+
     for (const { cx, cy } of this._cellsOf(entity)) {
       const cell = this._cells.get(this._key(cx, cy));
       if (!cell) continue;
       for (let i = 0; i < cell.length; i++) {
         const e = cell[i];
-        if (!seen.has(e)) {
-          seen.add(e);
-          result.push(e);
+        if (!this._seenIds.has(e.id)) {
+          this._seenIds.add(e.id);
+          this._queryBuffer.push(e);
         }
       }
     }
-    return result;
+    return this._queryBuffer;
   }
 
   /**
@@ -163,32 +167,3 @@ export class SpatialGrid {
     return n;
   }
 }
-
-// ── CollisionSystem 교체 예시 ─────────────────────────────────
-//
-// 기존 (O(n²)):
-//   for (const proj of world.projectiles) {
-//     if (!proj.isAlive) continue;
-//     for (const enemy of world.enemies) {
-//       if (!enemy.isAlive) continue;
-//       const dx = proj.x - enemy.x;
-//       const dy = proj.y - enemy.y;
-//       if (dx*dx + dy*dy < (proj.radius + enemy.radius) ** 2) { ... }
-//     }
-//   }
-//
-// 교체 후 (SpatialGrid):
-//   const grid = new SpatialGrid(120);
-//   grid.clear();
-//   for (const e of world.enemies)     grid.insert(e);
-//
-//   for (const proj of world.projectiles) {
-//     if (!proj.isAlive || proj.pendingDestroy) continue;
-//     const candidates = grid.queryUnique(proj);
-//     for (const enemy of candidates) {
-//       if (enemy === proj || !enemy.isAlive) continue;
-//       const dx = proj.x - enemy.x;
-//       const dy = proj.y - enemy.y;
-//       if (dx*dx + dy*dy < (proj.radius + enemy.radius) ** 2) { ... }
-//     }
-//   }

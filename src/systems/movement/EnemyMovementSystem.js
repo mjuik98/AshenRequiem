@@ -1,16 +1,19 @@
 import { getEnemyBehavior } from '../../behaviors/enemyBehaviors/enemyBehaviorRegistry.js';
+import { SpatialGrid }      from '../../managers/SpatialGrid.js';
+
 /**
  * EnemyMovementSystem — 적 이동 + 넉백 + separation
  *
- * PERF: separation — 적 수가 SEPARATION_MAX_ENEMIES 초과 시 연산 스킵
- *   대규모 스폰 상황에서 O(n²) 병목 완화
+ * PERF(P1): separation — O(n²) 병목 제거를 위해 SpatialGrid 도입
+ *   대규모 스폰 상황에서 뭉침(블랙홀) 현상을 방지하면서도 높은 성능 유지
  */
 const SEPARATION_STRENGTH  = 0.35;
-const SEPARATION_MAX_DIST  = 60;
-const SEPARATION_MAX_ENEMIES = 80; // 이 수 이하일 때만 separation 실행
 
 export const EnemyMovementSystem = {
-  update({ player, enemies, deltaTime }) {
+  // 셀 크기는 최대 반경(통상 12~24 수준)의 2배 수준으로 설정
+  _grid: new SpatialGrid(60),
+
+  update({ world: { player, enemies, deltaTime } }) {
     if (!player?.isAlive) return;
 
     for (let i = 0; i < enemies.length; i++) {
@@ -36,33 +39,40 @@ export const EnemyMovementSystem = {
       // 스턴 중
       if (e.stunned) continue;
 
-      // 엘리트 / 보스 중 chase 가 아닌 것은 EliteBehaviorSystem이 담당 (P1 이전 호환성 유지)
-      // FIX(P3): 모든 적이 행동 레지스트리를 사용할 수 있도록 확장
       const behaviorFn = getEnemyBehavior(e.behaviorId || 'chase');
       behaviorFn(e, { player, enemies, deltaTime });
     }
 
-    // PERF: 적 수 임계값 초과 시 separation 스킵
-    if (enemies.length <= SEPARATION_MAX_ENEMIES) {
-      this._applySeparation(enemies);
-    }
+    // PERF: SpatialGrid 기반 Separation (개체 수 제한 해제)
+    this._applySeparation(enemies);
   },
 
   _applySeparation(enemies) {
-    const maxDistSq = SEPARATION_MAX_DIST * SEPARATION_MAX_DIST;
+    this._grid.clear();
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.isAlive && !e.pendingDestroy && e.knockbackTimer <= 0) {
+          this._grid.insert(e);
+      }
+    }
 
     for (let i = 0; i < enemies.length; i++) {
       const a = enemies[i];
       if (!a.isAlive || a.pendingDestroy || a.knockbackTimer > 0) continue;
 
-      for (let j = i + 1; j < enemies.length; j++) {
-        const b = enemies[j];
+      const candidates = this._grid.queryUnique(a);
+      
+      for (let j = 0; j < candidates.length; j++) {
+        const b = candidates[j];
+        if (a === b) continue;
         if (!b.isAlive || b.pendingDestroy || b.knockbackTimer > 0) continue;
+        // 쌍 중복 연산 방지 위해 id 비교
+        if (a.id >= b.id) continue;
 
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const distSq = dx * dx + dy * dy;
-        if (distSq > maxDistSq || distSq === 0) continue;
+        if (distSq === 0) continue;
 
         const minDist = (a.radius ?? 12) + (b.radius ?? 12);
         if (distSq >= minDist * minDist) continue;

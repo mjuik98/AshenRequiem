@@ -16,14 +16,11 @@ export function createWorld() {
     events: {},
 
     killCount: 0,
+    playMode:  'playing',
     spawnQueue: [], // SpawnSystem -> FlushSystem 연동
 
     camera: { x: 0, y: 0, targetX: 0, targetY: 0 },
   };
-
-  EventRegistry.initWorldEvents(world);
-
-  return world;
 }
 
 /**

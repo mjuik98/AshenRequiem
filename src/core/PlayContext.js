@@ -52,8 +52,7 @@ import { SpawnSystem }          from '../systems/spawn/SpawnSystem.js';
 import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
 import { BossPhaseSystem }      from '../systems/spawn/BossPhaseSystem.js';
 import { CameraSystem }         from '../systems/camera/CameraSystem.js';
-import { RenderSystem }         from '../systems/render/RenderSystem.js';
-import { EventBusHandler }      from '../systems/event/EventBusHandler.js';
+import { EventRegistry }        from '../systems/event/EventRegistry.js';
 
 const POOL_SIZES = {
   projectile: 200,
@@ -87,17 +86,12 @@ export class PlayContext {
 
     // ── 서비스 초기화 ────────────────────────────────────────
     ctx.soundSystem = soundEnabled ? new SoundSystem() : null;
+    ctx.soundSystem?.init();
     ctx.profiler    = profilingEnabled ? new PipelineProfiler() : null;
     ctx.canvas      = canvas;
 
     // ── SpawnSystem (상태 있는 인스턴스) ─────────────────────
     ctx.spawnSystem = new SpawnSystem();
-    ctx.flushSystem = new FlushSystem({
-      enemyPool:      ctx.enemyPool,
-      projectilePool: ctx.projectilePool,
-      effectPool:     ctx.effectPool,
-      pickupPool:     ctx.pickupPool,
-    });
 
     return ctx;
   }
@@ -111,7 +105,6 @@ export class PlayContext {
     this.profiler       = null;
     this.canvas         = null;
     this.spawnSystem    = null;
-    this.flushSystem    = null;
     this._pipeline      = null;
   }
 
@@ -156,10 +149,9 @@ export class PlayContext {
       .register(DeathSystem,             { priority: 80 })
       .register(ExperienceSystem,        { priority: 90 })
       .register(LevelSystem,             { priority: 100 })
-      .register(EventBusHandler,         { priority: 105 })
-      .register(this.flushSystem,        { priority: 110 })
-      .register(CameraSystem,            { priority: 120 })
-      .register(RenderSystem,            { priority: 130 });
+      .register(EventRegistry.asSystem(), { priority: 105 })
+      .register(FlushSystem,             { priority: 110 })
+      .register(CameraSystem,            { priority: 120 });
 
     if (this.profiler) {
       this.profiler.wrap(pipeline);

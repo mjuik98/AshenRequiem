@@ -2,8 +2,10 @@ import { generateId }       from '../utils/ids.js';
 import { getEnemyDataById } from '../data/enemyData.js';
 
 /** createEnemy — 적 엔티티 생성 */
-export function createEnemy(enemyId, x, y) {
-  const data = getEnemyDataById(enemyId);
+export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
+  const data = getEnemyDataById(enemyId) || {
+    id: 'zombie', name: 'Dummy', hp: 1, moveSpeed: 1, damage: 1, xpValue: 1, radius: 10, color: '#fff'
+  };
   if (!data) { console.warn(`Unknown enemy id: ${enemyId}`); return null; }
   return {
     id:              generateId(),

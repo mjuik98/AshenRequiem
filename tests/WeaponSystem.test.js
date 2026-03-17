@@ -94,7 +94,7 @@ test('쿨다운 감소 — 0.016s dt 경과 시 currentCooldown 감소', () => {
 
   // WeaponSystem.update는 이제 behaviorRegistry를 사용합니다.
   // 실제 behavior 함수들이 math 함수들을 사용하므로, 테스트 환경에서도 math 함수들이 필요합니다.
-  WeaponSystem.update({ player, enemies: world.enemies, spawnQueue: world.spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: world.enemies, spawnQueue: world.spawnQueue, deltaTime: 0.016 } });
 
   const w = player.weapons[0];
   assert(w.currentCooldown < 0.5, `currentCooldown이 줄지 않음: ${w.currentCooldown}`);
@@ -106,7 +106,7 @@ test('쿨다운 0 이하 시 spawnQueue에 투사체 추가', () => {
   const enemy  = makeEnemy({ x: 100, y: 0 }); // 사거리 400 안
   const spawnQueue = [];
 
-  WeaponSystem.update({ player, enemies: [enemy], spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: [enemy], spawnQueue, deltaTime: 0.016 } });
 
   assert(spawnQueue.length > 0, '쿨다운 0인데 투사체가 spawnQueue에 추가되지 않음');
   assert.equal(spawnQueue[0].type, 'projectile');
@@ -118,7 +118,7 @@ test('사거리 밖 적에게는 발사 안 함', () => {
   const enemy  = makeEnemy({ x: 500, y: 0 }); // 사거리 500 > 200
   const spawnQueue = [];
 
-  WeaponSystem.update({ player, enemies: [enemy], spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: [enemy], spawnQueue, deltaTime: 0.016 } });
 
   assert.equal(spawnQueue.length, 0, '사거리 밖 적에게 발사됨');
 });
@@ -128,7 +128,7 @@ test('적이 없으면 발사 안 함', () => {
   const player     = makePlayer({ cooldown: 1.0, currentCooldown: 0 });
   const spawnQueue = [];
 
-  WeaponSystem.update({ player, enemies: [], spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: [], spawnQueue, deltaTime: 0.016 } });
 
   assert.equal(spawnQueue.length, 0, '적 없는데 발사됨');
 });
@@ -139,7 +139,7 @@ test('쿨다운 완료 후 currentCooldown이 cooldown으로 리셋', () => {
   const enemy      = makeEnemy({ x: 50, y: 0 });
   const spawnQueue = [];
 
-  WeaponSystem.update({ player, enemies: [enemy], spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: [enemy], spawnQueue, deltaTime: 0.016 } });
 
   const w = player.weapons[0];
   // 발사 후 currentCooldown은 cooldown(1.0) 근처로 리셋되어야 한다
@@ -157,7 +157,7 @@ test('발사된 투사체의 damage가 무기 damage와 일치', () => {
   const enemy      = makeEnemy({ x: 50, y: 0 });
   const spawnQueue = [];
 
-  WeaponSystem.update({ player, enemies: [enemy], spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: [enemy], spawnQueue, deltaTime: 0.016 } });
 
   if (spawnQueue.length > 0) {
     assert.equal(spawnQueue[0].config.damage, 7, `투사체 damage 불일치: ${spawnQueue[0].config.damage}`);
@@ -170,7 +170,7 @@ test('발사된 투사체의 ownerId가 player.id와 일치', () => {
   const enemy      = makeEnemy({ x: 50, y: 0 });
   const spawnQueue = [];
 
-  WeaponSystem.update({ player, enemies: [enemy], spawnQueue, deltaTime: 0.016 });
+  WeaponSystem.update({ world: { player, enemies: [enemy], spawnQueue, deltaTime: 0.016 } });
 
   if (spawnQueue.length > 0) {
     assert.equal(spawnQueue[0].config.ownerId, 'player', `ownerId 불일치: ${spawnQueue[0].config.ownerId}`);

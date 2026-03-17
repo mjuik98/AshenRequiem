@@ -74,7 +74,7 @@ if (DamageSystem) {
     const enemy  = makeEnemy({ hp: 10 });
     const player = makePlayer();
     const events = makeEvents([makeHit(enemy, 4)]);
-    DamageSystem.update({ events, player, spawnQueue: [] });
+    DamageSystem.update({ world: { events, player, spawnQueue: [] } });
     assert.equal(enemy.hp, 6);
     assert.equal(enemy.isAlive, true);
   });
@@ -83,7 +83,7 @@ if (DamageSystem) {
     const enemy  = makeEnemy({ hp: 3 });
     const player = makePlayer();
     const events = makeEvents([makeHit(enemy, 10)]);
-    DamageSystem.update({ events, player, spawnQueue: [] });
+    DamageSystem.update({ world: { events, player, spawnQueue: [] } });
     assert.equal(enemy.hp, 0);
     assert.equal(enemy.isAlive, false);
     assert.equal(enemy.pendingDestroy, true);

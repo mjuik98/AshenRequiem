@@ -1,7 +1,7 @@
 import { generateId } from '../utils/ids.js';
 
 /** createProjectile — 투사체 엔티티 생성 */
-export function createProjectile(config) {
+export function createProjectile(config = {}) {
   return {
     id:               generateId(),
     type:             'projectile',
@@ -30,6 +30,7 @@ export function createProjectile(config) {
     orbitSpeed:       config.orbitSpeed   ?? Math.PI,
     isAlive:          true,
     pendingDestroy:   false,
+    _reversed:        config._reversed    ?? false,
   };
 }
 
@@ -64,4 +65,5 @@ export function resetProjectile(obj, cfg) {
   obj.orbitSpeed  = cfg.orbitSpeed  ?? Math.PI;
   obj.isAlive        = true;
   obj.pendingDestroy = false;
+  obj._reversed      = cfg._reversed      ?? false;
 }

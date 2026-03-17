@@ -1,7 +1,11 @@
 import { GameConfig } from '../core/GameConfig.js';
+import { drawPlayer }             from './draw/drawPlayer.js';
+import { drawEnemy }              from './draw/drawEnemy.js';
+import { drawProjectile }         from './draw/drawProjectile.js';
+import { drawEffect, drawPickup } from './draw/drawEffect.js';
 
 /**
- * CanvasRenderer — Canvas 클리어 + 배경 그리기
+ * CanvasRenderer — Canvas 클리어 + 배경 그리기 및 IRenderer 구현
  *
  * PERF: drawBackground 그리드 — 수직선 / 수평선 경로를 각각 하나의 path로 묶어
  *   beginPath/stroke 호출 횟수를 O(n) → O(1) 으로 감소
@@ -10,6 +14,7 @@ export class CanvasRenderer {
   constructor(canvas, ctx) {
     this.canvas = canvas;
     this.ctx    = ctx;
+    this._lowQuality = false;
   }
 
   clear() {
@@ -50,5 +55,47 @@ export class CanvasRenderer {
       ctx.lineTo(w, y);
     }
     ctx.stroke();
+  }
+
+  // --- IRenderer Implementation ---
+
+  drawPickups(pickups, camera) {
+    const ctx = this.ctx;
+    for (let i = 0; i < pickups.length; i++) {
+      drawPickup(ctx, pickups[i], camera);
+    }
+  }
+
+  drawEnemies(enemies, camera, timestamp) {
+    const ctx = this.ctx;
+    for (let i = 0; i < enemies.length; i++) {
+      drawEnemy(ctx, enemies[i], camera, timestamp);
+    }
+  }
+
+  drawProjectiles(projectiles, camera, lowQuality) {
+    const ctx = this.ctx;
+    for (let i = 0; i < projectiles.length; i++) {
+      drawProjectile(ctx, projectiles[i], camera);
+    }
+  }
+
+  drawPlayer(player, camera) {
+    drawPlayer(this.ctx, player, camera);
+  }
+
+  drawEffects(effects, camera, dpr) {
+    const ctx = this.ctx;
+    for (let i = 0; i < effects.length; i++) {
+        drawEffect(ctx, effects[i], camera, dpr);
+    }
+  }
+
+  setQuality(lowQuality) {
+    this._lowQuality = lowQuality;
+    if (this._lowQuality) {
+      this.ctx.shadowBlur = 0;
+      this.ctx.shadowColor = 'transparent';
+    }
   }
 }

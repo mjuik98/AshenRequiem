@@ -64,7 +64,7 @@ if (ExperienceSystem) {
     const player  = makePlayer({ xp: 0 });
     const pickup  = makePickup({ xpValue: 3 });
     const events  = makeEvents({ pickupCollected: [{ pickup, playerId: player.id }] });
-    ExperienceSystem.update({ events, player, pickups: [pickup], deltaTime: 0.016 });
+    ExperienceSystem.update({ world: { events, player, pickups: [pickup], deltaTime: 0.016 } });
     assert.ok(player.xp >= 3);
   });
 }

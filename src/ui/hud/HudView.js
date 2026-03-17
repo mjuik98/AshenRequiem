@@ -22,8 +22,10 @@ export class HudView {
       <div class="hud-top">
         <div class="hud-stats">
           <span class="hud-level">Lv.1</span>
-          <span class="hud-kills">킬: 0</span>
-          <span class="hud-time">0:00</span>
+          <div class="hud-right-stats">
+            <span class="hud-time">0:00</span>
+            <span class="hud-kills">킬: 0</span>
+          </div>
         </div>
         <div class="hud-xp-bar-container">
           <div class="hud-xp-bar"></div>
@@ -77,10 +79,13 @@ export class HudView {
       }
       .hud-top { display: flex; flex-direction: column; gap: 4px; }
       .hud-stats {
-        display: flex; justify-content: space-between;
+        display: flex; justify-content: space-between; align-items: flex-start;
         font-size: 13px; color: #ccc; font-family: 'Segoe UI', sans-serif;
         background: rgba(0,0,0,0.45); border-radius: 4px;
-        padding: 2px 8px;
+        padding: 4px 8px;
+      }
+      .hud-right-stats {
+        display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
       }
       .hud-xp-bar-container {
         width: 100%; height: 8px;

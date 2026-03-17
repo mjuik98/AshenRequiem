@@ -8,15 +8,16 @@ import { getXpForLevel } from '../../data/constants.js';
  *   업그레이드 선택 후 playMode = 'playing' 복귀 다음 프레임에 처리 (의도된 동작).
  */
 export const LevelSystem = {
-  update({ player, worldState }) {
+  update({ world }) {
+    const player = world.player;
     if (!player?.isAlive) return;
-    if (worldState.playMode !== 'playing') return;
+    if (world.playMode !== 'playing') return;
 
     const xpNeeded = getXpForLevel(player.level);
     if (player.xp >= xpNeeded) {
       player.xp   -= xpNeeded;
       player.level++;
-      worldState.playMode = 'levelup';
+      world.playMode = 'levelup';
     }
   },
 };

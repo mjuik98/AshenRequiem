@@ -7,7 +7,7 @@ import { KNOCKBACK, DAMAGE_TEXT } from '../../data/constants.js';
  * PERF: 데미지 텍스트 프레임당 DAMAGE_TEXT.MAX_PER_FRAME 상한
  */
 export const DamageSystem = {
-  update({ events, player, spawnQueue }) {
+  update({ world: { events, player, spawnQueue } }) {
     const hits = events.hits;
     let damageTextCount = 0;
 

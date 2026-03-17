@@ -34,7 +34,7 @@
  *   }
  */
 export const BossPhaseSystem = {
-  update({ world, bossData }) {
+  update({ world, data: { bossData } }) {
     if (!bossData || !world.events.bossPhaseChanged) return;
 
     for (let i = 0; i < world.enemies.length; i++) {

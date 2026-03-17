@@ -1,6 +1,6 @@
 /** PlayerMovementSystem — 플레이어 이동 + 무적 타이머 감소 */
 export const PlayerMovementSystem = {
-  update({ input, player, deltaTime }) {
+  update({ input, world: { player, deltaTime } }) {
     if (!player?.isAlive) return;
 
     const dir = input.getDirection();

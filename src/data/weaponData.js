@@ -38,14 +38,14 @@ export const weaponData = [
     statusEffectId: 'stun', statusEffectChance: 0.6,
   },
   {
-    id: 'weapon_boomerang', name: '부메랑',
+    id: 'boomerang', name: '부메랑',
     description: '가까운 적을 향해 발사되며 돌아오는 관통 부메랑',
     damage: 8, cooldown: 1.4, projectileSpeed: 280, range: 400,
     radius: 10, pierce: 3, maxRange: 600, projectileColor: '#ffd54f',
     behaviorId: 'boomerang', maxLevel: 5,
   },
   {
-    id: 'weapon_chain_lightning', name: '연쇄 번개',
+    id: 'chain_lightning', name: '연쇄 번개',
     description: '가장 가까운 적에게 번개를 쏘아 연쇄적으로 타격',
     damage: 12, cooldown: 2.0, range: 350,
     chainCount: 3, chainRange: 120, radius: 12,

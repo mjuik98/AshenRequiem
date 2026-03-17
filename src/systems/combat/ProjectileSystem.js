@@ -3,7 +3,7 @@
  * FIX(bug): orbit 투사체 — player null 시 즉시 pendingDestroy
  */
 export const ProjectileSystem = {
-  update({ projectiles, player, deltaTime }) {
+  update({ world: { projectiles, player, deltaTime } }) {
     for (let i = 0; i < projectiles.length; i++) {
       const p = projectiles[i];
       if (!p.isAlive || p.pendingDestroy) continue;
@@ -25,14 +25,29 @@ export const ProjectileSystem = {
         p.x += p.dirX * dist;
         p.y += p.dirY * dist;
         p.distanceTraveled += dist;
-        // 절반 거리 도달 시 반전
+        // 절반 거리 도달 시 반전 및 플레이어 추적
         if (!p._reversed && p.distanceTraveled >= p.maxRange / 2) {
-          p.dirX *= -1;
-          p.dirY *= -1;
           p._reversed = true;
+          p.distanceTraveled = p.maxRange / 2; // 안전장치
         }
-        // 전체 거리(왕복) 소멸
-        if (p.distanceTraveled >= p.maxRange) {
+        
+        if (p._reversed && player) {
+          // 플레이어 쪽으로 방향 갱신
+          const dx = player.x - p.x;
+          const dy = player.y - p.y;
+          const distSq = dx * dx + dy * dy;
+          
+          if (distSq < 400) { // 원점(플레이어) 도달 시 소멸
+            p.distanceTraveled = p.maxRange; 
+          } else {
+            const len = Math.sqrt(distSq);
+            p.dirX = len > 0 ? dx / len : 0;
+            p.dirY = len > 0 ? dy / len : 0;
+          }
+        }
+        // 전체 거리가 아닌 플레이어 도달 시에만 소멸하도록 변경
+        // (플레이어가 도망가면 maxRange를 초과 이동해도 계속 쫓아감)
+        if (!p._reversed && p.distanceTraveled >= p.maxRange) {
           p.isAlive = false;
           p.pendingDestroy = true;
         }

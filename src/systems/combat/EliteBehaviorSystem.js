@@ -13,7 +13,7 @@ import { ELITE_BEHAVIOR }  from '../../data/constants.js';
 const DEFAULT_PROJ_CFG = { damage: 6, speed: 200, radius: 6, color: '#e0e0e0', pierce: 1 };
 
 export const EliteBehaviorSystem = {
-  update({ enemies, player, deltaTime, spawnQueue }) {
+  update({ world: { enemies, player, deltaTime, spawnQueue } }) {
     if (!player?.isAlive) return;
 
     for (let i = 0; i < enemies.length; i++) {

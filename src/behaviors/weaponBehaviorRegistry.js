@@ -20,7 +20,7 @@
 import { targetProjectile } from './weaponBehaviors/targetProjectile.js';
 import { orbit }            from './weaponBehaviors/orbit.js';
 import { areaBurst }        from './weaponBehaviors/areaBurst.js';
-import { boomerang }        from './weaponBehaviors/boomerang.js';
+import { boomerang }        from './weaponBehaviors/boomerangWeapon.js';
 import { chainLightning }   from './weaponBehaviors/chainLightning.js';
 
 /**

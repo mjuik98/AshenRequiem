@@ -8,8 +8,14 @@ import { generateId }            from '../../utils/ids.js';
  * CHANGE(P3-⑨): 레지스트리 기반으로 리팩터링
  */
 export const StatusEffectSystem = {
+  update({ world: { enemies, player, deltaTime, events } }) {
+    if (events.hits?.length > 0) {
+      this.applyFromHits({ hits: events.hits, events });
+    }
+    this.tick({ enemies, player, deltaTime, events });
+  },
 
-  applyFromHits({ hits }) {
+  applyFromHits({ hits, events }) {
     for (let i = 0; i < hits.length; i++) {
       const hit  = hits[i];
       const proj = hit.projectile;
@@ -17,7 +23,7 @@ export const StatusEffectSystem = {
       if (Math.random() > (proj.statusEffectChance ?? 1.0)) continue;
       const target = hit.target;
       if (!target?.isAlive || target.pendingDestroy || !target.statusEffects) continue;
-      this._applyEffect(target, proj.statusEffectId);
+      this._applyEffect(target, proj.statusEffectId, events);
     }
   },
 
@@ -51,7 +57,7 @@ export const StatusEffectSystem = {
     }
   },
 
-  _applyEffect(entity, effectId) {
+  _applyEffect(entity, effectId, events) {
     const def = getStatusEffectData(effectId);
     if (!def) {
       console.warn(`[StatusEffectSystem] 알 수 없는 effectId: ${effectId}`);
@@ -76,7 +82,12 @@ export const StatusEffectSystem = {
       color:           def.color,
     };
 
-    entity.statusEffects.push(effect);
+    // FIX(bug): Use event registry instead of direct mutation
+    if (events && Array.isArray(events.statusApplied)) {
+      events.statusApplied.push({ target: entity, effect });
+    } else {
+      entity.statusEffects.push(effect);
+    }
 
     const handler = statusEffectRegistry[def.type];
     if (handler?.onApply) {

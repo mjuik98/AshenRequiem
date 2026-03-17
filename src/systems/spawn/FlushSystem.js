@@ -4,11 +4,12 @@ import { EntityManager } from '../../managers/EntityManager.js';
  * FlushSystem — spawnQueue 처리 + pendingDestroy 정리 + 이펙트 수명 틱
  */
 export const FlushSystem = {
-  update({ world, pools }) {
-    const { projectile: projectilePool, effect: effectPool, enemy: enemyPool } = pools;
+  update(ctx) {
+    const { world, services } = ctx;
+    const { projectilePool, effectPool, enemyPool, pickupPool } = services;
 
     // EntityManager에 처리를 위임하여 아키텍처 일관성 유지
-    EntityManager.flush(world, { projectilePool, effectPool, enemyPool });
+    EntityManager.flush(world, { projectilePool, effectPool, enemyPool, pickupPool });
   },
 
   /** tickEffects — 이펙트 수명 갱신 */
