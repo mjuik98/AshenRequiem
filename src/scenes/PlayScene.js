@@ -1,39 +1,17 @@
-import { resetProjectile, resetEffect, resetEnemy } from '../managers/poolResets.js';
-import { createWorld, clearFrameEvents }             from '../state/createWorld.js';
-import { Pipeline } from '../core/Pipeline.js';
-import { createUiState }    from '../state/createUiState.js';
-import { createPlayer }     from '../entities/createPlayer.js';
-import { createProjectile } from '../entities/createProjectile.js';
-import { createEffect }     from '../entities/createEffect.js';
-import { createEnemy }      from '../entities/createEnemy.js';
-import { waveData }         from '../data/waveData.js';
-import { bossData }         from '../data/bossData.js';
-import { upgradeData }      from '../data/upgradeData.js';
-import { EFFECT_DEFAULTS }  from '../data/constants.js';
+import { PlayContext } from '../core/PlayContext.js';
+import { createWorld }   from '../state/createWorld.js';
+import { createUiState }  from '../state/createUiState.js';
+import { createPlayer }   from '../entities/createPlayer.js';
+import { waveData }       from '../data/waveData.js';
+import { bossData }       from '../data/bossData.js';
+import { upgradeData }    from '../data/upgradeData.js';
+import { EFFECT_DEFAULTS } from '../data/constants.js';
 import { updateSessionBest, saveSession } from '../state/createSessionState.js';
 
-import { PlayerMovementSystem } from '../systems/movement/PlayerMovementSystem.js';
-import { EnemyMovementSystem }  from '../systems/movement/EnemyMovementSystem.js';
-import { WeaponSystem }         from '../systems/combat/WeaponSystem.js';
-import { ProjectileSystem }     from '../systems/combat/ProjectileSystem.js';
-import { CollisionSystem }      from '../systems/combat/CollisionSystem.js';
-import { DamageSystem }         from '../systems/combat/DamageSystem.js';
-import { StatusEffectSystem }   from '../systems/combat/StatusEffectSystem.js';
-import { DeathSystem }          from '../systems/combat/DeathSystem.js';
-// CHANGE(P1-③): EliteBehaviorSystem을 combat 폴더에서 import
-import { EliteBehaviorSystem }  from '../systems/combat/EliteBehaviorSystem.js';
-import { ExperienceSystem }     from '../systems/progression/ExperienceSystem.js';
-import { LevelSystem }          from '../systems/progression/LevelSystem.js';
 import { UpgradeSystem }        from '../systems/progression/UpgradeSystem.js';
-// CHANGE(P1-①): SpawnSystem을 클래스로 import
-import { SpawnSystem }          from '../systems/spawn/SpawnSystem.js';
 import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
-import { CameraSystem }         from '../systems/camera/CameraSystem.js';
 import { RenderSystem }         from '../systems/render/RenderSystem.js';
-import { SoundSystem }          from '../systems/sound/SoundSystem.js';
-import { BossPhaseSystem }      from '../systems/spawn/BossPhaseSystem.js';
 
-import { ObjectPool }   from '../managers/ObjectPool.js';
 import { mountUI }      from '../ui/dom/mountUI.js';
 import { HudView }      from '../ui/hud/HudView.js';
 import { LevelUpView }  from '../ui/levelup/LevelUpView.js';
@@ -42,102 +20,53 @@ import { DebugView }    from '../ui/debug/DebugView.js';
 import { BossHudView }  from '../ui/boss/BossHudView.js';
 
 import { PlayModeStateMachine } from '../core/PlayModeStateMachine.js';
-import { EventBusHandler }     from '../systems/event/EventBusHandler.js';
-import { PipelineProfiler }    from '../systems/debug/PipelineProfiler.js';
-import { createPickup, resetPickup } from '../entities/createPickup.js';
 
 /**
  * PlayScene — 전투 씬
  *
- * CHANGE(P1-①): SpawnSystem 싱글톤 → 클래스 인스턴스
- * CHANGE(P1-②): 프레임 파이프라인을 _runGamePipeline()으로 분리
- * CHANGE(P1-③): EliteBehaviorSystem import 경로 변경
- * CHANGE(P2-④): enemy ObjectPool 추가
- * CHANGE(P2-⑤): camera를 world.camera로 이관
+ * CHANGE(P0-1): PlayContext 도입으로 씬 비대화 방지
  */
 export class PlayScene {
   constructor(game) {
     this.game            = game;
     this.world           = null;
-    this.uiState         = null;
+    this._ctx            = null;
+    this._pipeline       = null;
+    this._pipelineCtx    = null;
+    this._dpr            = 1;
+    this._uiState        = null;
+
     this.hudView         = null;
     this.levelUpView     = null;
     this.resultView      = null;
     this.debugView       = null;
     this.bossHudView     = null;
-    this._projectilePool = null;
-    this._effectPool     = null;
-    this._enemyPool      = null;
-    this._soundSystem    = null;
-    this._pipeline       = null;
-    this._dpr            = 1;
-    this._levelUpShown   = false;
-    this._deadShown      = false;
-    this._uiState        = null;
-    this._profiler       = null;
-    this._pickupPool     = null;
   }
 
   enter() {
-    this._spawnSystem = new SpawnSystem();
     this.world        = createWorld();
-    this.uiState      = createUiState();
     this.world.player = createPlayer(0, 0);
 
-    this._projectilePool = new ObjectPool(
-      () => createProjectile({ x: 0, y: 0 }),
-      resetProjectile,
-      80,
-    );
-    this._effectPool = new ObjectPool(
-      () => createEffect({ x: 0, y: 0 }),
-      resetEffect,
-      60,
-    );
-    this._enemyPool = new ObjectPool(
-      () => createEnemy('zombie', 0, 0),
-      resetEnemy,
-      40,
-    );
-    this._pickupPool = new ObjectPool(
-      () => createPickup(0, 0, 0),
-      resetPickup,
-      60,
-    );
+    // PlayContext 생성 (Pool 및 핵심 시스템 자동 초기화)
+    this._ctx = PlayContext.create({
+      canvas: this.game.canvas,
+      soundEnabled: true,
+      profilingEnabled: true,
+    });
 
-    this._soundSystem = new SoundSystem();
-    this._soundSystem.init();
-
-    this._pipeline = new Pipeline();
-    this._pipeline
-      .register(this._spawnSystem,    { priority: 10 })
-      .register(PlayerMovementSystem, { priority: 20 })
-      .register(EnemyMovementSystem,  { priority: 30 })
-      .register(EliteBehaviorSystem,  { priority: 35 })
-      .register(WeaponSystem,         { priority: 40 })
-      .register(ProjectileSystem,     { priority: 50 })
-      .register(CollisionSystem,      { priority: 60 })
-      .register(StatusEffectSystem,   { priority: 65 })
-      .register(DamageSystem,         { priority: 70 })
-      .register(DeathSystem,          { priority: 80 })
-      .register(ExperienceSystem,     { priority: 90 })
-      .register(LevelSystem,          { priority: 100 })
-      .register(BossPhaseSystem,      { priority: 105 })
-      .register(EventBusHandler,      { priority: 108 })
-      .register(this._flushSystem,    { priority: 110 })
-      .register(CameraSystem,         { priority: 120 });
+    // 파이프라인 빌드
+    const { pipeline, pipelineCtx } = this._ctx.buildPipeline(
+      this.world,
+      this.game.input,
+      { waveData, upgradeData, bossData }
+    );
+    this._pipeline    = pipeline;
+    this._pipelineCtx = pipelineCtx;
 
     this._uiState = new PlayModeStateMachine({
       onLevelUp: () => this._showLevelUpUI(),
       onDead:    () => this._showResultUI(),
     });
-
-    this._profiler = new PipelineProfiler();
-    this._profiler.wrap(this._pipeline);
-
-
-    this._levelUpShown = false;
-    this._deadShown    = false;
 
     const uiContainer = mountUI();
     this.hudView     = new HudView(uiContainer);
@@ -151,58 +80,40 @@ export class PlayScene {
   }
 
   update(dt) {
-    if (!this.world) return;
+    if (!this.world || !this._ctx) return;
     const world = this.world;
     const input = this.game.input;
 
     this.debugView.handleInput(input);
     this.debugView.update(
       world,
-      {
-        projectilePool: this._projectilePool,
-        effectPool:     this._effectPool,
-        enemyPool:      this._enemyPool,
-        profiler:       this._profiler,
-      },
+      this._ctx, // PlayContext 전달 (pool, profiler 포함)
       dt,
       waveData,
-      this._spawnSystem.getDebugInfo(world.elapsedTime),
+      this._ctx.spawnSystem.getDebugInfo(world.elapsedTime),
     );
 
     if (this._uiState.tick(world.playMode)) return;
 
-    this._runGamePipeline(dt, world, input);
+    this._runGamePipeline(dt);
   }
 
-  _runGamePipeline(dt, world, input) {
-    clearFrameEvents(world);
+  _runGamePipeline(dt) {
+    const world = this.world;
+    if (!world) return;
+
+    // TODO: EventRegistry 도입 후 clearFrameEvents 대체 예정
+    // clearFrameEvents(world); 
+    import('../systems/event/EventRegistry.js').then(({ EventRegistry }) => {
+      EventRegistry.clearAll(world.events);
+    });
+
     world.deltaTime    = dt;
     world.elapsedTime += dt;
 
-    this._pipeline.run({
-      dt,
-      world,
-      input,
-      spawnQueue: world.spawnQueue,
-      waveData,
-      bossData,
-      player:     world.player,
-      enemies:    world.enemies,
-      projectiles: world.projectiles,
-      pickups:    world.pickups,
-      events:     world.events,
-      camera:     world.camera,
-      pools: {
-        projectile: this._projectilePool,
-        effect:     this._effectPool,
-        enemy:      this._enemyPool,
-        pickup:     this._pickupPool,
-      },
-    });
+    this._pipeline.run(this._pipelineCtx);
 
-    // EventBusHandler가 처리하므로 삭제
-
-    this._soundSystem.processEvents(world.events);
+    this._ctx.soundSystem?.processEvents(world.events);
     FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
 
     this.hudView.update(world.player, world);
@@ -211,11 +122,9 @@ export class PlayScene {
 
   render() {
     if (!this.world) return;
-    const world = this.world;
-
     RenderSystem.update({
-      world,
-      camera:   world.camera,
+      world:    this.world,
+      camera:   this.world.camera,
       renderer: this.game.renderer,
       dpr:      this._dpr,
     });
@@ -227,17 +136,14 @@ export class PlayScene {
     this.resultView?.destroy();
     this.debugView?.destroy();
     this.bossHudView?.destroy();
-    this._soundSystem?.destroy();
 
     this._uiState?.reset();
-    this._uiState        = null;
-    this._profiler       = null;
-    this._projectilePool = null;
-    this._effectPool     = null;
-    this._enemyPool      = null;
-    this._pickupPool     = null;
-    this._spawnSystem    = null;
-    this._soundSystem    = null;
+    this._ctx?.destroy();
+
+    this._uiState     = null;
+    this._ctx         = null;
+    this._pipeline    = null;
+    this._pipelineCtx = null;
   }
 
   _showLevelUpUI() {

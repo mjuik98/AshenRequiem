@@ -5,37 +5,33 @@ export function createWorld() {
     time:        0,
     deltaTime:   0,
     elapsedTime: 0,
-    killCount:   0,
-    /** 'playing' | 'levelup' | 'dead' */
-    playMode:    'playing',
 
-    /** 카메라 상태 — CameraSystem이 매 프레임 갱신 */
-    camera: { x: 0, y: 0, width: 800, height: 600 },
-
-    player:      null,
-    enemies:     [],
+    player: null,
+    enemies: [],
     projectiles: [],
-    pickups:     [],
-    effects:     [],
+    effects: [],
+    pickups: [],
 
-    spawnQueue:   [],
-    destroyQueue: [],
+    // CHANGE(P0-2): EventRegistry를 통한 이벤트 필드 동적 등록
+    events: {},
 
-    events: {
-      hits:             [],
-      deaths:           [],
-      pickupCollected:  [],
-      levelUpRequested: [],
-      bossPhaseChanged:  [], // P3 확장: 보스 페이즈 변화 이벤트
-    },
+    killCount: 0,
+    spawnQueue: [], // SpawnSystem -> FlushSystem 연동
+
+    camera: { x: 0, y: 0, targetX: 0, targetY: 0 },
   };
+
+  EventRegistry.initWorldEvents(world);
+
+  return world;
 }
 
-/** 프레임 이벤트 배열 초기화 (매 프레임 시작 시 호출) */
+/**
+ * 매 프레임 시작 시 이벤트 배열을 비운다.
+ * CHANGE(P0-2): EventRegistry.clearAll()로 대체 권장되나, 
+ * 하위 호환성을 위해 우선 유지하되 EventRegistry 연동.
+ */
 export function clearFrameEvents(world) {
-  world.events.hits.length             = 0;
-  world.events.deaths.length           = 0;
-  world.events.pickupCollected.length  = 0;
-  world.events.levelUpRequested.length = 0;
-  world.events.bossPhaseChanged.length = 0;
+  if (!world.events) return;
+  EventRegistry.clearAll(world.events);
 }

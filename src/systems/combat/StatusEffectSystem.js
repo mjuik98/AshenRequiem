@@ -85,7 +85,12 @@ export const StatusEffectSystem = {
   },
 
   _removeEffect(entity, effect, idx) {
-    entity.statusEffects.splice(idx, 1);
+    // PERF: O(1) swap-and-pop
+    const lastIdx = entity.statusEffects.length - 1;
+    if (idx < lastIdx) {
+      entity.statusEffects[idx] = entity.statusEffects[lastIdx];
+    }
+    entity.statusEffects.pop();
 
     const handler = statusEffectRegistry[effect.type];
     if (handler?.onRemove) {

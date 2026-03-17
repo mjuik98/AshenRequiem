@@ -70,7 +70,7 @@ export class DebugView {
     this._backtickWasDown = down;
   }
 
-  update(world, pools, dt, waveData, spawnDebug) {
+    update(world, ctx, dt, waveData, spawnDebug) {
     this._dtBuffer.push(dt);
     if (this._dtBuffer.length > 60) this._dtBuffer.shift();
 
@@ -102,8 +102,8 @@ export class DebugView {
     set('dbg-proj',       world.projectiles.length);
     set('dbg-pickups',    world.pickups.length);
     set('dbg-effects',    world.effects.length);
-    set('dbg-pool-proj',  pools.projectilePool?.available ?? '—');
-    set('dbg-pool-fx',    pools.effectPool?.available     ?? '—');
+    set('dbg-pool-proj',  ctx.projectilePool?.available ?? '—');
+    set('dbg-pool-fx',    ctx.effectPool?.available     ?? '—');
 
     if (player) {
       set('dbg-hp',     `${Math.ceil(player.hp)} / ${player.maxHp}`);
@@ -111,8 +111,8 @@ export class DebugView {
       set('dbg-xp',     `${player.xp} / ${xpNeeded}`);
       set('dbg-speed',  player.moveSpeed.toFixed(0));
       set('dbg-magnet', player.magnetRadius.toFixed(0));
-      set('dbg-status', player.statusEffects.map(e => e.type).join(', ') || '—');
-      set('dbg-weapons',player.weapons.map(w => `${w.name} Lv${w.level}`).join(' | ') || '—');
+      set('dbg-status', (player.statusEffects || []).map(e => e.type).join(', ') || '—');
+      set('dbg-weapons', (player.weapons || []).map(w => `${w.name} Lv${w.level}`).join(' | ') || '—');
     }
 
     const elapsed = world.elapsedTime;
@@ -129,7 +129,7 @@ export class DebugView {
       set('dbg-boss-sup',    spawnDebug.isSuppressed ? spawnDebug.suppressionRemaining.toFixed(1) + 's' : '—');
     }
 
-    if (pools?.profiler) {
+    if (ctx?.profiler) {
       if (!this._vals['dbg-profiler']) {
         const sec = document.createElement('div');
         sec.className = 'dbg-section';
@@ -137,7 +137,7 @@ export class DebugView {
         this.el.appendChild(sec);
         this._vals['dbg-profiler'] = sec;
       }
-      this._vals['dbg-profiler'].innerHTML = pools.profiler.toHtml();
+      this._vals['dbg-profiler'].innerHTML = ctx.profiler.toHtml();
     }
   }
 

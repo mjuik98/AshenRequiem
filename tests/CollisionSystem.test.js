@@ -104,8 +104,10 @@ test('반경 내 적에게 hit 이벤트 발행', () => {
   const camera = { x: 0, y: 0, width: 1920, height: 1080 };
 
   CollisionSystem.update({
-    player, enemies: [enemy], projectiles: [projectile],
-    pickups: [], events, camera
+    world: {
+      player, enemies: [enemy], projectiles: [projectile],
+      pickups: [], events, camera
+    }
   });
 
   assert(events.hits.length > 0, '히트 발생 안 함');
@@ -120,8 +122,10 @@ test('반경 밖 적에게는 hit 이벤트 없음', () => {
   const camera = { x: 0, y: 0, width: 100, height: 100 }; // 좁은 카메라
 
   CollisionSystem.update({
-    player, enemies: [enemy], projectiles: [projectile],
-    pickups: [], events, camera
+    world: {
+      player, enemies: [enemy], projectiles: [projectile],
+      pickups: [], events, camera
+    }
   });
 
   assert.equal(events.hits.length, 0, '먼 거리 적이 히트됨');
@@ -134,8 +138,10 @@ test('무적 상태에서는 플레이어 피격 안 됨', () => {
   const camera = { x: 0, y: 0, width: 1920, height: 1080 };
 
   CollisionSystem.update({
-    player, enemies: [enemy], projectiles: [],
-    pickups: [], events, camera
+    world: {
+      player, enemies: [enemy], projectiles: [],
+      pickups: [], events, camera
+    }
   });
 
   const playerHits = events.hits.filter(h => h.targetId === 'player');
@@ -149,8 +155,10 @@ test('픽업 반경 내 수집 가능', () => {
   const camera = { x: 0, y: 0, width: 1920, height: 1080 };
 
   CollisionSystem.update({
-    player, enemies: [], projectiles: [],
-    pickups: [pickup], events, camera
+    world: {
+      player, enemies: [], projectiles: [],
+      pickups: [pickup], events, camera
+    }
   });
 
   assert(events.pickupCollected.length > 0, '픽업 수집 안 함');
@@ -163,8 +171,10 @@ test('멀리 있는 픽업은 수집 안 됨', () => {
   const camera = { x: 0, y: 0, width: 1920, height: 1080 };
 
   CollisionSystem.update({
-    player, enemies: [], projectiles: [],
-    pickups: [pickup], events, camera
+    world: {
+      player, enemies: [], projectiles: [],
+      pickups: [pickup], events, camera
+    }
   });
 
   assert.equal(events.pickupCollected.length, 0, '먼 거리 픽업 수집됨');
