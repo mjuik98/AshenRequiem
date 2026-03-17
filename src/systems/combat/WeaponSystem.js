@@ -1,12 +1,22 @@
-import { distanceSq, normalize, sub } from '../../math/Vector2.js';
-
 /**
- * WeaponSystem — 무기 쿨다운 관리 + 공격 생성 요청
+ * src/systems/combat/WeaponSystem.js  (리팩터링 버전)
  *
- * FIX(bug): areaBurst — 타겟 없으면 쿨다운 0 후 continue → 연속 발동 방지
- * FIX(bug): targetProjectile — 타깃 없으면 쿨다운 유지 후 continue
- * BAL: orbit lifetime 계수 1.02 (공백 제거)
+ * CHANGE(P2): if/else behaviorId 분기 → weaponBehaviorRegistry 위임
+ *
+ * Before:
+ *   weapon.behaviorId === 'orbit' ? ... : weapon.behaviorId === 'areaBurst' ? ... : ...
+ *   → 새 무기 패턴마다 이 파일을 수정해야 했음
+ *
+ * After:
+ *   const fn = getWeaponBehavior(weapon.behaviorId);
+ *   const fired = fn({ weapon, player, enemies, spawnQueue });
+ *   → 새 무기는 behaviorBehaviors/ 파일 + registry 1줄 추가로 끝
+ *
+ * 기존 동작은 100% 보존 (targetProjectile/orbit/areaBurst 모두 동일 로직)
  */
+
+import { getWeaponBehavior } from '../../behaviors/weaponBehaviorRegistry.js';
+
 export const WeaponSystem = {
   update({ player, enemies, deltaTime, spawnQueue }) {
     if (!player?.isAlive) return;
@@ -16,134 +26,18 @@ export const WeaponSystem = {
 
       weapon.currentCooldown -= deltaTime;
       if (weapon.currentCooldown > 0) continue;
+
+      // 쿨다운 소비 (실패 시 아래에서 0으로 초기화)
       weapon.currentCooldown = weapon.cooldown;
 
-      // ── orbit ──────────────────────────────────────────────
-      if (weapon.behaviorId === 'orbit') {
-        const count    = weapon.orbitCount || 3;
-        const lifetime = weapon.cooldown * 1.02;
+      // behaviorId로 동작 함수 조회 후 실행
+      const behaviorFn = getWeaponBehavior(weapon.behaviorId);
+      const fired = behaviorFn({ weapon, player, enemies, spawnQueue });
 
-        for (let o = 0; o < count; o++) {
-          const angle = (o / count) * Math.PI * 2;
-          spawnQueue.push({
-            type: 'projectile',
-            config: {
-              x: player.x + Math.cos(angle) * (weapon.orbitRadius || 72),
-              y: player.y + Math.sin(angle) * (weapon.orbitRadius || 72),
-              dirX: 0, dirY: 0, speed: 0,
-              damage:      weapon.damage,
-              radius:      weapon.radius || 9,
-              color:       weapon.projectileColor,
-              pierce:      weapon.pierce || 999,
-              maxRange:    0,
-              behaviorId:  'orbit',
-              maxLifetime: lifetime,
-              ownerId:     player.id,
-              statusEffectId:     weapon.statusEffectId     ?? null,
-              statusEffectChance: weapon.statusEffectChance ?? 1.0,
-              orbitAngle:  angle,
-              orbitRadius: weapon.orbitRadius || 72,
-              orbitSpeed:  weapon.orbitSpeed  || 2.8,
-            },
-          });
-        }
-
-      // ── areaBurst ──────────────────────────────────────────
-      } else if (weapon.behaviorId === 'areaBurst') {
-        // FIX(bug): 타겟 확인 먼저 — 없으면 즉시 재시도
-        const target = this._findClosestEnemy(player, enemies, weapon.range);
-        if (!target) { weapon.currentCooldown = 0; continue; }
-
-        spawnQueue.push({
-          type: 'projectile',
-          config: {
-            x: player.x, y: player.y,
-            dirX: 0, dirY: 0, speed: 0,
-            damage:      weapon.damage,
-            radius:      weapon.radius,
-            color:       weapon.projectileColor,
-            pierce:      weapon.pierce,
-            maxRange:    0,
-            behaviorId:  'areaBurst',
-            maxLifetime: weapon.burstDuration ?? 0.3,
-            ownerId:     player.id,
-            statusEffectId:     weapon.statusEffectId     ?? null,
-            statusEffectChance: weapon.statusEffectChance ?? 1.0,
-          },
-        });
-
-        // areaBurst + targetProjectile 복합 패턴
-        if (weapon.projectileCount && weapon.projectileCount > 0) {
-          const dir    = normalize(sub(target, player));
-          const count  = weapon.projectileCount;
-          const spread = Math.PI / 14;
-          for (let p = 0; p < count; p++) {
-            const offset = (p - (count - 1) / 2) * spread;
-            const cos = Math.cos(offset), sin = Math.sin(offset);
-            spawnQueue.push({
-              type: 'projectile',
-              config: {
-                x: player.x, y: player.y,
-                dirX: dir.x * cos - dir.y * sin,
-                dirY: dir.x * sin + dir.y * cos,
-                speed:      weapon.projectileSpeed,
-                damage:     weapon.damage,
-                radius:     weapon.radius || 5,
-                color:      weapon.projectileColor,
-                pierce:     weapon.pierce,
-                maxRange:   weapon.range,
-                behaviorId: 'targetProjectile',
-                ownerId:    player.id,
-                statusEffectId:     weapon.statusEffectId     ?? null,
-                statusEffectChance: weapon.statusEffectChance ?? 1.0,
-              },
-            });
-          }
-        }
-
-      // ── targetProjectile ───────────────────────────────────
-      } else {
-        const target = this._findClosestEnemy(player, enemies, weapon.range);
-        if (!target) continue;
-
-        const dir    = normalize(sub(target, player));
-        const count  = weapon.projectileCount || 1;
-        const spread = Math.PI / 14;
-
-        for (let p = 0; p < count; p++) {
-          const offset = (p - (count - 1) / 2) * spread;
-          const cos = Math.cos(offset), sin = Math.sin(offset);
-          spawnQueue.push({
-            type: 'projectile',
-            config: {
-              x: player.x, y: player.y,
-              dirX: dir.x * cos - dir.y * sin,
-              dirY: dir.x * sin + dir.y * cos,
-              speed:      weapon.projectileSpeed,
-              damage:     weapon.damage,
-              radius:     weapon.radius || 5,
-              color:      weapon.projectileColor,
-              pierce:     weapon.pierce,
-              maxRange:   weapon.range,
-              behaviorId: 'targetProjectile',
-              ownerId:    player.id,
-              statusEffectId:     weapon.statusEffectId     ?? null,
-              statusEffectChance: weapon.statusEffectChance ?? 1.0,
-            },
-          });
-        }
+      // 발동 실패 (적 없음 등) → 즉시 재시도를 위해 쿨다운 0으로 초기화
+      if (!fired) {
+        weapon.currentCooldown = 0;
       }
     }
-  },
-
-  _findClosestEnemy(player, enemies, range) {
-    let closest = null, closestDistSq = range * range;
-    for (let i = 0; i < enemies.length; i++) {
-      const e = enemies[i];
-      if (!e.isAlive || e.pendingDestroy) continue;
-      const dSq = distanceSq(player, e);
-      if (dSq < closestDistSq) { closestDistSq = dSq; closest = e; }
-    }
-    return closest;
   },
 };

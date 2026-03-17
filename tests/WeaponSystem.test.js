@@ -92,6 +92,8 @@ test('쿨다운 감소 — 0.016s dt 경과 시 currentCooldown 감소', () => {
   const player = makePlayer({ cooldown: 1.0, currentCooldown: 0.5 });
   const world  = makeWorld(player, [makeEnemy()]);
 
+  // WeaponSystem.update는 이제 behaviorRegistry를 사용합니다.
+  // 실제 behavior 함수들이 math 함수들을 사용하므로, 테스트 환경에서도 math 함수들이 필요합니다.
   WeaponSystem.update({ player, enemies: world.enemies, spawnQueue: world.spawnQueue, deltaTime: 0.016 });
 
   const w = player.weapons[0];

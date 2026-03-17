@@ -4,10 +4,18 @@
   "description": "HTML / JavaScript vampire-survivors-like MVP",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules tests/DamageSystem.test.js && node --experimental-vm-modules tests/ExperienceSystem.test.js && node --experimental-vm-modules tests/SpawnSystem.test.js && node --experimental-vm-modules tests/CollisionSystem.test.js && node --experimental-vm-modules tests/UpgradeSystem.test.js && node --experimental-vm-modules tests/StatusEffectSystem.test.js",
-    "validate": "node scripts/validateData.js"
+    "test": "node scripts/runTests.js",
+    "test:watch": "node --watch scripts/runTests.js",
+    "validate": "node scripts/validateData.js",
+    "pretest": "node scripts/validateData.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^8.0.0"
+  }
 }

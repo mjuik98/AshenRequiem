@@ -254,6 +254,10 @@ export class PlayScene {
 
     this.levelUpView.show(choices, (selectedUpgrade) => {
       UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
+      // CHANGE(P-③): 시너지 시스템 적용
+      import('../systems/progression/SynergySystem.js').then(({ SynergySystem }) => {
+        SynergySystem.applyAll({ player: this.world.player, upgradeData });
+      });
       this.world.playMode = 'playing';
       this._levelUpShown  = false;
     });

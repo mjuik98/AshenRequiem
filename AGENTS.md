@@ -22,6 +22,11 @@ The goal is a **stable, playable combat loop**.
 | P3-⑧ StatusEffectSystem 테스트 | 미존재 | `tests/StatusEffectSystem.test.js` 추가 |
 | P3-⑨ AssetManager | 미존재 (canvas 직접 그리기만 사용) | `src/managers/AssetManager.js` 최소 인터페이스 |
 | P3-⑩ createSessionState | 기본 객체 리터럴, localStorage 없음 | localStorage 연동 + updateSessionBest() 추가 |
+| P-① WeaponSystem 리팩터링 | if/else behaviorId 분기 | `weaponBehaviorRegistry` 위임 패턴 |
+| P-② 무기 동작 파일 분리 | WeaponSystem 내부 인라인 | `behaviors/weaponBehaviors/*.js` |
+| P-③ SynergySystem 추가 | 미존재 | `systems/progression/SynergySystem.js` |
+| P-④ 테스트 자동화 | 개별 node 실행 | `npm test` → `scripts/runTests.js` |
+| P-⑤ Vite 빌드 도입 | 없음 (bare ES module) | `vite.config.js` |
 
 ## Standard Frame Pipeline
 `PlayScene._runGamePipeline()`:
@@ -65,3 +70,21 @@ node --experimental-vm-modules tests/StatusEffectSystem.test.js
 - 런 종료는 반드시 `updateSessionBest()` → `saveSession()` 순서로 처리한다.
 - `session.last`는 런 결과 임시 보관용이며 localStorage에 저장하지 않는다.
 - `session.best`는 각 항목별 독립 최고값이다. (킬 수 최고 런과 생존 시간 최고 런이 달라도 됨)
+
+### 무기 동작 추가 규칙
+- 새 무기 패턴 추가 시 `src/behaviors/weaponBehaviors/` 아래 파일 생성
+- `weaponBehaviorRegistry.js`에 `registry.set('newBehaviorId', fn)` 한 줄 추가
+- **WeaponSystem.js는 수정하지 않는다** — 레지스트리만 수정
+- behavior 함수 시그니처: `({ weapon, player, enemies, spawnQueue }) => boolean`
+  - `true`: 발동 성공 (쿨다운 정상 소비)
+  - `false`: 발동 실패 (WeaponSystem이 쿨다운 0으로 초기화 → 즉시 재시도)
+
+### SynergySystem 사용 규칙
+- `SynergySystem.applyAll()` 호출 시점: `UpgradeSystem.applyUpgrade()` 직후
+- 시너지 정의는 `upgradeData.js` 안에 `requires[]` 배열로 작성
+- 시너지는 매번 전체 재계산 방식 — 부분 취소 없음
+
+### 테스트 규칙 (기존 규칙 보강)
+- `npm test` 로 전체 테스트 실행 (scripts/runTests.js)
+- `npm run validate` 로 데이터 무결성 검증 (scripts/validateData.js)
+- `pretest` 훅이 validate를 자동 실행하므로 npm test 전에 별도 실행 불필요
