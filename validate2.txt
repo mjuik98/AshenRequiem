@@ -1,0 +1,25 @@
+﻿
+> ashen-requiem@1.0.0 validate
+> node scripts/validateData.js
+
+=== 데이터 무결성 검증 시작 ===
+등록된 무기 behaviorId: [targetProjectile, orbit, areaBurst, boomerang, chainLightning]
+등록된 적 behaviorId:   [chase, charge, circle, keepDistance, swarm, dash, circle_dash]
+
+[enemyData]
+  ✓ 총 11개 검증 완료
+
+[weaponData]
+  ✓ 총 6개 검증 완료
+
+[upgradeData]
+  ✓ 총 14개 검증 완료
+
+[synergyData]
+  ✓ 총 6개 검증 완료
+
+[waveData]
+  ✓ 총 7개 검증 완료
+
+=== 결과 ===
+모든 검증 통과 ✓

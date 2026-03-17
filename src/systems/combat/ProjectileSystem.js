@@ -39,6 +39,8 @@ export const ProjectileSystem = {
           
           if (distSq < 400) { // 원점(플레이어) 도달 시 소멸
             p.distanceTraveled = p.maxRange; 
+            p.isAlive = false;
+            p.pendingDestroy = true;
           } else {
             const len = Math.sqrt(distSq);
             p.dirX = len > 0 ? dx / len : 0;

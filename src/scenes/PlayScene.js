@@ -25,7 +25,12 @@ import { PlayModeStateMachine } from '../core/PlayModeStateMachine.js';
 /**
  * PlayScene — 전투 씬
  *
- * CHANGE(P0-1): PlayContext 도입으로 씬 비대화 방지
+ * BUGFIX:
+ *   BUG-6: _showLevelUpUI() 안에 this._levelUpShown = false 잔재 코드 존재
+ *          PlayModeStateMachine 도입 이전의 플래그 방식 코드가 삭제되지 않음.
+ *          this._levelUpShown 은 constructor에 선언되지도 않은 유령 필드이며,
+ *          상태 관리는 PlayModeStateMachine._firedLevelUp 이 전담.
+ *          → 해당 라인 삭제
  */
 export class PlayScene {
   constructor(game) {
@@ -48,14 +53,12 @@ export class PlayScene {
     this.world        = createWorld();
     this.world.player = createPlayer(0, 0);
 
-    // PlayContext 생성 (Pool 및 핵심 시스템 자동 초기화)
     this._ctx = PlayContext.create({
       canvas: this.game.canvas,
       soundEnabled: true,
       profilingEnabled: true,
     });
 
-    // 파이프라인 빌드
     const { pipeline, pipelineCtx } = this._ctx.buildPipeline(
       this.world,
       this.game.input,
@@ -90,7 +93,7 @@ export class PlayScene {
     this.debugView.handleInput(input);
     this.debugView.update(
       world,
-      this._ctx, // PlayContext 전달 (pool, profiler 포함)
+      this._ctx,
       dt,
       waveData,
       this._ctx.spawnSystem.getDebugInfo(world.elapsedTime),
@@ -157,14 +160,16 @@ export class PlayScene {
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) {
-      this.world.playMode  = 'playing';
-      this._levelUpShown   = false;
+      this.world.playMode = 'playing';
+      // FIX(BUG-6): this._levelUpShown = false 삭제
+      // PlayModeStateMachine 도입 이전의 잔재 코드.
+      // 레벨업 플래그 상태는 PlayModeStateMachine._firedLevelUp이 전담하며,
+      // playing으로 복귀하는 순간 PlayModeStateMachine.tick()이 자동으로 초기화함.
       return;
     }
 
     this.levelUpView.show(choices, async (selectedUpgrade) => {
       UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
-      // CHANGE(P-③): 시너지 시스템 적용
       const { SynergySystem } = await import('../systems/progression/SynergySystem.js');
       SynergySystem.applyAll({ player: this.world.player, upgradeData });
       this.world.playMode = 'playing';
@@ -174,7 +179,6 @@ export class PlayScene {
   _showResultUI() {
     this.hudView.hide();
 
-    // 세션 기록 갱신 및 저장
     updateSessionBest(this.game.session, {
       killCount:    this.world.killCount,
       elapsedTime:  this.world.elapsedTime,

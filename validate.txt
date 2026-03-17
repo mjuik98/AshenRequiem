@@ -1,0 +1,82 @@
+﻿
+> ashen-requiem@1.0.0 validate
+> node scripts/validateData.js
+
+=== 데이터 무결성 검증 시작 ===
+등록된 무기 behaviorId: [targetProjectile, orbit, areaBurst, boomerang, chainLightning]
+등록된 적 behaviorId:   [chase, charge, circle, keepDistance, swarm]
+
+[enemyData]
+node.exe :   ⚠ enemy "elite_
+golem": behaviorId "dash"가 레
+지스트리에 없음 (오타 확인)
+At line:1 char:1
++ & "C:\Program Files\nodejs
+/node.exe" "C:\Program Files
+\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (  ⚠ e  
+  nemy "elit...스트리에 없음 (오   
+ 타 확인):String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+  ⚠ enemy "elite_bat": behav
+iorId "dash"가 레지스트리에 없음 (오타 
+확인)
+  ⚠ enemy "elite_skeleton": 
+behaviorId "circle_dash"가 레지
+스트리에 없음 (오타 확인)
+  ⚠ enemy "boss_lich": behav
+iorId "circle_dash"가 레지스트리에 
+없음 (오타 확인)
+  ✓ 총 11개 검증 완료
+
+[weaponData]
+  ✓ 총 6개 검증 완료
+
+[upgradeData]
+  ✓ 총 14개 검증 완료
+
+[synergyData]
+  ⚠ synergy "iron_will": req
+uires "stat_max_hp"가 upgrade
+Data에 없음
+  ⚠ synergy "fire_vortex": r
+equires "weapon_orbit"가 upgr
+adeData에 없음
+  ⚠ synergy "fire_vortex": r
+equires "weapon_area_burst"가
+ upgradeData에 없음
+  ⚠ synergy "glass_cannon": 
+requires "upgrade_damage_1"가
+ upgradeData에 없음
+  ⚠ synergy "glass_cannon": 
+requires "upgrade_damage_2"가
+ upgradeData에 없음
+  ⚠ synergy "orbital_fortres
+s": requires "weapon_orbit"가
+ upgradeData에 없음
+  ⚠ synergy "orbital_fortres
+s": requires "upgrade_orbit_
+max"가 upgradeData에 없음
+  ⚠ synergy "rapid_barrage":
+ requires "upgrade_cooldown_
+1"가 upgradeData에 없음
+  ✓ 총 6개 검증 완료
+  ⚠ synergy "rapid_barrage":
+ requires "upgrade_cooldown_
+2"가 upgradeData에 없음
+  ⚠ synergy "rapid_barrage":
+ requires "upgrade_pierce"가 
+upgradeData에 없음
+
+[waveData]
+  ✓ 총 7개 검증 완료
+
+=== 결과 ===
+경고 14개

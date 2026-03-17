@@ -1,12 +1,23 @@
 /**
  * PlayModeStateMachine — PlayScene UI 전환 상태 머신
  *
- * WHY(P0):
- *   PlayScene에 _levelUpShown, _deadShown 플래그가 직접 존재하면
- *   씬이 커질수록 "이 플래그는 true인데 저건 false" 조합 버그가 누적된다.
- *   UI 전환 책임을 이 클래스에 위임하면:
- *     - Scene은 "어떤 모드인가"만 알고
- *     - "어떤 UI를 켰는가"는 StateMachine이 관리한다.
+ * BUGFIX:
+ *   BUG-5: playing 복귀 시 _firedLevelUp만 false로 초기화하고
+ *          _firedDead는 초기화하지 않아 플래그 비대칭 상태 발생.
+ *
+ *   영향 범위:
+ *     현재 게임 구조에서는 dead → playing 전환이 재시작(씬 교체)으로 처리되므로
+ *     즉각적인 크래시는 없으나, 향후 부활 아이템 / 치트 모드 / 테스트 시나리오에서
+ *     두 번째 사망 이벤트가 onDead 콜백을 발동하지 않는 침묵 버그로 이어짐.
+ *
+ *   수정: playing 복귀 시 _firedLevelUp, _firedDead 모두 초기화
+ *
+ * 상태 전이 다이어그램:
+ *   playing → levelup : _firedLevelUp=true, _firedDead=false
+ *   playing → dead    : _firedDead=true, _firedLevelUp=false
+ *   levelup → playing : _firedLevelUp=false, _firedDead=false  ← FIX
+ *   dead    → playing : _firedLevelUp=false, _firedDead=false  ← FIX
+ *   any     → paused  : 플래그 변경 없음 (일시정지는 재진입 허용)
  */
 export class PlayModeStateMachine {
   /**
@@ -23,7 +34,6 @@ export class PlayModeStateMachine {
     /** @type {'playing'|'levelup'|'dead'|'paused'} */
     this._prev = 'playing';
 
-    // 각 상태에 대해 콜백을 이미 호출했는지 여부
     this._firedLevelUp = false;
     this._firedDead    = false;
   }
@@ -61,8 +71,13 @@ export class PlayModeStateMachine {
       return true;
     }
 
+    // playing 복귀
     if (currentMode === 'playing' && this._prev !== 'playing') {
+      // FIX(BUG-5): _firedDead도 함께 초기화
+      // 이전 코드는 _firedLevelUp만 초기화 → dead → playing 복귀 후
+      // 다시 dead가 되어도 _firedDead=true로 남아 onDead가 재발동되지 않음
       this._firedLevelUp = false;
+      this._firedDead    = false;
       this._onResume?.();
     }
 

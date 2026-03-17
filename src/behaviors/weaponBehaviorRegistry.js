@@ -1,20 +1,11 @@
 /**
  * src/behaviors/weaponBehaviorRegistry.js
  *
- * 역할:
- *   behaviorId → 실행 함수 매핑 레지스트리.
- *   WeaponSystem이 if/else 분기 없이 behaviorId만으로 동작을 실행할 수 있게 한다.
- *
- * 새 무기 패턴 추가 방법:
- *   1. src/behaviors/weaponBehaviors/myNewBehavior.js 파일 생성
- *   2. 이 파일에 import 추가
- *   3. registry.set('myNewBehavior', myNewBehavior) 한 줄 추가
- *   → WeaponSystem, weaponData 수정 불필요
- *
- * 동작 함수 계약:
- *   ({ weapon, player, enemies, spawnQueue }) => boolean
- *   - true:  발동 성공 → 쿨다운 정상 소비
- *   - false: 발동 실패 (예: 범위 내 적 없음) → WeaponSystem이 쿨다운을 0으로 초기화해 즉시 재시도
+ * CHANGE(P0-①): getRegisteredBehaviorIds() 추가
+ *   - validateData.js가 KNOWN_WEAPON_BEHAVIORS를 하드코딩하지 않고
+ *     이 함수를 import해 자동 동기화하도록 변경.
+ *   - 새 무기 behaviorId 등록 시 레지스트리 1줄 추가만으로
+ *     validateData 검증 목록도 자동 갱신됨.
  */
 
 import { targetProjectile } from './weaponBehaviors/targetProjectile.js';
@@ -24,7 +15,7 @@ import { boomerang }        from './weaponBehaviors/boomerangWeapon.js';
 import { chainLightning }   from './weaponBehaviors/chainLightning.js';
 
 /**
- * @type {Map<string, (ctx: {weapon:object, player:object, enemies:object[], spawnQueue:object[], events?:object}) => boolean>}
+ * @type {Map<string, Function>}
  */
 export const weaponBehaviorRegistry = new Map([
   ['targetProjectile', targetProjectile],
@@ -48,4 +39,15 @@ export function getWeaponBehavior(behaviorId) {
     return targetProjectile;
   }
   return fn;
+}
+
+/**
+ * 현재 등록된 모든 behaviorId 목록을 반환한다.
+ * validateData.js 등 외부 검증 도구가 이 목록을 import해
+ * 하드코딩 없이 자동 동기화할 수 있다.
+ *
+ * @returns {Set<string>}
+ */
+export function getRegisteredBehaviorIds() {
+  return new Set(weaponBehaviorRegistry.keys());
 }

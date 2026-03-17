@@ -1,195 +1,99 @@
 /**
- * EventRegistry — 프레임 이벤트 동적 등록 & 후처리 시스템
+ * src/systems/event/EventRegistry.js
  *
- * WHY (P0-2):
- *   기존 EventBusHandler는 bossPhaseChanged 하나만 하드코딩됨.
- *   상태이상(statusApplied), 보스 연출(bossAnnounce), 콤보(comboHit) 등
- *   이벤트 종류가 늘면 핸들러가 if-else로 비대해지고,
- *   clearFrameEvents()와 createWorld()를 동시에 수정해야 한다.
+ * CHANGE(P2-④): EVENT_TYPES 상수 기반으로 clearAll 자동화
+ *   Before: clearAll(events)에서 각 타입을 수동으로 나열
+ *           → 새 이벤트 타입 추가 시 createWorld.js + EventRegistry 두 곳 수동 동기화
+ *   After:  constants.js의 EVENT_TYPES를 import해 루프 처리
+ *           → 새 이벤트 타입 = EVENT_TYPES 배열에 1줄 추가만
  *
- *   이 모듈은 세 가지를 한 곳에서 관리한다:
- *     1. world.events 필드를 동적으로 등록
- *     2. clearFrameEvents() 대상 자동 포함
- *     3. 핸들러 등록 및 프레임 후처리 실행
- *
- * 사용법:
- *
- *   // Game 초기화 시
- *   EventRegistry.register('bossPhaseChanged', (evt, ctx) => {
- *     if (!evt.enemy) return;
- *     evt.enemy.behaviorId = evt.newBehaviorId;
- *   });
- *
- *   EventRegistry.register('statusApplied', (evt, ctx) => {
- *     evt.target.statusEffects.push(evt.effect);
- *   });
- *
- *   // createWorld()에서
- *   const world = createWorld();
- *   EventRegistry.initWorldEvents(world);   // 등록된 이벤트 배열 자동 생성
- *
- *   // clearFrameEvents()에서 (또는 Pipeline 시작 시)
- *   EventRegistry.clearAll(world.events);
- *
- *   // Pipeline 시스템으로 등록
- *   pipeline.register(EventRegistry.asSystem(), { priority: 105 });
- *
- * 계약:
- *   - 입력: world.events (프레임 이벤트 배열들)
- *   - 읽기: 등록된 핸들러 목록
- *   - 쓰기: world 내 엔티티 상태 (핸들러 내부에서만)
- *   - 출력: 없음 (사이드이펙트만)
+ * 사용 방법:
+ *   EventRegistry.register('hits', handler)  — 핸들러 등록
+ *   EventRegistry.processAll(events)         — 파이프라인 priority 105에서 실행
+ *   EventRegistry.clearAll(events)           — 프레임 후 이벤트 큐 초기화
  */
 
-/** @type {Map<string, (evt: object, ctx: object) => void>} */
+import { EVENT_TYPES } from '../../data/constants.js';
+
+/** @type {Map<string, Function[]>} */
 const _handlers = new Map();
 
-/** @type {Set<string>} */
-const _eventTypes = new Set();
-
 export const EventRegistry = {
-
   /**
-   * 새 이벤트 타입과 핸들러를 등록한다.
-   * 같은 타입을 두 번 등록하면 덮어쓴다 (경고 포함).
+   * 이벤트 타입에 핸들러 함수를 등록한다.
    *
-   * @param {string}   eventType  world.events 의 키 이름 (e.g. 'bossPhaseChanged')
-   * @param {Function} handler    (evt, pipelineContext) => void
+   * @param {string}   eventType  EVENT_TYPES 중 하나
+   * @param {Function} handler    (eventPayload) => void
    */
   register(eventType, handler) {
-    if (typeof handler !== 'function') {
-      console.error(`[EventRegistry] 핸들러가 함수가 아닙니다: "${eventType}"`);
-      return;
+    if (!EVENT_TYPES.includes(eventType)) {
+      console.warn(`[EventRegistry] 알 수 없는 이벤트 타입: "${eventType}". constants.js의 EVENT_TYPES에 추가하세요.`);
     }
-    if (_handlers.has(eventType)) {
-      console.warn(`[EventRegistry] 이벤트 타입 덮어쓰기: "${eventType}"`);
-    }
-    _handlers.set(eventType, handler);
-    _eventTypes.add(eventType);
+    if (!_handlers.has(eventType)) _handlers.set(eventType, []);
+    _handlers.get(eventType).push(handler);
   },
 
   /**
-   * world.events 에 등록된 이벤트 타입별 빈 배열을 추가한다.
-   * createWorld() 직후에 호출한다.
+   * 등록된 모든 핸들러를 현재 프레임의 이벤트 큐로 실행한다.
+   * 파이프라인 priority 105 (EventRegistry asSystem)에서 호출됨.
    *
-   * @param {object} world  createWorld() 결과
+   * @param {object} events  world.events
    */
-  initWorldEvents(world) {
-    if (!world.events) world.events = {};
-    for (const type of _eventTypes) {
-      if (!Array.isArray(world.events[type])) {
-        world.events[type] = [];
+  processAll(events) {
+    for (const eventType of EVENT_TYPES) {
+      const queue = events[eventType];
+      if (!queue || queue.length === 0) continue;
+
+      const handlers = _handlers.get(eventType);
+      if (!handlers || handlers.length === 0) continue;
+
+      for (let i = 0; i < queue.length; i++) {
+        for (let h = 0; h < handlers.length; h++) {
+          try {
+            handlers[h](queue[i]);
+          } catch (e) {
+            console.error(`[EventRegistry] "${eventType}" 핸들러 오류:`, e);
+          }
+        }
       }
     }
   },
 
   /**
-   * 모든 등록된 이벤트 배열을 비운다.
-   * 매 프레임 시작 시 clearFrameEvents() 대신 (또는 함께) 호출한다.
+   * 프레임 내 이벤트 큐를 모두 비운다.
+   *
+   * CHANGE(P2-④): EVENT_TYPES 루프로 자동화
+   *   Before: events.hits.length = 0; events.deaths.length = 0; ... (수동 나열)
+   *   After:  EVENT_TYPES.forEach 루프
    *
    * @param {object} events  world.events
    */
   clearAll(events) {
-    if (!events) return;
-    for (const type of _eventTypes) {
-      if (Array.isArray(events[type])) {
-        events[type].length = 0;
-      }
+    for (const eventType of EVENT_TYPES) {
+      if (events[eventType]) events[eventType].length = 0;
     }
   },
 
   /**
-   * Pipeline 시스템 인터페이스를 반환한다.
-   * pipeline.register(EventRegistry.asSystem(), { priority: 105 }) 형태로 사용.
+   * Pipeline.run() 호환용 update 메서드.
+   * priority 105에 등록해 사용.
    *
-   * @returns {{ update: (ctx: object) => void }}
+   * @param {{ world: { events: object } }} ctx
    */
-  asSystem() {
-    return {
-      update(ctx) {
-        const events = ctx.world?.events;
-        if (!events) return;
-
-        // 프레임 시작 시 사운드 중복 방지 플래그 초기화
-        _soundsPlayedThisFrame.death = false;
-        _soundsPlayedThisFrame.damage = false;
-        _soundsPlayedThisFrame.pickup = false;
-
-        for (const [type, handler] of _handlers) {
-          const list = events[type];
-          if (!list?.length) continue;
-          for (let i = 0; i < list.length; i++) {
-            handler(list[i], ctx);
-          }
-        }
-      },
-    };
+  update(ctx) {
+    this.processAll(ctx.world.events);
+    this.clearAll(ctx.world.events);
   },
 
-  /**
-   * 등록된 이벤트 타입 목록을 반환한다. (디버그용)
-   * @returns {string[]}
-   */
-  inspect() {
-    return [..._eventTypes];
-  },
-
-  /**
-   * 모든 등록을 초기화한다. (테스트용)
-   */
-  _reset() {
+  /** 등록된 모든 핸들러를 제거한다. (테스트 초기화용) */
+  reset() {
     _handlers.clear();
-    _eventTypes.clear();
+  },
+
+  /** 현재 등록된 핸들러 목록 반환 (디버그용) */
+  inspect() {
+    return Object.fromEntries(
+      [..._handlers.entries()].map(([type, handlers]) => [type, handlers.length])
+    );
   },
 };
-
-// ── 기본 핸들러 등록 ─────────────────────────────────────────────
-// 기존 EventBusHandler의 bossPhaseChanged 로직을 그대로 이전
-
-EventRegistry.register('bossPhaseChanged', (evt, _ctx) => {
-  if (!evt.enemy) return;
-  evt.enemy.behaviorId = evt.newBehaviorId;
-  console.debug(
-    `[BossPhase] ${evt.enemyId} phase ${evt.phaseIndex}: ${evt.announceText ?? ''}`,
-  );
-});
-
-// 상태이상 적용 핸들러 (StatusEffectSystem과 연동)
-EventRegistry.register('statusApplied', (evt, _ctx) => {
-  if (!evt.target || !evt.effect) return;
-  if (!Array.isArray(evt.target.statusEffects)) {
-    evt.target.statusEffects = [];
-  }
-  // 같은 타입이 이미 있으면 duration 갱신 (스택 대신 갱신)
-  const existing = evt.target.statusEffects.find(e => e.type === evt.effect.type);
-  if (existing) {
-    existing.duration = Math.max(existing.duration, evt.effect.duration);
-    existing.intensity = evt.effect.intensity ?? existing.intensity;
-  } else {
-    evt.target.statusEffects.push({ ...evt.effect });
-  }
-});
-
-// ── 사운드 핸들러 (P3 Pub/Sub 적용) ──────────────────────────────
-export const _soundsPlayedThisFrame = { death: false, damage: false, pickup: false };
-
-EventRegistry.register('deaths', (evt, ctx) => {
-    if (!_soundsPlayedThisFrame.death) {
-        ctx.services.soundSystem?.play('death');
-        _soundsPlayedThisFrame.death = true;
-    }
-});
-
-EventRegistry.register('hits', (evt, ctx) => {
-    if (evt.target?.type === 'player' && !_soundsPlayedThisFrame.damage) {
-        ctx.services.soundSystem?.play('damage');
-        _soundsPlayedThisFrame.damage = true;
-    }
-});
-
-EventRegistry.register('pickupCollected', (evt, ctx) => {
-    if (!_soundsPlayedThisFrame.pickup) {
-        ctx.services.soundSystem?.play('pickup');
-        _soundsPlayedThisFrame.pickup = true;
-    }
-});

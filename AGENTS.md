@@ -52,6 +52,21 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | P-⑫ WeaponSystem 테스트 | 미존재 | `tests/WeaponSystem.test.js` 추가 |
 | P-⑬ DeathSystem 테스트 | 미존재 | `tests/DeathSystem.test.js` 추가 |
 | P-⑭ 무기 행동 추가 | targetProjectile/orbit/areaBurst 3종 | boomerang, chainLightning 추가 (registry 2줄) |
+| Q-① EliteBehaviorSystem stub | src/systems/movement/EliteBehaviorSystem.js 존재 | 파일 삭제 (re-export stub 제거) |
+| Q-② SpatialGrid 구버전 | src/utils/SpatialGrid.js 미사용 중복 | 파일 삭제 (managers/ 버전 사용) |
+| Q-③ validateData KNOWN_WEAPON_BEHAVIORS | 'boomerang','chainLightning' 누락 | 목록 동기화 수정 |
+| Q-④ createEnemy dead branch | Dummy fallback 후 if (!data) 데드코드 | fallback 제거, 명확한 null 반환 |
+| Q-⑤ validateUpgradeData type 버그 | u.type === 'weapon' (항상 false) | weapon_new/weapon_upgrade로 수정 |
+| P0-① validateData 자동 동기화 | KNOWN_WEAPON_BEHAVIORS 하드코딩 | getRegisteredBehaviorIds() import |
+| P0-② SynergySystem 데이터 경로 | upgradeData 인자 | synergyData.js 직접 import |
+| P1-① 공용 테스트 픽스처 | 각 .test.js 내 중복 선언 | tests/fixtures/index.js 통합 |
+| P1-② SynergySystem 테스트 | 미존재 | tests/SynergySystem.test.js 추가 |
+| P1-② BossPhaseSystem 테스트 | 미존재 | tests/BossPhaseSystem.test.js 추가 |
+| P1-③ sessionState v2 | v1 (best+options만) | v2 + meta{currency, permanentUpgrades} |
+| P2-① drawBehaviorRegistry | drawProjectile.js 분기 | drawBehaviorRegistry 위임 패턴 |
+| P2-② GLOW_THRESHOLD | RenderSystem.js 하드코딩 | constants.js RENDER.GLOW_THRESHOLD |
+| P2-③ npm run profile | 미존재 | scripts/profile.js 헤드리스 시뮬레이션 |
+| P2-④ EventRegistry 자동화 | clearAll 수동 나열 | EVENT_TYPES 루프 |
 
 ---
 

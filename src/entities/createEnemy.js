@@ -1,12 +1,21 @@
 import { generateId }       from '../utils/ids.js';
 import { getEnemyDataById } from '../data/enemyData.js';
 
-/** createEnemy — 적 엔티티 생성 */
+/**
+ * createEnemy — 적 엔티티 생성
+ *
+ * FIX: 기존 코드의 데드코드 제거
+ *   기존: const data = getEnemyDataById(enemyId) || { id: 'zombie', name: 'Dummy', ... }
+ *         → || fallback으로 data가 항상 truthy이므로 바로 아래 if (!data) 분기는
+ *           절대 실행되지 않는 dead branch였음.
+ *   수정: fallback 제거, 조회 실패 시 즉시 null 반환으로 명확화
+ */
 export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
-  const data = getEnemyDataById(enemyId) || {
-    id: 'zombie', name: 'Dummy', hp: 1, moveSpeed: 1, damage: 1, xpValue: 1, radius: 10, color: '#fff'
-  };
-  if (!data) { console.warn(`Unknown enemy id: ${enemyId}`); return null; }
+  const data = getEnemyDataById(enemyId);
+  if (!data) {
+    console.warn(`[createEnemy] Unknown enemy id: "${enemyId}"`);
+    return null;
+  }
   return {
     id:              generateId(),
     type:            'enemy',
@@ -52,7 +61,7 @@ export function resetEnemy(enemy, config) {
   const { enemyId, x, y } = config;
   const data = getEnemyDataById(enemyId);
   if (!data) {
-    console.warn(`[resetEnemy] Unknown enemy id: ${enemyId}`);
+    console.warn(`[resetEnemy] Unknown enemy id: "${enemyId}"`);
     return null;
   }
 

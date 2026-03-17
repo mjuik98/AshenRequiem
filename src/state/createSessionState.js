@@ -1,105 +1,133 @@
 /**
- * createSessionState — 세션 상태 초기화 및 localStorage 연동
+ * src/state/createSessionState.js
  *
- * 역할:
- *   - 최고 기록(킬 수, 생존 시간, 최고 레벨) 영구 저장
- *   - 마지막 런 결과 임시 보관 (결과 화면 표시용)
- *   - 사운드 on/off 등 사용자 옵션 저장
+ * CHANGE(P1-③): MetaProgression을 위한 v2 스키마 추가
+ *   Before (v1): best{ killCount, elapsedTime, playerLevel }, options, last
+ *   After  (v2): + meta{ currency, permanentUpgrades{} }
  *
- * 계약:
- *   - 읽기: localStorage 에서 초기값 복원
- *   - 쓰기: saveSession() 호출 시 localStorage 저장
- *   - 출력: 없음
+ * 마이그레이션 경로:
+ *   v0 → v1 → v2 순차 적용
+ *   기존 사용자의 localStorage 데이터 보존 보장
  *
- * 사용 방법:
- *   // PlayScene.enter()
- *   const session = createSessionState();
- *
- *   // 런 종료 시 (PlayScene._showResultUI 등에서)
- *   updateSessionBest(session, {
- *     killCount:    world.killCount,
- *     elapsedTime:  world.elapsedTime,
- *     playerLevel:  world.player.level,
- *   });
- *   saveSession(session);
- *
- *   // 결과 화면에서 읽기
- *   session.best.killCount   // 역대 최다 킬
- *   session.last.elapsedTime // 이번 런 생존 시간
- *   session.options.soundOn  // 사운드 설정
+ * 새로운 API:
+ *   earnCurrency(session, amount)  — 런 종료 후 재화 누적
+ *   spendCurrency(session, cost)   — 영구 업그레이드 구매
+ *   addPermanentUpgrade(session, upgradeId) — 영구 업그레이드 등록
+ *   hasPermanentUpgrade(session, upgradeId) — 보유 여부 확인
  */
 
 const STORAGE_KEY = 'vamplike_session';
-const CURRENT_STORAGE_VERSION = 1;
+const CURRENT_STORAGE_VERSION = 2;
 
-// ── 타입 정의 (JSDoc) ─────────────────────────────────────────
+// ─── 타입 정의 ────────────────────────────────────────────────────────
+
 /**
  * @typedef {Object} RunResult
- * @property {number} killCount    - 처치 수
- * @property {number} elapsedTime  - 생존 시간 (초)
- * @property {number} playerLevel  - 도달 레벨
+ * @property {number} killCount
+ * @property {number} elapsedTime
+ * @property {number} playerLevel
+ */
+
+/**
+ * @typedef {Object} MetaState
+ * @property {number}          currency           - 누적 재화 (런 간 유지)
+ * @property {Record<string,number>} permanentUpgrades - upgradeId → 레벨
  */
 
 /**
  * @typedef {Object} SessionState
- * @property {number} version    - 스토리지 아키텍처 버전
- * @property {RunResult} best    - 역대 최고 기록
- * @property {RunResult|null} last - 마지막 런 결과
- * @property {{ soundOn: boolean }} options - 사용자 설정
+ * @property {number}        version
+ * @property {RunResult}     best
+ * @property {RunResult|null} last
+ * @property {MetaState}     meta
+ * @property {{ soundOn: boolean }} options
  */
 
-// ── 기본값 ────────────────────────────────────────────────────
+// ─── 기본값 ───────────────────────────────────────────────────────────
 
 function defaultBest() {
   return { killCount: 0, elapsedTime: 0, playerLevel: 1 };
+}
+
+function defaultMeta() {
+  return { currency: 0, permanentUpgrades: {} };
 }
 
 function defaultOptions() {
   return { soundOn: true };
 }
 
-// ── 런타임 마이그레이션 ────────────────────────────────────────
+// ─── 마이그레이션 ────────────────────────────────────────────────────
+
 /**
- * @param {object|null} saved 
+ * localStorage에서 읽은 raw 데이터를 최신 버전 스키마로 변환.
+ *
+ * @param {object|null} saved
  * @returns {SessionState}
  */
 function _migrateSession(saved) {
   if (!saved) {
     return {
       version: CURRENT_STORAGE_VERSION,
-      best: defaultBest(),
-      last: null,
+      best:    defaultBest(),
+      last:    null,
+      meta:    defaultMeta(),
       options: defaultOptions(),
     };
   }
 
-  // 버전이 아예 없던 레거시 대응
-  const v = saved.version || 0;
+  const v = saved.version ?? 0;
+  let state = { ...saved };
 
-  // 마이그레이션 (0 -> 1 등, 현재는 1이 최신이므로 기본 병합만 처리)
-  // if (v < 1) { ... }
-  // if (v < 2) { ... }
+  // v0 → v1: best 필드 정규화
+  if (v < 1) {
+    state = {
+      ...state,
+      version: 1,
+      best: {
+        killCount:   state.best?.killCount   ?? 0,
+        elapsedTime: state.best?.elapsedTime ?? 0,
+        playerLevel: state.best?.playerLevel ?? 1,
+      },
+      options: {
+        soundOn: state.options?.soundOn ?? true,
+      },
+    };
+  }
+
+  // v1 → v2: meta 필드 추가
+  if (v < 2) {
+    state = {
+      ...state,
+      version: 2,
+      meta: {
+        currency:          state.meta?.currency          ?? 0,
+        permanentUpgrades: state.meta?.permanentUpgrades ?? {},
+      },
+    };
+  }
 
   return {
     version: CURRENT_STORAGE_VERSION,
     best: {
-      killCount:   saved.best?.killCount   ?? 0,
-      elapsedTime: saved.best?.elapsedTime ?? 0,
-      playerLevel: saved.best?.playerLevel ?? 1,
+      killCount:   state.best?.killCount   ?? 0,
+      elapsedTime: state.best?.elapsedTime ?? 0,
+      playerLevel: state.best?.playerLevel ?? 1,
     },
     last: null,
+    meta: {
+      currency:          state.meta?.currency          ?? 0,
+      permanentUpgrades: state.meta?.permanentUpgrades ?? {},
+    },
     options: {
-      soundOn: saved.options?.soundOn ?? true,
+      soundOn: state.options?.soundOn ?? true,
     },
   };
 }
 
-// ── 생성 ──────────────────────────────────────────────────────
+// ─── 생성 ─────────────────────────────────────────────────────────────
 
 /**
- * sessionState를 초기화한다.
- * localStorage에 저장된 값이 있으면 복원하고, 없으면 기본값을 사용한다.
- *
  * @returns {SessionState}
  */
 export function createSessionState() {
@@ -107,14 +135,14 @@ export function createSessionState() {
   return _migrateSession(saved);
 }
 
-// ── 갱신 ──────────────────────────────────────────────────────
+// ─── 런 기록 갱신 ────────────────────────────────────────────────────
 
 /**
- * 런 종료 후 최고 기록을 갱신하고 last에 결과를 기록한다.
- * saveSession()을 별도로 호출해야 localStorage에 저장된다.
+ * 런 종료 후 최고 기록을 필드별로 갱신하고 last에 결과를 기록한다.
+ * saveSession()을 별도 호출해야 localStorage에 저장된다.
  *
  * @param {SessionState} session
- * @param {RunResult} result - 이번 런 결과
+ * @param {RunResult}    result
  */
 export function updateSessionBest(session, result) {
   session.last = {
@@ -123,107 +151,103 @@ export function updateSessionBest(session, result) {
     playerLevel: result.playerLevel ?? 1,
   };
 
-  let updated = false;
-
-  if (result.killCount > session.best.killCount) {
-    session.best.killCount = result.killCount;
-    updated = true;
-  }
-  if (result.elapsedTime > session.best.elapsedTime) {
-    session.best.elapsedTime = result.elapsedTime;
-    updated = true;
-  }
-  if (result.playerLevel > session.best.playerLevel) {
-    session.best.playerLevel = result.playerLevel;
-    updated = true;
-  }
-
-  if (updated) {
-    console.debug('[SessionState] 최고 기록 갱신:', session.best);
-  }
+  // 각 축 독립 갱신 — 한 런의 결과로 전체 덮어쓰기 금지
+  if ((result.killCount   ?? 0) > session.best.killCount)   session.best.killCount   = result.killCount;
+  if ((result.elapsedTime ?? 0) > session.best.elapsedTime) session.best.elapsedTime = result.elapsedTime;
+  if ((result.playerLevel ?? 1) > session.best.playerLevel) session.best.playerLevel = result.playerLevel;
 }
 
+// ─── MetaProgression API ─────────────────────────────────────────────
+
 /**
- * 사운드 설정을 변경하고 즉시 저장한다.
+ * 런 종료 후 재화를 누적한다.
  *
  * @param {SessionState} session
- * @param {boolean} enabled
+ * @param {number}       amount   양수만 허용
  */
-export function setSessionSound(session, enabled) {
-  session.options.soundOn = enabled;
-  saveSession(session);
+export function earnCurrency(session, amount) {
+  if (amount <= 0) return;
+  session.meta.currency += Math.floor(amount);
 }
 
-// ── 저장 / 불러오기 ───────────────────────────────────────────
+/**
+ * 영구 업그레이드 구매 시 재화를 차감한다.
+ * 잔액 부족 시 false 반환.
+ *
+ * @param {SessionState} session
+ * @param {number}       cost
+ * @returns {boolean}
+ */
+export function spendCurrency(session, cost) {
+  if (cost <= 0 || session.meta.currency < cost) return false;
+  session.meta.currency -= cost;
+  return true;
+}
 
 /**
- * 현재 세션 상태를 localStorage에 저장한다.
- * last는 저장하지 않는다 (런 임시 데이터이므로).
+ * 영구 업그레이드를 추가하거나 레벨을 올린다.
+ *
+ * @param {SessionState} session
+ * @param {string}       upgradeId
+ * @param {number}       [delta=1]
+ */
+export function addPermanentUpgrade(session, upgradeId, delta = 1) {
+  const current = session.meta.permanentUpgrades[upgradeId] ?? 0;
+  session.meta.permanentUpgrades[upgradeId] = current + delta;
+}
+
+/**
+ * 특정 영구 업그레이드 보유 여부 확인.
+ *
+ * @param {SessionState} session
+ * @param {string}       upgradeId
+ * @returns {boolean}
+ */
+export function hasPermanentUpgrade(session, upgradeId) {
+  return (session.meta.permanentUpgrades[upgradeId] ?? 0) > 0;
+}
+
+/**
+ * 특정 영구 업그레이드 레벨 반환.
+ *
+ * @param {SessionState} session
+ * @param {string}       upgradeId
+ * @returns {number}
+ */
+export function getPermanentUpgradeLevel(session, upgradeId) {
+  return session.meta.permanentUpgrades[upgradeId] ?? 0;
+}
+
+// ─── 저장 / 로드 ──────────────────────────────────────────────────────
+
+/**
+ * localStorage에 세션 저장. last는 저장하지 않음.
  *
  * @param {SessionState} session
  */
 export function saveSession(session) {
   try {
-    const payload = {
-      version: CURRENT_STORAGE_VERSION,
+    const toSave = {
+      version: session.version,
       best:    session.best,
+      meta:    session.meta,
       options: session.options,
-      savedAt: Date.now(),
+      // last는 의도적으로 제외 (임시 결과 — 영구 저장 불필요)
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
-    // localStorage 쓰기 실패 (프라이빗 브라우저 모드 등) — 무음 처리
-    console.warn('[SessionState] localStorage 저장 실패:', e.message);
+    console.warn('[createSessionState] localStorage 저장 실패:', e.message);
   }
 }
 
 /**
- * localStorage에서 세션 데이터를 불러온다.
- * 파싱 실패 또는 데이터 없음이면 null 반환.
- *
  * @returns {object|null}
- * @private
  */
 function _loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    console.warn('[SessionState] localStorage 읽기 실패 — 기본값 사용');
     return null;
   }
-}
-
-/**
- * 저장된 기록을 초기화한다.
- * (설정 화면 "기록 초기화" 버튼 등에서 사용)
- *
- * @param {SessionState} session
- */
-export function resetSession(session) {
-  session.version = CURRENT_STORAGE_VERSION;
-  session.best    = defaultBest();
-  session.last    = null;
-  session.options = defaultOptions();
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // 무음 처리
-  }
-  console.debug('[SessionState] 기록 초기화 완료');
-}
-
-// ── 유틸: 표시용 포맷 ────────────────────────────────────────
-
-/**
- * 생존 시간을 "MM:SS" 형식으로 변환한다.
- *
- * @param {number} seconds
- * @returns {string}
- */
-export function formatElapsedTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }

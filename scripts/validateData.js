@@ -2,11 +2,15 @@
 /**
  * scripts/validateData.js — 데이터 무결성 검증
  *
- * ▶ 다운로드 개선판의 로직을 통합하여 검증 항목 강화
+ * CHANGE(P0-①): KNOWN_WEAPON_BEHAVIORS 하드코딩 제거
+ *   Before: const KNOWN_WEAPON_BEHAVIORS = new Set(['targetProjectile', 'orbit', 'areaBurst']);
+ *           → 새 behaviorId 추가 시 이 파일도 수동 업데이트 필요 (드리프트 위험)
+ *   After:  weaponBehaviorRegistry에서 getRegisteredBehaviorIds()를 import해 자동 동기화
+ *           → 레지스트리에 등록하면 즉시 검증 목록에 반영됨
  */
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+import { getRegisteredBehaviorIds } from '../src/behaviors/weaponBehaviorRegistry.js';
+import { listEnemyBehaviors }       from '../src/behaviors/enemyBehaviors/enemyBehaviorRegistry.js';
 
 let errors   = 0;
 let warnings = 0;
@@ -15,9 +19,11 @@ function err(msg)  { console.error(`  ✗ ${msg}`);   errors++; }
 function warn(msg) { console.warn(`  ⚠ ${msg}`);    warnings++; }
 function ok(msg)   { console.log(`  ✓ ${msg}`); }
 
-// 알려진 behaviorId 목록 (레지스트리와 동기화)
-const KNOWN_WEAPON_BEHAVIORS = new Set(['targetProjectile', 'orbit', 'areaBurst']);
-const KNOWN_ENEMY_BEHAVIORS  = new Set(['chase', 'charge', 'circle', 'keepDistance', 'swarm', 'dash', 'circle_dash']);
+// ── 레지스트리에서 동적으로 로드 ─────────────────────────────────────
+// 추가/삭제 시 이 파일 수정 불필요 — 레지스트리만 관리하면 됨
+const KNOWN_WEAPON_BEHAVIORS = getRegisteredBehaviorIds();
+// 엘리트 전용 하드코딩 behaviorId ('dash', 'circle_dash') 예외 추가
+const KNOWN_ENEMY_BEHAVIORS  = new Set([...listEnemyBehaviors(), 'dash', 'circle_dash']);
 
 function checkNoDuplicateIds(arr, label) {
   const seen = new Set();
@@ -39,15 +45,17 @@ async function loadData() {
     { upgradeData },
     { waveData },
     { statusEffectData },
+    { synergyData },
   ] = await Promise.all([
     import('../src/data/enemyData.js'),
     import('../src/data/weaponData.js'),
     import('../src/data/upgradeData.js'),
     import('../src/data/waveData.js'),
     import('../src/data/statusEffectData.js'),
+    import('../src/data/synergyData.js'),
   ]);
 
-  return { enemyData, weaponData, upgradeData, waveData, statusEffectData };
+  return { enemyData, weaponData, upgradeData, waveData, statusEffectData, synergyData };
 }
 
 function validateEnemyData(enemyData) {
@@ -66,11 +74,10 @@ function validateEnemyData(enemyData) {
     if (e.hp <= 0)          err(`enemy "${e.id}": hp(${e.hp}) <= 0`);
     if (e.moveSpeed < 0)    err(`enemy "${e.id}": moveSpeed(${e.moveSpeed}) < 0`);
     if (e.radius <= 0)      err(`enemy "${e.id}": radius(${e.radius}) <= 0`);
-    
+
     if (e.behaviorId && !KNOWN_ENEMY_BEHAVIORS.has(e.behaviorId)) {
       warn(`enemy "${e.id}": behaviorId "${e.behaviorId}"가 레지스트리에 없음 (오타 확인)`);
     }
-
     if (e.deathSpawn) {
       if (!enemyIds.has(e.deathSpawn.enemyId)) {
         err(`enemy "${e.id}": deathSpawn.enemyId "${e.deathSpawn.enemyId}" 존재하지 않음`);
@@ -92,93 +99,98 @@ function validateWeaponData(weaponData) {
         err(`weapon "${w.id}": 필수 필드 "${field}" 없음`);
       }
     }
-    if (w.cooldown <= 0)  err(`weapon "${w.id}": cooldown은 양수여야 함`);
-    if (w.maxLevel < 1)   err(`weapon "${w.id}": maxLevel은 1 이상이어야 함`);
-    if (w.damage < 0)     err(`weapon "${w.id}": damage는 0 이상이어야 함`);
-    
+    if (w.cooldown <= 0)  err(`weapon "${w.id}": cooldown(${w.cooldown}) <= 0`);
+    if (w.damage  < 0)    err(`weapon "${w.id}": damage(${w.damage}) < 0`);
+    if (w.maxLevel < 1)   err(`weapon "${w.id}": maxLevel(${w.maxLevel}) < 1`);
+
+    // CHANGE(P0-①): 레지스트리에서 동적으로 검증 — 하드코딩 불필요
     if (w.behaviorId && !KNOWN_WEAPON_BEHAVIORS.has(w.behaviorId)) {
-      warn(`weapon "${w.id}": behaviorId "${w.behaviorId}"가 레지스트리에 없음 (오타 확인)`);
+      warn(`weapon "${w.id}": behaviorId "${w.behaviorId}"가 레지스트리에 없음 (오타 또는 미등록)`);
     }
   }
   ok(`총 ${weaponData.length}개 검증 완료`);
 }
 
-function validateUpgradeData(upgradeData, weaponIds) {
+function validateUpgradeData(upgradeData) {
   console.log('\n[upgradeData]');
   checkNoDuplicateIds(upgradeData, 'upgradeData');
 
   for (const u of upgradeData) {
-    if (!u.id)          { err(`upgrade: id 없음`); continue; }
-    if (!u.type)        err(`upgrade "${u.id}": type 없음`);
-    if (!u.name)        err(`upgrade "${u.id}": name 없음`);
-    if (u.maxLevel < 1) err(`upgrade "${u.id}": maxLevel은 1 이상이어야 함`);
-
-    if (u.type === 'weapon' && u.weaponId) {
-      if (!weaponIds.has(u.weaponId)) {
-        err(`upgrade "${u.id}": weaponId "${u.weaponId}" 존재하지 않음`);
-      }
+    if (!u.id)   { err(`upgrade: id 없음`); continue; }
+    if (!u.name) err(`upgrade "${u.id}": name 없음`);
+    if (u.maxCount !== undefined && u.maxCount < 1) {
+      warn(`upgrade "${u.id}": maxCount(${u.maxCount}) < 1`);
     }
   }
   ok(`총 ${upgradeData.length}개 검증 완료`);
 }
 
-function validateWaveData(waveData, enemyIds) {
+function validateSynergyData(synergyData, upgradeData, weaponData) {
+  console.log('\n[synergyData]');
+  checkNoDuplicateIds(synergyData, 'synergyData');
+
+  const upgradeIds = getIds(upgradeData);
+  const weaponIds = getIds(weaponData);
+
+  for (const s of synergyData) {
+    if (!s.id)      { err(`synergy: id 없음`); continue; }
+    if (!s.name)    err(`synergy "${s.id}": name 없음`);
+    if (!s.requires || s.requires.length < 2) {
+      warn(`synergy "${s.id}": requires 항목이 2개 미만 — 시너지 의미 없음`);
+    }
+    for (const reqId of (s.requires ?? [])) {
+      if (!upgradeIds.has(reqId) && !weaponIds.has(reqId)) {
+        warn(`synergy "${s.id}": requires "${reqId}"가 upgradeData 및 weaponData에 없음`);
+      }
+    }
+    if (!s.bonus || Object.keys(s.bonus).length === 0) {
+      warn(`synergy "${s.id}": bonus가 비어있음`);
+    }
+  }
+  ok(`총 ${synergyData.length}개 검증 완료`);
+}
+
+function validateWaveData(waveData, enemyData) {
   console.log('\n[waveData]');
+  const enemyIds = getIds(enemyData);
 
-  for (let i = 0; i < waveData.length; i++) {
-    const w = waveData[i];
-    const label = `waveData[${i}]`;
-
-    if (w.from >= w.to)          err(`${label}: from(${w.from}) >= to(${w.to})`);
-    if (w.spawnPerSecond < 0)    err(`${label}: spawnPerSecond는 0 이상이어야 함`);
-    
-    for (const enemyId of (w.enemyIds ?? [])) {
-      if (!enemyIds.has(enemyId)) {
-        err(`${label}: enemyPool에 "${enemyId}" 존재하지 않음`);
+  for (const w of waveData) {
+    if (w.from >= w.to) err(`wave [${w.from}~${w.to}]: from >= to`);
+    if (w.spawnPerSecond <= 0) err(`wave [${w.from}~${w.to}]: spawnPerSecond <= 0`);
+    for (const eid of (w.enemyIds ?? [])) {
+      if (!enemyIds.has(eid)) {
+        err(`wave [${w.from}~${w.to}]: enemyId "${eid}" 존재하지 않음`);
       }
     }
   }
   ok(`총 ${waveData.length}개 검증 완료`);
 }
 
-function validateStatusEffectData(statusEffectData) {
-  console.log('\n[statusEffectData]');
-  const entries = Object.values(statusEffectData);
-  checkNoDuplicateIds(entries, 'statusEffectData');
-  ok(`총 ${entries.length}개 검증 완료`);
-}
-
 async function main() {
-  console.log('╔══════════════════════════════════════╗');
-  console.log('║   AshenRequiem 데이터 검증             ║');
-  console.log('╚══════════════════════════════════════╝');
+  console.log('=== 데이터 무결성 검증 시작 ===');
+  console.log(`등록된 무기 behaviorId: [${[...KNOWN_WEAPON_BEHAVIORS].join(', ')}]`);
+  console.log(`등록된 적 behaviorId:   [${[...KNOWN_ENEMY_BEHAVIORS].join(', ')}]`);
 
   let data;
   try {
     data = await loadData();
   } catch (e) {
-    console.error('\n[FATAL] 데이터 파일 로드 실패:', e.message);
+    console.error('데이터 로드 실패:', e.message);
     process.exit(1);
   }
 
-  const { enemyData, weaponData, upgradeData, waveData, statusEffectData } = data;
-  const enemyIds  = getIds(enemyData);
-  const weaponIds = getIds(weaponData);
+  validateEnemyData(data.enemyData);
+  validateWeaponData(data.weaponData);
+  validateUpgradeData(data.upgradeData);
+  validateSynergyData(data.synergyData, data.upgradeData, data.weaponData);
+  validateWaveData(data.waveData, data.enemyData);
 
-  validateEnemyData(enemyData);
-  validateWeaponData(weaponData);
-  validateUpgradeData(upgradeData, weaponIds);
-  validateWaveData(waveData, enemyIds);
-  validateStatusEffectData(statusEffectData);
+  console.log('\n=== 결과 ===');
+  if (errors > 0)   console.error(`오류 ${errors}개`);
+  if (warnings > 0) console.warn(`경고 ${warnings}개`);
+  if (errors === 0 && warnings === 0) console.log('모든 검증 통과 ✓');
 
-  console.log('\n══════════════════════════════════════');
-  if (errors > 0) {
-    console.error(`결과: ✗ ${errors}개 오류, ${warnings}개 경고`);
-    process.exit(1);
-  } else {
-    console.log(`결과: ✓ 오류 없음 (경고 ${warnings}개)`);
-    process.exit(0);
-  }
+  process.exit(errors > 0 ? 1 : 0);
 }
 
 main();
