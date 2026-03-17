@@ -20,6 +20,23 @@ export const ProjectileSystem = {
         p.lifetime += deltaTime;
         if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
 
+      } else if (p.behaviorId === 'boomerang') {
+        const dist = p.speed * deltaTime;
+        p.x += p.dirX * dist;
+        p.y += p.dirY * dist;
+        p.distanceTraveled += dist;
+        // 절반 거리 도달 시 반전
+        if (!p._reversed && p.distanceTraveled >= p.maxRange / 2) {
+          p.dirX *= -1;
+          p.dirY *= -1;
+          p._reversed = true;
+        }
+        // 전체 거리(왕복) 소멸
+        if (p.distanceTraveled >= p.maxRange) {
+          p.isAlive = false;
+          p.pendingDestroy = true;
+        }
+
       } else {
         const dist = p.speed * deltaTime;
         p.x += p.dirX * dist;

@@ -20,14 +20,18 @@
 import { targetProjectile } from './weaponBehaviors/targetProjectile.js';
 import { orbit }            from './weaponBehaviors/orbit.js';
 import { areaBurst }        from './weaponBehaviors/areaBurst.js';
+import { boomerang }        from './weaponBehaviors/boomerang.js';
+import { chainLightning }   from './weaponBehaviors/chainLightning.js';
 
 /**
- * @type {Map<string, (ctx: {weapon:object, player:object, enemies:object[], spawnQueue:object[]}) => boolean>}
+ * @type {Map<string, (ctx: {weapon:object, player:object, enemies:object[], spawnQueue:object[], events?:object}) => boolean>}
  */
 export const weaponBehaviorRegistry = new Map([
   ['targetProjectile', targetProjectile],
   ['orbit',            orbit],
   ['areaBurst',        areaBurst],
+  ['boomerang',        boomerang],
+  ['chainLightning',   chainLightning],
 ]);
 
 /**

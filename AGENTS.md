@@ -16,47 +16,72 @@ The goal is a **stable, playable combat loop**.
 | P1-③ EliteBehaviorSystem | `systems/movement/` | `systems/combat/` |
 | P2-④ Enemy pooling | `createEnemy()` | `ObjectPool` with `resetEnemy()` |
 | P2-⑤ Camera state | `PlayScene.this.camera` | `world.camera` |
-| P3-⑨ StatusEffect | switch/if in System | `statusEffectRegistry` handlers |
 | P3-⑥ CollisionSystem 테스트 | 미존재 | `tests/CollisionSystem.test.js` 추가 |
 | P3-⑦ UpgradeSystem 테스트 | 미존재 | `tests/UpgradeSystem.test.js` 추가 |
 | P3-⑧ StatusEffectSystem 테스트 | 미존재 | `tests/StatusEffectSystem.test.js` 추가 |
-| P3-⑨ AssetManager | 미존재 (canvas 직접 그리기만 사용) | `src/managers/AssetManager.js` 최소 인터페이스 |
-| P3-⑩ createSessionState | 기본 객체 리터럴, localStorage 없음 | localStorage 연동 + updateSessionBest() 추가 |
+| P3-⑨ StatusEffect | switch/if in System | `statusEffectRegistry` handlers |
+| P3-⑩ AssetManager | 미존재 (canvas 직접 그리기만 사용) | `src/managers/AssetManager.js` 최소 인터페이스 |
+| P3-⑪ createSessionState | 기본 객체 리터럴, localStorage 없음 | localStorage 연동 + updateSessionBest() 추가 |
 | P-① WeaponSystem 리팩터링 | if/else behaviorId 분기 | `weaponBehaviorRegistry` 위임 패턴 |
 | P-② 무기 동작 파일 분리 | WeaponSystem 내부 인라인 | `behaviors/weaponBehaviors/*.js` |
 | P-③ SynergySystem 추가 | 미존재 | `systems/progression/SynergySystem.js` |
 | P-④ 테스트 자동화 | 개별 node 실행 | `npm test` → `scripts/runTests.js` |
 | P-⑤ Vite 빌드 도입 | 없음 (bare ES module) | `vite.config.js` |
+| P-⑥ PlayContext 도입 | PlayScene이 pool·service 직접 소유 | `src/core/PlayContext.js` 컨테이너 분리 |
+| P-⑦ Pipeline.js 도입 | `_runGamePipeline()` 수동 호출 | `src/core/Pipeline.js` — priority 기반 등록/실행 |
+| P-⑧ EventRegistry 추가 | EventBusHandler 단일 파일 | `src/systems/event/EventRegistry.js` — 타입별 핸들러 등록 |
+| P-⑨ BossPhaseSystem 추가 | 미존재 | `src/systems/spawn/BossPhaseSystem.js` |
+| P-⑩ PipelineProfiler 추가 | 미존재 | `src/systems/debug/PipelineProfiler.js` |
+| P-⑪ SoundSystem 추가 | 미존재 | `src/systems/sound/SoundSystem.js` |
+| P-⑫ WeaponSystem 테스트 | 미존재 | `tests/WeaponSystem.test.js` 추가 |
+| P-⑬ DeathSystem 테스트 | 미존재 | `tests/DeathSystem.test.js` 추가 |
+| P-⑭ 무기 행동 추가 | targetProjectile/orbit/areaBurst 3종 | boomerang, chainLightning 추가 (registry 2줄) |
 
 ## Standard Frame Pipeline
-`PlayScene._runGamePipeline()`:
-1. clear events
-2. update time
-3. SpawnSystem (instance)
-4. Player movement
-5. Enemy movement
-6. EliteBehaviorSystem
-7. WeaponSystem
-8. ProjectileSystem
-9. CollisionSystem (uses `world.camera`)
-10. StatusEffectSystem
-11. DamageSystem
-12. DeathSystem
-13. ExperienceSystem
-14. LevelSystem
-15. FlushSystem (with enemy pool)
-16. CameraSystem -> `world.camera`
-17. RenderSystem
+`PlayContext.buildPipeline()` → `Pipeline` 인스턴스에 등록된 순서 (priority 오름차순):
+
+| Priority | System |
+|----------|--------|
+| 10  | SpawnSystem (instance) |
+| 20  | PlayerMovementSystem |
+| 30  | EnemyMovementSystem |
+| 35  | EliteBehaviorSystem |
+| 40  | WeaponSystem |
+| 50  | ProjectileSystem |
+| 60  | CollisionSystem |
+| 65  | StatusEffectSystem |
+| 70  | DamageSystem |
+| 75  | BossPhaseSystem |
+| 80  | DeathSystem |
+| 90  | ExperienceSystem |
+| 100 | LevelSystem |
+| 105 | EventRegistry (asSystem) |
+| 110 | FlushSystem (instance) |
+| 120 | CameraSystem |
+| 130 | RenderSystem |
+
+Pipeline context 구조:
+```js
+{ world, input, data, services }
+// services: { projectilePool, effectPool, enemyPool, pickupPool, soundSystem, canvas }
+```
 
 ## Validation & Tests
 ```bash
-node scripts/validateData.js
+npm run validate
+npm test
+```
+
+개별 실행:
+```bash
 node --experimental-vm-modules tests/DamageSystem.test.js
+node --experimental-vm-modules tests/DeathSystem.test.js
 node --experimental-vm-modules tests/ExperienceSystem.test.js
 node --experimental-vm-modules tests/SpawnSystem.test.js
 node --experimental-vm-modules tests/CollisionSystem.test.js
 node --experimental-vm-modules tests/UpgradeSystem.test.js
 node --experimental-vm-modules tests/StatusEffectSystem.test.js
+node --experimental-vm-modules tests/WeaponSystem.test.js
 ```
 
 ## AI Agent Rules Extensions
@@ -73,18 +98,32 @@ node --experimental-vm-modules tests/StatusEffectSystem.test.js
 
 ### 무기 동작 추가 규칙
 - 새 무기 패턴 추가 시 `src/behaviors/weaponBehaviors/` 아래 파일 생성
-- `weaponBehaviorRegistry.js`에 `registry.set('newBehaviorId', fn)` 한 줄 추가
+- `weaponBehaviorRegistry.js`에 import + `registry.set('newBehaviorId', fn)` 2줄 추가
 - **WeaponSystem.js는 수정하지 않는다** — 레지스트리만 수정
-- behavior 함수 시그니처: `({ weapon, player, enemies, spawnQueue }) => boolean`
+- behavior 함수 시그니처: `({ weapon, player, enemies, spawnQueue, events? }) => boolean`
   - `true`: 발동 성공 (쿨다운 정상 소비)
   - `false`: 발동 실패 (WeaponSystem이 쿨다운 0으로 초기화 → 즉시 재시도)
+- 즉발 공격(투사체 없음)은 `events.hits`에 직접 기록해도 된다. (chainLightning 패턴 참조)
+- boomerang처럼 ProjectileSystem에 추가 분기가 필요한 경우: 파일 상단 주석에 해당 코드를 명시한다.
 
 ### SynergySystem 사용 규칙
 - `SynergySystem.applyAll()` 호출 시점: `UpgradeSystem.applyUpgrade()` 직후
-- 시너지 정의는 `upgradeData.js` 안에 `requires[]` 배열로 작성
+- 시너지 정의는 `src/data/synergyData.js` 에 작성 (upgradeData.js와 분리됨)
 - 시너지는 매번 전체 재계산 방식 — 부분 취소 없음
 
+### PlayContext / Pipeline 규칙
+- Pool·Service 초기화는 반드시 `PlayContext.create()` 안에서만 한다.
+- Pipeline 시스템 등록은 `PlayContext.buildPipeline()` 안에서만 한다.
+- 시스템을 일시적으로 끄려면 `PlayContext.setSystemEnabled(system, false)` 사용.
+- Pipeline context(`{ world, input, data, services }`)를 전체 전달하지 않고 시스템이 필요한 필드만 구조분해해서 쓴다.
+
+### EventRegistry 규칙
+- 새 이벤트 타입은 `EventRegistry.register('eventType', handler)` 로 등록한다.
+- 이벤트는 `world.events.{type}` 배열에 push 하고, EventRegistry가 매 프레임 소비한다.
+- `EventRegistry.clearAll(events)` 는 Pipeline priority 105 시점에 자동 처리된다.
+
 ### 테스트 규칙 (기존 규칙 보강)
-- `npm test` 로 전체 테스트 실행 (scripts/runTests.js)
+- `npm test` 로 전체 테스트 실행 (scripts/runTests.js — tests/*.test.js 자동 탐색)
 - `npm run validate` 로 데이터 무결성 검증 (scripts/validateData.js)
 - `pretest` 훅이 validate를 자동 실행하므로 npm test 전에 별도 실행 불필요
+- AGENTS.md 변경 로그에 반드시 새 항목을 추가한다.
