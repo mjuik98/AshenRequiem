@@ -1,13 +1,14 @@
-import { GameConfig, }            from '../../core/GameConfig.js';
-import { RENDER_CULL_MARGIN }     from '../../data/constants.js';
+import { GameConfig }  from '../../core/GameConfig.js';
+import { RENDER }       from '../../data/constants.js';
 
 /**
  * RenderSystem — 렌더링 순서 제어
  *
  * PERF: effects 이중 순회 → 단일 순회 + _damageTextBuffer/다른 이펙트 별도 렌더
  * PERF: 화면 밖 적 / 투사체 / 픽업 렌더 스킵 (culling)
+ *
+ * FIX(P2-②): 로컬 `const GLOW_THRESHOLD = 50` 제거 → constants.js RENDER.GLOW_THRESHOLD 사용
  */
-const GLOW_THRESHOLD = 50;
 
 export const RenderSystem = {
   // PERF: 매 프레임 재사용 버퍼 (new Array 할당 방지)
@@ -21,16 +22,16 @@ export const RenderSystem = {
     renderer.clear();
     renderer.drawBackground(camera);
 
-    const lowQuality = world.projectiles.length > GLOW_THRESHOLD;
+    const lowQuality = world.projectiles.length > RENDER.GLOW_THRESHOLD;
     renderer.setQuality(lowQuality);
 
     const timestamp = performance.now() / 1000;
 
     // 컬링 경계 계산
-    const cMinX = camera.x - RENDER_CULL_MARGIN;
-    const cMaxX = camera.x + GameConfig.canvasWidth  + RENDER_CULL_MARGIN;
-    const cMinY = camera.y - RENDER_CULL_MARGIN;
-    const cMaxY = camera.y + GameConfig.canvasHeight + RENDER_CULL_MARGIN;
+    const cMinX = camera.x - RENDER.CULL_MARGIN;
+    const cMaxX = camera.x + GameConfig.canvasWidth  + RENDER.CULL_MARGIN;
+    const cMinY = camera.y - RENDER.CULL_MARGIN;
+    const cMaxY = camera.y + GameConfig.canvasHeight + RENDER.CULL_MARGIN;
 
     // 픽업
     this._pickupBuffer.length = 0;

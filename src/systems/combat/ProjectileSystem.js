@@ -31,20 +31,29 @@ export const ProjectileSystem = {
           p.distanceTraveled = p.maxRange / 2; // 안전장치
         }
         
-        if (p._reversed && player) {
-          // 플레이어 쪽으로 방향 갱신
-          const dx = player.x - p.x;
-          const dy = player.y - p.y;
-          const distSq = dx * dx + dy * dy;
-          
-          if (distSq < 400) { // 원점(플레이어) 도달 시 소멸
-            p.distanceTraveled = p.maxRange; 
+        if (p._reversed) {
+          // FIX(BUG-C): player가 null이면 귀환 대상이 없으므로 즉시 소멸
+          // Before: if (p._reversed && player) { ... }  ← player 없으면 분기 미진입 → 무한 이동
+          // After:  player 없으면 else에서 즉시 소멸 처리
+          if (!player) {
             p.isAlive = false;
             p.pendingDestroy = true;
           } else {
-            const len = Math.sqrt(distSq);
-            p.dirX = len > 0 ? dx / len : 0;
-            p.dirY = len > 0 ? dy / len : 0;
+            // 플레이어 쪽으로 방향 갱신
+            const dx     = player.x - p.x;
+            const dy     = player.y - p.y;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq < 400) {
+              // 플레이어 도달 → 소멸
+              p.distanceTraveled = p.maxRange;
+              p.isAlive          = false;
+              p.pendingDestroy   = true;
+            } else {
+              const len = Math.sqrt(distSq);
+              p.dirX = len > 0 ? dx / len : 0;
+              p.dirY = len > 0 ? dy / len : 0;
+            }
           }
         }
         // 전체 거리가 아닌 플레이어 도달 시에만 소멸하도록 변경

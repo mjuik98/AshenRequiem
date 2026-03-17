@@ -39,8 +39,17 @@ export const EnemyMovementSystem = {
       // 스턴 중
       if (e.stunned) continue;
 
+      // FIX(BUG-B): slow 상태이상 배율 적용
+      // Before: behaviorFn(e, { player, enemies, deltaTime })
+      // After:  slow가 있으면 effectiveDeltaTime을 축소하여 이동 속도 감소를 반영.
+      //         behaviorFn은 deltaTime을 이동 거리 계산에 사용하므로
+      //         deltaTime을 줄이는 것으로 모든 behavior 패턴에 투명하게 적용된다.
+      const slowEffect  = e.statusEffects?.find(eff => eff.type === 'slow');
+      const speedMult   = slowEffect ? Math.max(0, 1 - slowEffect.magnitude) : 1;
+      const effectiveDt = deltaTime * speedMult;
+
       const behaviorFn = getEnemyBehavior(e.behaviorId || 'chase');
-      behaviorFn(e, { player, enemies, deltaTime });
+      behaviorFn(e, { player, enemies, deltaTime: effectiveDt });
     }
 
     // PERF: SpatialGrid 기반 Separation (개체 수 제한 해제)

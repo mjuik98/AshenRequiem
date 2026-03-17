@@ -118,6 +118,15 @@ function validateUpgradeData(upgradeData) {
   for (const u of upgradeData) {
     if (!u.id)   { err(`upgrade: id 없음`); continue; }
     if (!u.name) err(`upgrade "${u.id}": name 없음`);
+
+    // [Q-⑤] FIX: u.type === 'weapon' 은 항상 false였음
+    //   실제 값은 'weapon_new' 또는 'weapon_upgrade'
+    if (u.type === 'weapon_new' || u.type === 'weapon_upgrade') {
+      if (!u.weaponId) {
+        err(`upgrade "${u.id}": type="${u.type}"인데 weaponId 없음`);
+      }
+    }
+
     if (u.maxCount !== undefined && u.maxCount < 1) {
       warn(`upgrade "${u.id}": maxCount(${u.maxCount}) < 1`);
     }

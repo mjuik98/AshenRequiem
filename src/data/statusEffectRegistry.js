@@ -24,6 +24,12 @@ export const statusEffectRegistry = {
     },
     onTick(entity, effect, deltaTime, events) {
       if (effect.tickInterval <= 0) return;
+
+      // FIX(BUG-D-2): events?.hits 방어 가드
+      // Before: events.hits.push(...)  ← events가 없으면 TypeError
+      // After:  events?.hits가 없으면 조기 반환
+      if (!events?.hits) return;
+
       effect.tickAccumulator = (effect.tickAccumulator || 0) + deltaTime;
       while (effect.tickAccumulator >= effect.tickInterval) {
         effect.tickAccumulator -= effect.tickInterval;

@@ -75,7 +75,6 @@ export const SynergySystem = {
    *
    * @param {object} player
    * @param {object} bonus  synergyData의 bonus 필드
-   * @private
    */
   _applyBonus(player, bonus) {
     if (!bonus) return;
@@ -90,19 +89,13 @@ export const SynergySystem = {
     if (typeof bonus.lifestealDelta === 'number') {
       player.lifesteal = Math.min(1, (player.lifesteal ?? 0) + bonus.lifestealDelta);
     }
-    if (typeof bonus.magnetRadiusDelta === 'number') {
-      player.magnetRadius = (player.magnetRadius ?? 0) + bonus.magnetRadiusDelta;
+    if (typeof bonus.magnetDelta === 'number') {
+      player.magnetRadius = (player.magnetRadius ?? 60) + bonus.magnetDelta;
     }
-
-    // 무기 개별 강화
-    if (bonus.weaponId && Array.isArray(player.weapons)) {
-      const weapon = player.weapons.find(w => w.id === bonus.weaponId);
-      if (weapon) {
-        if (typeof bonus.damageDelta    === 'number') weapon.damage   += bonus.damageDelta;
-        if (typeof bonus.cooldownMult   === 'number') weapon.cooldown  = Math.max(0.05, weapon.cooldown * bonus.cooldownMult);
-        if (typeof bonus.pierceDelta    === 'number') weapon.pierce   += bonus.pierceDelta;
-        if (typeof bonus.orbitRadiusDelta === 'number') weapon.orbitRadius = (weapon.orbitRadius ?? 80) + bonus.orbitRadiusDelta;
-      }
+    // 특정 무기 강화 보너스 (weaponId 지정)
+    if (bonus.weaponId && typeof bonus.damageDelta === 'number') {
+      const weapon = player.weapons?.find(w => w.id === bonus.weaponId);
+      if (weapon) weapon.damage += bonus.damageDelta;
     }
   },
 };

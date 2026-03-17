@@ -10,8 +10,18 @@ import { getEnemyDataById } from '../data/enemyData.js';
  *           절대 실행되지 않는 dead branch였음.
  *   수정: fallback 제거, 조회 실패 시 즉시 null 반환으로 명확화
  */
+/**
+ * 새 적 엔티티를 생성한다.
+ *
+ * @param {string} enemyId
+ * @param {number} x
+ * @param {number} y
+ * @returns {object|null}  알 수 없는 enemyId면 null 반환
+ */
 export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
   const data = getEnemyDataById(enemyId);
+
+  // [Q-④] FIX: fallback 제거 → 명확한 null 반환
   if (!data) {
     console.warn(`[createEnemy] Unknown enemy id: "${enemyId}"`);
     return null;

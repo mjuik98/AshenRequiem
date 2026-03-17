@@ -1,3 +1,5 @@
+import { EVENT_TYPES } from '../data/constants.js';
+
 /** @see worldTypes.js for WorldState typedef */
 /** createWorld — 월드 상태 초기화 */
 export function createWorld() {
@@ -12,8 +14,8 @@ export function createWorld() {
     effects: [],
     pickups: [],
 
-    // CHANGE(P0-2): EventRegistry를 통한 이벤트 필드 동적 등록
-    events: {},
+    // FIX(BUG-A): EVENT_TYPES 기반으로 각 이벤트 배열을 createWorld 단계에서 초기화.
+    events: EVENT_TYPES.reduce((acc, t) => { acc[t] = []; return acc; }, {}),
 
     killCount: 0,
     playMode:  'playing',
@@ -21,14 +23,4 @@ export function createWorld() {
 
     camera: { x: 0, y: 0, targetX: 0, targetY: 0 },
   };
-}
-
-/**
- * 매 프레임 시작 시 이벤트 배열을 비운다.
- * CHANGE(P0-2): EventRegistry.clearAll()로 대체 권장되나, 
- * 하위 호환성을 위해 우선 유지하되 EventRegistry 연동.
- */
-export function clearFrameEvents(world) {
-  if (!world.events) return;
-  EventRegistry.clearAll(world.events);
 }

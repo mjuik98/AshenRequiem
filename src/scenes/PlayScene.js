@@ -67,7 +67,9 @@ export class PlayScene {
     this._pipeline    = pipeline;
     this._pipelineCtx = pipelineCtx;
 
-    EventRegistry.initWorldEvents(this.world);
+    // FIX(BUG-A): EventRegistry.initWorldEvents(this.world) 제거
+    // 해당 메서드는 EventRegistry에 존재하지 않으며, events 초기화는
+    // createWorld()의 EVENT_TYPES.reduce() 가 이미 수행함.
 
     this._uiState = new PlayModeStateMachine({
       onLevelUp: () => this._showLevelUpUI(),
@@ -108,7 +110,8 @@ export class PlayScene {
     const world = this.world;
     if (!world) return;
 
-    EventRegistry.clearAll(world.events);
+    // FIX(BUG-E): EventRegistry.clearAll(world.events) 제거
+    // AGENTS.md 6.6: 이벤트 큐 초기화는 파이프라인 priority 105의 EventRegistry.update()가 전담.
 
     world.deltaTime    = dt;
     world.elapsedTime += dt;
@@ -162,9 +165,6 @@ export class PlayScene {
     if (choices.length === 0) {
       this.world.playMode = 'playing';
       // FIX(BUG-6): this._levelUpShown = false 삭제
-      // PlayModeStateMachine 도입 이전의 잔재 코드.
-      // 레벨업 플래그 상태는 PlayModeStateMachine._firedLevelUp이 전담하며,
-      // playing으로 복귀하는 순간 PlayModeStateMachine.tick()이 자동으로 초기화함.
       return;
     }
 
