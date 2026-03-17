@@ -128,6 +128,17 @@ export class DebugView {
       set('dbg-boss-at',     spawnDebug.bossSpawnedAt !== null ? spawnDebug.bossSpawnedAt.toFixed(1) + 's' : '—');
       set('dbg-boss-sup',    spawnDebug.isSuppressed ? spawnDebug.suppressionRemaining.toFixed(1) + 's' : '—');
     }
+
+    if (pools?.profiler) {
+      if (!this._vals['dbg-profiler']) {
+        const sec = document.createElement('div');
+        sec.className = 'dbg-section';
+        sec.id = 'dbg-profiler';
+        this.el.appendChild(sec);
+        this._vals['dbg-profiler'] = sec;
+      }
+      this._vals['dbg-profiler'].innerHTML = pools.profiler.toHtml();
+    }
   }
 
   destroy() { this.el.remove(); }

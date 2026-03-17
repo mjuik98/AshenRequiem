@@ -41,6 +41,11 @@ import { ResultView }   from '../ui/result/ResultView.js';
 import { DebugView }    from '../ui/debug/DebugView.js';
 import { BossHudView }  from '../ui/boss/BossHudView.js';
 
+import { PlayModeStateMachine } from '../core/PlayModeStateMachine.js';
+import { EventBusHandler }     from '../systems/event/EventBusHandler.js';
+import { PipelineProfiler }    from '../systems/debug/PipelineProfiler.js';
+import { createPickup, resetPickup } from '../entities/createPickup.js';
+
 /**
  * PlayScene — 전투 씬
  *
@@ -68,6 +73,9 @@ export class PlayScene {
     this._dpr            = 1;
     this._levelUpShown   = false;
     this._deadShown      = false;
+    this._uiState        = null;
+    this._profiler       = null;
+    this._pickupPool     = null;
   }
 
   enter() {
@@ -91,6 +99,11 @@ export class PlayScene {
       resetEnemy,
       40,
     );
+    this._pickupPool = new ObjectPool(
+      () => createPickup(0, 0, 0),
+      resetPickup,
+      60,
+    );
 
     this._soundSystem = new SoundSystem();
     this._soundSystem.init();
@@ -109,10 +122,18 @@ export class PlayScene {
       .register(DeathSystem,          { priority: 80 })
       .register(ExperienceSystem,     { priority: 90 })
       .register(LevelSystem,          { priority: 100 })
-      .register(BossPhaseSystem,      { priority: 105 }) // DamageSystem(70) 뒤, FlushSystem(110) 앞
+      .register(BossPhaseSystem,      { priority: 105 })
+      .register(EventBusHandler,      { priority: 108 })
       .register(this._flushSystem,    { priority: 110 })
       .register(CameraSystem,         { priority: 120 });
-    // HudView, BossHudView는 Pipeline 외부(RenderSystem 직전)에서 실행하여 UI 동기화 보장
+
+    this._uiState = new PlayModeStateMachine({
+      onLevelUp: () => this._showLevelUpUI(),
+      onDead:    () => this._showResultUI(),
+    });
+
+    this._profiler = new PipelineProfiler();
+    this._profiler.wrap(this._pipeline);
 
 
     this._levelUpShown = false;
@@ -141,26 +162,14 @@ export class PlayScene {
         projectilePool: this._projectilePool,
         effectPool:     this._effectPool,
         enemyPool:      this._enemyPool,
+        profiler:       this._profiler,
       },
       dt,
       waveData,
       this._spawnSystem.getDebugInfo(world.elapsedTime),
     );
 
-    if (world.playMode === 'dead') {
-      if (!this._deadShown) {
-        this._deadShown = true;
-        this._showResultUI();
-      }
-      return;
-    }
-    if (world.playMode === 'levelup') {
-      if (!this._levelUpShown) {
-        this._levelUpShown = true;
-        this._showLevelUpUI();
-      }
-      return;
-    }
+    if (this._uiState.tick(world.playMode)) return;
 
     this._runGamePipeline(dt, world, input);
   }
@@ -187,16 +196,11 @@ export class PlayScene {
         projectile: this._projectilePool,
         effect:     this._effectPool,
         enemy:      this._enemyPool,
+        pickup:     this._pickupPool,
       },
     });
 
-    // BossPhaseSystem이 발행한 이벤트를 소비하여 적의 행동을 즉시 변경
-    for (const evt of world.events.bossPhaseChanged) {
-      if (evt.enemy) {
-        evt.enemy.behaviorId = evt.newBehaviorId;
-        console.log(`[BossPhase] ${evt.enemyId} phase ${evt.phaseIndex}: ${evt.announceText}`);
-      }
-    }
+    // EventBusHandler가 처리하므로 삭제
 
     this._soundSystem.processEvents(world.events);
     FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
@@ -225,11 +229,13 @@ export class PlayScene {
     this.bossHudView?.destroy();
     this._soundSystem?.destroy();
 
-    this.world           = null;
-    this.uiState         = null;
+    this._uiState?.reset();
+    this._uiState        = null;
+    this._profiler       = null;
     this._projectilePool = null;
     this._effectPool     = null;
     this._enemyPool      = null;
+    this._pickupPool     = null;
     this._spawnSystem    = null;
     this._soundSystem    = null;
   }
@@ -259,7 +265,6 @@ export class PlayScene {
         SynergySystem.applyAll({ player: this.world.player, upgradeData });
       });
       this.world.playMode = 'playing';
-      this._levelUpShown  = false;
     });
   }
 

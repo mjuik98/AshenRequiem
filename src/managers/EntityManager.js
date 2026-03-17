@@ -101,11 +101,11 @@ export const EntityManager = {
    * @param {object} [pools]  { projectilePool, effectPool, enemyPool }
    */
   flushDestroy(world, pools = {}) {
-    const { projectilePool, effectPool, enemyPool } = pools;
+    const { projectilePool, effectPool, enemyPool, pickupPool } = pools;
 
     world.enemies     = EntityManager._compact(world.enemies,     enemyPool);
     world.projectiles = EntityManager._compact(world.projectiles, projectilePool);
-    world.pickups     = EntityManager._compact(world.pickups,     null);
+    world.pickups     = EntityManager._compact(world.pickups,     pickupPool);
     world.effects     = EntityManager._compact(world.effects,     effectPool);
   },
 
