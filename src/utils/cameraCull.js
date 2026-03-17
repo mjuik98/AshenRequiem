@@ -10,11 +10,9 @@
  * @returns {object} { minX, maxX, minY, maxY } 형태의 경계 객체
  */
 export function getCullBounds(camera, margin = 100) {
-  // 기본적으로 캔버스 크기를 1280x720으로 가정 (또는 GameConfig 등에서 가져와야 함)
-  // 여기서는 CollisionSystem의 기존 로직을 안전하게 대체하기 위해 보수적인 경계를 사용
-  // 실제 프로젝트의 캔버스 크기에 맞춰 조정될 수 있도록 설계
-  const width = window.innerWidth || 1280;
-  const height = window.innerHeight || 720;
+  // 브라우저 환경이 아닌 경우(Node.js 테스트 등)를 위해 안전한 기본값 사용
+  const width  = camera.width  || (typeof window !== 'undefined' ? window.innerWidth  : 1280);
+  const height = camera.height || (typeof window !== 'undefined' ? window.innerHeight : 720);
 
   return {
     minX: camera.x - margin,

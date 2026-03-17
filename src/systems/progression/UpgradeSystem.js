@@ -1,6 +1,7 @@
 import { upgradeData }       from '../../data/upgradeData.js';
 import { shuffle }            from '../../utils/random.js';
 import { getWeaponDataById }  from '../../data/weaponData.js';
+import { synergyData }        from '../../data/synergyData.js';
 
 /**
  * UpgradeSystem — 업그레이드 선택지 생성 + 적용
@@ -111,5 +112,44 @@ export const UpgradeSystem = {
       player.upgradeCounts = player.upgradeCounts || {};
       player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] || 0) + 1;
     }
+
+    // 시너지 검사 및 적용 (P3 확장)
+    this.checkAndApplySynergies(player);
+  },
+
+  checkAndApplySynergies(player) {
+    const owned = new Set([
+      ...Object.keys(player.upgradeCounts ?? {})
+        .filter(id => (player.upgradeCounts[id] ?? 0) > 0),
+      ...player.weapons.map(w => w.id),
+    ]);
+
+    for (const syn of synergyData) {
+      if (player.activeSynergies?.has(syn.id)) continue;
+      if (syn.requires.every(r => owned.has(r))) {
+        this.applySynergy(player, syn);
+        (player.activeSynergies ??= new Set()).add(syn.id);
+      }
+    }
+  },
+
+  applySynergy(player, syn) {
+    const b = syn.bonus;
+    if (b.maxHpDelta) {
+      player.maxHp += b.maxHpDelta;
+      player.hp = Math.min(player.hp + b.maxHpDelta, player.maxHp);
+    }
+    if (b.speedMult)       player.speed    = Math.round(player.speed * b.speedMult);
+    if (b.lifestealDelta)  player.lifesteal = Math.min(1, (player.lifesteal ?? 0) + b.lifestealDelta);
+    if (b.weaponId) {
+      const w = player.weapons.find(w => w.id === b.weaponId);
+      if (w) {
+        if (b.damageDelta)      w.damage      += b.damageDelta;
+        if (b.cooldownMult)     w.cooldown    *= b.cooldownMult;
+        if (b.pierceDelta)      w.pierce      += b.pierceDelta;
+        if (b.orbitRadiusDelta) w.orbitRadius += b.orbitRadiusDelta;
+      }
+    }
+    console.log(`[Synergy] "${syn.name}" 발동!`);
   },
 };

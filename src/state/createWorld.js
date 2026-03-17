@@ -1,3 +1,4 @@
+/** @see worldTypes.js for WorldState typedef */
 /** createWorld — 월드 상태 초기화 */
 export function createWorld() {
   return {
@@ -25,6 +26,7 @@ export function createWorld() {
       deaths:           [],
       pickupCollected:  [],
       levelUpRequested: [],
+      bossPhaseChanged:  [], // P3 확장: 보스 페이즈 변화 이벤트
     },
   };
 }
@@ -35,4 +37,5 @@ export function clearFrameEvents(world) {
   world.events.deaths.length           = 0;
   world.events.pickupCollected.length  = 0;
   world.events.levelUpRequested.length = 0;
+  world.events.bossPhaseChanged.length = 0;
 }

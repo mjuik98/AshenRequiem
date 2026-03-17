@@ -55,32 +55,33 @@ export const CollisionSystem = {
       nearEnemies.push(e);
     }
 
-    // PERF(P3): nearEnemies 가 GRID_THRESHOLD 이상일 때 SpatialGrid 활성화
+    // PERF(P3)
     const useGrid = nearEnemies.length >= GRID_THRESHOLD;
     if (useGrid) {
       this._grid.clear();
       for (let j = 0; j < nearEnemies.length; j++) {
         this._grid.insert(nearEnemies[j]);
       }
+    } else {
+      this._grid.clear();
     }
 
     // ── 플레이어 투사체 vs 적 ─────────────────────────────────
     for (let i = 0; i < projectiles.length; i++) {
       const p = projectiles[i];
       if (!p.isAlive || p.pendingDestroy) continue;
-      if (p.ownerId !== player.id)        continue; // 적 소유 투사체 제외
+      if (p.ownerId !== player.id)        continue; 
 
-      // PERF: 그리드 활성 시 후보만 조회, 비활성 시 nearEnemies 전체 순회
-      const candidates = useGrid
-        ? this._grid.query(p.x, p.y, p.radius + MAX_ENEMY_RADIUS)
-        : nearEnemies;
+      const candidates = useGrid ? this._grid.queryRadius(p.x, p.y, p.radius + MAX_ENEMY_RADIUS) : nearEnemies;
 
       for (const e of candidates) {
         if (!e.isAlive || e.pendingDestroy) continue;
-        if (p.hitTargets.has(e.id))         continue;
-
         const rSum = p.radius + e.radius;
-        if (distanceSq(p, e) <= rSum * rSum) {
+        const dSq = distanceSq(p, e);
+        if (dSq <= rSum * rSum) {
+          if (p.hitTargets.has(e.id)) continue;
+          p.hitTargets.add(e.id);
+          p.hitCount++;
           events.hits.push({
             attackerId:   p.ownerId,
             targetId:     e.id,
@@ -89,8 +90,6 @@ export const CollisionSystem = {
             projectileId: p.id,
             projectile:   p,
           });
-          p.hitTargets.add(e.id);
-          p.hitCount++;
         }
       }
     }

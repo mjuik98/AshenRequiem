@@ -1,3 +1,4 @@
+import { getEnemyBehavior } from '../../behaviors/enemyBehaviors/enemyBehaviorRegistry.js';
 /**
  * EnemyMovementSystem — 적 이동 + 넉백 + separation
  *
@@ -35,22 +36,10 @@ export const EnemyMovementSystem = {
       // 스턴 중
       if (e.stunned) continue;
 
-      // 엘리트 / 보스 중 chase 가 아닌 것은 EliteBehaviorSystem이 담당
-      if (e.behaviorId !== 'chase' && (e.isElite || e.isBoss)) continue;
-
-      // 플레이어 추적
-      const dx   = player.x - e.x;
-      const dy   = player.y - e.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-      const slow      = e.statusEffects?.find(s => s.type === 'slow');
-      const speedMult = slow ? (1 - slow.magnitude) : 1;
-      const speed     = (e.moveSpeed ?? 80) * speedMult * deltaTime;
-
-      if (dist > 1) {
-        e.x += (dx / dist) * speed;
-        e.y += (dy / dist) * speed;
-      }
+      // 엘리트 / 보스 중 chase 가 아닌 것은 EliteBehaviorSystem이 담당 (P1 이전 호환성 유지)
+      // FIX(P3): 모든 적이 행동 레지스트리를 사용할 수 있도록 확장
+      const behaviorFn = getEnemyBehavior(e.behaviorId || 'chase');
+      behaviorFn(e, { player, enemies, deltaTime });
     }
 
     // PERF: 적 수 임계값 초과 시 separation 스킵

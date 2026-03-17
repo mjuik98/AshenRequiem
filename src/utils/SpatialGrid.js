@@ -1,117 +1,132 @@
 /**
- * SpatialGrid.js — 균일 격자 기반 Broad-Phase 충돌 보조
+ * SpatialGrid — 공간 분할 해시 그리드
  *
- * 목적:
- *   CollisionSystem 의 투사체 vs 적 내부 루프가 O(n×m) 선형 탐색에서
- *   각 셀당 후보만 조회하는 O(n×k) (k = 평균 셀 밀도) 로 개선된다.
- *   적 100+, 투사체 50+ 상황에서 실질적인 체감 개선이 시작된다.
+ * WHY(P2): CollisionSystem의 O(n²) 브루트 포스를 개선한다.
+ *   적 200+, 투사체 100+ 상황에서 프레임당 충돌 체크가
+ *   20,000회 이상 발생하는 것을 인접 셀 기반 ~500회로 줄인다.
  *
  * 사용 방법:
- *   const grid = new SpatialGrid(128);  // 셀 크기(px) — 가장 큰 엔티티 지름의 2배 권장
  *
- *   // 매 프레임 충돌 판정 전 한 번만 호출
- *   grid.clear();
- *   for (const enemy of nearEnemies) grid.insert(enemy);
+ *   // CollisionSystem.js 상단에 import
+ *   import { SpatialGrid } from '../../utils/SpatialGrid.js';
  *
- *   // 각 투사체에서 후보만 조회
- *   const candidates = grid.query(proj.x, proj.y, proj.radius + maxEnemyRadius);
- *   for (const e of candidates) { ... }
+ *   // 모듈 레벨 (싱글톤처럼 재사용)
+ *   const _grid = new SpatialGrid(64); // cellSize = 최대 충돌 반경 × 2
  *
- * 설계 결정:
- *   - 셀 맵은 `Map<key, entity[]>` — 희소 월드에서 빈 셀 메모리 낭비 없음
- *   - `_candidateSet` 로 동일 프레임 내 중복 후보 제거 (Set 재사용)
- *   - `insert` 는 엔티티의 bounding box 전체를 커버하는 셀들에 등록
- *     (radius > cellSize 인 보스도 올바르게 처리)
+ *   // update() 내부
+ *   _grid.clear();
+ *   for (const e of enemies) {
+ *     if (e.isAlive && !e.pendingDestroy) _grid.insert(e);
+ *   }
  *
- * 한계:
- *   - 동적 엔티티 전용 (매 프레임 clear + 재삽입)
- *   - 월드 좌표 범위에 제한 없음 (음수 좌표도 동작)
+ *   for (const p of projectiles) {
+ *     if (!p.isAlive || p.pendingDestroy || p.ownerId !== player.id) continue;
+ *     const candidates = _grid.queryRadius(p.x, p.y, p.radius + MAX_ENEMY_RADIUS);
+ *     for (const e of candidates) { ... }
+ *   }
+ *
+ * 권장 cellSize:
+ *   - 최대 적 radius가 32px이면 cellSize = 64
+ *   - 보스 radius가 80px이면 cellSize = 100 이상으로 조정
  */
 export class SpatialGrid {
   /**
-   * @param {number} cellSize - 셀 크기(px). 기본값 128.
-   *   너무 작으면 삽입 비용 증가, 너무 크면 후보가 늘어 개선 효과 감소.
-   *   경험치: 가장 큰 적 반지름의 2~3배가 적당.
+   * @param {number} cellSize  격자 한 칸의 크기 (px). 최대 충돌 반경 × 2 이상 권장.
    */
-  constructor(cellSize = 128) {
-    this._cellSize    = cellSize;
-    /** @type {Map<number, object[]>} */
-    this._cells       = new Map();
-    /** @type {Set<object>} — query 시 중복 방지 재사용 Set */
-    this._candidateSet = new Set();
+  constructor(cellSize = 64) {
+    this._cellSize = cellSize;
+    /** @type {Map<string, object[]>} */
+    this._grid = new Map();
   }
 
-  // ── 내부 헬퍼 ────────────────────────────────────────────────
+  /** 격자 키 반환 */
+  _key(cx, cy) {
+    return `${cx},${cy}`;
+  }
 
-  /** 월드 좌표 → 셀 정수 좌표 */
-  _cellCoord(v) { return Math.floor(v / this._cellSize); }
+  /** 좌표 → 셀 인덱스 */
+  _cellOf(x, y) {
+    return {
+      cx: Math.floor(x / this._cellSize),
+      cy: Math.floor(y / this._cellSize),
+    };
+  }
+
+  /** 그리드를 비운다. 매 프레임 시작 시 호출. */
+  clear() {
+    this._grid.clear();
+  }
 
   /**
-   * (cx, cy) 셀 좌표 쌍을 하나의 정수 키로 인코딩.
-   * 32비트 범위(±2^15 셀 ≈ ±4백만 px @ cellSize=128)까지 무충돌 보장.
-   */
-  _key(cx, cy) { return (cx & 0xffff) | ((cy & 0xffff) << 16); }
-
-  // ── 공개 API ─────────────────────────────────────────────────
-
-  /** 그리드 초기화 — 매 프레임 충돌 판정 전에 한 번 호출 */
-  clear() { this._cells.clear(); }
-
-  /**
-   * 엔티티를 그리드에 삽입.
-   * 엔티티의 AABB(bounding box)를 커버하는 모든 셀에 참조를 등록.
-   *
-   * @param {{ x: number, y: number, radius: number }} entity
+   * 엔티티를 그리드에 삽입한다.
+   * @param {{x: number, y: number}} entity
    */
   insert(entity) {
-    const r   = entity.radius;
-    const minCX = this._cellCoord(entity.x - r);
-    const maxCX = this._cellCoord(entity.x + r);
-    const minCY = this._cellCoord(entity.y - r);
-    const maxCY = this._cellCoord(entity.y + r);
-
-    for (let cx = minCX; cx <= maxCX; cx++) {
-      for (let cy = minCY; cy <= maxCY; cy++) {
-        const key = this._key(cx, cy);
-        let cell = this._cells.get(key);
-        if (!cell) { cell = []; this._cells.set(key, cell); }
-        cell.push(entity);
-      }
+    const { cx, cy } = this._cellOf(entity.x, entity.y);
+    const key = this._key(cx, cy);
+    let cell = this._grid.get(key);
+    if (!cell) {
+      cell = [];
+      this._grid.set(key, cell);
     }
+    cell.push(entity);
   }
 
   /**
-   * 주어진 위치 + 범위(radius)와 겹치는 셀의 모든 후보를 반환.
-   * 중복 없이 반환하기 위해 내부 Set 을 재사용 (GC 최소화).
-   *
+   * 원형 범위 내 후보 엔티티를 반환한다. (중복 포함 가능 — 호출자가 실제 거리 검사)
    * @param {number} x
    * @param {number} y
-   * @param {number} radius - 조회 반경 (투사체 radius + 가장 큰 적 radius)
-   * @returns {object[]} 중복 없는 후보 배열 (재사용 버퍼 — 호출 측에서 직접 수정 금지)
+   * @param {number} radius  검색 반경 (px)
+   * @returns {object[]}
    */
-  query(x, y, radius) {
-    const minCX = this._cellCoord(x - radius);
-    const maxCX = this._cellCoord(x + radius);
-    const minCY = this._cellCoord(y - radius);
-    const maxCY = this._cellCoord(y + radius);
+  queryRadius(x, y, radius) {
+    const cs   = this._cellSize;
+    const minCX = Math.floor((x - radius) / cs);
+    const maxCX = Math.floor((x + radius) / cs);
+    const minCY = Math.floor((y - radius) / cs);
+    const maxCY = Math.floor((y + radius) / cs);
 
-    this._candidateSet.clear();
+    const results = [];
     for (let cx = minCX; cx <= maxCX; cx++) {
       for (let cy = minCY; cy <= maxCY; cy++) {
-        const cell = this._cells.get(this._key(cx, cy));
-        if (!cell) continue;
-        for (let i = 0; i < cell.length; i++) {
-          this._candidateSet.add(cell[i]);
+        const cell = this._grid.get(this._key(cx, cy));
+        if (cell) {
+          for (let i = 0; i < cell.length; i++) results.push(cell[i]);
         }
       }
     }
-    return this._candidateSet;
+    return results;
   }
 
-  /** 현재 삽입된 총 엔티티 수 (디버그용, 중복 포함) */
-  get insertedCount() {
+  /**
+   * 단일 점 주변 인접 9셀 엔티티를 반환한다. (queryRadius보다 빠름)
+   * @param {number} x
+   * @param {number} y
+   * @returns {object[]}
+   */
+  queryNeighbors(x, y) {
+    const { cx, cy } = this._cellOf(x, y);
+    const results = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const cell = this._grid.get(this._key(cx + dx, cy + dy));
+        if (cell) {
+          for (let i = 0; i < cell.length; i++) results.push(cell[i]);
+        }
+      }
+    }
+    return results;
+  }
+
+  /** 디버그용: 현재 점유 셀 수 반환 */
+  get cellCount() {
+    return this._grid.size;
+  }
+
+  /** 디버그용: 전체 삽입 엔티티 수 반환 */
+  get entityCount() {
     let n = 0;
-    for (const cell of this._cells.values()) n += cell.length;
+    for (const cell of this._grid.values()) n += cell.length;
     return n;
   }
 }

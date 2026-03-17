@@ -1,5 +1,6 @@
 import { resetProjectile, resetEffect, resetEnemy } from '../managers/poolResets.js';
 import { createWorld, clearFrameEvents }             from '../state/createWorld.js';
+import { Pipeline } from '../core/Pipeline.js';
 import { createUiState }    from '../state/createUiState.js';
 import { createPlayer }     from '../entities/createPlayer.js';
 import { createProjectile } from '../entities/createProjectile.js';
@@ -30,6 +31,7 @@ import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
 import { CameraSystem }         from '../systems/camera/CameraSystem.js';
 import { RenderSystem }         from '../systems/render/RenderSystem.js';
 import { SoundSystem }          from '../systems/sound/SoundSystem.js';
+import { BossPhaseSystem }      from '../systems/spawn/BossPhaseSystem.js';
 
 import { ObjectPool }   from '../managers/ObjectPool.js';
 import { mountUI }      from '../ui/dom/mountUI.js';
@@ -61,8 +63,8 @@ export class PlayScene {
     this._projectilePool = null;
     this._effectPool     = null;
     this._enemyPool      = null;
-    this._spawnSystem    = null;
     this._soundSystem    = null;
+    this._pipeline       = null;
     this._dpr            = 1;
     this._levelUpShown   = false;
     this._deadShown      = false;
@@ -92,6 +94,26 @@ export class PlayScene {
 
     this._soundSystem = new SoundSystem();
     this._soundSystem.init();
+
+    this._pipeline = new Pipeline();
+    this._pipeline
+      .register(this._spawnSystem,    { priority: 10 })
+      .register(PlayerMovementSystem, { priority: 20 })
+      .register(EnemyMovementSystem,  { priority: 30 })
+      .register(EliteBehaviorSystem,  { priority: 35 })
+      .register(WeaponSystem,         { priority: 40 })
+      .register(ProjectileSystem,     { priority: 50 })
+      .register(CollisionSystem,      { priority: 60 })
+      .register(StatusEffectSystem,   { priority: 65 })
+      .register(DamageSystem,         { priority: 70 })
+      .register(DeathSystem,          { priority: 80 })
+      .register(ExperienceSystem,     { priority: 90 })
+      .register(LevelSystem,          { priority: 100 })
+      .register(BossPhaseSystem,      { priority: 105 }) // DamageSystem(70) 뒤, FlushSystem(110) 앞
+      .register(this._flushSystem,    { priority: 110 })
+      .register(CameraSystem,         { priority: 120 });
+    // HudView, BossHudView는 Pipeline 외부(RenderSystem 직전)에서 실행하여 UI 동기화 보장
+
 
     this._levelUpShown = false;
     this._deadShown    = false;
@@ -148,70 +170,19 @@ export class PlayScene {
     world.deltaTime    = dt;
     world.elapsedTime += dt;
 
-    this._spawnSystem.update({
-      elapsedTime: world.elapsedTime,
+    this._pipeline.run({
+      dt,
+      world,
+      input,
+      spawnQueue: world.spawnQueue,
       waveData,
       bossData,
       player:     world.player,
-      spawnQueue: world.spawnQueue,
-      deltaTime:  dt,
-    });
-
-    PlayerMovementSystem.update({ input, player: world.player, deltaTime: dt });
-    EnemyMovementSystem.update({ player: world.player, enemies: world.enemies, deltaTime: dt });
-
-    EliteBehaviorSystem.update({
       enemies:    world.enemies,
-      player:     world.player,
-      deltaTime:  dt,
-      spawnQueue: world.spawnQueue,
-    });
-
-    WeaponSystem.update({
-      player:     world.player,
-      enemies:    world.enemies,
-      deltaTime:  dt,
-      spawnQueue: world.spawnQueue,
-    });
-
-    ProjectileSystem.update({
       projectiles: world.projectiles,
-      player:      world.player,
-      deltaTime:   dt,
-    });
-
-    CollisionSystem.update({
-      player:      world.player,
-      enemies:     world.enemies,
-      projectiles: world.projectiles,
-      pickups:     world.pickups,
-      events:      world.events,
-      camera:      world.camera,
-    });
-
-    StatusEffectSystem.applyFromHits({ hits: world.events.hits });
-    StatusEffectSystem.tick({
-      enemies:   world.enemies,
-      player:    world.player,
-      deltaTime: dt,
-      events:    world.events,
-    });
-
-    DamageSystem.update({ events: world.events, player: world.player, spawnQueue: world.spawnQueue });
-    DeathSystem.update({ events: world.events, worldState: world, spawnQueue: world.spawnQueue });
-    this._soundSystem.processEvents(world.events);
-
-    ExperienceSystem.update({
-      events:    world.events,
-      player:    world.player,
-      pickups:   world.pickups,
-      deltaTime: dt,
-    });
-
-    LevelSystem.update({ player: world.player, worldState: world });
-
-    FlushSystem.update({
-      world,
+      pickups:    world.pickups,
+      events:     world.events,
+      camera:     world.camera,
       pools: {
         projectile: this._projectilePool,
         effect:     this._effectPool,
@@ -219,9 +190,17 @@ export class PlayScene {
       },
     });
 
+    // BossPhaseSystem이 발행한 이벤트를 소비하여 적의 행동을 즉시 변경
+    for (const evt of world.events.bossPhaseChanged) {
+      if (evt.enemy) {
+        evt.enemy.behaviorId = evt.newBehaviorId;
+        console.log(`[BossPhase] ${evt.enemyId} phase ${evt.phaseIndex}: ${evt.announceText}`);
+      }
+    }
+
+    this._soundSystem.processEvents(world.events);
     FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
-    CameraSystem.update({ player: world.player, camera: world.camera });
-    
+
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
   }
