@@ -73,12 +73,20 @@ export class PlayModeStateMachine {
 
     // playing 복귀
     if (currentMode === 'playing' && this._prev !== 'playing') {
-      // FIX(BUG-5): _firedDead도 함께 초기화
-      // 이전 코드는 _firedLevelUp만 초기화 → dead → playing 복귀 후
-      // 다시 dead가 되어도 _firedDead=true로 남아 onDead가 재발동되지 않음
+      // FIX(BUG-3): dead/levelup에서 playing 복귀 시에만 onResume 발동.
+      // paused 상태 이후 dead가 발생하면 _prev='paused'인 채로 playing 복귀 가능.
+      // 이 경우 onResume이 오발동되므로, paused → (dead 경유) → playing은
+      // 'playing으로의 정상 복귀'로 처리하지 않는다.
+      const isResumeFromPause =
+        this._prev === 'paused' && !this._firedDead && !this._firedLevelUp;
+      const isResumeFromUI    =
+        this._prev === 'levelup' || this._prev === 'dead';
+
       this._firedLevelUp = false;
       this._firedDead    = false;
-      this._onResume?.();
+      if (isResumeFromPause || isResumeFromUI) {
+        this._onResume?.();
+      }
     }
 
     this._prev = currentMode;

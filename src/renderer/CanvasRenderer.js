@@ -1,4 +1,5 @@
 import { GameConfig } from '../core/GameConfig.js';
+import { RENDER }     from '../data/constants.js';
 import { drawPlayer }             from './draw/drawPlayer.js';
 import { drawEnemy }              from './draw/drawEnemy.js';
 import { drawProjectile }         from './draw/drawProjectile.js';
@@ -6,9 +7,6 @@ import { drawEffect, drawPickup } from './draw/drawEffect.js';
 
 /**
  * CanvasRenderer — Canvas 클리어 + 배경 그리기 및 IRenderer 구현
- *
- * PERF: drawBackground 그리드 — 수직선 / 수평선 경로를 각각 하나의 path로 묶어
- *   beginPath/stroke 호출 횟수를 O(n) → O(1) 으로 감소
  */
 export class CanvasRenderer {
   constructor(canvas, ctx) {
@@ -73,10 +71,29 @@ export class CanvasRenderer {
     }
   }
 
-  drawProjectiles(projectiles, camera, lowQuality) {
+  /**
+   * [P2-③ FIX] lowQuality=true이면 투사체를 단순 원으로 렌더해 GPU 부하 절감.
+   */
+  drawProjectiles(projectiles, camera, lowQuality = false) {
     const ctx = this.ctx;
-    for (let i = 0; i < projectiles.length; i++) {
-      drawProjectile(ctx, projectiles[i], camera);
+
+    if (lowQuality || this._lowQuality) {
+      for (let i = 0; i < projectiles.length; i++) {
+        const proj = projectiles[i];
+        if (!proj.isAlive) continue;
+
+        const sx = proj.x - camera.x;
+        const sy = proj.y - camera.y;
+
+        ctx.fillStyle = proj.color ?? '#ffee58';
+        ctx.beginPath();
+        ctx.arc(sx, sy, proj.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      for (let i = 0; i < projectiles.length; i++) {
+        drawProjectile(ctx, projectiles[i], camera);
+      }
     }
   }
 
@@ -88,6 +105,16 @@ export class CanvasRenderer {
     const ctx = this.ctx;
     for (let i = 0; i < effects.length; i++) {
         drawEffect(ctx, effects[i], camera, dpr);
+    }
+  }
+
+  /**
+   * [P2-③] 투사체 수 기준으로 자동으로 lowQuality 모드 전환.
+   */
+  autoQuality(projectileCount) {
+    const shouldBeLow = projectileCount > RENDER.GLOW_THRESHOLD;
+    if (shouldBeLow !== this._lowQuality) {
+      this.setQuality(shouldBeLow);
     }
   }
 

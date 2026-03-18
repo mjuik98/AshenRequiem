@@ -1,7 +1,0 @@
-﻿C:\Users\mjuik\AshenRequiem\tests\CollisionSystem.test.js
-C:\Users\mjuik\AshenRequiem\tests\DamageSystem.test.js
-C:\Users\mjuik\AshenRequiem\tests\ExperienceSystem.test.js
-C:\Users\mjuik\AshenRequiem\tests\SpawnSystem.test.js
-C:\Users\mjuik\AshenRequiem\tests\StatusEffectSystem.test.js
-C:\Users\mjuik\AshenRequiem\tests\UpgradeSystem.test.js
-C:\Users\mjuik\AshenRequiem\tests\WeaponSystem.test.js

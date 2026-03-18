@@ -18,6 +18,9 @@ export const DamageSystem = {
       // FIX(bug): isAlive + pendingDestroy 이중 확인
       if (!target || !target.isAlive || target.pendingDestroy) continue;
 
+      // FIX(BUG-1): 플레이어 무적 프레임 중간 피격 차단
+      if (target.type === 'player' && target.invincibleTimer > 0) continue;
+
       target.hp -= hit.damage;
 
       if (target.type === 'enemy') {

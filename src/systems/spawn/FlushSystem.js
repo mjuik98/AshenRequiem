@@ -8,6 +8,9 @@ export const FlushSystem = {
     const { world, services } = ctx;
     const { projectilePool, effectPool, enemyPool, pickupPool } = services;
 
+    // FIX(BUG-2): tickEffects 호출 추가 — 이펙트 수명 틱 처리
+    FlushSystem.tickEffects({ effects: world.effects, deltaTime: world.deltaTime });
+
     // EntityManager에 처리를 위임하여 아키텍처 일관성 유지
     EntityManager.flush(world, { projectilePool, effectPool, enemyPool, pickupPool });
   },
