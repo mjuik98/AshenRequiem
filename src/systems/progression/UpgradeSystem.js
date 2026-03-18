@@ -1,16 +1,22 @@
-import { upgradeData }       from '../../data/upgradeData.js';
-import { shuffle }            from '../../utils/random.js';
-import { getWeaponDataById }  from '../../data/weaponData.js';
-import { synergyData }        from '../../data/synergyData.js';
-
 /**
- * UpgradeSystem — 업그레이드 선택지 생성 + 적용
+ * src/systems/progression/UpgradeSystem.js
  *
  * FIX(bug): 선택지 1~2개 반환 시 LevelUpView 레이아웃 깨짐 → 항상 3개 보장
  * FIX(bug): weapon_upgrade 강화 수치가 upgradeData 필드에서 읽힘
  *   (damageDelta / cooldownMult / orbitRadiusDelta / pierceDelta)
  * FIX(bug): _buildFallbackChoices — 이미 포함된 항목 제외 후 반환
+ *
+ * FIX(bug): upgradeCounts 이중 증가 버그 수정
+ *   Before: stat 타입 분기 안에서 1회 증가 + applyUpgrade() 마지막 줄에서 1회 더 증가
+ *           → stat 업그레이드 시 upgradeCounts[id]가 2씩 증가하여 maxCount 조기 소진
+ *   After:  각 타입 분기 밖 하단에 단 1회만 증가 (weapon_new/upgrade 포함 통합 처리)
  */
+
+import { upgradeData }      from '../../data/upgradeData.js';
+import { shuffle }           from '../../utils/random.js';
+import { getWeaponDataById } from '../../data/weaponData.js';
+import { SynergySystem }     from './SynergySystem.js';
+
 export const UpgradeSystem = {
   generateChoices(player) {
     const { weaponPicks, statPicks } = this._buildAvailablePool(player);
@@ -80,10 +86,10 @@ export const UpgradeSystem = {
         owned.level++;
 
         // FIX: 데이터 필드에서 강화 수치 읽기 (하드코딩 제거)
-        const dmgDelta      = upgrade.damageDelta      ?? 1;
-        const cdMult        = upgrade.cooldownMult     ?? 0.92;
-        const orbitRDelta   = upgrade.orbitRadiusDelta ?? 0;
-        const pierceDelta   = upgrade.pierceDelta      ?? 0;
+        const dmgDelta    = upgrade.damageDelta      ?? 1;
+        const cdMult      = upgrade.cooldownMult     ?? 0.92;
+        const orbitRDelta = upgrade.orbitRadiusDelta ?? 0;
+        const pierceDelta = upgrade.pierceDelta      ?? 0;
 
         owned.damage   = (owned.damage   || 1) + dmgDelta;
         owned.cooldown = Math.max(0.1, (owned.cooldown || 1) * cdMult);
@@ -109,11 +115,21 @@ export const UpgradeSystem = {
           player[eff.stat] += eff.value;
         }
       }
-      player.upgradeCounts = player.upgradeCounts || {};
-      player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] || 0) + 1;
+      // FIX(upgradeCounts 이중 증가): stat 분기 안에서 증가 코드 제거
+      //   Before: 여기서 1회 증가 + 함수 마지막 줄에서 1회 더 증가 = 총 2회
+      //   After:  함수 마지막 줄에서만 1회 증가 (통합)
     }
 
-    player.upgradeCounts = player.upgradeCounts || {};
-    player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] || 0) + 1;
+    // FIX: upgradeCounts 증가를 분기 밖 단 1곳에서만 처리
+    //   weapon_new / weapon_upgrade / stat 모두 동일하게 카운트 누적
+    player.upgradeCounts = player.upgradeCounts ?? {};
+    player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] ?? 0) + 1;
+
+    // acquiredUpgrades Set 동기화 (SynergySystem.playerHasUpgrade 참조용)
+    player.acquiredUpgrades = player.acquiredUpgrades ?? new Set();
+    player.acquiredUpgrades.add(upgrade.id);
+
+    // AGENTS.md 6.4: applyUpgrade() 직후 SynergySystem.applyAll() 호출
+    SynergySystem.applyAll({ player });
   },
 };

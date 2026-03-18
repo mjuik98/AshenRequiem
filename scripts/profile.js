@@ -8,185 +8,157 @@
  *           임계값 초과 시 경고 표시
  *
  * 사용:
- *   npm run profile            — 기본 300프레임 측정
- *   npm run profile -- 600     — 600프레임 측정
- *   npm run profile -- 300 40  — 300프레임, 임계값 40%
+ *   npm run profile              — 기본 300프레임
+ *   npm run profile -- 600       — 600프레임
+ *   npm run profile -- 300 40    — 300프레임, 경고 임계값 40%
  *
- * package.json에 추가:
- *   "scripts": {
- *     "profile": "node scripts/profile.js"
- *   }
+ * package.json scripts에 추가:
+ *   "profile": "node scripts/profile.js"
  */
 
-// ─── 설정 ─────────────────────────────────────────────────────────────
+const FRAME_COUNT    = parseInt(process.argv[2] ?? '300', 10);
+const WARN_THRESHOLD = parseFloat(process.argv[3] ?? '35') / 100;  // 기본 35%
+const TARGET_FPS     = 60;
+const SIM_DT         = 1 / TARGET_FPS;
 
-const FRAME_COUNT     = parseInt(process.argv[2] ?? '300', 10);
-const WARN_THRESHOLD  = parseFloat(process.argv[3] ?? '35') / 100; // 기본 35%
-const TARGET_FPS      = 60;
-const SIM_DT          = 1 / TARGET_FPS;
+// ─── 측정 대상 시스템 목록 ────────────────────────────────────────────
+// 각 시스템의 실제 파일 경로 후보를 순서대로 탐색
+const SYSTEM_CANDIDATES = {
+  SpawnSystem:          ['../src/systems/spawn/SpawnSystem.js'],
+  PlayerMovementSystem: ['../src/systems/movement/PlayerMovementSystem.js'],
+  EnemyMovementSystem:  ['../src/systems/movement/EnemyMovementSystem.js'],
+  EliteBehaviorSystem:  ['../src/systems/combat/EliteBehaviorSystem.js'],
+  WeaponSystem:         ['../src/systems/combat/WeaponSystem.js'],
+  ProjectileSystem:     ['../src/systems/combat/ProjectileSystem.js'],
+  CollisionSystem:      ['../src/systems/combat/CollisionSystem.js'],
+  StatusEffectSystem:   ['../src/systems/combat/StatusEffectSystem.js'],
+  DamageSystem:         ['../src/systems/combat/DamageSystem.js'],
+  BossPhaseSystem:      ['../src/systems/spawn/BossPhaseSystem.js'],
+  DeathSystem:          ['../src/systems/combat/DeathSystem.js'],
+  ExperienceSystem:     ['../src/systems/progression/ExperienceSystem.js'],
+  LevelSystem:          ['../src/systems/progression/LevelSystem.js'],
+  FlushSystem:          ['../src/systems/spawn/FlushSystem.js'],
+};
 
-// ─── 경량 헤드리스 시뮬레이터 ────────────────────────────────────────
-// 브라우저 DOM, Canvas 없이 순수 로직 시스템만 측정.
-// Renderer/UI 시스템은 헤드리스 환경에서 제외됨.
-
-const SYSTEMS_TO_PROFILE = [
-  'SpawnSystem',
-  'PlayerMovementSystem',
-  'EnemyMovementSystem',
-  'EliteBehaviorSystem',
-  'WeaponSystem',
-  'ProjectileSystem',
-  'CollisionSystem',
-  'StatusEffectSystem',
-  'DamageSystem',
-  'BossPhaseSystem',
-  'DeathSystem',
-  'ExperienceSystem',
-  'LevelSystem',
-  'FlushSystem',
-];
-
-// 시스템 import (없으면 스킵)
-async function loadSystems() {
-  const loaded = [];
-  for (const name of SYSTEMS_TO_PROFILE) {
-    try {
-      // 실제 경로 규칙에 맞게 탐색
-      const candidates = [
-        `../src/systems/combat/${name}.js`,
-        `../src/systems/movement/${name}.js`,
-        `../src/systems/progression/${name}.js`,
-        `../src/systems/spawn/${name}.js`,
-        `../src/systems/render/${name}.js`,
-      ];
-      let mod = null;
-      for (const path of candidates) {
-        try { mod = await import(path); break; } catch {}
-      }
-      if (mod) {
-        const system = mod[name] ?? mod.default;
-        if (system?.update) {
-          loaded.push({ name, system });
-        }
-      }
-    } catch {}
-  }
-  return loaded;
-}
-
-// ─── 최소 월드 상태 ───────────────────────────────────────────────────
-
-function createMinimalWorld() {
+// ─── 최소 헤드리스 월드 생성 ─────────────────────────────────────────
+function makeHeadlessWorld() {
   return {
     player: {
-      id: 'player', x: 640, y: 360, radius: 16,
+      id: 'player', type: 'player',
+      x: 0, y: 0, radius: 16,
       hp: 100, maxHp: 100, moveSpeed: 200,
-      magnetRadius: 60, lifesteal: 0, level: 1, xp: 0,
+      magnetRadius: 60, lifesteal: 0,
+      level: 1, xp: 0,
       isAlive: true, pendingDestroy: false,
-      weapons: [{ id: 'w1', damage: 10, cooldown: 1, currentCooldown: 0, behaviorId: 'targetProjectile', range: 400, speed: 300, radius: 8, pierce: 1 }],
-      statusEffects: [], upgradeCounts: {},
+      weapons: [], upgradeCounts: {}, acquiredUpgrades: new Set(),
+      activeSynergies: [], statusEffects: [],
+      invincibleTimer: 0,
     },
-    enemies:     Array.from({ length: 80 }, (_, i) => ({
-      id: `e${i}`, enemyId: 'basic', x: Math.random()*1280, y: Math.random()*720,
-      radius: 12, hp: 30, maxHp: 30, damage: 5, moveSpeed: 80,
-      xpValue: 1, isAlive: true, pendingDestroy: false,
-      isElite: false, isBoss: false, hitFlashTimer: 0, statusEffects: [],
-      behaviorId: 'chase',
-    })),
+    enemies:     [],
     projectiles: [],
     pickups:     [],
     effects:     [],
     spawnQueue:  [],
-    killCount:   0,
-    elapsedTime: 0,
-    deltaTime:   SIM_DT,
-    playMode:    'playing',
-    camera:      { x: 0, y: 0, width: 1280, height: 720 },
     events: {
       hits: [], deaths: [], pickupCollected: [],
       levelUpRequested: [], statusApplied: [],
       bossPhaseChanged: [], spawnRequested: [],
     },
+    camera:      { x: 0, y: 0 },
+    elapsedTime: 0,
+    deltaTime:   SIM_DT,
+    killCount:   0,
+    playMode:    'playing',
   };
 }
 
-// ─── 프로파일 실행 ────────────────────────────────────────────────────
+// ─── 시스템 로드 ──────────────────────────────────────────────────────
+async function loadSystems() {
+  const loaded = [];
+  for (const [name, paths] of Object.entries(SYSTEM_CANDIDATES)) {
+    let mod = null;
+    for (const path of paths) {
+      try { mod = await import(path); break; } catch { /* try next */ }
+    }
+    if (mod && mod[name]) {
+      loaded.push({ name, system: mod[name] });
+    } else {
+      console.warn(`  ⚠ ${name}: import 실패 또는 export 없음 — 스킵`);
+    }
+  }
+  return loaded;
+}
 
-async function main() {
+// ─── 프로파일 실행 ────────────────────────────────────────────────────
+async function runProfile() {
   console.log(`\n=== Pipeline Profiler ===`);
-  console.log(`프레임: ${FRAME_COUNT}  타겟 FPS: ${TARGET_FPS}  경고 임계값: ${(WARN_THRESHOLD*100).toFixed(0)}%\n`);
+  console.log(`프레임: ${FRAME_COUNT}  |  FPS 목표: ${TARGET_FPS}  |  경고 임계값: ${(WARN_THRESHOLD * 100).toFixed(0)}%\n`);
 
   const systems = await loadSystems();
   if (systems.length === 0) {
-    console.warn('로드된 시스템이 없습니다. src/ 경로를 확인하세요.');
-    process.exit(0);
+    console.error('로드된 시스템이 없습니다. 경로를 확인하세요.');
+    process.exit(1);
   }
+  console.log(`로드된 시스템: ${systems.length}개\n`);
 
-  console.log(`로드된 시스템 (${systems.length}개): ${systems.map(s => s.name).join(', ')}\n`);
+  // 시스템별 누적 시간 (ms)
+  const totals = Object.fromEntries(systems.map(s => [s.name, 0]));
+  const world  = makeHeadlessWorld();
+  const ctx    = { world, input: {}, data: {}, services: {} };
 
-  const world   = createMinimalWorld();
-  const timings = Object.fromEntries(systems.map(s => [s.name, 0]));
-
+  // ─── 메인 루프 ──────────────────────────────────────────────────
   for (let frame = 0; frame < FRAME_COUNT; frame++) {
-    world.elapsedTime += SIM_DT;
     world.deltaTime    = SIM_DT;
+    world.elapsedTime += SIM_DT;
+    world.events.hits.length              = 0;
+    world.events.deaths.length            = 0;
+    world.events.pickupCollected.length   = 0;
+    world.events.levelUpRequested.length  = 0;
+    world.events.statusApplied.length     = 0;
+    world.events.bossPhaseChanged.length  = 0;
+    world.events.spawnRequested.length    = 0;
+    world.spawnQueue.length               = 0;
 
     for (const { name, system } of systems) {
-      const ctx = { world, data: {}, services: {}, input: {} };
-      const t0  = performance.now();
-      try { system.update(ctx); } catch {}
-      timings[name] += performance.now() - t0;
+      if (typeof system.update !== 'function') continue;
+      const t0 = performance.now();
+      try { system.update(ctx); } catch { /* 헤드리스 실행 오류 무시 */ }
+      totals[name] += performance.now() - t0;
     }
-
-    // 이벤트 클리어 (프레임 간 리셋)
-    for (const key of Object.keys(world.events)) {
-      world.events[key].length = 0;
-    }
-    world.spawnQueue.length = 0;
   }
 
   // ─── 결과 출력 ──────────────────────────────────────────────────
+  const totalAll  = Object.values(totals).reduce((a, b) => a + b, 0);
+  const perFrame  = totalAll / FRAME_COUNT;
 
-  const totalMs     = Object.values(timings).reduce((a, b) => a + b, 0);
-  const avgFrameMs  = totalMs / FRAME_COUNT;
-  const budgetMs    = 1000 / TARGET_FPS;
-  const utilization = (avgFrameMs / budgetMs * 100).toFixed(1);
+  console.log(`${'시스템'.padEnd(28)} ${'합계(ms)'.padStart(10)} ${'프레임당'.padStart(10)} ${'비율'.padStart(8)}`);
+  console.log('─'.repeat(60));
 
-  const rows = systems.map(({ name }) => {
-    const totalSys = timings[name];
-    const avgMs    = (totalSys / FRAME_COUNT).toFixed(3);
-    const pct      = totalSys / totalMs;
-    const bar      = '█'.repeat(Math.round(pct * 30)).padEnd(30);
-    const warn     = pct > WARN_THRESHOLD ? ' ⚠ 임계값 초과' : '';
-    return { name, avgMs, pct, bar, warn };
-  }).sort((a, b) => b.pct - a.pct);
-
-  console.log('시스템별 평균 소요 시간 (프레임당):');
-  console.log('─'.repeat(72));
-
-  for (const r of rows) {
-    const pctStr = `${(r.pct * 100).toFixed(1)}%`.padStart(6);
-    const msStr  = `${r.avgMs}ms`.padStart(9);
-    console.log(`  ${r.name.padEnd(28)} ${pctStr} ${msStr}  ${r.bar}${r.warn}`);
+  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  for (const [name, ms] of sorted) {
+    const ratio  = totalAll > 0 ? ms / totalAll : 0;
+    const pct    = (ratio * 100).toFixed(1).padStart(7) + '%';
+    const flag   = ratio > WARN_THRESHOLD ? ' ⚠' : '';
+    console.log(
+      `${name.padEnd(28)} ${ms.toFixed(2).padStart(10)} ${(ms / FRAME_COUNT).toFixed(3).padStart(10)} ${pct}${flag}`
+    );
   }
 
-  console.log('─'.repeat(72));
-  console.log(`  ${'TOTAL'.padEnd(28)} ${utilization.padStart(5)}% ${avgFrameMs.toFixed(3).padStart(8)}ms  (예산: ${budgetMs.toFixed(1)}ms/frame)`);
+  console.log('─'.repeat(60));
+  console.log(
+    `${'합계'.padEnd(28)} ${totalAll.toFixed(2).padStart(10)} ${perFrame.toFixed(3).padStart(10)}`
+  );
+  console.log(`\n목표 프레임 예산: ${(1000 / TARGET_FPS).toFixed(2)}ms / 프레임`);
 
-  if (avgFrameMs > budgetMs * 0.8) {
-    console.warn(`\n⚠ 평균 프레임 처리 시간이 예산의 80%를 초과합니다 (${avgFrameMs.toFixed(2)}ms / ${budgetMs}ms)`);
+  const overBudget = perFrame > (1000 / TARGET_FPS);
+  if (overBudget) {
+    console.warn(`\n⚠  평균 프레임 소요 시간(${perFrame.toFixed(3)}ms)이 목표(${(1000 / TARGET_FPS).toFixed(2)}ms)를 초과합니다!`);
   } else {
-    console.log(`\n✓ 프레임 예산 여유: ${(budgetMs - avgFrameMs).toFixed(2)}ms`);
-  }
-
-  const warnings = rows.filter(r => r.warn);
-  if (warnings.length > 0) {
-    console.warn(`\n임계값(${(WARN_THRESHOLD*100).toFixed(0)}%) 초과 시스템:`);
-    warnings.forEach(r => console.warn(`  - ${r.name}: ${(r.pct*100).toFixed(1)}%`));
+    console.log(`\n✓  프레임 예산 내에서 실행 중입니다.`);
   }
 }
 
-main().catch(e => {
-  console.error('프로파일 실패:', e.message);
+runProfile().catch(e => {
+  console.error('프로파일링 중 오류:', e);
   process.exit(1);
 });

@@ -1,14 +1,31 @@
+/**
+ * src/systems/combat/CollisionSystem.js
+ *
+ * FIX(BUG-I): 적 vs 플레이어 — 다중 적 처리 break 제거
+ *
+ *   Before: 적 순회 중 첫 번째 충돌 적만 hit 처리 후 break
+ *           → 같은 프레임에 여러 적이 플레이어와 겹쳐도 첫 번째 적만 데미지 발생
+ *           → DamageSystem에서 invincibleTimer가 설정되므로 다음 프레임엔 무적
+ *              → 사실상 "겹친 적 중 1마리만 항상 타격" 로직으로 고정됨
+ *   After:  break 제거 — 같은 프레임 invincibleTimer <= 0 구간 안에서
+ *           충돌한 모든 적이 hit 이벤트를 발행
+ *           invincibleTimer 기반 프레임간 무적은 DamageSystem이 담당하므로
+ *           CollisionSystem은 충돌 판정만 책임지는 단일 책임 원칙 유지
+ *
+ * FIX(BUG-J): 적 투사체 vs 플레이어 — ownerId 비교 방향 오류
+ *
+ *   Before: p.ownerId === player.id  ← continue (플레이어 투사체 건너뜀) 코드가
+ *           아래 적 투사체 처리 블록에서도 동일 조건으로 반복되어 있어
+ *           p.ownerId !== player.id 여야 하는 조건이 혼동되기 쉬움
+ *           현재 코드는 `p.ownerId === player.id`를 continue로 쓰므로 맞지만
+ *           주석이 누락되어 리뷰어가 버그로 오해할 위험 높음
+ *   After:  명시적 주석 추가로 의도 명확화
+ */
+
 import { distanceSq }                   from '../../math/Vector2.js';
 import { getCullBounds, isInsideBounds } from '../../utils/cameraCull.js';
 import { SpatialGrid }                   from '../../managers/SpatialGrid.js';
 import { COLLISION_CULL_MARGIN }         from '../../data/constants.js';
-
-/**
- * CollisionSystem — 충돌 판정 전용
- *
- * PERF(P1-1): 신규 SpatialGrid (비트 연산 해싱) 도입
- *   - O(n²) 전수 순회 → 공간 분할 최적화
- */
 
 const GRID_CELL_SIZE = 120;
 
@@ -40,7 +57,7 @@ export const CollisionSystem = {
         if (p.hitTargets.has(e.id)) continue;
 
         const rSum = p.radius + e.radius;
-        const dSq = distanceSq(p, e);
+        const dSq  = distanceSq(p, e);
         if (dSq <= rSum * rSum) {
           p.hitTargets.add(e.id);
           p.hitCount++;
@@ -53,43 +70,64 @@ export const CollisionSystem = {
             projectile:   p,
           });
 
-          // FIX(bug): Pierce Leak
           if (p.hitCount >= p.pierce) break;
         }
       }
     }
 
-    // ── 적 투사체 및 엔티티 vs 플레이어 — 생략 (기존 로직 유지 가능하나 
-    // 여기서는 P1-1 핵심인 적/투사체 충돌 최적화에 집중)
-    // ... 이하 기존 플레이어 충돌 로직 유지 ...
+    // ── 적/투사체 vs 플레이어 — 무적 프레임 중엔 전체 생략 ────────────
     if (player.invincibleTimer <= 0) {
-      // 투사체 vs 플레이어
+
+      // 적 투사체 vs 플레이어
+      // (p.ownerId === player.id: 플레이어 소유 투사체는 건너뜀, 의도된 방향)
       for (let i = 0; i < projectiles.length; i++) {
         const p = projectiles[i];
         if (!p.isAlive || p.pendingDestroy || p.ownerId === player.id) continue;
         const rSum = p.radius + player.radius;
         if (distanceSq(p, player) <= rSum * rSum) {
-          events.hits.push({ attackerId: p.ownerId, targetId: player.id, target: player, damage: p.damage, projectile: p });
+          events.hits.push({
+            attackerId: p.ownerId,
+            targetId:   player.id,
+            target:     player,
+            damage:     p.damage,
+            projectile: p,
+          });
+          // 적 투사체 1발에 한 번만 피격 (break 유지 — 투사체는 pierce와 별도 처리)
           break;
         }
       }
-      // 적 vs 플레이어
+
+      // FIX(BUG-I): 적 vs 플레이어 — break 제거
+      // Before: 첫 번째 충돌 적에서 break → 동일 프레임 나머지 적 데미지 무시
+      // After:  break 없이 충돌한 모든 적을 hit 이벤트로 발행
+      //         → DamageSystem에서 첫 hit 처리 후 invincibleTimer 설정,
+      //            이후 프레임에서 무적이 적용되므로 burst 사망 위험은 제한됨
       for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
         if (!e.isAlive || e.pendingDestroy) continue;
         const rSum = player.radius + e.radius;
         if (distanceSq(player, e) <= rSum * rSum) {
-          events.hits.push({ attackerId: e.id, targetId: player.id, target: player, damage: e.damage });
-          break;
+          events.hits.push({
+            attackerId: e.id,
+            targetId:   player.id,
+            target:     player,
+            damage:     e.damage,
+          });
+          // break 삭제 — 겹친 모든 적이 동시에 타격
         }
       }
     }
 
-    // 픽업
+    // ── 픽업 수집 ────────────────────────────────────────────
     for (let i = 0; i < pickups.length; i++) {
       const pk = pickups[i];
-      if (pk.isAlive && !pk.pendingDestroy && distanceSq(player, pk) <= (player.radius + pk.radius) ** 2) {
-        events.pickupCollected.push({ pickupId: pk.id, pickup: pk, playerId: player.id });
+      if (pk.isAlive && !pk.pendingDestroy &&
+          distanceSq(player, pk) <= (player.radius + pk.radius) ** 2) {
+        events.pickupCollected.push({
+          pickupId: pk.id,
+          pickup:   pk,
+          playerId: player.id,
+        });
       }
     }
   },

@@ -7,6 +7,12 @@
  *           → 새 behaviorId 추가 시 이 파일도 수동 업데이트 필요 (드리프트 위험)
  *   After:  weaponBehaviorRegistry에서 getRegisteredBehaviorIds()를 import해 자동 동기화
  *           → 레지스트리에 등록하면 즉시 검증 목록에 반영됨
+ *
+ * FIX(Q-③): KNOWN_ENEMY_BEHAVIORS에 'dash', 'circle_dash' 추가
+ *   Before: new Set([...listEnemyBehaviors()])
+ *           → elite_golem/elite_bat(dash), elite_skeleton/boss_lich(circle_dash) 경고 발생
+ *   After:  new Set([...listEnemyBehaviors(), 'dash', 'circle_dash'])
+ *           → EliteBehaviorSystem 전용 행동 패턴 예외 처리로 경고 제거
  */
 
 import { getRegisteredBehaviorIds } from '../src/behaviors/weaponBehaviorRegistry.js';
@@ -22,7 +28,10 @@ function ok(msg)   { console.log(`  ✓ ${msg}`); }
 // ── 레지스트리에서 동적으로 로드 ─────────────────────────────────────
 // 추가/삭제 시 이 파일 수정 불필요 — 레지스트리만 관리하면 됨
 const KNOWN_WEAPON_BEHAVIORS = getRegisteredBehaviorIds();
-// 엘리트 전용 하드코딩 behaviorId ('dash', 'circle_dash') 예외 추가
+
+// FIX(Q-③): 'dash', 'circle_dash'는 EliteBehaviorSystem 전용 행동 패턴으로
+// enemyBehaviorRegistry에 등록하지 않고 EliteBehaviorSystem이 직접 처리함.
+// validateData에서만 예외로 허용 목록에 추가한다.
 const KNOWN_ENEMY_BEHAVIORS  = new Set([...listEnemyBehaviors(), 'dash', 'circle_dash']);
 
 function checkNoDuplicateIds(arr, label) {
@@ -119,7 +128,7 @@ function validateUpgradeData(upgradeData) {
     if (!u.id)   { err(`upgrade: id 없음`); continue; }
     if (!u.name) err(`upgrade "${u.id}": name 없음`);
 
-    // [Q-⑤] FIX: u.type === 'weapon' 은 항상 false였음
+    // FIX(Q-⑤): u.type === 'weapon' 은 항상 false였음
     //   실제 값은 'weapon_new' 또는 'weapon_upgrade'
     if (u.type === 'weapon_new' || u.type === 'weapon_upgrade') {
       if (!u.weaponId) {
@@ -139,7 +148,7 @@ function validateSynergyData(synergyData, upgradeData, weaponData) {
   checkNoDuplicateIds(synergyData, 'synergyData');
 
   const upgradeIds = getIds(upgradeData);
-  const weaponIds = getIds(weaponData);
+  const weaponIds  = getIds(weaponData);
 
   for (const s of synergyData) {
     if (!s.id)      { err(`synergy: id 없음`); continue; }

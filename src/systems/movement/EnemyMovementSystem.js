@@ -13,7 +13,7 @@ export const EnemyMovementSystem = {
   // 셀 크기는 최대 반경(통상 12~24 수준)의 2배 수준으로 설정
   _grid: new SpatialGrid(60),
 
-  update({ world: { player, enemies, deltaTime } }) {
+  update({ world: { player, enemies, deltaTime, spawnQueue } }) {
     if (!player?.isAlive) return;
 
     for (let i = 0; i < enemies.length; i++) {
@@ -49,7 +49,7 @@ export const EnemyMovementSystem = {
       const effectiveDt = deltaTime * speedMult;
 
       const behaviorFn = getEnemyBehavior(e.behaviorId || 'chase');
-      behaviorFn(e, { player, enemies, deltaTime: effectiveDt });
+      behaviorFn(e, { player, enemies, deltaTime: effectiveDt, spawnQueue });
     }
 
     // PERF: SpatialGrid 기반 Separation (개체 수 제한 해제)

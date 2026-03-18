@@ -2,15 +2,14 @@
  * src/systems/event/EventRegistry.js
  *
  * CHANGE(P2-④): EVENT_TYPES 상수 기반으로 clearAll 자동화
- *   Before: clearAll(events)에서 각 타입을 수동으로 나열
- *           → 새 이벤트 타입 추가 시 createWorld.js + EventRegistry 두 곳 수동 동기화
- *   After:  constants.js의 EVENT_TYPES를 import해 루프 처리
- *           → 새 이벤트 타입 = EVENT_TYPES 배열에 1줄 추가만
  *
- * 사용 방법:
- *   EventRegistry.register('hits', handler)  — 핸들러 등록
- *   EventRegistry.processAll(events)         — 파이프라인 priority 105에서 실행
- *   EventRegistry.clearAll(events)           — 프레임 후 이벤트 큐 초기화
+ * FIX(BUG-E): asSystem() 메서드 누락
+ *   Before: EventRegistry.asSystem()이 정의되지 않아
+ *           PlayContext.buildPipeline() 호출 시
+ *           TypeError: EventRegistry.asSystem is not a function 발생
+ *   After:  asSystem()을 추가 — EventRegistry 자신을 Pipeline 어댑터로 반환
+ *           Pipeline은 { update(ctx) } 인터페이스만 요구하므로
+ *           EventRegistry 자체가 해당 인터페이스를 충족함
  */
 
 import { EVENT_TYPES } from '../../data/constants.js';
@@ -21,7 +20,6 @@ const _handlers = new Map();
 export const EventRegistry = {
   /**
    * 이벤트 타입에 핸들러 함수를 등록한다.
-   *
    * @param {string}   eventType  EVENT_TYPES 중 하나
    * @param {Function} handler    (eventPayload) => void
    */
@@ -36,7 +34,6 @@ export const EventRegistry = {
   /**
    * 등록된 모든 핸들러를 현재 프레임의 이벤트 큐로 실행한다.
    * 파이프라인 priority 105 (EventRegistry asSystem)에서 호출됨.
-   *
    * @param {object} events  world.events
    */
   processAll(events) {
@@ -61,11 +58,7 @@ export const EventRegistry = {
 
   /**
    * 프레임 내 이벤트 큐를 모두 비운다.
-   *
    * CHANGE(P2-④): EVENT_TYPES 루프로 자동화
-   *   Before: events.hits.length = 0; events.deaths.length = 0; ... (수동 나열)
-   *   After:  EVENT_TYPES.forEach 루프
-   *
    * @param {object} events  world.events
    */
   clearAll(events) {
@@ -77,12 +70,29 @@ export const EventRegistry = {
   /**
    * Pipeline.run() 호환용 update 메서드.
    * priority 105에 등록해 사용.
-   *
    * @param {{ world: { events: object } }} ctx
    */
   update(ctx) {
     this.processAll(ctx.world.events);
     this.clearAll(ctx.world.events);
+  },
+
+  /**
+   * FIX(BUG-E): Pipeline 등록 어댑터 메서드 추가
+   *
+   * PlayContext.buildPipeline()이 pipeline.register(EventRegistry.asSystem(), ...)
+   * 형태로 호출하므로 Pipeline이 기대하는 { update(ctx) } 인터페이스를 가진
+   * 객체를 반환해야 한다.
+   *
+   * EventRegistry 자체가 update(ctx)를 갖고 있으므로 this를 반환하면 충분하나,
+   * 메서드 컨텍스트(this) 바인딩이 끊기지 않도록 래퍼 객체를 반환한다.
+   *
+   * @returns {{ update: (ctx: object) => void }}
+   */
+  asSystem() {
+    return {
+      update: (ctx) => this.update(ctx),
+    };
   },
 
   /** 등록된 모든 핸들러를 제거한다. (테스트 초기화용) */

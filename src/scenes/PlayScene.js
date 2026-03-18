@@ -89,6 +89,7 @@ export class PlayScene {
 
   update(dt) {
     if (!this.world || !this._ctx) return;
+    if (!this._uiState) return;
     const world = this.world;
     const input = this.game.input;
 
@@ -113,6 +114,7 @@ export class PlayScene {
     // FIX(BUG-E): EventRegistry.clearAll(world.events) 제거
     // AGENTS.md 6.6: 이벤트 큐 초기화는 파이프라인 priority 105의 EventRegistry.update()가 전담.
 
+    world.time        += dt;
     world.deltaTime    = dt;
     world.elapsedTime += dt;
 

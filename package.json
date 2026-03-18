@@ -10,7 +10,9 @@
     "pretest": "node scripts/validateData.js",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "profile": "node scripts/profile.js",
+    "profile:600": "node scripts/profile.js 600"
   },
   "keywords": [],
   "author": "",

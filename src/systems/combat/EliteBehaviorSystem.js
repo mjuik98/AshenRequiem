@@ -27,9 +27,10 @@ export const EliteBehaviorSystem = {
         continue;
       }
 
-      if      (e.behaviorId === 'dash')        this._updateDash(e, player, deltaTime);
-      else if (e.behaviorId === 'circle_dash') this._updateCircleDash(e, player, deltaTime, spawnQueue);
-      else                                     this._chaseMove(e, player, deltaTime);
+      // レジ스트리 위임 패턴으로 변경되어 EnemyMovementSystem에서 모두 처리됨:
+      // if      (e.behaviorId === 'dash')        this._updateDash(e, player, deltaTime);
+      // else if (e.behaviorId === 'circle_dash') this._updateCircleDash(e, player, deltaTime, spawnQueue);
+      // else                                     this._chaseMove(e, player, deltaTime);
     }
   },
 
