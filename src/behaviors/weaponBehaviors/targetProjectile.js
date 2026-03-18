@@ -9,30 +9,14 @@
  *   입력: { weapon, player, enemies, spawnQueue }
  *   출력: spawnQueue에 'projectile' 타입 요청 추가
  *   부수효과: 없음 (상태 직접 수정 금지)
+ *
+ * REFACTOR: 로컬 findClosestEnemy() 제거 → weaponBehaviorUtils 공유 함수 사용
+ *   Before: 이 파일에 areaBurst.js와 동일한 findClosestEnemy() 로컬 복사 존재
+ *   After:  weaponBehaviorUtils.findClosestEnemy import 한 줄로 대체
  */
 
-import { normalize, sub } from '../../math/Vector2.js';
-
-/**
- * 플레이어에서 가장 가까운 살아있는 적 반환.
- * @param {{x:number, y:number}} player
- * @param {object[]} enemies
- * @param {number} range  최대 탐지 거리 (px)
- * @returns {object|null}
- */
-function findClosestEnemy(player, enemies, range) {
-  let closest  = null;
-  let minDistSq = range * range;
-  for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
-    if (!e.isAlive || e.pendingDestroy) continue;
-    const dx = e.x - player.x;
-    const dy = e.y - player.y;
-    const dSq = dx * dx + dy * dy;
-    if (dSq < minDistSq) { minDistSq = dSq; closest = e; }
-  }
-  return closest;
-}
+import { normalize, sub }    from '../../math/Vector2.js';
+import { findClosestEnemy }  from './weaponBehaviorUtils.js';
 
 /**
  * targetProjectile 무기 동작 실행.

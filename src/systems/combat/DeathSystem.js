@@ -22,9 +22,10 @@
  * 출력: spawnQueue (XP 픽업, 사망 이펙트, deathSpawn), worldState.playMode 변경
  */
 import { EFFECT_DEFAULTS } from '../../data/constants.js';
+import { earnCurrency } from '../../state/createSessionState.js';
 
 export const DeathSystem = {
-  update({ world }) {
+  update({ world, services }) {
     const { events, spawnQueue } = world;
     const worldState = world;
 
@@ -33,6 +34,11 @@ export const DeathSystem = {
 
       if (entity.type === 'enemy') {
         worldState.killCount++;
+
+        if (services?.session) {
+          const reward = _calcCurrencyReward(entity);
+          earnCurrency(services.session, reward);
+        }
 
         // deathSpawn (슬라임 분열 등)
         // FIX: count와 enemyId 유효성 가드 추가
@@ -84,3 +90,10 @@ export const DeathSystem = {
     }
   },
 };
+
+export function _calcCurrencyReward(enemy) {
+  const base = enemy.currencyValue ?? 1;
+  if (enemy.isBoss)  return base * 20;
+  if (enemy.isElite) return base * 5;
+  return base;
+}

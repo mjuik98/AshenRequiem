@@ -9,6 +9,17 @@
  *   - DamageSystem이 이 이벤트를 소비해 실제 데미지를 처리한다.
  *   - events가 없는 환경(헤드리스 테스트 등)에서는 areaBurst 투사체 fallback 사용.
  *
+ * REFACTOR: 인라인 중복 로직 제거
+ *   Before:
+ *     - enemies.filter(e => e.isAlive && !e.pendingDestroy) 인라인 필터
+ *     - 1차 타깃 탐색: Math.sqrt 기반 최소 거리 루프 인라인
+ *     - 연쇄 hop 탐색: 동일 패턴의 루프 또 인라인
+ *   After:
+ *     - getLiveEnemies: 필터 공유
+ *     - findClosestEnemy: 1차 타깃 탐색 (origin=player)
+ *     - findNearestFrom: hop 탐색 (origin=currentTarget, visited 제외)
+ *     → 3개 인라인 루프 → 3줄 함수 호출로 대체
+ *
  * weaponData.js 항목 예시:
  *   {
  *     id: 'chain_lightning', name: '연쇄 번개', behaviorId: 'chainLightning',
@@ -18,6 +29,8 @@
  *   }
  */
 
+import { getLiveEnemies, findClosestEnemy, findNearestFrom } from './weaponBehaviorUtils.js';
+
 /**
  * chainLightning — 연쇄 번개 즉발 공격
  *
@@ -25,7 +38,7 @@
  * @returns {boolean}  발동 성공 여부
  */
 export function chainLightning({ weapon, player, enemies, spawnQueue, events }) {
-  const alive = enemies.filter(e => e.isAlive && !e.pendingDestroy);
+  const alive = getLiveEnemies(enemies);
   if (alive.length === 0) return false;
 
   const range      = weapon.range      ?? 350;
@@ -34,43 +47,16 @@ export function chainLightning({ weapon, player, enemies, spawnQueue, events }) 
   const damage     = weapon.damage     ?? 12;
 
   // ── 1차 타깃: 플레이어로부터 가장 가까운 적 ──────────────────────
-  let nearestDist = Infinity;
-  let firstTarget = null;
-
-  for (let i = 0; i < alive.length; i++) {
-    const e  = alive[i];
-    const dx = e.x - player.x;
-    const dy = e.y - player.y;
-    const d  = Math.sqrt(dx * dx + dy * dy);
-    if (d < nearestDist) {
-      nearestDist = d;
-      firstTarget = e;
-    }
-  }
-
-  if (!firstTarget || nearestDist > range) return false;
+  const firstTarget = findClosestEnemy(player, alive, range);
+  if (!firstTarget) return false;
 
   // ── 연쇄 타깃 수집 ────────────────────────────────────────────────
   const chain   = [firstTarget];
   const visited = new Set([firstTarget.id]);
 
   for (let hop = 0; hop < chainCount - 1; hop++) {
-    const current  = chain[chain.length - 1];
-    let nextTarget = null;
-    let nextDist   = Infinity;
-
-    for (let i = 0; i < alive.length; i++) {
-      const e = alive[i];
-      if (visited.has(e.id)) continue;
-      const dx = e.x - current.x;
-      const dy = e.y - current.y;
-      const d  = Math.sqrt(dx * dx + dy * dy);
-      if (d < chainRange && d < nextDist) {
-        nextDist   = d;
-        nextTarget = e;
-      }
-    }
-
+    const current    = chain[chain.length - 1];
+    const nextTarget = findNearestFrom(current, alive, chainRange, visited);
     if (!nextTarget) break;
     chain.push(nextTarget);
     visited.add(nextTarget.id);

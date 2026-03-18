@@ -8,31 +8,15 @@
  * 계약:
  *   입력: { weapon, player, enemies, spawnQueue }
  *   출력: spawnQueue에 areaBurst (및 선택적으로 targetProjectile) 요청 추가
- *   반환: 대상 없으면 false (쿨다운 즉시 재시도 신호)
+ *   반환: 항상 true (범위 안에 적이 없어도 중심 폭발은 발사)
+ *
+ * REFACTOR: 로컬 findClosestEnemy() 제거 → weaponBehaviorUtils 공유 함수 사용
+ *   Before: targetProjectile.js와 동일한 findClosestEnemy() 로컬 복사 존재
+ *   After:  weaponBehaviorUtils.findClosestEnemy import 한 줄로 대체
  */
 
-import { normalize, sub } from '../../math/Vector2.js';
-
-/**
- * 플레이어에서 가장 가까운 살아있는 적 반환.
- * @param {{x:number, y:number}} player
- * @param {object[]} enemies
- * @param {number} range
- * @returns {object|null}
- */
-function findClosestEnemy(player, enemies, range) {
-  let closest   = null;
-  let minDistSq = range * range;
-  for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
-    if (!e.isAlive || e.pendingDestroy) continue;
-    const dx = e.x - player.x;
-    const dy = e.y - player.y;
-    const dSq = dx * dx + dy * dy;
-    if (dSq < minDistSq) { minDistSq = dSq; closest = e; }
-  }
-  return closest;
-}
+import { normalize, sub }    from '../../math/Vector2.js';
+import { findClosestEnemy }  from './weaponBehaviorUtils.js';
 
 /**
  * areaBurst 무기 동작 실행.
@@ -43,10 +27,10 @@ function findClosestEnemy(player, enemies, range) {
  *   enemies:    object[],
  *   spawnQueue: object[],
  * }} ctx
- * @returns {boolean} 타겟이 있어서 실제 발동하면 true, 없으면 false
+ * @returns {boolean} 항상 true (중심 폭발은 무조건 발사)
  */
 export function areaBurst({ weapon, player, enemies, spawnQueue }) {
-  // 범위 안에 적이 없어도 중심 폭발 투사체는 발사되어야 함
+  // 범위 안에 적이 없어도 중심 폭발 투사체는 발사됨
   const target = findClosestEnemy(player, enemies, weapon.range);
 
   // ── 범위 폭발 투사체 ───────────────────────────────────────

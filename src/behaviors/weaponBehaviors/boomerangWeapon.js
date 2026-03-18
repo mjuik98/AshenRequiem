@@ -25,6 +25,14 @@
  *   }
  * ──────────────────────────────────────────────────────────────────────
  *
+ * REFACTOR: 인라인 getLiveEnemies 필터 + 근접 탐색 루프 제거
+ *   Before:
+ *     enemies.filter(e => e.isAlive && !e.pendingDestroy) 인라인 필터
+ *     + Math.sqrt 기반 최소 거리 루프 인라인
+ *   After:
+ *     getLiveEnemies / findClosestEnemy (weaponBehaviorUtils) import로 대체
+ *     → chainLightning.js / targetProjectile.js 와 동일 패턴 통일
+ *
  * weaponData.js 항목 예시:
  *   {
  *     id: 'boomerang', name: '부메랑', behaviorId: 'boomerang',
@@ -34,6 +42,8 @@
  *   }
  */
 
+import { getLiveEnemies, findClosestEnemy } from './weaponBehaviorUtils.js';
+
 /**
  * boomerang — 가장 가까운 적 방향으로 부메랑 투사체 발사
  *
@@ -41,27 +51,12 @@
  * @returns {boolean}  발동 성공 여부
  */
 export function boomerang({ weapon, player, enemies, spawnQueue }) {
-  const alive = enemies.filter(e => e.isAlive && !e.pendingDestroy);
+  const alive   = getLiveEnemies(enemies);
   if (alive.length === 0) return false;
 
-  // 가장 가까운 적 탐색
-  let nearestDist = Infinity;
-  let nearest     = null;
-
-  for (let i = 0; i < alive.length; i++) {
-    const e  = alive[i];
-    const dx = e.x - player.x;
-    const dy = e.y - player.y;
-    const d  = Math.sqrt(dx * dx + dy * dy);
-    if (d < nearestDist) {
-      nearestDist = d;
-      nearest     = e;
-    }
-  }
-
-  // 사거리 밖이면 발동 실패 → WeaponSystem이 다음 프레임에 재시도
-  const range = weapon.range ?? 500;
-  if (!nearest || nearestDist > range) return false;
+  const range   = weapon.range ?? 500;
+  const nearest = findClosestEnemy(player, alive, range);
+  if (!nearest) return false;
 
   // 방향 벡터 정규화
   const dx  = nearest.x - player.x;

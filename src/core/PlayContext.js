@@ -53,6 +53,13 @@ import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
 import { BossPhaseSystem }      from '../systems/spawn/BossPhaseSystem.js';
 import { CameraSystem }         from '../systems/camera/CameraSystem.js';
 import { EventRegistry }        from '../systems/event/EventRegistry.js';
+import { AssetManager }         from '../managers/AssetManager.js';
+
+export function _registerGameAssets(assets) {
+  // assets.register('player_sprite',     'assets/images/player.png');
+  // assets.register('enemy_basic',       'assets/images/enemy_basic.png');
+  // assets.register('sfx_hit',           'assets/sounds/hit.ogg');
+}
 
 const POOL_SIZES = {
   projectile: 200,
@@ -74,9 +81,14 @@ export class PlayContext {
     soundEnabled     = true,
     profilingEnabled = false,
     poolSizes        = {},
+    session          = null,
   } = {}) {
     const ctx = new PlayContext();
     const sizes = { ...POOL_SIZES, ...poolSizes };
+
+    ctx.assets = new AssetManager();
+    _registerGameAssets(ctx.assets);
+    ctx.session = session;
 
     // ── pool 초기화 ──────────────────────────────────────────
     ctx.projectilePool = new ObjectPool(createProjectile, resetProjectile, sizes.projectile);
@@ -106,6 +118,8 @@ export class PlayContext {
     this.canvas         = null;
     this.spawnSystem    = null;
     this._pipeline      = null;
+    this.assets         = null;
+    this.session        = null;
   }
 
   /**
@@ -127,6 +141,8 @@ export class PlayContext {
       pickupPool:     this.pickupPool,
       soundSystem:    this.soundSystem,
       canvas:         this.canvas,
+      assets:         this.assets,
+      session:        this.session,
     };
 
     // Pipeline context — 매 프레임 이 객체가 각 시스템에 전달된다
