@@ -121,9 +121,10 @@ export class PlayContext {
    *
    * @param {object} world
    * @param {object} input
-   * @returns {Pipeline}
+   * @param {object} [data]
+   * @returns {{ pipeline: Pipeline, pipelineCtx: object }}
    */
-  buildPipeline(world, input) {
+  buildPipeline(world, input, data = {}) {
     const services = {
       projectilePool: this.projectilePool,
       effectPool:     this.effectPool,
@@ -133,28 +134,30 @@ export class PlayContext {
       canvas:         this.canvas,
     };
 
-    const pipeline = new Pipeline({ world, input, services });
+    const pipeline = new Pipeline();
+    const pipelineCtx = { world, input, services, data };
+
     if (this.profiler) pipeline.setProfiler(this.profiler);
 
-    pipeline.register(this.spawnSystem,      10);
-    pipeline.register(PlayerMovementSystem,  20);
-    pipeline.register(EnemyMovementSystem,   30);
-    pipeline.register(EliteBehaviorSystem,   35);
-    pipeline.register(WeaponSystem,          40);
-    pipeline.register(ProjectileSystem,      50);
-    pipeline.register(CollisionSystem,       60);
-    pipeline.register(StatusEffectSystem,    65);
-    pipeline.register(DamageSystem,          70);
-    pipeline.register(BossPhaseSystem,       75);
-    pipeline.register(DeathSystem,           80);
-    pipeline.register(ExperienceSystem,      90);
-    pipeline.register(LevelSystem,          100);
-    pipeline.register(EventRegistry.asSystem(), 105);
-    pipeline.register(FlushSystem.create(services), 110);
-    pipeline.register(CameraSystem,         120);
+    pipeline.register(this.spawnSystem,      { priority: 10 });
+    pipeline.register(PlayerMovementSystem,  { priority: 20 });
+    pipeline.register(EnemyMovementSystem,   { priority: 30 });
+    pipeline.register(EliteBehaviorSystem,   { priority: 35 });
+    pipeline.register(WeaponSystem,          { priority: 40 });
+    pipeline.register(ProjectileSystem,      { priority: 50 });
+    pipeline.register(CollisionSystem,       { priority: 60 });
+    pipeline.register(StatusEffectSystem,    { priority: 65 });
+    pipeline.register(DamageSystem,          { priority: 70 });
+    pipeline.register(BossPhaseSystem,       { priority: 75 });
+    pipeline.register(DeathSystem,           { priority: 80 });
+    pipeline.register(ExperienceSystem,      { priority: 90 });
+    pipeline.register(LevelSystem,          { priority: 100 });
+    pipeline.register(EventRegistry.asSystem, { priority: 105 });
+    pipeline.register(FlushSystem,           { priority: 110 });
+    pipeline.register(CameraSystem,          { priority: 120 });
 
     this._pipeline = pipeline;
-    return pipeline;
+    return { pipeline, pipelineCtx };
   }
 
   /** 특정 시스템의 활성 여부를 런타임에 제어한다. */

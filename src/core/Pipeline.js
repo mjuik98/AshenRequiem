@@ -61,6 +61,16 @@ export class Pipeline {
   }
 
   /**
+   * 프로파일러를 설정한다. (Monkey-patching via PipelineProfiler)
+   * @param {object} profiler
+   */
+  setProfiler(profiler) {
+    if (profiler && typeof profiler.wrap === 'function') {
+      profiler.wrap(this);
+    }
+  }
+
+  /**
    * 특정 시스템의 enabled 상태를 변경한다.
    * @param {object}  system
    * @param {boolean} enabled

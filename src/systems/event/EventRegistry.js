@@ -122,3 +122,11 @@ export const asSystem = {
     processAll(world.events, world);
   },
 };
+
+export const EventRegistry = {
+  register,
+  clearAll,
+  processAll,
+  createEmptyEvents,
+  asSystem,
+};

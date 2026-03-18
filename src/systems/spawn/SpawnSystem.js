@@ -62,7 +62,7 @@ export class SpawnSystem {
       this._spawnAccumulator -= 1;
 
       const isElite = activeWave.eliteChance && Math.random() < activeWave.eliteChance;
-      const pool    = isElite ? (activeWave.elitePool ?? activeWave.enemyPool) : activeWave.enemyPool;
+      const pool    = isElite ? (activeWave.eliteIds ?? activeWave.enemyIds) : activeWave.enemyIds;
       if (!pool?.length) continue;
 
       const enemyId = randomPick(pool);
@@ -90,4 +90,20 @@ export class SpawnSystem {
     };
   }
 
+  /**
+   * 디버그 정보를 반환한다.
+   * @param {number} elapsedTime
+   * @returns {object}
+   */
+  getDebugInfo(elapsedTime) {
+    const timeSinceBoss = elapsedTime - this._lastBossSpawnTime;
+    const isSuppressed   = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
+
+    return {
+      hasBossSpawned:       this._spawnedBossAt.size > 0,
+      bossSpawnedAt:        this._lastBossSpawnTime !== -Infinity ? this._lastBossSpawnTime : null,
+      isSuppressed:         isSuppressed,
+      suppressionRemaining: isSuppressed ? (BOSS_SUPPRESSION_DURATION - timeSinceBoss) : 0,
+    };
+  }
 }

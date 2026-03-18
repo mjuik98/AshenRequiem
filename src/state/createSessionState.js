@@ -90,7 +90,7 @@ export function updateSessionBest(session, runResult) {
  * @param {SessionState} session
  * @param {number}       amount
  */
-export function addCurrency(session, amount) {
+export function earnCurrency(session, amount) {
   session.meta.currency = Math.max(0, session.meta.currency + amount);
 }
 
