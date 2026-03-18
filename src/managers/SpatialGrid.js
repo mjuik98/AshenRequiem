@@ -1,38 +1,16 @@
 /**
- * SpatialGrid — 공간 분할 그리드 (충돌 최적화)
+ * src/managers/SpatialGrid.js
  *
- * WHY (P1-1):
- *   현재 CollisionSystem은 O(n²) 전수 순회로 충돌을 검사한다.
- *   적 100마리 + 투사체 200개 환경에서는 프레임당 20,000회 이상 거리 계산이 발생한다.
- *   SpatialGrid는 엔티티를 셀에 분류해 인근 셀만 검사하므로
- *   평균 복잡도를 O(n) 수준으로 낮춘다.
+ * ─── 개선 P1-D ────────────────────────────────────────────────────────
+ * Before:
+ *   _cellsOf()가 호출될 때마다 { cx, cy } 객체 배열을 새로 생성.
+ *   매 프레임 삽입 엔티티 수 × 최대 4셀 = 수백 개 임시 객체 생성 → GC 압박.
  *
- * 트리거 기준:
- *   - 적 스폰 수가 80개를 넘기 시작하거나
- *   - 실제 프레임 드랍이 관측될 때 CollisionSystem에 도입한다.
- *
- * 사용법 (CollisionSystem 내부):
- *
- *   const grid = new SpatialGrid(cellSize = 120);
- *
- *   // 매 프레임 시작 시
- *   grid.clear();
- *   for (const e of world.enemies)     grid.insert(e);
- *   for (const p of world.projectiles) grid.insert(p);
- *
- *   // 충돌 후보 조회
- *   for (const proj of world.projectiles) {
- *     const candidates = grid.query(proj);
- *     for (const enemy of candidates) {
- *       // 실제 거리 계산
- *     }
- *   }
- *
- * 계약:
- *   - 입력: 위치(x, y)와 반지름(radius)을 가진 엔티티 객체
- *   - 읽기: 엔티티 좌표
- *   - 쓰기: 내부 셀 맵만
- *   - 출력: 인근 셀의 엔티티 목록
+ * After:
+ *   인스턴스 내부 _cellBuffer / _cellCxBuf / _cellCyBuf 재사용 배열 보유.
+ *   _cellsOf() 대신 _fillCellBuffer()가 재사용 버퍼를 채우고 count 반환.
+ *   queryUnique()와 동일한 GC-free 패턴 통일.
+ * ──────────────────────────────────────────────────────────────────────
  */
 
 export class SpatialGrid {
@@ -41,45 +19,61 @@ export class SpatialGrid {
    */
   constructor(cellSize = 120) {
     this.cellSize = cellSize;
+
     /** @type {Map<number, object[]>} hash → 엔티티 목록 */
-    this._cells   = new Map();
-    // PERF(P2): queryUnique() 시 사용할 재사용 버퍼 (GC 방지)
+    this._cells = new Map();
+
+    // PERF: queryUnique() 재사용 버퍼 (GC 방지)
     this._queryBuffer = [];
-    this._seenIds = new Set();
+    this._seenIds     = new Set();
+
+    // PERF(P1-D): _fillCellBuffer() 재사용 버퍼 — { cx, cy } 객체 할당 제거
+    // 최대 4셀 점유 (엔티티가 4개 셀 경계에 걸칠 수 있음)
+    this._cellCxBuf = new Int32Array(16);
+    this._cellCyBuf = new Int32Array(16);
   }
 
-  // ── 셀 키 계산 ──────────────────────────────────────────────
+  // ── 내부 유틸 ──────────────────────────────────────────────────────
 
   /** @private */
   _key(cx, cy) {
-    // 간단한 cantor pairing (음수 좌표 대응을 위해 오프셋 적용)
     const x = cx + 32768;
     const y = cy + 32768;
     return (x << 16) | (y & 0xFFFF);
   }
 
-  /** 엔티티가 점유하는 셀 좌표 목록을 반환 */
-  _cellsOf(entity) {
+  /**
+   * 엔티티가 점유하는 셀 좌표를 재사용 버퍼에 채우고 셀 수를 반환한다.
+   * Before: _cellsOf() → 매 호출 { cx, cy }[] 새 배열 생성
+   * After:  _fillCellBuffer() → _cellCxBuf/_cellCyBuf 재사용, count 반환
+   *
+   * @private
+   * @param {object} entity  { x, y, radius }
+   * @returns {number} 점유 셀 수
+   */
+  _fillCellBuffer(entity) {
     const r    = entity.radius ?? 8;
     const minX = Math.floor((entity.x - r) / this.cellSize);
     const maxX = Math.floor((entity.x + r) / this.cellSize);
     const minY = Math.floor((entity.y - r) / this.cellSize);
     const maxY = Math.floor((entity.y + r) / this.cellSize);
 
-    const result = [];
+    let count = 0;
     for (let cx = minX; cx <= maxX; cx++) {
       for (let cy = minY; cy <= maxY; cy++) {
-        result.push({ cx, cy });
+        if (count < this._cellCxBuf.length) {
+          this._cellCxBuf[count] = cx;
+          this._cellCyBuf[count] = cy;
+          count++;
+        }
       }
     }
-    return result;
+    return count;
   }
 
-  // ── Public API ───────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────────
 
-  /**
-   * 그리드를 초기화한다. 매 프레임 시작 시 호출.
-   */
+  /** 그리드를 초기화한다. 매 프레임 시작 시 호출. */
   clear() {
     this._cells.clear();
   }
@@ -93,9 +87,10 @@ export class SpatialGrid {
   insert(entity) {
     if (!entity.isAlive || entity.pendingDestroy) return;
 
-    for (const { cx, cy } of this._cellsOf(entity)) {
-      const key = this._key(cx, cy);
-      let cell = this._cells.get(key);
+    const count = this._fillCellBuffer(entity);
+    for (let i = 0; i < count; i++) {
+      const key  = this._key(this._cellCxBuf[i], this._cellCyBuf[i]);
+      let   cell = this._cells.get(key);
       if (!cell) {
         cell = [];
         this._cells.set(key, cell);
@@ -109,16 +104,15 @@ export class SpatialGrid {
    * 자기 자신이 포함될 수 있으므로 호출 측에서 제외해야 한다.
    *
    * @param {object} entity
-   * @returns {object[]}  중복이 있을 수 있음 — Set으로 처리 필요 시 queryUnique 사용
+   * @returns {object[]}  중복이 있을 수 있음
    */
   query(entity) {
     const result = [];
-    for (const { cx, cy } of this._cellsOf(entity)) {
-      const cell = this._cells.get(this._key(cx, cy));
+    const count  = this._fillCellBuffer(entity);
+    for (let i = 0; i < count; i++) {
+      const cell = this._cells.get(this._key(this._cellCxBuf[i], this._cellCyBuf[i]));
       if (cell) {
-        for (let i = 0; i < cell.length; i++) {
-          result.push(cell[i]);
-        }
+        for (let j = 0; j < cell.length; j++) result.push(cell[j]);
       }
     }
     return result;
@@ -126,7 +120,7 @@ export class SpatialGrid {
 
   /**
    * 중복 없는 후보 목록을 반환한다.
-   * PERF(P2): 임시 구조체(new Set, new Array) 대신 인스턴스의 재사용 버퍼(_queryBuffer)를 반환한다.
+   * PERF: 인스턴스의 재사용 버퍼(_queryBuffer)를 반환한다.
    *
    * @param {object} entity
    * @returns {object[]} 반환된 배열은 다음 queryUnique 호출까지만 유효하다.
@@ -135,11 +129,12 @@ export class SpatialGrid {
     this._seenIds.clear();
     this._queryBuffer.length = 0;
 
-    for (const { cx, cy } of this._cellsOf(entity)) {
-      const cell = this._cells.get(this._key(cx, cy));
+    const count = this._fillCellBuffer(entity);
+    for (let i = 0; i < count; i++) {
+      const cell = this._cells.get(this._key(this._cellCxBuf[i], this._cellCyBuf[i]));
       if (!cell) continue;
-      for (let i = 0; i < cell.length; i++) {
-        const e = cell[i];
+      for (let j = 0; j < cell.length; j++) {
+        const e = cell[j];
         if (!this._seenIds.has(e.id)) {
           this._seenIds.add(e.id);
           this._queryBuffer.push(e);
@@ -149,18 +144,12 @@ export class SpatialGrid {
     return this._queryBuffer;
   }
 
-  /**
-   * 현재 점유된 셀 수를 반환한다. (디버그·프로파일링용)
-   * @returns {number}
-   */
+  /** 현재 점유된 셀 수를 반환한다. (디버그·프로파일링용) */
   get cellCount() {
     return this._cells.size;
   }
 
-  /**
-   * 총 삽입된 엔티티-셀 매핑 수를 반환한다. (밀도 지표)
-   * @returns {number}
-   */
+  /** 총 삽입된 엔티티-셀 매핑 수를 반환한다. (밀도 지표) */
   get entryCount() {
     let n = 0;
     for (const cell of this._cells.values()) n += cell.length;

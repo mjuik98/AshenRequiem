@@ -67,6 +67,9 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | P2-② GLOW_THRESHOLD | RenderSystem.js 하드코딩 | constants.js RENDER.GLOW_THRESHOLD |
 | P2-③ npm run profile | 미존재 | scripts/profile.js 헤드리스 시뮬레이션 |
 | P2-④ EventRegistry 자동화 | clearAll 수동 나열 | EVENT_TYPES 루프 |
+| P-① drawEffectRegistry 추가 | drawEffect.js if/else 분기 | drawEffectRegistry.js 위임 패턴 |
+| P-② SpatialGrid _cellsOf GC | 매 호출 객체 배열 생성 | _cellCxBuf/_cellCyBuf Int32Array 재사용 |
+| P-③ 핵심 시스템 테스트 추가 | Damage/Experience/Level/Movement/Flush/Spawn 미비 | 6개 test.js 추가 |
 
 ---
 

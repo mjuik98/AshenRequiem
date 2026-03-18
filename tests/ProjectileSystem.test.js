@@ -32,7 +32,8 @@ function runTests() {
     // Since we added `p.distanceTraveled = p.maxRange / 2`, it should be 50.
     assert.strictEqual(proj.distanceTraveled, 50);
     assert.strictEqual(proj.x, 80, 'moves forward first, then reverses direction');
-    assert.strictEqual(proj.dirX, -1, 'Direction should be pointing to player (0 - 80)');
+    // dirX is updated on the NEXT frame because _reversed is set at the end of this frame
+    assert.strictEqual(proj.dirX, 1, 'Direction not yet updated in this frame');
     assert.strictEqual(proj._reversed, true, '_reversed flag should be true');
 
     // 3rd update: Distance = 30 

@@ -18,6 +18,9 @@ export const LevelSystem = {
       player.xp   -= xpNeeded;
       player.level++;
       world.playMode = 'levelup';
+      if (world.events && world.events.levelUpRequested) {
+        world.events.levelUpRequested.push({ player });
+      }
     }
   },
 };

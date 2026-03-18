@@ -1,38 +1,33 @@
 /**
  * src/behaviors/enemyBehaviors/dash.js — 돌진 행동 패턴
  *
- * [FIX P0-1] dash behaviorId를 enemyBehaviorRegistry에 등록하기 위한 독립 모듈.
+ * FIX(BUG-CHARGEEFFECT-STUN): windup 중 스턴 시 chargeEffect 1프레임 잔류 방지
  *
- * Before:
- *   EliteBehaviorSystem이 behaviorId === 'dash' 를 내부에서 직접 분기 처리.
- *   → enemyBehaviorRegistry에 'dash'가 없어 npm run validate 경고 4건 발생.
- *   → EnemyMovementSystem이 엘리트를 처리할 때 chase fallback으로 동작해
- *     EliteBehaviorSystem과 이중 이동이 발생하는 잠재적 버그 존재.
+ *   Before (버그):
+ *     dash.js는 windup 페이즈 진입 시 chargeEffect=true를 세팅.
+ *     EnemyMovementSystem에서 stunned/knockback이면 behaviorFn 호출 자체를 skip.
+ *     → 스턴 발생 시 chargeEffect 해제 코드가 실행될 기회가 없음.
+ *     → chargeEffect가 true인 채로 1프레임(또는 그 이상) 잔류.
  *
- * After:
- *   이 파일을 enemyBehaviorRegistry에 등록.
- *   EnemyMovementSystem: 엘리트(isElite || isBoss)는 레지스트리에서 동작 함수를 가져와 실행.
- *   EliteBehaviorSystem: 엘리트를 skip하거나 제거 (중복 방지).
+ *   After (수정):
+ *     EnemyMovementSystem이 stunned/knockback을 검사하여 continue하기 전에
+ *     dash.js 내에서 chargeEffect를 관리.
+ *     그러나 EnemyMovementSystem의 continue 이전에 dash.js가 호출되지 않으므로
+ *     다른 방법이 필요: windup 페이즈 탈출 시(→dashing) chargeEffect=false를 명시,
+ *     그리고 idle 페이즈에서도 chargeEffect=false를 보장.
  *
- * behaviorState 구조 (createEnemy 또는 resetEnemy에서 초기화):
- *   { phase: 'idle', timer: 1.5, dashDirX: 0, dashDirY: 0 }
- *
- * 컨텍스트 시그니처 (EnemyMovementSystem에서 전달):
- *   (enemy, { player, enemies, deltaTime, spawnQueue })
+ *   EliteBehaviorSystem(35)이 최후 방어선으로 stunned 상태에서 chargeEffect를 정리함.
+ *   이 파일의 수정은 "정상 상태 전환" 경로에서 chargeEffect가 올바르게 관리되도록 보장.
  */
 
 import { ELITE_BEHAVIOR } from '../../data/constants.js';
 
-const WINDUP_DURATION  = 0.70; // 차징 연출 시간 (s)
-const DASH_DURATION    = 0.32; // 실제 돌진 지속 시간 (s)
-const IDLE_RESET_TIMER = 2.20; // 돌진 후 재쿨다운 (s)
+const WINDUP_DURATION  = 0.70;
+const DASH_DURATION    = 0.32;
+const IDLE_RESET_TIMER = 2.20;
 
 /**
  * 돌진 행동 — idle → windup → dashing 3단계 FSM.
- *
- * idle:    플레이어 방향으로 보통 속도 추적, 타이머 소진 시 windup 진입.
- * windup:  chargeEffect=true, 실제 이동 없음. 시각적 예고.
- * dashing: DASH_SPEED로 고정 방향 돌진, 지속 시간 후 idle 복귀.
  *
  * @param {object} enemy
  * @param {{ player: object, deltaTime: number }} ctx
@@ -40,7 +35,6 @@ const IDLE_RESET_TIMER = 2.20; // 돌진 후 재쿨다운 (s)
 export function dash(enemy, { player, deltaTime }) {
   if (!player?.isAlive) return;
 
-  // behaviorState가 없으면 안전하게 초기화 (ObjectPool 재사용 방어)
   if (!enemy.behaviorState) {
     enemy.behaviorState = { phase: 'idle', timer: 1.5, dashDirX: 0, dashDirY: 0 };
   }
@@ -50,31 +44,36 @@ export function dash(enemy, { player, deltaTime }) {
   const dy = player.y - enemy.y;
 
   if (s.phase === 'idle') {
-    // 플레이어 방향 추적
+    // FIX: idle 상태에서 항상 chargeEffect=false 보장 (windup에서 idle로 복귀 시 포함)
+    if (enemy.chargeEffect) enemy.chargeEffect = false;
+
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
     enemy.x += (dx / dist) * enemy.moveSpeed * deltaTime;
     enemy.y += (dy / dist) * enemy.moveSpeed * deltaTime;
 
     s.timer -= deltaTime;
     if (s.timer <= 0) {
-      // 현재 플레이어 방향으로 돌진 벡터 확정
-      const d       = Math.sqrt(dx * dx + dy * dy) || 1;
-      s.dashDirX    = dx / d;
-      s.dashDirY    = dy / d;
-      s.phase       = 'windup';
-      s.timer       = WINDUP_DURATION;
+      const d    = Math.sqrt(dx * dx + dy * dy) || 1;
+      s.dashDirX = dx / d;
+      s.dashDirY = dy / d;
+      s.phase    = 'windup';
+      s.timer    = WINDUP_DURATION;
     }
 
   } else if (s.phase === 'windup') {
     enemy.chargeEffect = true;
     s.timer -= deltaTime;
     if (s.timer <= 0) {
+      // FIX: windup → dashing 전환 시 chargeEffect 명시적으로 해제
       enemy.chargeEffect = false;
       s.phase            = 'dashing';
       s.timer            = DASH_DURATION;
     }
 
   } else if (s.phase === 'dashing') {
+    // FIX: dashing 상태에서도 chargeEffect=false 보장 (예외 경로 방어)
+    if (enemy.chargeEffect) enemy.chargeEffect = false;
+
     enemy.x += s.dashDirX * ELITE_BEHAVIOR.DASH_SPEED * deltaTime;
     enemy.y += s.dashDirY * ELITE_BEHAVIOR.DASH_SPEED * deltaTime;
     s.timer -= deltaTime;
