@@ -128,7 +128,16 @@ System 안으로 전체 `PlayContext` 객체를 보내지 않고 **필요한 상
 - 단위 테스트 실행: `npm test` (또는 `node --experimental-vm-modules scripts/runTests.js`)
 - 데이터 무결성 검증: `npm run validate`
 - 새 System이나 주요 로직을 추가할 때는 **반드시 같은 이름의 `.test.js` 파일을 `tests/` 에 함께 추가**한다.
-- 모듈화/의존성 격리를 위해 테스트 픽스처(`makeEnemy`, `makePlayer` 등)는 각 `.test.js` 안에서 자체 선언한다 (공용 fixture 파일 지양).
+- 테스트 픽스처(`makeEnemy`, `makePlayer`, `makeWorld` 등 공용 팩토리 함수)는
+  **반드시 `tests/fixtures/index.js`에서 import**하여 사용한다.
+  픽스처를 각 테스트 파일에서 중복 선언하지 않는다.
+
+  ```js
+  import { makePlayer, makeEnemy, makeWorld, makeEvents } from './fixtures/index.js';
+  ```
+
+- 새로운 픽스처 함수가 필요하면 `tests/fixtures/index.js`에 추가하고
+  export한다. 테스트 파일 내부에 로컬 팩토리를 만들지 않는다.
 - 테스트 실행 전 import 실패 등 환경 문제가 있으면 가급적 에러를 삼키고(`process.exit(0)`) 깔끔하게 스킵하도록 작성한다.
 
 ### 6.2 세션 및 상태 (`sessionState`) 규칙

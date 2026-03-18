@@ -10,17 +10,20 @@
  *   출력: spawnQueue에 areaBurst (및 선택적으로 targetProjectile) 요청 추가
  *   반환: 항상 true (범위 안에 적이 없어도 중심 폭발은 발사)
  *
- * REFACTOR: 로컬 findClosestEnemy() 제거 → weaponBehaviorUtils 공유 함수 사용
- *   Before: targetProjectile.js와 동일한 findClosestEnemy() 로컬 복사 존재
- *   After:  weaponBehaviorUtils.findClosestEnemy import 한 줄로 대체
+ * ── 개선 이력 ──────────────────────────────────────────────────────
+ * Before:
+ *   projectileCount 처리 루프(spread 계산 + spawnQueue.push)가
+ *   targetProjectile.js 와 동일하게 이 파일에 복붙되어 있었음.
+ *
+ * After:
+ *   spawnDirectionalProjectiles() 1줄 호출로 대체.
+ *   중심 폭발(areaBurst) 투사체 생성만 이 파일에서 담당.
+ * ──────────────────────────────────────────────────────────────────
  */
 
-import { normalize, sub }    from '../../math/Vector2.js';
-import { findClosestEnemy }  from './weaponBehaviorUtils.js';
+import { findClosestEnemy, spawnDirectionalProjectiles } from './weaponBehaviorUtils.js';
 
 /**
- * areaBurst 무기 동작 실행.
- *
  * @param {{
  *   weapon:     object,
  *   player:     object,
@@ -37,19 +40,19 @@ export function areaBurst({ weapon, player, enemies, spawnQueue }) {
   spawnQueue.push({
     type: 'projectile',
     config: {
-      x: player.x,
-      y: player.y,
-      dirX: 0,
-      dirY: 0,
-      speed:       0,
-      damage:      weapon.damage,
-      radius:      weapon.radius,
-      color:       weapon.projectileColor,
-      pierce:      weapon.pierce ?? 999,
-      maxRange:    0,
-      behaviorId:  'areaBurst',
-      maxLifetime: weapon.burstDuration ?? 0.3,
-      ownerId:     player.id,
+      x:                  player.x,
+      y:                  player.y,
+      dirX:               0,
+      dirY:               0,
+      speed:              0,
+      damage:             weapon.damage,
+      radius:             weapon.radius,
+      color:              weapon.projectileColor,
+      pierce:             weapon.pierce ?? 999,
+      maxRange:           0,
+      behaviorId:         'areaBurst',
+      maxLifetime:        weapon.burstDuration ?? 0.3,
+      ownerId:            player.id,
       statusEffectId:     weapon.statusEffectId     ?? null,
       statusEffectChance: weapon.statusEffectChance ?? 1.0,
     },
@@ -59,33 +62,14 @@ export function areaBurst({ weapon, player, enemies, spawnQueue }) {
   // projectileCount가 있고 타겟이 존재하면 확산 투사체 발사
   const projCount = weapon.projectileCount ?? 0;
   if (projCount > 0 && target) {
-    const dir    = normalize(sub(target, player));
-    const spread = Math.PI / 14;
-    for (let i = 0; i < projCount; i++) {
-      const offset = (i - (projCount - 1) / 2) * spread;
-      const cos = Math.cos(offset);
-      const sin = Math.sin(offset);
-      spawnQueue.push({
-        type: 'projectile',
-        config: {
-          x: player.x,
-          y: player.y,
-          dirX:  dir.x * cos - dir.y * sin,
-          dirY:  dir.x * sin + dir.y * cos,
-          speed:      weapon.projectileSpeed ?? 350,
-          damage:     weapon.damage,
-          radius:     weapon.radius ?? 5,
-          color:      weapon.projectileColor,
-          pierce:     weapon.pierce ?? 1,
-          maxRange:   weapon.range,
-          behaviorId: 'targetProjectile',
-          ownerId:    player.id,
-          statusEffectId:     weapon.statusEffectId     ?? null,
-          statusEffectChance: weapon.statusEffectChance ?? 1.0,
-        },
-      });
-    }
+    spawnDirectionalProjectiles(
+      { ...weapon, projectileCount: projCount },
+      player,
+      target,
+      spawnQueue,
+    );
   }
 
   return true;
 }
+

@@ -10,17 +10,20 @@
  *   출력: spawnQueue에 'projectile' 타입 요청 추가
  *   부수효과: 없음 (상태 직접 수정 금지)
  *
- * REFACTOR: 로컬 findClosestEnemy() 제거 → weaponBehaviorUtils 공유 함수 사용
- *   Before: 이 파일에 areaBurst.js와 동일한 findClosestEnemy() 로컬 복사 존재
- *   After:  weaponBehaviorUtils.findClosestEnemy import 한 줄로 대체
+ * ── 개선 이력 ──────────────────────────────────────────────────────
+ * Before:
+ *   spread 계산 + spawnQueue.push 루프를 이 파일에 직접 인라인.
+ *   areaBurst.js 에 동일 루프가 복붙되어 중복 존재.
+ *
+ * After:
+ *   spawnDirectionalProjectiles() 1줄 호출로 대체.
+ *   루프·필드 관리는 weaponBehaviorUtils 한 곳에서만.
+ * ──────────────────────────────────────────────────────────────────
  */
 
-import { normalize, sub }    from '../../math/Vector2.js';
-import { findClosestEnemy }  from './weaponBehaviorUtils.js';
+import { findClosestEnemy, spawnDirectionalProjectiles } from './weaponBehaviorUtils.js';
 
 /**
- * targetProjectile 무기 동작 실행.
- *
  * @param {{
  *   weapon:     object,
  *   player:     object,
@@ -33,34 +36,7 @@ export function targetProjectile({ weapon, player, enemies, spawnQueue }) {
   const target = findClosestEnemy(player, enemies, weapon.range);
   if (!target) return false;
 
-  const dir    = normalize(sub(target, player));
-  const count  = weapon.projectileCount ?? 1;
-  const spread = Math.PI / 14;   // 약 12.8° 간격 (다중 발사 시 확산)
-
-  for (let i = 0; i < count; i++) {
-    const offset = (i - (count - 1) / 2) * spread;
-    const cos = Math.cos(offset);
-    const sin = Math.sin(offset);
-    spawnQueue.push({
-      type: 'projectile',
-      config: {
-        x: player.x,
-        y: player.y,
-        dirX:  dir.x * cos - dir.y * sin,
-        dirY:  dir.x * sin + dir.y * cos,
-        speed:      weapon.projectileSpeed ?? 350,
-        damage:     weapon.damage,
-        radius:     weapon.radius ?? 5,
-        color:      weapon.projectileColor,
-        pierce:     weapon.pierce ?? 1,
-        maxRange:   weapon.range,
-        behaviorId: 'targetProjectile',
-        ownerId:    player.id,
-        statusEffectId:     weapon.statusEffectId     ?? null,
-        statusEffectChance: weapon.statusEffectChance ?? 1.0,
-      },
-    });
-  }
-
+  spawnDirectionalProjectiles(weapon, player, target, spawnQueue);
   return true;
 }
+

@@ -91,7 +91,8 @@ if (SpawnSystem) {
   test('playMode !== "playing" 이면 스폰 없음', () => {
     const world = makeWorld({ playMode: 'paused' });
     const data  = { waveData: [] };
-    SpawnSystem.update({ world, data, services: makeServices() });
+    const spawnSystem = new SpawnSystem();
+    spawnSystem.update({ world, data, services: makeServices() });
     assert.equal(world.spawnQueue.length, 0, 'paused 중에 스폰 발생');
   });
 }

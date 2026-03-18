@@ -1,38 +1,55 @@
-import { generateId }    from '../utils/ids.js';
-import { EFFECT_DEFAULTS } from '../data/constants.js';
+/**
+ * src/entities/createEffect.js
+ *
+ * ── 개선 이력 ──────────────────────────────────────────────────────
+ * Before:
+ *   createEffect 와 resetEffect 가 동일 필드 목록을 각각 하드코딩.
+ *   constants.js의 EFFECT_DEFAULTS.duration 과 entityDefaults.js의
+ *   EFFECT_DEFAULTS_SHAPE.maxLifetime 두 곳에 기본값이 분산되어 있었음.
+ *
+ * After:
+ *   EFFECT_DEFAULTS_SHAPE + applyEntityFields 로 단일 소스 관리.
+ *   duration → maxLifetime 매핑은 config 전처리 단계에서 1회 처리.
+ * ──────────────────────────────────────────────────────────────────
+ */
 
-/** createEffect — 시각 이펙트 엔티티 생성 */
+import { generateId }                                from '../utils/ids.js';
+import { EFFECT_DEFAULTS_SHAPE, applyEntityFields }  from './entityDefaults.js';
+
+/**
+ * createEffect — 시각 이펙트 엔티티 생성
+ *
+ * @param {object} config
+ * @param {number} [config.duration]  maxLifetime 별칭 (하위 호환)
+ * @returns {object}
+ */
 export function createEffect(config = {}) {
-  return {
-    id:             generateId(),
-    type:           'effect',
-    // FIX(bug): || → ?? (x/y가 0일 때 잘못된 값으로 대체되는 버그 방지)
-    x:              config.x          ?? 0,
-    y:              config.y          ?? 0,
-    effectType:     config.effectType ?? 'burst',
-    color:          config.color      ?? '#ff5722',
-    text:           config.text       ?? '',
-    radius:         config.radius     ?? 15,
-    lifetime:       0,
-    maxLifetime:    config.duration   ?? EFFECT_DEFAULTS.duration,
-    isAlive:        true,
-    pendingDestroy: false,
+  // duration → maxLifetime 별칭 정규화 (하위 호환 유지)
+  const normalized = config.duration !== undefined
+    ? { ...config, maxLifetime: config.duration }
+    : config;
+
+  const effect = {
+    id:   generateId(),
+    type: 'effect',
   };
+  applyEntityFields(effect, EFFECT_DEFAULTS_SHAPE, normalized);
+  return effect;
 }
 
-/** resetEffect — ObjectPool 리셋 함수 */
+/**
+ * resetEffect — ObjectPool 리셋 함수
+ *
+ * @param {object} obj  풀에서 꺼낸 기존 이펙트
+ * @param {object} cfg  새 설정
+ */
 export function resetEffect(obj, cfg) {
-  obj.id          = generateId();
-  obj.type        = 'effect';
-  // FIX(bug): || → ?? (0 falsy 방지)
-  obj.x           = cfg.x          ?? 0;
-  obj.y           = cfg.y          ?? 0;
-  obj.effectType  = cfg.effectType ?? 'burst';
-  obj.color       = cfg.color      ?? '#ff5722';
-  obj.text        = cfg.text       ?? '';
-  obj.radius      = cfg.radius     ?? 15;
-  obj.lifetime    = 0;
-  obj.maxLifetime = cfg.duration   ?? EFFECT_DEFAULTS.duration;
-  obj.isAlive        = true;
-  obj.pendingDestroy = false;
+  const normalized = cfg.duration !== undefined
+    ? { ...cfg, maxLifetime: cfg.duration }
+    : cfg;
+
+  obj.id   = generateId();
+  obj.type = 'effect';
+  applyEntityFields(obj, EFFECT_DEFAULTS_SHAPE, normalized);
 }
+

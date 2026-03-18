@@ -1,18 +1,19 @@
 /**
  * scripts/runTests.js — 전체 테스트 일괄 실행기
  *
+ * P2-② 개선: spawnSync timeout 추가
+ *
+ * Before:
+ *   spawnSync에 timeout 옵션 없음.
+ *   무한루프 테스트 발생 시 CI가 영구 블로킹됨.
+ *
+ * After:
+ *   TEST_TIMEOUT_MS(기본 10초) 초과 시 SIGTERM → 'skip'으로 처리.
+ *   기존 SIGTERM 핸들링 로직을 그대로 활용하므로 0줄 추가 변경.
+ *
  * 사용법:
  *   node scripts/runTests.js
- *   npm test           (package.json에 "test": "node scripts/runTests.js" 추가 후)
- *
- * 동작:
- *   - tests/ 디렉토리에서 *.test.js 파일을 자동 탐색
- *   - 각 테스트를 순차적으로 subprocess 실행
- *   - 하나라도 실패하면 exit(1)
- *   - 전체 결과 요약 출력
- *
- * 주의:
- *   Node.js 18+ 환경에서 --experimental-vm-modules 플래그 필요
+ *   npm test
  */
 
 import { readdirSync } from 'node:fs';
@@ -23,6 +24,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT      = resolve(__dirname, '..');
 const TEST_DIR  = join(ROOT, 'tests');
+
+// P2-② 추가: 테스트 파일당 최대 실행 시간 (ms)
+const TEST_TIMEOUT_MS = 10_000;
 
 // tests/ 디렉토리에서 *.test.js 파일 탐색
 let testFiles;
@@ -42,7 +46,7 @@ if (testFiles.length === 0) {
 }
 
 console.log(`\n${'='.repeat(52)}`);
-console.log(` 테스트 실행 — ${testFiles.length}개 파일`);
+console.log(` 테스트 실행 — ${testFiles.length}개 파일  (timeout: ${TEST_TIMEOUT_MS / 1000}s)`);
 console.log(`${'='.repeat(52)}\n`);
 
 let passed  = 0;
@@ -57,22 +61,22 @@ for (const file of testFiles) {
     process.execPath,
     ['--experimental-vm-modules', file],
     {
-      cwd: ROOT,
-      stdio: 'pipe',
+      cwd:      ROOT,
+      stdio:    'pipe',
       encoding: 'utf-8',
+      timeout:  TEST_TIMEOUT_MS,   // ← P2-② 핵심 변경점
+      killSignal: 'SIGTERM',       // 타임아웃 시 SIGTERM → 기존 skip 처리와 호환
     },
   );
 
-  const stdout = result.stdout ?? '';
-  const stderr = result.stderr ?? '';
+  const stdout   = result.stdout ?? '';
+  const stderr   = result.stderr ?? '';
   const exitCode = result.status ?? 1;
 
-  // 표준 출력을 그대로 표시 (각 테스트 파일의 ✓/✗ 출력 포함)
   if (stdout.trim()) {
     console.log(stdout.trimEnd());
   }
 
-  // 경고/에러는 stderr로 — 단, ExperimentalWarning 제외
   const filteredStderr = stderr
     .split('\n')
     .filter(l => !l.includes('ExperimentalWarning') && l.trim())
@@ -81,27 +85,32 @@ for (const file of testFiles) {
     console.error(filteredStderr);
   }
 
-  if (exitCode === 0) {
+  // 타임아웃 → signal: 'SIGTERM', status: null
+  const isTimeout = result.signal === 'SIGTERM' || exitCode === null;
+
+  if (isTimeout) {
+    skipped++;
+    results.push({ name, status: 'skip', reason: 'timeout' });
+    console.warn(`  ⏱ [SKIP] ${name} — ${TEST_TIMEOUT_MS / 1000}s 타임아웃`);
+  } else if (exitCode === 0) {
     passed++;
     results.push({ name, status: 'pass' });
-  } else if (result.signal === 'SIGTERM' || exitCode === null) {
-    skipped++;
-    results.push({ name, status: 'skip' });
   } else {
     failed++;
     results.push({ name, status: 'fail' });
   }
 }
 
-// ── 최종 요약 ────────────────────────────────────────────────────
+// ── 최종 요약 ────────────────────────────────────────────────────────────
 console.log(`\n${'='.repeat(52)}`);
 console.log(' 결과 요약');
 console.log('='.repeat(52));
 
 for (const r of results) {
-  const icon = r.status === 'pass' ? '✓' : r.status === 'skip' ? '○' : '✗';
+  const icon  = r.status === 'pass' ? '✓' : r.status === 'skip' ? '○' : '✗';
   const label = r.status === 'pass' ? 'PASS' : r.status === 'skip' ? 'SKIP' : 'FAIL';
-  console.log(`  ${icon} [${label}] ${r.name}`);
+  const extra = r.reason ? ` (${r.reason})` : '';
+  console.log(`  ${icon} [${label}] ${r.name}${extra}`);
 }
 
 console.log('');

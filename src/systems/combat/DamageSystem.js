@@ -5,6 +5,9 @@ import { KNOCKBACK, DAMAGE_TEXT } from '../../data/constants.js';
  *
  * FIX(bug): pendingDestroy 가드 — 동일 프레임 poison tick + 투사체 이중 처리 차단
  * PERF: 데미지 텍스트 프레임당 DAMAGE_TEXT.MAX_PER_FRAME 상한
+ *
+ * BUGFIX(BUG-LIFESTEAL): lifesteal attackerId 검증 누락 수정
+ *   - hit.attackerId === player.id 일 때만 흡혈 적용하여 poison 등 타인 공격에 의한 회복 차단
  */
 export const DamageSystem = {
   update({ world: { events, player, spawnQueue } }) {
@@ -46,8 +49,8 @@ export const DamageSystem = {
           target.knockbackTimer = KNOCKBACK.duration * (1 - resist);
         }
 
-        // 흡혈
-        if (player && player.lifesteal > 0) {
+        // FIX(BUG-LIFESTEAL): attackerId === player.id 일 때만 흡혈 적용
+        if (player && player.lifesteal > 0 && hit.attackerId === player.id) {
           player.hp = Math.min(player.maxHp, player.hp + hit.damage * player.lifesteal);
         }
       }

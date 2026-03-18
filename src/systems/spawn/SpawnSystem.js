@@ -21,26 +21,12 @@ export class SpawnSystem {
     this._lastBossSpawnTime = -Infinity;
   }
 
-  /** 동일 인스턴스 재사용 시 안전망용 — 새 인스턴스 생성이 권장 방식 */
-  reset() {
-    this._spawnAccumulator  = 0;
-    this._spawnedBossAt.clear();
-    this._lastBossSpawnTime = -Infinity;
-    console.debug('[SpawnSystem] reset 완료');
-  }
-
-  getDebugInfo(elapsedTime) {
-    const timeSinceBoss = elapsedTime - this._lastBossSpawnTime;
-    const isSuppressed  = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
-    return {
-      hasBossSpawned:       this._lastBossSpawnTime > -Infinity,
-      isSuppressed,
-      suppressionRemaining: isSuppressed ? BOSS_SUPPRESSION_DURATION - timeSinceBoss : 0,
-      bossSpawnedAt:        this._lastBossSpawnTime > -Infinity ? this._lastBossSpawnTime : null,
-    };
-  }
-
-  update({ world: { elapsedTime, player, spawnQueue, deltaTime }, data: { waveData, bossData } }) {
+  // ... (Using content from files/SpawnSystem.js)
+  // FIX(BUG-SPAWN-MODE): playMode를 destructure에 추가
+  update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode }, data: { waveData, bossData } }) {
+    // FIX(BUG-SPAWN-MODE): playing 상태가 아니면 스폰 중단
+    // dead / levelup / paused 세 상태 모두 포함
+    if (playMode !== 'playing') return;
     if (!player?.isAlive) return;
 
     // 보스 스폰
@@ -75,31 +61,33 @@ export class SpawnSystem {
     while (this._spawnAccumulator >= 1) {
       this._spawnAccumulator -= 1;
 
-      let enemyId;
-      if (activeWave.eliteChance > 0 && activeWave.eliteIds?.length > 0
-          && Math.random() < activeWave.eliteChance) {
-        enemyId = randomPick(activeWave.eliteIds);
-      } else {
-        enemyId = randomPick(activeWave.enemyIds);
-      }
+      const isElite = activeWave.eliteChance && Math.random() < activeWave.eliteChance;
+      const pool    = isElite ? (activeWave.elitePool ?? activeWave.enemyPool) : activeWave.enemyPool;
+      if (!pool?.length) continue;
 
-      const pos = this._randomOffscreenPosition(player);
+      const enemyId = randomPick(pool);
+      const pos     = this._randomOffscreenPosition(player);
       spawnQueue.push({ type: 'enemy', config: { enemyId, x: pos.x, y: pos.y } });
     }
   }
 
   _randomOffscreenPosition(player) {
     const margin = 80;
-    const halfW  = GameConfig.canvasWidth  / 2 + margin;
-    const halfH  = GameConfig.canvasHeight / 2 + margin;
-    const side   = Math.floor(Math.random() * 4);
+    const w = GameConfig.canvasWidth  + margin * 2;
+    const h = GameConfig.canvasHeight + margin * 2;
+
+    const side = Math.floor(Math.random() * 4);
     let x, y;
     switch (side) {
-      case 0: x = player.x + randomRange(-halfW, halfW); y = player.y - halfH; break;
-      case 1: x = player.x + randomRange(-halfW, halfW); y = player.y + halfH; break;
-      case 2: x = player.x - halfW; y = player.y + randomRange(-halfH, halfH); break;
-      default:x = player.x + halfW; y = player.y + randomRange(-halfH, halfH); break;
+      case 0: x = randomRange(-margin, w - margin); y = -margin;        break; // top
+      case 1: x = randomRange(-margin, w - margin); y = h - margin;     break; // bottom
+      case 2: x = -margin;                          y = randomRange(-margin, h - margin); break; // left
+      default:x = w - margin;                       y = randomRange(-margin, h - margin); break; // right
     }
-    return { x, y };
+    return {
+      x: player.x + x - GameConfig.canvasWidth  / 2,
+      y: player.y + y - GameConfig.canvasHeight / 2,
+    };
   }
+
 }

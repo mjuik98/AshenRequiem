@@ -1,11 +1,11 @@
 import { PlayContext } from '../core/PlayContext.js';
 import { createWorld }   from '../state/createWorld.js';
-import { createUiState }  from '../state/createUiState.js';
-import { createPlayer }   from '../entities/createPlayer.js';
-import { waveData }       from '../data/waveData.js';
-import { bossData }       from '../data/bossData.js';
-import { upgradeData }    from '../data/upgradeData.js';
+import { createPlayer }  from '../entities/createPlayer.js';
+import { waveData }      from '../data/waveData.js';
+import { bossData }      from '../data/bossData.js';
+import { upgradeData }   from '../data/upgradeData.js';
 import { EFFECT_DEFAULTS } from '../data/constants.js';
+import { GameConfig }    from '../core/GameConfig.js';
 import { updateSessionBest, saveSession } from '../state/createSessionState.js';
 
 import { UpgradeSystem }        from '../systems/progression/UpgradeSystem.js';
@@ -31,6 +31,10 @@ import { PlayModeStateMachine } from '../core/PlayModeStateMachine.js';
  *          this._levelUpShown 은 constructor에 선언되지도 않은 유령 필드이며,
  *          상태 관리는 PlayModeStateMachine._firedLevelUp 이 전담.
  *          → 해당 라인 삭제
+ *
+ * BUGFIX(BUG-TIME-DUPLICATE): _runGamePipeline의 world.time += dt 제거
+ *   createWorld.js에서 time 필드 자체를 제거함.
+ *   elapsedTime 하나로 통합 — world.time += dt 라인 삭제.
  */
 export class PlayScene {
   constructor(game) {
@@ -114,13 +118,22 @@ export class PlayScene {
     // FIX(BUG-E): EventRegistry.clearAll(world.events) 제거
     // AGENTS.md 6.6: 이벤트 큐 초기화는 파이프라인 priority 105의 EventRegistry.update()가 전담.
 
-    world.time        += dt;
+    // FIX(BUG-TIME-DUPLICATE): world.time += dt 제거
+    // createWorld()에서 time 필드를 제거하고 elapsedTime으로 통합함.
     world.deltaTime    = dt;
     world.elapsedTime += dt;
 
+    // FIX(BUG-CAMERA-FIELDS): 리사이즈 시 camera.width/height 동기화
+    world.camera.width  = GameConfig.canvasWidth;
+    world.camera.height = GameConfig.canvasHeight;
+
     this._pipeline.run(this._pipelineCtx);
 
-    FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
+    // FIX(BUG-EFFECT-DOUBLE-TICK): 아래 줄 제거
+    // Before: FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
+    //         FlushSystem.update()가 pipeline priority 110에서 이미 tickEffects를 호출함.
+    //         이 명시적 호출은 2번째 호출이 되어 이펙트 수명이 2배 속도로 소모됨.
+    // After:  해당 줄 삭제. tickEffects는 FlushSystem.update() 내에서만 호출.
 
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
@@ -154,14 +167,28 @@ export class PlayScene {
 
   _showLevelUpUI() {
     this._ctx?.soundSystem?.play('levelup');
-    this.world.effects.push(this._ctx.effectPool.acquire({
-      x:          this.world.player.x,
-      y:          this.world.player.y,
-      effectType: 'levelFlash',
-      color:      '#ffd54f',
-      radius:     1,
-      duration:   EFFECT_DEFAULTS.levelFlashDuration,
-    }));
+
+    // FIX(BUG-LEVELUP-EFFECT-SPAWN): world.effects 직접 push → spawnQueue 경유로 수정
+    //
+    // Before (버그):
+    //   this.world.effects.push(this._ctx.effectPool.acquire({...}))
+    //   → ObjectPool.acquire()를 Scene에서 직접 호출 (PlayContext 계약 위반)
+    //   → world.effects에 직접 삽입 (spawnQueue/FlushSystem 우회)
+    //
+    // After (수정):
+    //   world.spawnQueue.push({ type: 'effect', config: {...} })
+    //   → FlushSystem이 다음 파이프라인 실행 시 처리 (1프레임 지연은 정상 동작)
+    this.world.spawnQueue.push({
+      type: 'effect',
+      config: {
+        x:          this.world.player.x,
+        y:          this.world.player.y,
+        effectType: 'levelFlash',
+        color:      '#ffd54f',
+        radius:     1,
+        duration:   EFFECT_DEFAULTS.levelFlashDuration,
+      },
+    });
 
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) {

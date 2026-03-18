@@ -60,7 +60,7 @@ test('pendingDestroy 적에게는 hit 이벤트 없음', () => {
 });
 
 test('pierce=1인 투사체는 첫 번째 적 이후 관통 중단', () => {
-  const player = makePlayer({ x: 0, y: 0 });
+  const player = makePlayer({ x: -1000, y: -1000 }); // 저 멀리 배치
   const e1     = makeEnemy({ x: 5,  y: 0 });
   const e2     = makeEnemy({ x: 10, y: 0 });
   const proj   = makeProjectile({ x: 0, y: 0, pierce: 1 });

@@ -3,25 +3,26 @@
  *
  * 무기 행동(weaponBehaviors/*.js)에서 공통으로 사용하는 유틸리티 함수 모음.
  *
- * ── 중앙화 배경 ──────────────────────────────────────────────────────
+ * ── 개선 이력 ──────────────────────────────────────────────────────
+ * [기존] findClosestEnemy / findNearestFrom / getLiveEnemies 중앙화 완료.
+ *
+ * [추가 ⑤] spawnDirectionalProjectiles — 확산 투사체 spawnQueue push 로직 추출
  *   Before:
- *     - targetProjectile.js / areaBurst.js — 동일한 findClosestEnemy() 로컬 복사
- *     - boomerangWeapon.js / chainLightning.js — getLiveEnemies 필터 + 근접 탐색 인라인
- *     - 4개 파일 전부 distanceSq 수식(dx*dx+dy*dy)을 직접 인라인 반복
- *       (Vector2.distanceSq가 있음에도 미활용)
- *
+ *     targetProjectile.js 와 areaBurst.js 가 동일한 spread 계산 + spawnQueue.push 루프를
+ *     각각 복붙해서 유지. 투사체 필드(statusEffectId 등) 추가 시 두 파일 수정 필요.
  *   After:
- *     - findClosestEnemy / findNearestFrom / getLiveEnemies 를 이 파일에서 단일 정의
- *     - 각 behavior 파일은 import 한 줄로 사용
- *     - 내부적으로 Vector2.distanceSq 사용 → sqrt 생략, 성능 일관성 확보
+ *     spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 로 추출.
+ *     targetProjectile.js, areaBurst.js 는 이 함수 1줄 호출로 대체.
+ * ──────────────────────────────────────────────────────────────────
  *
- * ── 공개 API ─────────────────────────────────────────────────────────
+ * 공개 API:
  *   getLiveEnemies(enemies)
  *   findClosestEnemy(origin, enemies, maxRange)
  *   findNearestFrom(origin, candidates, maxRange, visited?)
+ *   spawnDirectionalProjectiles(weapon, player, target, spawnQueue)  ← 신규
  */
 
-import { distanceSq } from '../../math/Vector2.js';
+import { distanceSq, normalize, sub } from '../../math/Vector2.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // 적 목록 필터링
@@ -29,9 +30,6 @@ import { distanceSq } from '../../math/Vector2.js';
 
 /**
  * 살아있는 적 목록 반환 (pendingDestroy 제외).
- *
- * Before(중복): 각 behavior 파일에서 enemies.filter(e => e.isAlive && !e.pendingDestroy) 반복
- * After:        이 함수 한 줄 호출로 대체
  *
  * @param {object[]} enemies
  * @returns {object[]}
@@ -47,17 +45,10 @@ export function getLiveEnemies(enemies) {
 /**
  * 기준점(origin)으로부터 maxRange 이내에서 가장 가까운 살아있는 적 반환.
  *
- * Before(중복):
- *   targetProjectile.js 와 areaBurst.js 각각에 동일한 findClosestEnemy() 로컬 함수 존재.
- *   boomerangWeapon.js, chainLightning.js 는 Math.sqrt 기반 인라인 루프 사용.
- * After:
- *   이 함수 하나로 통일. distanceSq() 사용으로 sqrt 불필요 → 성능 향상.
- *   isAlive / pendingDestroy 가드 내장 → 호출 측에서 별도 필터 불필요.
- *
- * @param {{x:number, y:number}} origin   기준점 (통상 player)
- * @param {object[]}             enemies  전체 적 배열 (필터 안 된 원본도 OK)
- * @param {number}               maxRange 최대 탐지 거리 (px)
- * @returns {object|null}        가장 가까운 적 엔티티, 없으면 null
+ * @param {{x:number, y:number}} origin
+ * @param {object[]}             enemies
+ * @param {number}               maxRange
+ * @returns {object|null}
  */
 export function findClosestEnemy(origin, enemies, maxRange) {
   let closest   = null;
@@ -77,18 +68,13 @@ export function findClosestEnemy(origin, enemies, maxRange) {
 
 /**
  * 기준점(origin)으로부터 maxRange 이내에서 가장 가까운 후보 반환.
- * visited Set으로 이미 선택된 적을 제외할 수 있어 chainLightning 연쇄 hop에 적합.
+ * visited Set으로 이미 선택된 적을 제외할 수 있어 chainLightning hop에 적합.
  *
- * Before(인라인):
- *   chainLightning.js 연쇄 루프 내부에 동일한 최소 거리 탐색 로직 반복 존재.
- * After:
- *   이 함수로 분리. visited 파라미터로 hop 이력 관리까지 위임.
- *
- * @param {{x:number, y:number}} origin      기준점 (현재 hop의 출발 적)
- * @param {object[]}             candidates  탐색 대상 목록 (getLiveEnemies 결과 권장)
- * @param {number}               maxRange    최대 연결 거리 (px)
- * @param {Set<string>}          [visited]   이미 방문한 적 id 집합 (선택)
- * @returns {object|null}        가장 가까운 미방문 적, 없으면 null
+ * @param {{x:number, y:number}} origin
+ * @param {object[]}             candidates
+ * @param {number}               maxRange
+ * @param {Set<string>}          [visited]
+ * @returns {object|null}
  */
 export function findNearestFrom(origin, candidates, maxRange, visited) {
   let nearest   = null;
@@ -104,4 +90,62 @@ export function findNearestFrom(origin, candidates, maxRange, visited) {
     }
   }
   return nearest;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 확산 투사체 생성 — 신규 추출 (⑤)
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * target 방향으로 weapon.projectileCount 개의 확산 투사체를 spawnQueue에 추가한다.
+ *
+ * ── 추출 배경 ──────────────────────────────────────────────────────
+ * Before:
+ *   targetProjectile.js 와 areaBurst.js 가 동일한 spread 계산 + push 루프 복붙.
+ *   const dir = normalize(sub(target, player));
+ *   for (let i = 0; i < count; i++) {
+ *     const offset = (i - (count-1)/2) * spread;
+ *     ... spawnQueue.push({ type:'projectile', config:{ ... } });
+ *   }
+ *   → statusEffectId 등 필드 추가 시 두 파일 모두 수정 필요.
+ *
+ * After:
+ *   이 함수 1줄 호출로 대체. 필드 변경은 이 함수 안에서만.
+ * ──────────────────────────────────────────────────────────────────
+ *
+ * @param {object}   weapon
+ * @param {object}   player
+ * @param {object}   target      방향 기준 적 엔티티
+ * @param {object[]} spawnQueue
+ */
+export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) {
+  const dir    = normalize(sub(target, player));
+  const count  = weapon.projectileCount ?? 1;
+  const spread = Math.PI / 14;  // ~12.8° 간격
+
+  for (let i = 0; i < count; i++) {
+    const offset = (i - (count - 1) / 2) * spread;
+    const cos = Math.cos(offset);
+    const sin = Math.sin(offset);
+
+    spawnQueue.push({
+      type: 'projectile',
+      config: {
+        x:      player.x,
+        y:      player.y,
+        dirX:   dir.x * cos - dir.y * sin,
+        dirY:   dir.x * sin + dir.y * cos,
+        speed:              weapon.projectileSpeed ?? 350,
+        damage:             weapon.damage,
+        radius:             weapon.radius ?? 5,
+        color:              weapon.projectileColor,
+        pierce:             weapon.pierce ?? 1,
+        maxRange:           weapon.range,
+        behaviorId:         'targetProjectile',
+        ownerId:            player.id,
+        statusEffectId:     weapon.statusEffectId     ?? null,
+        statusEffectChance: weapon.statusEffectChance ?? 1.0,
+      },
+    });
+  }
 }

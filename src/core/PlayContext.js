@@ -1,42 +1,31 @@
 /**
- * PlayContext — PlayScene 서비스 컨테이너
+ * src/core/PlayContext.js — PlayScene 서비스 컨테이너
  *
- * WHY (P0-1):
- *   PlayScene이 _projectilePool, _effectPool, _enemyPool, _pickupPool,
- *   _soundSystem, _pipeline, _profiler 등을 직접 소유하면
- *   enter()가 100줄을 넘기고, 씬이 "조립자"가 아닌 "관리자"로 변질된다.
+ * ── 개선 이력 ──────────────────────────────────────────────────────
+ * Before:
+ *   ctx.soundSystem = soundEnabled ? new SoundSystem() : null;
+ *   → 각 System에서 if (services.soundSystem) 체크 필요.
+ *   → 체크 누락 시 런타임 TypeError 발생.
+ *   NullSoundSystem 클래스가 정의되어 있었으나 PlayContext에서 미사용.
  *
- *   이 클래스에 pool·service 참조를 모아두면:
- *     - PlayScene.enter()는 "무엇을 어떤 순서로" 실행하는지만 선언한다.
- *     - pool 초기화 책임이 PlayContext.create() 내부로 이동한다.
- *     - Pipeline context로 단일 객체를 주입할 수 있다.
- *
- * 사용법:
- *   // PlayScene.enter()
- *   this._ctx = PlayContext.create({
- *     canvas,
- *     soundEnabled: true,
- *   });
- *   this._pipeline = this._ctx.buildPipeline(this.world, this.game.input);
- *
- * 계약:
- *   - 입력: 초기화 옵션 (canvas, pool 크기, 기능 플래그)
- *   - 읽기: ObjectPool 팩토리, SoundSystem 설정
- *   - 쓰기: 내부 pool·service만
- *   - 출력: Pipeline context 객체
+ * After:
+ *   ctx.soundSystem = soundEnabled ? new SoundSystem() : new NullSoundSystem();
+ *   → 모든 System에서 null 체크 없이 services.soundSystem.play(...) 직접 호출 가능.
+ *   → NullSoundSystem의 no-op 메서드가 안전하게 처리.
+ * ──────────────────────────────────────────────────────────────────
  */
 
-import { ObjectPool }    from '../managers/ObjectPool.js';
-import { Pipeline }      from './Pipeline.js';
-import { SoundSystem }   from '../systems/sound/SoundSystem.js';
-import { PipelineProfiler } from '../systems/debug/PipelineProfiler.js';
+import { ObjectPool }        from '../managers/ObjectPool.js';
+import { Pipeline }          from './Pipeline.js';
+import { SoundSystem }       from '../systems/sound/SoundSystem.js';
+import { NullSoundSystem }   from '../systems/sound/NullSoundSystem.js';   // ← 추가
+import { PipelineProfiler }  from '../systems/debug/PipelineProfiler.js';
 
 import { createProjectile, resetProjectile } from '../entities/createProjectile.js';
 import { createEffect,     resetEffect }     from '../entities/createEffect.js';
 import { createEnemy,      resetEnemy }      from '../entities/createEnemy.js';
 import { createPickup,     resetPickup }     from '../entities/createPickup.js';
 
-// ── 시스템 imports ──────────────────────────────────────────────
 import { PlayerMovementSystem } from '../systems/movement/PlayerMovementSystem.js';
 import { EnemyMovementSystem }  from '../systems/movement/EnemyMovementSystem.js';
 import { EliteBehaviorSystem }  from '../systems/combat/EliteBehaviorSystem.js';
@@ -56,9 +45,8 @@ import { EventRegistry }        from '../systems/event/EventRegistry.js';
 import { AssetManager }         from '../managers/AssetManager.js';
 
 export function _registerGameAssets(assets) {
-  // assets.register('player_sprite',     'assets/images/player.png');
-  // assets.register('enemy_basic',       'assets/images/enemy_basic.png');
-  // assets.register('sfx_hit',           'assets/sounds/hit.ogg');
+  // assets.register('player_sprite', 'assets/images/player.png');
+  // assets.register('sfx_hit',       'assets/sounds/hit.ogg');
 }
 
 const POOL_SIZES = {
@@ -70,11 +58,12 @@ const POOL_SIZES = {
 
 export class PlayContext {
   /**
-   * @param {object} opts
+   * @param {object}           opts
    * @param {HTMLCanvasElement} opts.canvas
-   * @param {boolean} [opts.soundEnabled=true]
-   * @param {boolean} [opts.profilingEnabled=false]
-   * @param {object}  [opts.poolSizes]  POOL_SIZES를 override할 때 사용
+   * @param {boolean}          [opts.soundEnabled=true]
+   * @param {boolean}          [opts.profilingEnabled=false]
+   * @param {object}           [opts.poolSizes]
+   * @param {object|null}      [opts.session]
    */
   static create({
     canvas,
@@ -83,27 +72,31 @@ export class PlayContext {
     poolSizes        = {},
     session          = null,
   } = {}) {
-    const ctx = new PlayContext();
+    const ctx   = new PlayContext();
     const sizes = { ...POOL_SIZES, ...poolSizes };
 
-    ctx.assets = new AssetManager();
+    ctx.assets  = new AssetManager();
     _registerGameAssets(ctx.assets);
     ctx.session = session;
 
-    // ── pool 초기화 ──────────────────────────────────────────
+    // ── pool 초기화 ──────────────────────────────────────────────
     ctx.projectilePool = new ObjectPool(createProjectile, resetProjectile, sizes.projectile);
     ctx.effectPool     = new ObjectPool(createEffect,     resetEffect,     sizes.effect);
     ctx.enemyPool      = new ObjectPool(createEnemy,      resetEnemy,      sizes.enemy);
     ctx.pickupPool     = new ObjectPool(createPickup,     resetPickup,     sizes.pickup);
 
-    // ── 서비스 초기화 ────────────────────────────────────────
-    ctx.soundSystem = soundEnabled ? new SoundSystem() : null;
-    ctx.soundSystem?.init();
-    ctx.profiler    = profilingEnabled ? new PipelineProfiler() : null;
-    ctx.canvas      = canvas;
+    // ── 서비스 초기화 ────────────────────────────────────────────
+    // FIX(⑦): null 대신 NullSoundSystem → 각 System의 null 체크 불필요
+    if (soundEnabled) {
+      ctx.soundSystem = new SoundSystem();
+      ctx.soundSystem.init();
+    } else {
+      ctx.soundSystem = new NullSoundSystem();
+    }
 
-    // ── SpawnSystem (상태 있는 인스턴스) ─────────────────────
-    ctx.spawnSystem = new SpawnSystem();
+    ctx.profiler     = profilingEnabled ? new PipelineProfiler() : null;
+    ctx.canvas       = canvas;
+    ctx.spawnSystem  = new SpawnSystem();
 
     return ctx;
   }
@@ -124,81 +117,55 @@ export class PlayContext {
 
   /**
    * Pipeline을 생성하고 모든 시스템을 등록한다.
-   *
    * PlayScene.enter()에서 한 번 호출한다.
-   * world와 input은 참조(reference)로 전달하므로 매 프레임 갱신된다.
    *
-   * @param {object} world  createWorld() 결과
-   * @param {object} input  Input 인스턴스
-   * @param {object} data   { waveData, upgradeData, bossData, ... }
+   * @param {object} world
+   * @param {object} input
    * @returns {Pipeline}
    */
-  buildPipeline(world, input, data = {}) {
+  buildPipeline(world, input) {
     const services = {
       projectilePool: this.projectilePool,
       effectPool:     this.effectPool,
       enemyPool:      this.enemyPool,
       pickupPool:     this.pickupPool,
-      soundSystem:    this.soundSystem,
+      soundSystem:    this.soundSystem,  // 항상 non-null (NullSoundSystem 또는 SoundSystem)
       canvas:         this.canvas,
-      assets:         this.assets,
-      session:        this.session,
     };
 
-    // Pipeline context — 매 프레임 이 객체가 각 시스템에 전달된다
-    // world / input은 참조이므로 여기서 freeze하지 않는다
-    const pipelineCtx = { world, input, data, services };
+    const pipeline = new Pipeline({ world, input, services });
+    if (this.profiler) pipeline.setProfiler(this.profiler);
 
-    const pipeline = new Pipeline();
+    pipeline.register(this.spawnSystem,      10);
+    pipeline.register(PlayerMovementSystem,  20);
+    pipeline.register(EnemyMovementSystem,   30);
+    pipeline.register(EliteBehaviorSystem,   35);
+    pipeline.register(WeaponSystem,          40);
+    pipeline.register(ProjectileSystem,      50);
+    pipeline.register(CollisionSystem,       60);
+    pipeline.register(StatusEffectSystem,    65);
+    pipeline.register(DamageSystem,          70);
+    pipeline.register(BossPhaseSystem,       75);
+    pipeline.register(DeathSystem,           80);
+    pipeline.register(ExperienceSystem,      90);
+    pipeline.register(LevelSystem,          100);
+    pipeline.register(EventRegistry.asSystem(), 105);
+    pipeline.register(FlushSystem.create(services), 110);
+    pipeline.register(CameraSystem,         120);
 
-    pipeline
-      .register(this.spawnSystem,        { priority: 10 })
-      .register(PlayerMovementSystem,    { priority: 20 })
-      .register(EnemyMovementSystem,     { priority: 30 })
-      .register(EliteBehaviorSystem,     { priority: 35 })
-      .register(WeaponSystem,            { priority: 40 })
-      .register(ProjectileSystem,        { priority: 50 })
-      .register(CollisionSystem,         { priority: 60 })
-      .register(StatusEffectSystem,      { priority: 65 })
-      .register(DamageSystem,            { priority: 70 })
-      .register(BossPhaseSystem,         { priority: 75 })
-      .register(DeathSystem,             { priority: 80 })
-      .register(ExperienceSystem,        { priority: 90 })
-      .register(LevelSystem,             { priority: 100 })
-      .register(EventRegistry.asSystem(), { priority: 105 })
-      .register(FlushSystem,             { priority: 110 })
-      .register(CameraSystem,            { priority: 120 });
-
-    if (this.profiler) {
-      this.profiler.wrap(pipeline);
-    }
-
-    this._pipeline    = pipeline;
-    this._pipelineCtx = pipelineCtx;
-
-    return { pipeline, pipelineCtx };
+    this._pipeline = pipeline;
+    return pipeline;
   }
 
-  /**
-   * Pipeline에서 특정 시스템을 켜거나 끈다.
-   * 레벨업 일시정지 시 SpawnSystem을 끌 때 사용.
-   *
-   * @param {object}  system
-   * @param {boolean} enabled
-   */
+  /** 특정 시스템의 활성 여부를 런타임에 제어한다. */
   setSystemEnabled(system, enabled) {
     this._pipeline?.setEnabled(system, enabled);
   }
 
-  /**
-   * 씬 이탈 시 pool·service 메모리 해제
-   */
-  destroy() {
-    this.projectilePool?.clear?.();
-    this.effectPool?.clear?.();
-    this.enemyPool?.clear?.();
-    this.pickupPool?.clear?.();
-    this.soundSystem?.destroy?.();
-    this._pipeline?.clear?.();
+  /** 풀·서비스 자원을 해제한다. PlayScene.exit() 에서 호출. */
+  dispose() {
+    this.soundSystem?.stopBgm?.();
+    this._pipeline   = null;
+    this.spawnSystem = null;
   }
 }
