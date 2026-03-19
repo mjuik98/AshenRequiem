@@ -140,6 +140,7 @@ export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 
         radius:             weapon.radius ?? 5,
         color:              weapon.projectileColor,
         pierce:             weapon.pierce ?? 1,
+        hitCount:           0,
         maxRange:           weapon.range,
         behaviorId:         'targetProjectile',
         ownerId:            player.id,

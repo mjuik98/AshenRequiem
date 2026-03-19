@@ -3,11 +3,24 @@ import { KNOCKBACK, DAMAGE_TEXT } from '../../data/constants.js';
 /**
  * DamageSystem — 데미지 적용
  *
- * FIX(bug): pendingDestroy 가드 — 동일 프레임 poison tick + 투사체 이중 처리 차단
- * PERF: 데미지 텍스트 프레임당 DAMAGE_TEXT.MAX_PER_FRAME 상한
+ * BUGFIX:
+ *   BUG-8: 플레이어 피격 무적 설정 시 invincibleDuration 미설정 방어 코드 추가
  *
- * BUGFIX(BUG-LIFESTEAL): lifesteal attackerId 검증 누락 수정
- *   - hit.attackerId === player.id 일 때만 흡혈 적용하여 poison 등 타인 공격에 의한 회복 차단
+ *     Before (잠재 버그):
+ *       target.invincibleTimer = target.invincibleDuration;
+ *       → invincibleDuration이 undefined이면 invincibleTimer = NaN
+ *       → NaN > 0 은 항상 false → 무적 프레임이 작동하지 않음
+ *       → 플레이어가 피격 직후 연속 데미지를 모두 받음
+ *
+ *     After (수정):
+ *       target.invincibleTimer = target.invincibleDuration ?? 0.5;
+ *       → 미설정 시 0.5초 기본값 적용 (createPlayer()와 동일한 기본값)
+ *
+ *   기존 수정 사항 (이전 패치에서 완료):
+ *   FIX(bug): pendingDestroy 가드 — 동일 프레임 poison tick + 투사체 이중 처리 차단
+ *   FIX(BUG-1): 플레이어 무적 프레임 중간 피격 차단
+ *   FIX(BUG-LIFESTEAL): lifesteal attackerId 검증 누락 수정
+ *   PERF: 데미지 텍스트 프레임당 DAMAGE_TEXT.MAX_PER_FRAME 상한
  */
 export const DamageSystem = {
   update({ world: { events, player, spawnQueue } }) {
@@ -18,7 +31,7 @@ export const DamageSystem = {
       const hit    = hits[i];
       const target = hit.target;
 
-      // FIX(bug): isAlive + pendingDestroy 이중 확인
+      // isAlive + pendingDestroy 이중 확인
       if (!target || !target.isAlive || target.pendingDestroy) continue;
 
       // FIX(BUG-1): 플레이어 무적 프레임 중간 피격 차단
@@ -57,7 +70,11 @@ export const DamageSystem = {
 
       // 플레이어 피격 무적
       if (target.type === 'player') {
-        target.invincibleTimer = target.invincibleDuration;
+        // FIX(BUG-8): invincibleDuration 미설정 방어
+        // Before: target.invincibleTimer = target.invincibleDuration
+        //         → undefined이면 invincibleTimer = NaN → 무적 완전 비작동
+        // After:  ?? 0.5 로 기본값 보장 (createPlayer()의 invincibleDuration: 0.5와 동일)
+        target.invincibleTimer = target.invincibleDuration ?? 0.5;  // ← FIX(BUG-8)
       }
 
       // 사망 판정

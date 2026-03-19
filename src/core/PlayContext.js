@@ -1,25 +1,32 @@
 /**
  * src/core/PlayContext.js — PlayScene 서비스 컨테이너
  *
- * ── 개선 이력 ──────────────────────────────────────────────────────
- * Before:
- *   ctx.soundSystem = soundEnabled ? new SoundSystem() : null;
- *   → 각 System에서 if (services.soundSystem) 체크 필요.
- *   → 체크 누락 시 런타임 TypeError 발생.
- *   NullSoundSystem 클래스가 정의되어 있었으나 PlayContext에서 미사용.
+ * BUGFIX:
+ *   BUG-3: buildPipeline()의 services 객체에 session 누락 수정
  *
- * After:
- *   ctx.soundSystem = soundEnabled ? new SoundSystem() : new NullSoundSystem();
- *   → 모든 System에서 null 체크 없이 services.soundSystem.play(...) 직접 호출 가능.
- *   → NullSoundSystem의 no-op 메서드가 안전하게 처리.
- * ──────────────────────────────────────────────────────────────────
+ *     Before (버그):
+ *       const services = {
+ *         projectilePool, effectPool, enemyPool, pickupPool,
+ *         soundSystem, canvas,
+ *         // session 없음 → DeathSystem.earnCurrency() 항상 스킵
+ *       };
+ *
+ *     After (수정):
+ *       session: this.session 추가
+ *       → DeathSystem이 earnCurrency(services.session, reward)를 정상 호출
+ *       → PlayScene.enter()에서 PlayContext.create({ session: this.game.session })
+ *          으로 session을 함께 전달해야 함 (PlayScene.js 참고)
+ *
+ * 기존 개선 이력:
+ *   FIX(⑦): null 대신 NullSoundSystem → 각 System의 null 체크 불필요
  */
 
 import { ObjectPool }        from '../managers/ObjectPool.js';
 import { Pipeline }          from './Pipeline.js';
 import { SoundSystem }       from '../systems/sound/SoundSystem.js';
-import { NullSoundSystem }   from '../systems/sound/NullSoundSystem.js';   // ← 추가
+import { NullSoundSystem }   from '../systems/sound/NullSoundSystem.js';
 import { PipelineProfiler }  from '../systems/debug/PipelineProfiler.js';
+import { AssetManager }      from '../managers/AssetManager.js';
 
 import { createProjectile, resetProjectile } from '../entities/createProjectile.js';
 import { createEffect,     resetEffect }     from '../entities/createEffect.js';
@@ -42,7 +49,7 @@ import { FlushSystem }          from '../systems/spawn/FlushSystem.js';
 import { BossPhaseSystem }      from '../systems/spawn/BossPhaseSystem.js';
 import { CameraSystem }         from '../systems/camera/CameraSystem.js';
 import { EventRegistry }        from '../systems/event/EventRegistry.js';
-import { AssetManager }         from '../managers/AssetManager.js';
+import { registerBossPhaseHandler } from '../systems/event/bossPhaseHandler.js';
 
 export function _registerGameAssets(assets) {
   // assets.register('player_sprite', 'assets/images/player.png');
@@ -63,7 +70,7 @@ export class PlayContext {
    * @param {boolean}          [opts.soundEnabled=true]
    * @param {boolean}          [opts.profilingEnabled=false]
    * @param {object}           [opts.poolSizes]
-   * @param {object|null}      [opts.session]
+   * @param {object|null}      [opts.session]   ← BUG-3: 반드시 전달해야 함
    */
   static create({
     canvas,
@@ -77,7 +84,7 @@ export class PlayContext {
 
     ctx.assets  = new AssetManager();
     _registerGameAssets(ctx.assets);
-    ctx.session = session;
+    ctx.session = session;  // PlayScene.enter()에서 this.game.session을 전달받음
 
     // ── pool 초기화 ──────────────────────────────────────────────
     ctx.projectilePool = new ObjectPool(createProjectile, resetProjectile, sizes.projectile);
@@ -86,7 +93,6 @@ export class PlayContext {
     ctx.pickupPool     = new ObjectPool(createPickup,     resetPickup,     sizes.pickup);
 
     // ── 서비스 초기화 ────────────────────────────────────────────
-    // FIX(⑦): null 대신 NullSoundSystem → 각 System의 null 체크 불필요
     if (soundEnabled) {
       ctx.soundSystem = new SoundSystem();
       ctx.soundSystem.init();
@@ -125,36 +131,49 @@ export class PlayContext {
    * @returns {{ pipeline: Pipeline, pipelineCtx: object }}
    */
   buildPipeline(world, input, data = {}) {
+    // FIX(BUG-3): session을 services에 포함
+    //
+    // Before (버그):
+    //   services = { projectilePool, effectPool, enemyPool, pickupPool, soundSystem, canvas }
+    //   session 누락 → DeathSystem.update()의 if (services?.session) 가드가 항상 false
+    //   → earnCurrency() 미호출 → 적 처치 시 재화 획득 불가 (침묵 버그)
+    //
+    // After (수정):
+    //   session: this.session 추가
+    //   this.session은 PlayContext.create({ session }) 에서 주입받음
     const services = {
       projectilePool: this.projectilePool,
       effectPool:     this.effectPool,
       enemyPool:      this.enemyPool,
       pickupPool:     this.pickupPool,
-      soundSystem:    this.soundSystem,  // 항상 non-null (NullSoundSystem 또는 SoundSystem)
+      soundSystem:    this.soundSystem,
       canvas:         this.canvas,
+      session:        this.session,  // ← FIX(BUG-3)
     };
+
+    registerBossPhaseHandler(services);
 
     const pipeline = new Pipeline();
     const pipelineCtx = { world, input, services, data };
 
     if (this.profiler) pipeline.setProfiler(this.profiler);
 
-    pipeline.register(this.spawnSystem,      { priority: 10 });
-    pipeline.register(PlayerMovementSystem,  { priority: 20 });
-    pipeline.register(EnemyMovementSystem,   { priority: 30 });
-    pipeline.register(EliteBehaviorSystem,   { priority: 35 });
-    pipeline.register(WeaponSystem,          { priority: 40 });
-    pipeline.register(ProjectileSystem,      { priority: 50 });
-    pipeline.register(CollisionSystem,       { priority: 60 });
-    pipeline.register(StatusEffectSystem,    { priority: 65 });
-    pipeline.register(DamageSystem,          { priority: 70 });
-    pipeline.register(BossPhaseSystem,       { priority: 75 });
-    pipeline.register(DeathSystem,           { priority: 80 });
-    pipeline.register(ExperienceSystem,      { priority: 90 });
-    pipeline.register(LevelSystem,          { priority: 100 });
+    pipeline.register(this.spawnSystem,       { priority: 10 });
+    pipeline.register(PlayerMovementSystem,   { priority: 20 });
+    pipeline.register(EnemyMovementSystem,    { priority: 30 });
+    pipeline.register(EliteBehaviorSystem,    { priority: 35 });
+    pipeline.register(WeaponSystem,           { priority: 40 });
+    pipeline.register(ProjectileSystem,       { priority: 50 });
+    pipeline.register(CollisionSystem,        { priority: 60 });
+    pipeline.register(StatusEffectSystem,     { priority: 65 });
+    pipeline.register(DamageSystem,           { priority: 70 });
+    pipeline.register(BossPhaseSystem,        { priority: 75 });
+    pipeline.register(DeathSystem,            { priority: 80 });
+    pipeline.register(ExperienceSystem,       { priority: 90 });
+    pipeline.register(LevelSystem,            { priority: 100 });
     pipeline.register(EventRegistry.asSystem, { priority: 105 });
-    pipeline.register(FlushSystem,           { priority: 110 });
-    pipeline.register(CameraSystem,          { priority: 120 });
+    pipeline.register(FlushSystem,            { priority: 110 });
+    pipeline.register(CameraSystem,           { priority: 120 });
 
     this._pipeline = pipeline;
     return { pipeline, pipelineCtx };
@@ -165,7 +184,12 @@ export class PlayContext {
     this._pipeline?.setEnabled(system, enabled);
   }
 
-  /** 풀·서비스 자원을 해제한다. PlayScene.exit() 에서 호출. */
+  /**
+   * 풀·서비스 자원을 해제한다. PlayScene.exit() 에서 호출.
+   *
+   * NOTE(BUG-1): PlayScene.exit()에서 반드시 dispose()를 호출해야 한다.
+   *   destroy()는 이 클래스에 존재하지 않으므로 옵셔널 체이닝으로 호출하면 no-op.
+   */
   dispose() {
     this.soundSystem?.stopBgm?.();
     this._pipeline   = null;

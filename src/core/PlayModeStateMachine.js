@@ -1,23 +1,30 @@
 /**
- * PlayModeStateMachine — PlayScene UI 전환 상태 머신
+ * src/core/PlayModeStateMachine.js — PlayScene UI 전환 상태 머신
  *
  * BUGFIX:
- *   BUG-5: playing 복귀 시 _firedLevelUp만 false로 초기화하고
- *          _firedDead는 초기화하지 않아 플래그 비대칭 상태 발생.
+ *   BUG-7: tick()의 playing 복귀 분기 마지막에 this._prev = 'playing' 갱신 누락
  *
- *   영향 범위:
- *     현재 게임 구조에서는 dead → playing 전환이 재시작(씬 교체)으로 처리되므로
- *     즉각적인 크래시는 없으나, 향후 부활 아이템 / 치트 모드 / 테스트 시나리오에서
- *     두 번째 사망 이벤트가 onDead 콜백을 발동하지 않는 침묵 버그로 이어짐.
+ *     재현 시나리오:
+ *       1. levelup 상태에서 onLevelUp 발동 (_prev = 'levelup')
+ *       2. 업그레이드 선택 → playMode = 'playing'으로 복귀
+ *       3. tick('playing') 호출: _prev !== 'playing' 조건 충족 → onResume 발동
+ *       4. 단, this._prev = 'playing' 갱신이 누락되면 _prev = 'levelup' 유지
+ *       5. 다음 프레임에서도 tick('playing') 호출: _prev 여전히 'levelup'
+ *          → isResumeFromUI=true → onResume 또 발동 (매 프레임 발동!)
  *
- *   수정: playing 복귀 시 _firedLevelUp, _firedDead 모두 초기화
+ *     영향:
+ *       onResume에 사운드 재생, HUD 갱신, 애니메이션 트리거 등이 연결되어 있으면
+ *       플레이 중 매 프레임 해당 효과가 반복 실행됨.
+ *
+ *   기존 BUG-5 수정 (이전 패치에서 완료):
+ *     playing 복귀 시 _firedLevelUp, _firedDead 모두 초기화
  *
  * 상태 전이 다이어그램:
- *   playing → levelup : _firedLevelUp=true, _firedDead=false
- *   playing → dead    : _firedDead=true, _firedLevelUp=false
- *   levelup → playing : _firedLevelUp=false, _firedDead=false  ← FIX
- *   dead    → playing : _firedLevelUp=false, _firedDead=false  ← FIX
- *   any     → paused  : 플래그 변경 없음 (일시정지는 재진입 허용)
+ *   playing → levelup : _firedLevelUp=true, _firedDead=false,  _prev='levelup'
+ *   playing → dead    : _firedDead=true,    _firedLevelUp=false, _prev='dead'
+ *   levelup → playing : _firedLevelUp=false, _firedDead=false,  _prev='playing'  ← FIX
+ *   dead    → playing : _firedLevelUp=false, _firedDead=false,  _prev='playing'  ← FIX
+ *   any     → paused  : 플래그 변경 없음, _prev='paused'
  */
 export class PlayModeStateMachine {
   /**
@@ -73,32 +80,37 @@ export class PlayModeStateMachine {
 
     // playing 복귀
     if (currentMode === 'playing' && this._prev !== 'playing') {
-      // FIX(BUG-3): dead/levelup에서 playing 복귀 시에만 onResume 발동.
-      // paused 상태 이후 dead가 발생하면 _prev='paused'인 채로 playing 복귀 가능.
-      // 이 경우 onResume이 오발동되므로, paused → (dead 경유) → playing은
-      // 'playing으로의 정상 복귀'로 처리하지 않는다.
+      // FIX(BUG-3 기존): dead/levelup에서 playing 복귀 시에만 onResume 발동.
+      // paused → (dead 경유 없이) → playing 복귀는 onResume 발동 허용.
+      // paused → dead 발생 후 → playing은 onResume 오발동 방지.
       const isResumeFromPause =
         this._prev === 'paused' && !this._firedDead && !this._firedLevelUp;
-      const isResumeFromUI    =
+      const isResumeFromUI =
         this._prev === 'levelup' || this._prev === 'dead';
 
       this._firedLevelUp = false;
       this._firedDead    = false;
+
       if (isResumeFromPause || isResumeFromUI) {
         this._onResume?.();
       }
     }
 
-    this._prev = currentMode;
+    // FIX(BUG-7): _prev를 'playing'으로 반드시 갱신
+    // Before (버그): 이 줄이 누락되어 _prev가 이전 상태('levelup'/'dead' 등)로 유지됨
+    //               → 다음 프레임에서도 _prev !== 'playing' 조건이 계속 충족
+    //               → onResume이 매 프레임 반복 발동
+    // After (수정): 정상적으로 _prev = 'playing'으로 전환됨
+    this._prev = 'playing';  // ← FIX(BUG-7)
     return false;
   }
 
+  /**
+   * 외부에서 상태를 강제 초기화할 때 사용 (PlayScene.exit() 등).
+   */
   reset() {
     this._prev         = 'playing';
     this._firedLevelUp = false;
     this._firedDead    = false;
   }
-
-  get isLevelUpActive() { return this._firedLevelUp; }
-  get isDeadActive()    { return this._firedDead; }
 }

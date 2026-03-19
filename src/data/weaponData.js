@@ -1,5 +1,11 @@
 /**
  * weaponData.js — 무기 정의
+ *
+ * BUGFIX:
+ *   BUG-6: 오라형 무기(holy_aura, frost_nova)에 orbitsPlayer: true 추가
+ *
+ *     Before (버그): 오라 무기 투사체가 발사 위치에 고정 → 이동 중 공백 발생
+ *     After (수정):  orbitsPlayer: true → ProjectileSystem이 매 프레임 위치 동기화
  */
 export const weaponData = [
   {
@@ -18,6 +24,8 @@ export const weaponData = [
     behaviorId: 'areaBurst', maxLevel: 5,
     burstDuration: 0.85,
     statusEffectId: 'poison', statusEffectChance: 0.2,
+    // FIX(BUG-6): 오라형 무기는 플레이어 위치를 따라가야 함
+    orbitsPlayer: true,
   },
   {
     id: 'lightning_ring', name: 'Lightning Ring',
@@ -36,6 +44,10 @@ export const weaponData = [
     behaviorId: 'areaBurst', maxLevel: 5,
     burstDuration: 0.6,
     statusEffectId: 'stun', statusEffectChance: 0.6,
+    // FIX(BUG-6): frost_nova도 플레이어 주변 오라이므로 orbitsPlayer 적용
+    // NOTE: 단발 폭발형이므로 orbitsPlayer 없이 고정 위치도 가능하나
+    //       짧은 지속시간(0.6s) 동안 이동 중에도 피해가 유지되도록 true 설정
+    orbitsPlayer: true,
   },
   {
     id: 'boomerang', name: '부메랑',

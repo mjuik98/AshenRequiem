@@ -25,16 +25,19 @@ import { PlayModeStateMachine } from '../core/PlayModeStateMachine.js';
 /**
  * PlayScene — 전투 씬
  *
- * BUGFIX:
- *   BUG-6: _showLevelUpUI() 안에 this._levelUpShown = false 잔재 코드 존재
- *          PlayModeStateMachine 도입 이전의 플래그 방식 코드가 삭제되지 않음.
- *          this._levelUpShown 은 constructor에 선언되지도 않은 유령 필드이며,
- *          상태 관리는 PlayModeStateMachine._firedLevelUp 이 전담.
- *          → 해당 라인 삭제
+ * BUGFIX 목록:
+ *   BUG-1: exit()에서 this._ctx?.destroy() → this._ctx?.dispose()
+ *          PlayContext에 destroy()는 존재하지 않아 BGM이 해제되지 않고 누수됨.
+ *          dispose()가 올바른 메서드이며 soundSystem.stopBgm() + pipeline 정리를 수행함.
+ *          또한 this.world = null 추가로 월드 참조 누수도 방지.
  *
- * BUGFIX(BUG-TIME-DUPLICATE): _runGamePipeline의 world.time += dt 제거
- *   createWorld.js에서 time 필드 자체를 제거함.
- *   elapsedTime 하나로 통합 — world.time += dt 라인 삭제.
+ *   BUG-2: _showResultUI()의 updateSessionBest 호출 시 필드명 불일치 수정.
+ *          Before: killCount / elapsedTime / playerLevel (모두 undefined → best 갱신 불가)
+ *          After:  kills / survivalTime / level (createSessionState.js 계약과 일치)
+ *
+ *   BUG-3: PlayContext.create()에 session 미전달 수정.
+ *          session이 null이면 PlayContext.buildPipeline()의 services.session = null이 되어
+ *          DeathSystem.earnCurrency()가 항상 스킵됨 → 재화 획득 완전 무효.
  */
 export class PlayScene {
   constructor(game) {
@@ -57,10 +60,15 @@ export class PlayScene {
     this.world        = createWorld();
     this.world.player = createPlayer(0, 0);
 
+    // FIX(BUG-3): session을 PlayContext.create()에 전달
+    // Before: session 미전달 → ctx.session = null → services.session = null
+    //         → DeathSystem의 earnCurrency()가 if (services?.session) 가드에 걸려 항상 스킵
+    // After:  this.game.session을 전달 → currency 획득 정상 동작
     this._ctx = PlayContext.create({
-      canvas: this.game.canvas,
-      soundEnabled: true,
-      profilingEnabled: true,
+      canvas:            this.game.canvas,
+      soundEnabled:      true,
+      profilingEnabled:  true,
+      session:           this.game.session,  // ← FIX(BUG-3)
     });
 
     const { pipeline, pipelineCtx } = this._ctx.buildPipeline(
@@ -70,10 +78,6 @@ export class PlayScene {
     );
     this._pipeline    = pipeline;
     this._pipelineCtx = pipelineCtx;
-
-    // FIX(BUG-A): EventRegistry.initWorldEvents(this.world) 제거
-    // 해당 메서드는 EventRegistry에 존재하지 않으며, events 초기화는
-    // createWorld()의 EVENT_TYPES.reduce() 가 이미 수행함.
 
     this._uiState = new PlayModeStateMachine({
       onLevelUp: () => this._showLevelUpUI(),
@@ -115,25 +119,13 @@ export class PlayScene {
     const world = this.world;
     if (!world) return;
 
-    // FIX(BUG-E): EventRegistry.clearAll(world.events) 제거
-    // AGENTS.md 6.6: 이벤트 큐 초기화는 파이프라인 priority 105의 EventRegistry.update()가 전담.
-
-    // FIX(BUG-TIME-DUPLICATE): world.time += dt 제거
-    // createWorld()에서 time 필드를 제거하고 elapsedTime으로 통합함.
     world.deltaTime    = dt;
     world.elapsedTime += dt;
 
-    // FIX(BUG-CAMERA-FIELDS): 리사이즈 시 camera.width/height 동기화
     world.camera.width  = GameConfig.canvasWidth;
     world.camera.height = GameConfig.canvasHeight;
 
     this._pipeline.run(this._pipelineCtx);
-
-    // FIX(BUG-EFFECT-DOUBLE-TICK): 아래 줄 제거
-    // Before: FlushSystem.tickEffects({ effects: world.effects, deltaTime: dt });
-    //         FlushSystem.update()가 pipeline priority 110에서 이미 tickEffects를 호출함.
-    //         이 명시적 호출은 2번째 호출이 되어 이펙트 수명이 2배 속도로 소모됨.
-    // After:  해당 줄 삭제. tickEffects는 FlushSystem.update() 내에서만 호출.
 
     this.hudView.update(world.player, world);
     this.bossHudView.update(world.enemies);
@@ -157,27 +149,25 @@ export class PlayScene {
     this.bossHudView?.destroy();
 
     this._uiState?.reset();
-    this._ctx?.destroy();
+
+    // FIX(BUG-1): destroy() → dispose()
+    // Before: this._ctx?.destroy()
+    //         PlayContext에 destroy()는 존재하지 않음 → 옵셔널 체이닝이 조용히 no-op
+    //         → soundSystem.stopBgm()이 호출되지 않아 BGM 무한 재생 + pipeline 참조 누수
+    // After:  this._ctx?.dispose()
+    //         PlayContext.dispose()가 soundSystem.stopBgm() + pipeline/spawnSystem 정리를 수행
+    this._ctx?.dispose();  // ← FIX(BUG-1)
 
     this._uiState     = null;
     this._ctx         = null;
     this._pipeline    = null;
     this._pipelineCtx = null;
+    this.world        = null;  // ← 추가: world 참조도 명시적으로 해제
   }
 
   _showLevelUpUI() {
     this._ctx?.soundSystem?.play('levelup');
 
-    // FIX(BUG-LEVELUP-EFFECT-SPAWN): world.effects 직접 push → spawnQueue 경유로 수정
-    //
-    // Before (버그):
-    //   this.world.effects.push(this._ctx.effectPool.acquire({...}))
-    //   → ObjectPool.acquire()를 Scene에서 직접 호출 (PlayContext 계약 위반)
-    //   → world.effects에 직접 삽입 (spawnQueue/FlushSystem 우회)
-    //
-    // After (수정):
-    //   world.spawnQueue.push({ type: 'effect', config: {...} })
-    //   → FlushSystem이 다음 파이프라인 실행 시 처리 (1프레임 지연은 정상 동작)
     this.world.spawnQueue.push({
       type: 'effect',
       config: {
@@ -193,7 +183,6 @@ export class PlayScene {
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) {
       this.world.playMode = 'playing';
-      // FIX(BUG-6): this._levelUpShown = false 삭제
       return;
     }
 
@@ -208,10 +197,22 @@ export class PlayScene {
   _showResultUI() {
     this.hudView.hide();
 
+    // FIX(BUG-2): updateSessionBest 필드명 불일치 수정
+    //
+    // Before (버그):
+    //   updateSessionBest(this.game.session, {
+    //     killCount:   this.world.killCount,      // undefined → best.kills 갱신 안 됨
+    //     elapsedTime: this.world.elapsedTime,    // undefined → best.survivalTime 갱신 안 됨
+    //     playerLevel: this.world.player.level,   // undefined → best.level 갱신 안 됨
+    //   });
+    //   결과: undefined > session.best.* 는 항상 false → 최고 기록 영구 0
+    //
+    // After (수정):
+    //   createSessionState.js의 updateSessionBest(session, { kills, survivalTime, level }) 계약과 일치
     updateSessionBest(this.game.session, {
-      killCount:    this.world.killCount,
-      elapsedTime:  this.world.elapsedTime,
-      playerLevel:  this.world.player.level,
+      kills:        this.world.killCount,        // ← FIX(BUG-2)
+      survivalTime: this.world.elapsedTime,      // ← FIX(BUG-2)
+      level:        this.world.player.level,     // ← FIX(BUG-2)
     });
     saveSession(this.game.session);
 

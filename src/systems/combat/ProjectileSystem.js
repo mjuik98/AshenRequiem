@@ -1,32 +1,35 @@
 /**
  * src/systems/combat/ProjectileSystem.js — 투사체 이동 + 수명 관리
  *
- * FIX(BUG-BOOMERANG): 부메랑 귀환 catch 검사 순서 오류 수정
+ * BUGFIX:
+ *   BUG-5: orbit 투사체의 hitTargets가 수명 동안 누적되어 연속 피격 불가 버그 수정
  *
- *   Before (버그):
- *     1. p.x += dirX * dist       ← 이동 먼저
- *     2. if (_reversed) { check distSq < 400 }  ← 이동 후 위치로 검사
+ *     Before (버그):
+ *       orbit 투사체는 pierce: 999, maxLifetime = cooldown * 1.02 로 설정됨.
+ *       그러나 CollisionSystem이 p.hitTargets.has(e.id)로 재충돌을 막음.
+ *       → 투사체가 적을 1회 맞히면 hitTargets에 등록
+ *       → 같은 수명(cooldown 주기) 동안 해당 적은 다시 피격되지 않음
+ *       → lightning_ring(orbit)이 적을 한 번만 때리는 사실상의 단타 무기가 됨
  *
- *     문제: 반환 중 어떤 프레임에서 이동 후 위치가 catch radius(20px) 이내로
- *     들어와도 next frame에서 catch가 기대되는 테스트 구조와 불일치.
- *     실제로는 이동 후 위치로 검사하므로 catch가 예상보다 1프레임 먼저
- *     또는 아예 누락(overshooting)될 수 있음.
+ *     After (수정):
+ *       한 바퀴(2π rad) 회전 완료 시 hitTargets를 clear()
+ *       → 회전마다 모든 적에게 재충돌 허용 (연속 피해 의도 충족)
+ *       _lastClearAngle로 초기화 기준점 추적 (첫 프레임 안전 처리 포함)
  *
- *   After (수정):
- *     _reversed 상태일 때:
- *       1. 현재 위치(이동 전)로 catch 검사 → 20px 이내면 즉시 소멸 + continue
- *       2. catch 안 됐으면 player 방향으로 dirX/Y 갱신
- *       3. 그 후 이동 수행
+ *   BUG-6: areaBurst 투사체가 플레이어를 따라가지 않는 버그 수정
  *
- *     이렇게 하면 현재 위치가 catch radius 이내인 프레임에서
- *     정확히 catch가 발생하며, 테스트 기대값과 일치한다.
+ *     Before (버그):
+ *       areaBurst 투사체는 speed=0으로 발사 위치에 고정됨.
+ *       holy_aura 같은 오라형 무기는 플레이어가 이동하면 공백 발생.
  *
- *   관련 테스트: tests/ProjectileSystem.test.js
- *     Step 3 종료 시 proj.x = 10 (catch 안 됨, player 까지 distSq=100)
- *     Step 4 시작 시 proj.x = 10 → distSq = 100 < 400 → catch 발동
- *     → proj.isAlive = false, proj.pendingDestroy = true
+ *     After (수정):
+ *       투사체 config에 orbitsPlayer: true가 설정된 경우
+ *       매 프레임 player.x/y로 위치를 동기화.
+ *       weaponData.js의 holy_aura, frost_nova 등에 orbitsPlayer: true 추가 필요.
  *
- * FIX(BUG-C): 귀환 중 player가 null이면 무한 이동 방지 (기존 유지)
+ *   기존 수정 사항 (이전 패치에서 완료):
+ *   FIX(BUG-BOOMERANG): 부메랑 귀환 catch 검사 순서 오류 수정
+ *   FIX(BUG-C): 귀환 중 player가 null이면 무한 이동 방지
  */
 export const ProjectileSystem = {
   update({ world: { projectiles, player, deltaTime } }) {
@@ -37,14 +40,34 @@ export const ProjectileSystem = {
       // ── orbit ────────────────────────────────────────────────────────
       if (p.behaviorId === 'orbit') {
         if (!player) { p.isAlive = false; p.pendingDestroy = true; continue; }
+
         p.orbitAngle += p.orbitSpeed * deltaTime;
         p.x = player.x + Math.cos(p.orbitAngle) * p.orbitRadius;
         p.y = player.y + Math.sin(p.orbitAngle) * p.orbitRadius;
         p.lifetime += deltaTime;
+
+        // FIX(BUG-5): 한 바퀴 회전 완료 시 hitTargets 초기화
+        // orbit 무기는 회전마다 연속 피해가 의도이므로, 2π rad 회전 후 재충돌 허용
+        // _lastClearAngle이 없으면 현재 각도로 기준점 초기화 (투사체 생성 첫 프레임)
+        if (p._lastClearAngle === undefined) {
+          p._lastClearAngle = p.orbitAngle;
+        } else if (Math.abs(p.orbitAngle - p._lastClearAngle) >= Math.PI * 2) {
+          p.hitTargets.clear();
+          p._lastClearAngle = p.orbitAngle;
+        }
+
         if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
 
       // ── areaBurst ────────────────────────────────────────────────────
       } else if (p.behaviorId === 'areaBurst') {
+        // FIX(BUG-6): orbitsPlayer 플래그가 있으면 플레이어 위치에 동기화
+        // Before: 발사 시점의 x/y에 고정 → 이동 중 오라 공백 발생
+        // After:  orbitsPlayer=true인 투사체는 매 프레임 player 위치로 이동
+        //         weaponData.js의 holy_aura, frost_nova에 orbitsPlayer: true 추가 필요
+        if (p.orbitsPlayer && player) {
+          p.x = player.x;
+          p.y = player.y;
+        }
         p.lifetime += deltaTime;
         if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
 
@@ -52,14 +75,6 @@ export const ProjectileSystem = {
       } else if (p.behaviorId === 'boomerang') {
 
         // FIX(BUG-BOOMERANG): _reversed 상태일 때 catch 검사를 이동 전에 수행
-        //
-        //   핵심 원칙: "현재 프레임의 위치"로 catch를 결정한 뒤,
-        //              catch가 없으면 방향 갱신 → 이동 순서로 진행.
-        //
-        //   Before: 이동 → catch 검사(이동 후 위치)
-        //           → 같은 프레임에 catch radius를 넘어서 이동해버리면
-        //              다음 프레임에서도 놓칠 수 있음
-        //   After:  catch 검사(현재 위치) → [catch 안 됐을 때만] 방향 갱신 + 이동
         if (p._reversed) {
           // FIX(BUG-C): player 없으면 귀환 불가 → 즉시 소멸
           if (!player) {
@@ -78,7 +93,7 @@ export const ProjectileSystem = {
             p.distanceTraveled = p.maxRange;
             p.isAlive          = false;
             p.pendingDestroy   = true;
-            continue; // 이 프레임 이동 없이 종료
+            continue;
           }
 
           // catch 반경 밖이면 플레이어 방향으로 dir 갱신 후 이동
@@ -87,7 +102,7 @@ export const ProjectileSystem = {
           p.dirY = dy / len;
         }
 
-        // 이동 (catch가 발생했으면 위 continue로 이미 skip됨)
+        // 이동
         const dist = p.speed * deltaTime;
         p.x += p.dirX * dist;
         p.y += p.dirY * dist;
@@ -96,7 +111,6 @@ export const ProjectileSystem = {
         // 절반 거리 도달 시 반전 플래그 ON + distanceTraveled 클램프
         if (!p._reversed && p.distanceTraveled >= p.maxRange / 2) {
           p._reversed        = true;
-          // 안전장치: 정확히 절반 지점으로 고정 (과초과 방지)
           p.distanceTraveled = p.maxRange / 2;
         }
 
