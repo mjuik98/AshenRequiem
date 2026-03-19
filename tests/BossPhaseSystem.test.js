@@ -7,7 +7,7 @@ import { test, summary } from './helpers/testRunner.js';
 
 let BossPhaseSystem;
 try {
-  ({ BossPhaseSystem } = await import('../src/systems/progression/BossPhaseSystem.js'));
+  ({ BossPhaseSystem } = await import('../src/systems/combat/BossPhaseSystem.js'));
 } catch (e) {
   console.warn('[테스트] BossPhaseSystem import 실패 — 스킵');
   BossPhaseSystem = null;

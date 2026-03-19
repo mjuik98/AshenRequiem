@@ -16,9 +16,15 @@ export const RenderSystem = {
   _effectBuffer: [],
   _pickupBuffer: [],
   _enemyBuffer: [],
-  _projectileBuffer: [],
+  update({ world, services, dpr = 1 }) {
+    const renderer = services.renderer;
+    const camera   = world.camera;
 
-  update({ world, camera, renderer, dpr }) {
+    if (!renderer) {
+      // 렌더러가 없으면 스킵 (서버 사이드 테스트 등 대응)
+      return;
+    }
+
     renderer.clear();
     renderer.drawBackground(camera);
 

@@ -1,0 +1,226 @@
+
+====================================================
+ 테스트 실행 — 18개 파일  (timeout: 10s)
+====================================================
+
+
+[BossPhaseSystem — 기본 동작]
+  ✓ HP 70% 이하에서 첫 번째 페이즈 트리거
+  ✓ HP 71%에서는 70% 페이즈 미트리거
+  ✓ 동일 페이즈 2회 호출 → 이벤트 1번만 발행
+  ✓ 70% 페이즈 발동 후 30% 페이즈까지 순차 발동
+
+최종 결과: 4개 통과, 0개 실패
+
+[CollisionSystem 테스트 시작]
+  ✓ 반경 내 적에게 hit 이벤트 발행
+  ✓ 반경 밖 적에게는 hit 이벤트 없음
+  ✓ pendingDestroy 적에게는 hit 이벤트 없음
+  ✓ pierce=1인 투사체는 첫 번째 적 이후 관통 중단
+
+최종 결과: 4개 통과, 0개 실패
+
+[DamageSystem 테스트]
+  ✓ hits 이벤트로 적의 hp가 감소한다
+  ✓ hits 이벤트로 플레이어의 hp가 감소한다
+  ✓ invincibleTimer > 0 플레이어는 데미지를 받지 않는다
+  ✓ lifesteal > 0이면 데미지에 비례해 플레이어 hp가 회복된다
+  ✓ hp가 0 이하가 되면 isAlive=false가 되고 deaths 큐에 추가된다
+  ✓ pendingDestroy=true 엔티티는 데미지를 받지 않는다
+
+최종 결과: 6개 통과, 0개 실패
+
+[DeathSystem — killCount]
+  ✓ 적 사망 시 killCount 증가
+  ✓ 여러 적 사망 시 killCount 누적
+
+[DeathSystem — spawnQueue]
+  ✓ 적 사망 시 pickup이 spawnQueue에 추가된다
+
+[DeathSystem — 플레이어 사망]
+  ✓ 플레이어 사망 시 playMode = "dead"
+
+[DeathSystem — currency]
+  ✓ 적 사망 시 session.meta.currency 누적
+
+최종 결과: 5개 통과, 0개 실패
+
+[DrawEffectRegistry 테스트 시작]
+  ✓ 기본 3종 effectType이 등록되어 있다
+  ✓ 미등록 타입은 burst draw 함수로 폴백된다
+  ✓ registerEffectDraw()로 새 타입을 등록할 수 있다
+  ✓ 등록 후 getRegisteredEffectTypes()에 포함된다
+  ✓ damageText draw 함수가 예외 없이 실행된다
+  ✓ burst draw 함수가 예외 없이 실행된다
+  ✓ levelFlash draw 함수가 예외 없이 실행된다 (setTransform 필요)
+
+최종 결과: 7개 통과, 0개 실패
+
+[ExperienceSystem 테스트 시작]
+  ✓ pickupCollected 이벤트로 player.xp가 증가한다
+  ✓ magnetRadius 내 픽업은 magnetized=true가 된다
+  ✓ pendingDestroy 픽업은 XP 계산에 포함하지 않는다
+
+[LevelSystem 테스트 시작]
+  ✓ xp >= getXpForLevel(level) 이면 levelUpRequested 이벤트가 발행된다
+  ✓ xp < getXpForLevel(level) 이면 레벨업 없음
+  ✓ playMode === "levelup" 중 중복 레벨업 방지
+  ✓ 레벨업 후 잉여 XP가 이월된다
+  ✓ level 2 기준: getXpForLevel(2) 이상이면 레벨업
+
+최종 결과: 8개 통과, 0개 실패
+
+[ExperienceSystem]
+  ✓ 픽업 수집 시 플레이어 xp 증가
+  ✓ magnetRadius 내 픽업은 magnetized=true
+  ✓ pendingDestroy 픽업은 XP 계산 제외
+
+최종 결과: 3개 통과, 0개 실패
+
+[FlushSystem 테스트 시작]
+  ✓ pendingDestroy 적은 world.enemies에서 제거된다
+  ✓ isAlive=false 이펙트가 world.effects에서 제거된다
+  ✓ 살아있는 엔티티는 보존된다
+  ✓ spawnQueue가 처리 후 비워진다
+
+[SpawnSystem 테스트 시작]
+  ✓ playMode !== "playing" 이면 스폰 없음
+
+최종 결과: 5개 통과, 0개 실패
+
+[FlushSystem 테스트]
+  ✓ pendingDestroy=true 적이 enemies 배열에서 제거된다
+  ✓ pendingDestroy=false 적은 보존된다
+  ✓ pendingDestroy=true 투사체가 projectiles에서 제거된다
+  ✓ pendingDestroy=true 픽업이 pickups에서 제거된다
+  ✓ isAlive=false 이펙트가 effects에서 제거된다
+  ✓ 빈 배열로 호출해도 에러 없음
+  ✓ spawnQueue 항목이 처리된 후 비워진다
+
+최종 결과: 7개 통과, 0개 실패
+
+[PlayerMovementSystem]
+  ✓ 입력 방향으로 플레이어 이동
+  ✓ 입력 없으면 플레이어 정지
+  ✓ isAlive=false 플레이어는 이동하지 않음
+
+[EnemyMovementSystem]
+  ✓ 적이 플레이어 방향으로 이동
+  ✓ isAlive=false 적은 이동하지 않음
+
+최종 결과: 5개 통과, 0개 실패
+--- ProjectileSystem.test.js ---
+OK: ProjectileSystem Boomerang Tests Passed
+
+[SessionState 테스트 시작]
+  ✓ createSessionState()는 _version:2를 반환한다
+  ✓ createSessionState()의 best 필드명이 올바르다 (kills/survivalTime/level)
+  ✓ createSessionState()의 meta 필드가 올바르다
+  ✓ kills가 클 때만 best.kills가 갱신된다
+  ✓ kills가 작을 때 best.kills는 유지된다
+  ✓ 각 best 필드는 독립적으로 갱신된다
+  ✓ updateSessionBest()는 session.last를 이번 런 결과로 덮어쓴다
+  ✓ earnCurrency()가 통화를 올바르게 추가한다
+  ✓ earnCurrency() 음수 입력 시 0 이하로 내려가지 않는다
+  ✓ purchasePermanentUpgrade() 성공 시 통화 차감 및 횟수 증가
+  ✓ purchasePermanentUpgrade() 통화 부족 시 false 반환, 상태 불변
+  ✓ purchasePermanentUpgrade() 중복 구매 시 횟수가 누적된다
+  ✓ loadSession(): localStorage에 없을 때 기본값을 반환한다 (Node 환경 스킵)
+
+최종 결과: 13개 통과, 0개 실패
+
+[SpatialGrid 테스트 시작]
+  ✓ insert 후 같은 셀 내 엔티티가 queryUnique에 포함된다
+  ✓ 멀리 있는 엔티티는 queryUnique에 포함되지 않는다
+  ✓ isAlive=false 엔티티는 insert되지 않는다
+  ✓ pendingDestroy=true 엔티티는 insert되지 않는다
+  ✓ clear() 후 queryUnique 결과가 비어있다
+  ✓ 셀 경계에 걸친 엔티티가 인접 엔티티를 감지한다
+  ✓ queryUnique 결과에 중복이 없다
+  ✓ _cellCxBuf / _cellCyBuf 재사용 버퍼가 존재한다 (P1-D)
+  ✓ 반복 insert/queryUnique 후 버퍼가 오염되지 않는다
+
+최종 결과: 9개 통과, 0개 실패
+
+[SpawnSystem]
+
+결과: 0개 통과, 2개 실패
+  ✗ 새 인스턴스는 깨끗한 상태로 시작
+    Expected values to be strictly equal:
+undefined !== 0
+  ✗ 인스턴스 간 상태 격리
+    Expected values to be strictly equal:
+undefined !== 0
+
+[StatusEffectSystem]
+  ✓ statusEffectId 없는 투사체 → 상태이상 미부여
+  ✓ statusEffectChance=0 → 상태이상 미부여
+  ✓ pendingDestroy 대상에는 상태이상 미부여
+  ✓ isAlive=false 대상에는 상태이상 미부여
+  ✓ statusEffectId 있는 투사체 → entity.statusEffects에 즉시 부여 (BUG-3 수정)
+  ✓ 동일 타입 상태이상 2회 적용 → 1개만 존재 (중복 방지)
+  ✓ remaining이 0 이하가 되면 상태이상 제거
+
+최종 결과: 7개 통과, 0개 실패
+
+[SynergySystem 테스트]
+  ✓ 조건 충족 시 activeSynergies에 시너지 ID가 추가된다
+  ✓ 조건 미충족 시 시너지가 활성화되지 않는다
+  ✓ applyAll 호출 시 이전 시너지 효과가 초기화된다 (재계산 원칙)
+  ✓ activeSynergies가 없는 플레이어에 update를 호출해도 에러 없음
+  ✓ world.player가 null이어도 에러 없음
+
+최종 결과: 5개 통과, 0개 실패
+
+[UpgradeSystem — generateChoices]
+  ✓ 신규 플레이어에게 항상 3개 선택지 반환
+  ✓ 선택지에 중복 id 없음
+  ✓ 이미 보유한 weapon_new는 선택지에 등장하지 않음
+  ✓ maxCount 초과한 stat 업그레이드는 선택지에 등장하지 않음
+  ✓ 무기가 maxLevel이면 weapon_upgrade가 선택지에 등장하지 않음
+
+[UpgradeSystem — applyUpgrade]
+  ✓ weapon_new: 무기가 weapons 배열에 추가됨
+  ✓ weapon_upgrade: 무기 레벨이 1 증가함
+  ✓ weapon_upgrade: damageDelta가 damage에 반영됨
+  ✓ weapon_upgrade: cooldownMult가 cooldown에 반영됨
+
+최종 결과: 9개 통과, 0개 실패
+
+[WeaponSystem — 쿨다운]
+  ✓ 쿨다운 감소 — 0.016s dt 경과 시 currentCooldown 감소
+  ✓ 쿨다운이 0이면 발사 시도 후 쿨다운이 리셋됨
+  ✓ isAlive=false 플레이어는 무기 발사 없음
+
+[WeaponSystem — 구조]
+  ✓ WeaponSystem.update 메서드가 존재한다
+
+최종 결과: 4개 통과, 0개 실패
+
+====================================================
+ 결과 요약
+====================================================
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\BossPhaseSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\CollisionSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\DamageSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\DeathSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\DrawEffectRegistry.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\ExperienceLevelSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\ExperienceSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\FlushSpawnSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\FlushSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\MovementSystems.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\ProjectileSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\SessionState.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\SpatialGrid.test.js
+  ✗ [FAIL] C:\Users\mjuik\AshenRequiem\tests\SpawnSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\StatusEffectSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\SynergySystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\UpgradeSystem.test.js
+  ✓ [PASS] C:\Users\mjuik\AshenRequiem\tests\WeaponSystem.test.js
+
+  통과: 17  실패: 1  스킵: 0  합계: 18
+====================================================
+
+실패한 테스트가 1개 있습니다.
+

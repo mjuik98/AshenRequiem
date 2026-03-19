@@ -34,18 +34,25 @@ console.log('\n[SpawnSystem]');
 if (SpawnSystem) {
   test('새 인스턴스는 깨끗한 상태로 시작', () => {
     const sys = new SpawnSystem();
-    assert.equal(sys._spawnAccumulator, 0);
+    const info = sys.getDebugInfo(0);
+    assert.equal(info.hasBossSpawned, false);
+    assert.equal(info.isSuppressed, false);
   });
 
   test('인스턴스 간 상태 격리', () => {
     const sysA = new SpawnSystem();
     const sysB = new SpawnSystem();
     const queueA = [];
+    
+    // sysA에 보스를 강제 스폰시킨다 (보스 데이터 mock)
+    const bossData = [{ at: 0, enemyId: 'boss' }];
     sysA.update({
-      world: { elapsedTime: 1, player: testPlayer, spawnQueue: queueA, deltaTime: 10 },
-      data: { waveData: testWave, bossData: [] }
+      world: { elapsedTime: 1, player: testPlayer, spawnQueue: queueA, deltaTime: 1, playMode: 'playing' },
+      data: { waveData: testWave, bossData }
     });
-    assert.equal(sysB._spawnAccumulator, 0);
+    
+    assert.equal(sysA.getDebugInfo(1).hasBossSpawned, true, 'sysA는 보스가 스폰됨');
+    assert.equal(sysB.getDebugInfo(1).hasBossSpawned, false, 'sysB는 독립적이어야 함');
   });
 }
 

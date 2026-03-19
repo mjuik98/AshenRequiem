@@ -1,30 +1,17 @@
 import { EntityManager } from '../../managers/EntityManager.js';
 
 /**
- * FlushSystem — spawnQueue 처리 + pendingDestroy 정리 + 이펙트 수명 틱
+ * FlushSystem — spawnQueue 처리 + pendingDestroy 정리
+ *
+ * REFACTOR: 단일 책임 분리
+ *   Before: tickEffects() + EntityManager.flush() 두 가지 책임
+ *   After:  EntityManager.flush() 만 담당 (엔티티 생성/정리)
+ *           이펙트 수명 틱은 EffectTickSystem (priority 108)이 담당
  */
 export const FlushSystem = {
   update(ctx) {
     const { world, services } = ctx;
     const { projectilePool, effectPool, enemyPool, pickupPool } = services;
-
-    // FIX(BUG-2): tickEffects 호출 추가 — 이펙트 수명 틱 처리
-    FlushSystem.tickEffects({ effects: world.effects, deltaTime: world.deltaTime });
-
-    // EntityManager에 처리를 위임하여 아키텍처 일관성 유지
     EntityManager.flush(world, { projectilePool, effectPool, enemyPool, pickupPool });
-  },
-
-  /** tickEffects — 이펙트 수명 갱신 */
-  tickEffects({ effects, deltaTime }) {
-    for (let i = 0; i < effects.length; i++) {
-      const e = effects[i];
-      if (!e.isAlive || e.pendingDestroy) continue;
-      e.lifetime += deltaTime;
-      if (e.lifetime >= e.maxLifetime) {
-        e.isAlive        = false;
-        e.pendingDestroy = true;
-      }
-    }
   },
 };
