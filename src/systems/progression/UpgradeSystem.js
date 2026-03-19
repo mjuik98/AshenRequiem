@@ -1,15 +1,20 @@
 /**
  * src/systems/progression/UpgradeSystem.js
  *
- * FIX(bug): 선택지 1~2개 반환 시 LevelUpView 레이아웃 깨짐 → 항상 3개 보장
- * FIX(bug): weapon_upgrade 강화 수치가 upgradeData 필드에서 읽힘
- *   (damageDelta / cooldownMult / orbitRadiusDelta / pierceDelta)
- * FIX(bug): _buildFallbackChoices — 이미 포함된 항목 제외 후 반환
+ * FIX: SynergySystem.applyAll()에 synergyData 전달
  *
- * FIX(bug): upgradeCounts 이중 증가 버그 수정
- *   Before: stat 타입 분기 안에서 1회 증가 + applyUpgrade() 마지막 줄에서 1회 더 증가
- *           → stat 업그레이드 시 upgradeCounts[id]가 2씩 증가하여 maxCount 조기 소진
- *   After:  각 타입 분기 밖 하단에 단 1회만 증가 (weapon_new/upgrade 포함 통합 처리)
+ *   Before (암묵적 의존):
+ *     SynergySystem.applyAll({ player })
+ *     → SynergySystem이 내부에서 synergyData를 직접 import
+ *     → SynergySystem의 DI 개선(data에서 수신)과 불일치
+ *
+ *   After (명시적 전달):
+ *     UpgradeSystem.applyUpgrade(player, upgrade, synergyData?)
+ *     → synergyData가 있으면 SynergySystem.applyAll({ player, synergyData })로 전달
+ *     → 없으면 SynergySystem 내부 폴백(직접 import)이 처리
+ *     → 하위 호환 유지 (synergyData 없이 호출해도 동작)
+ *
+ * AGENTS.md §6.4: applyUpgrade() 직후 SynergySystem.applyAll() 호출
  */
 
 import { upgradeData }      from '../../data/upgradeData.js';
@@ -69,13 +74,19 @@ export const UpgradeSystem = {
     return result;
   },
 
-  /** FIX(bug): existingIds 제외 + 중복 없이 반환 */
   _buildFallbackChoices(player, existing) {
     const existingIds = new Set(existing.map(u => u.id));
     return upgradeData.filter(u => !existingIds.has(u.id));
   },
 
-  applyUpgrade(player, upgrade) {
+  /**
+   * 업그레이드를 플레이어에게 적용한다.
+   *
+   * @param {object}       player
+   * @param {object}       upgrade
+   * @param {object[]|undefined} synergyData  DI된 시너지 데이터 (없으면 폴백)
+   */
+  applyUpgrade(player, upgrade, synergyData) {
     if (upgrade.type === 'weapon_new') {
       const def = getWeaponDataById(upgrade.weaponId);
       if (def) player.weapons.push({ ...def, currentCooldown: 0, level: 1 });
@@ -85,7 +96,6 @@ export const UpgradeSystem = {
       if (owned) {
         owned.level++;
 
-        // FIX: 데이터 필드에서 강화 수치 읽기 (하드코딩 제거)
         const dmgDelta    = upgrade.damageDelta      ?? 1;
         const cdMult      = upgrade.cooldownMult     ?? 0.92;
         const orbitRDelta = upgrade.orbitRadiusDelta ?? 0;
@@ -115,21 +125,17 @@ export const UpgradeSystem = {
           player[eff.stat] += eff.value;
         }
       }
-      // FIX(upgradeCounts 이중 증가): stat 분기 안에서 증가 코드 제거
-      //   Before: 여기서 1회 증가 + 함수 마지막 줄에서 1회 더 증가 = 총 2회
-      //   After:  함수 마지막 줄에서만 1회 증가 (통합)
     }
 
-    // FIX: upgradeCounts 증가를 분기 밖 단 1곳에서만 처리
-    //   weapon_new / weapon_upgrade / stat 모두 동일하게 카운트 누적
+    // FIX: upgradeCounts 분기 밖에서 1회만 증가
     player.upgradeCounts = player.upgradeCounts ?? {};
     player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] ?? 0) + 1;
 
-    // acquiredUpgrades Set 동기화 (SynergySystem.playerHasUpgrade 참조용)
     player.acquiredUpgrades = player.acquiredUpgrades ?? new Set();
     player.acquiredUpgrades.add(upgrade.id);
 
-    // AGENTS.md 6.4: applyUpgrade() 직후 SynergySystem.applyAll() 호출
-    SynergySystem.applyAll({ player });
+    // FIX: synergyData를 명시적으로 전달해 DI 흐름 일관성 유지
+    // synergyData가 없으면 SynergySystem 내부에서 직접 import로 폴백함
+    SynergySystem.applyAll({ player, synergyData });
   },
 };

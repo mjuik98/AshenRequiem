@@ -1,35 +1,26 @@
 /**
  * src/systems/event/EventRegistry.js
  *
- * P0-② 개선: clearAll 수동 나열 → EVENT_TYPES 루프 자동화
+ * CHANGE(P1-A): EVENT_TYPES 자체 선언 제거 → constants/events.js에서 import
+ *   Before: EVENT_TYPES를 이 파일 안에 중복 정의
+ *           → constants/events.js에 타입 추가 시 이 파일도 수동 동기화 필요
+ *           → 두 파일이 실제로 일치하는지 런타임 전까지 검증 불가
+ *   After:  단일 진실의 원천(SSOT) — constants/events.js에서 import
+ *           → 타입 추가 시 constants/events.js 한 곳만 수정
+ *           → re-export로 기존 import 경로 호환성 유지
  *
- * Before:
- *   clearAll() 내부에 hits, deaths, pickupCollected, ... 를 수동 나열.
- *   새 이벤트 타입 추가 시 clearAll 목록에 추가를 잊으면
- *   이벤트 큐가 프레임 간 누적되어 중복 처리 버그가 발생한다.
- *
- * After:
- *   EVENT_TYPES 상수 배열을 단일 진실의 원천으로 삼고,
- *   clearAll / createEmptyEvents 모두 이 배열을 루프로 처리한다.
- *   새 이벤트 타입 추가 = EVENT_TYPES에 문자열 1개 추가.
+ * 이전 사용 코드는 변경 없이 동작:
+ *   import { EVENT_TYPES } from '../systems/event/EventRegistry.js';  ← 여전히 동작
  */
+import { EVENT_TYPES } from '../../data/constants/events.js';
 
-// ── 이벤트 타입 목록 (단일 진실의 원천) ────────────────────────────────
-export const EVENT_TYPES = [
-  'hits',
-  'deaths',
-  'pickupCollected',
-  'levelUpRequested',
-  'statusApplied',
-  'bossPhaseChanged',
-  'spawnRequested',
-];
+// re-export — 기존 코드 하위 호환
+export { EVENT_TYPES };
 
-// ── 핸들러 저장소 ────────────────────────────────────────────────────────
 /** @type {Map<string, Function[]>} */
 const _handlers = new Map();
 
-// ── 등록 ─────────────────────────────────────────────────────────────────
+// ── 등록 ─────────────────────────────────────────────────────────────────────
 
 /**
  * 이벤트 핸들러를 등록한다.
@@ -44,20 +35,11 @@ export function register(eventType, handlerFn) {
   _handlers.get(eventType).push(handlerFn);
 }
 
-// ── 비우기 ────────────────────────────────────────────────────────────────
+// ── 비우기 ────────────────────────────────────────────────────────────────────
 
 /**
- * world.events 의 모든 큐를 비운다.
- * Pipeline priority 105에서 EventRegistry.asSystem.update() 가 호출한다.
- *
- * Before(수동 나열):
- *   events.hits = [];
- *   events.deaths = [];
- *   events.pickupCollected = [];
- *   // ... 추가할 때마다 여기도 수동으로 추가해야 했음
- *
- * After(자동):
- *   EVENT_TYPES 루프로 처리 — 목록에 추가하면 자동 반영.
+ * world.events의 모든 큐를 비운다.
+ * EVENT_TYPES 루프로 자동화 — 새 타입 추가 시 constants/events.js만 수정하면 자동 반영.
  *
  * @param {object} events  world.events
  */
@@ -69,7 +51,7 @@ export function clearAll(events) {
   }
 }
 
-// ── 처리 ─────────────────────────────────────────────────────────────────
+// ── 처리 ─────────────────────────────────────────────────────────────────────
 
 /**
  * 등록된 핸들러를 실행하고 큐를 비운다.
@@ -91,14 +73,11 @@ export function processAll(events, world) {
   clearAll(events);
 }
 
-// ── 빈 이벤트 객체 생성 ────────────────────────────────────────────────
+// ── 빈 이벤트 객체 생성 ────────────────────────────────────────────────────
 
 /**
  * world.events 초기값을 생성한다.
- * createWorld.js 에서 호출.
- *
- * Before: 수동으로 각 배열 선언
- * After:  EVENT_TYPES 루프로 자동 생성 — 새 타입 추가 시 여기도 자동 반영.
+ * EVENT_TYPES 루프로 자동 생성 — 새 타입 추가 시 자동 반영.
  *
  * @returns {object}
  */
@@ -110,12 +89,10 @@ export function createEmptyEvents() {
   return events;
 }
 
-// ── Pipeline System 어댑터 ────────────────────────────────────────────
+// ── Pipeline System 어댑터 ────────────────────────────────────────────────
 
 /**
  * Pipeline에 priority 105로 등록하는 시스템 어댑터.
- * PlayContext.buildPipeline() 에서:
- *   pipeline.register(EventRegistry.asSystem, 105);
  */
 export const asSystem = {
   update({ world }) {

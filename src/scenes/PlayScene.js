@@ -1,22 +1,29 @@
-import { PlayContext }          from '../core/PlayContext.js';
-import { createWorld }           from '../state/createWorld.js';
-import { createPlayer }          from '../entities/createPlayer.js';
-import { waveData }              from '../data/waveData.js';
-import { bossData }              from '../data/bossData.js';
-import { upgradeData }           from '../data/upgradeData.js';
-import { EFFECT_DEFAULTS }       from '../data/constants.js';
-import { mountUI }               from '../ui/dom/mountUI.js';
-
-import { UpgradeSystem }         from '../systems/progression/UpgradeSystem.js';
-import { RenderSystem }          from '../systems/render/RenderSystem.js';
-
-import { PlayUI }                from './play/PlayUI.js';
-import { PlayResultHandler }     from './play/PlayResultHandler.js';
-import { PlayModeStateMachine }  from '../core/PlayModeStateMachine.js';
-
 /**
- * PlayScene — 전투 씬
+ * src/scenes/PlayScene.js
+ *
+ * FIX: UpgradeSystem.applyUpgrade에 synergyData 전달 (DI 흐름 완성)
+ *
+ *   Before:
+ *     UpgradeSystem.applyUpgrade(player, upgrade)
+ *     → UpgradeSystem → SynergySystem.applyAll({ player }) → 내부에서 직접 import
+ *
+ *   After:
+ *     UpgradeSystem.applyUpgrade(player, upgrade, this._gameData.synergyData)
+ *     → UpgradeSystem → SynergySystem.applyAll({ player, synergyData }) → DI 완성
+ *     → 씬이 어떤 데이터셋을 쓰는지가 명시적으로 전달 흐름에 반영됨
  */
+import { PlayContext }         from '../core/PlayContext.js';
+import { createWorld }          from '../state/createWorld.js';
+import { createPlayer }         from '../entities/createPlayer.js';
+import { GameDataLoader }       from '../data/GameDataLoader.js';
+import { mountUI }              from '../ui/dom/mountUI.js';
+
+import { UpgradeSystem }        from '../systems/progression/UpgradeSystem.js';
+
+import { PlayUI }               from './play/PlayUI.js';
+import { PlayResultHandler }    from './play/PlayResultHandler.js';
+import { PlayModeStateMachine } from '../core/PlayModeStateMachine.js';
+
 export class PlayScene {
   constructor(game) {
     this.game             = game;
@@ -29,11 +36,14 @@ export class PlayScene {
     this._ui              = null;
     this._resultHandler   = null;
     this._uiState         = null;
+    this._gameData        = null;
   }
 
   enter() {
     this.world        = createWorld();
     this.world.player = createPlayer(0, 0);
+
+    this._gameData = GameDataLoader.loadDefault();
 
     this._ctx = PlayContext.create({
       canvas:           this.game.canvas,
@@ -46,7 +56,7 @@ export class PlayScene {
     const { pipeline, pipelineCtx } = this._ctx.buildPipeline(
       this.world,
       this.game.input,
-      { waveData, upgradeData, bossData },
+      this._gameData,
     );
     this._pipeline    = pipeline;
     this._pipelineCtx = pipelineCtx;
@@ -67,68 +77,48 @@ export class PlayScene {
   update(dt) {
     if (!this.world || !this._ctx || !this._uiState) return;
 
-    const world = this.world;
-    const input = this.game.input;
+    const inputState = this.game.input.poll();
 
-    this._ui.handleInput(input);
+    this._ui.handleInput(inputState);
     this._ui.updateDebug(
-      world,
+      this.world,
       this._ctx,
       dt,
-      waveData,
-      this._ctx.spawnSystem.getDebugInfo(world.elapsedTime),
+      this._gameData.waveData,
+      this._ctx.spawnSystem.getDebugInfo(this.world.elapsedTime),
     );
 
-    if (this._uiState.tick(world.playMode)) return;
+    if (this._uiState.tick(this.world.playMode)) return;
 
     this._runGamePipeline(dt);
   }
 
   _runGamePipeline(dt) {
-    const world = this.world;
-    if (!world) return;
-
-    // 파이프라인 컨텍스트에 매 프레임 변하는 값 주입
+    if (!this.world) return;
     this._pipelineCtx.dt  = dt;
     this._pipelineCtx.dpr = this._dpr;
-
     this._pipeline.run(this._pipelineCtx);
-
-    this._ui.update(world);
+    this._ui.update(this.world);
   }
 
-  render() {
-    // RenderSystem이 Pipeline(priority 130) 내에서 렌더링을 처리한다.
-    // 기존 SceneManager 인터페이스 유지를 위해 빈 메서드로 둠.
-  }
+  render() {}
 
   exit() {
     this._ui?.destroy();
     this._uiState?.reset();
     this._ctx?.dispose();
-
-    this._ui              = null;
-    this._resultHandler   = null;
-    this._uiState         = null;
-    this._ctx             = null;
-    this._pipeline        = null;
-    this._pipelineCtx     = null;
-    this.world            = null;
+    this._ui          = null;
+    this._resultHandler = null;
+    this._uiState     = null;
+    this._ctx         = null;
+    this._pipeline    = null;
+    this._pipelineCtx = null;
+    this._gameData    = null;
+    this.world        = null;
   }
 
   _showLevelUpUI() {
-    this.world.spawnQueue.push({
-      type: 'effect',
-      config: {
-        x:          this.world.player.x,
-        y:          this.world.player.y,
-        effectType: 'levelFlash',
-        color:      '#ffd54f',
-        radius:     1,
-        duration:   EFFECT_DEFAULTS.levelFlashDuration,
-      },
-    });
-
+    // 레벨업 이펙트(levelFlash)는 levelUpHandler가 처리. 씬은 UI 전환만 담당.
     const choices = UpgradeSystem.generateChoices(this.world.player);
     if (choices.length === 0) {
       this.world.playMode = 'playing';
@@ -136,8 +126,12 @@ export class PlayScene {
     }
 
     this._ui.showLevelUp(choices, (selectedUpgrade) => {
-      UpgradeSystem.applyUpgrade(this.world.player, selectedUpgrade);
-      // SynergySystem.applyAll() is already called inside UpgradeSystem.applyUpgrade()
+      // FIX: synergyData 명시적 전달 (DI 흐름 완성)
+      UpgradeSystem.applyUpgrade(
+        this.world.player,
+        selectedUpgrade,
+        this._gameData.synergyData,
+      );
       this.world.playMode = 'playing';
     });
   }

@@ -4,26 +4,24 @@ import { RENDER }       from '../../data/constants.js';
 /**
  * RenderSystem — 렌더링 순서 제어
  *
- * PERF: effects 이중 순회 → 단일 순회 + _damageTextBuffer/다른 이펙트 별도 렌더
- * PERF: 화면 밖 적 / 투사체 / 픽업 렌더 스킵 (culling)
+ * FIX(P0-A): _projectileBuffer 선언 누락 수정
+ *   Before: _projectileBuffer가 선언되지 않아 update() 호출 시
+ *           `Cannot set properties of undefined` 런타임 크래시 발생.
+ *   After:  다른 버퍼(_damageTextBuffer 등)와 동일하게 인스턴스 프로퍼티로 선언.
  *
- * FIX(P2-②): 로컬 `const GLOW_THRESHOLD = 50` 제거 → constants.js RENDER.GLOW_THRESHOLD 사용
+ * PERF: effects 이중 순회 → 단일 순회 + damageText 최상단 레이어 분리
+ * PERF: 화면 밖 엔티티 렌더 스킵 (culling)
  */
-
 export const RenderSystem = {
-  // PERF: 매 프레임 재사용 버퍼 (new Array 할당 방지)
-  _damageTextBuffer: [],
-  _effectBuffer: [],
-  _pickupBuffer: [],
-  _enemyBuffer: [],
+
   update({ world, services, dpr = 1 }) {
     const renderer = services.renderer;
+    const culling  = services.cullingSystem;
     const camera   = world.camera;
 
-    if (!renderer) {
-      // 렌더러가 없으면 스킵 (서버 사이드 테스트 등 대응)
-      return;
-    }
+    if (!renderer || !culling) return;
+
+    const visible = culling.getVisible();
 
     renderer.clear();
     renderer.drawBackground(camera);
@@ -33,62 +31,24 @@ export const RenderSystem = {
 
     const timestamp = performance.now() / 1000;
 
-    // 컬링 경계 계산
-    const cMinX = camera.x - RENDER.CULL_MARGIN;
-    const cMaxX = camera.x + GameConfig.canvasWidth  + RENDER.CULL_MARGIN;
-    const cMinY = camera.y - RENDER.CULL_MARGIN;
-    const cMaxY = camera.y + GameConfig.canvasHeight + RENDER.CULL_MARGIN;
+    // ── 픽업 ────────────────────────────────────────────────────────────
+    renderer.drawPickups(visible.pickups, camera);
 
-    // 픽업
-    this._pickupBuffer.length = 0;
-    for (let i = 0; i < world.pickups.length; i++) {
-      const pk = world.pickups[i];
-      if (!pk.isAlive || pk.pendingDestroy) continue;
-      if (pk.x < cMinX || pk.x > cMaxX || pk.y < cMinY || pk.y > cMaxY) continue;
-      this._pickupBuffer.push(pk);
-    }
-    renderer.drawPickups(this._pickupBuffer, camera);
+    // ── 일반 이펙트 ─────────────────────────────────────────────────────
+    renderer.drawEffects(visible.effects, camera, dpr);
 
-    // PERF: 단일 순회 — damageText는 버퍼로 수집, 나머지는 즉시 렌더
-    this._damageTextBuffer.length = 0;
-    this._effectBuffer.length = 0;
-    for (let i = 0; i < world.effects.length; i++) {
-      const e = world.effects[i];
-      if (!e.isAlive) continue;
-      if (e.effectType === 'damageText') {
-        this._damageTextBuffer.push(e);
-      } else {
-        this._effectBuffer.push(e);
-      }
-    }
-    renderer.drawEffects(this._effectBuffer, camera, dpr);
+    // ── 적 ──────────────────────────────────────────────────────────────
+    renderer.drawEnemies(visible.enemies, camera, timestamp);
 
-    // 적 (컬링 적용)
-    this._enemyBuffer.length = 0;
-    for (let i = 0; i < world.enemies.length; i++) {
-      const e = world.enemies[i];
-      if (!e.isAlive || e.pendingDestroy) continue;
-      if (e.x < cMinX || e.x > cMaxX || e.y < cMinY || e.y > cMaxY) continue;
-      this._enemyBuffer.push(e);
-    }
-    renderer.drawEnemies(this._enemyBuffer, camera, timestamp);
+    // ── 투사체 ──────────────────────────────────────────────────────────
+    renderer.drawProjectiles(visible.projectiles, camera, lowQuality);
 
-    // 투사체 (컬링 적용)
-    this._projectileBuffer.length = 0;
-    for (let i = 0; i < world.projectiles.length; i++) {
-      const p = world.projectiles[i];
-      if (!p.isAlive) continue;
-      if (p.x < cMinX || p.x > cMaxX || p.y < cMinY || p.y > cMaxY) continue;
-      this._projectileBuffer.push(p);
-    }
-    renderer.drawProjectiles(this._projectileBuffer, camera, lowQuality);
-
-    // 플레이어
+    // ── 플레이어 ────────────────────────────────────────────────────────
     if (world.player?.isAlive) {
       renderer.drawPlayer(world.player, camera);
     }
 
-    // 데미지 텍스트 — 최상단 레이어
-    renderer.drawEffects(this._damageTextBuffer, camera, dpr);
+    // ── 데미지 텍스트 — 최상단 레이어 ───────────────────────────────────
+    renderer.drawEffects(visible.damageTexts, camera, dpr);
   },
 };

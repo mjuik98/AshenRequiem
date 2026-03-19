@@ -2,19 +2,36 @@ import { randomPick, randomRange } from '../../utils/random.js';
 import { GameConfig }              from '../../core/GameConfig.js';
 
 /**
- * SpawnSystem — 시간 기반 적 스폰
+ * SpawnSystem — 시간 기반 적 스폰 (팩토리 함수 패턴)
  *
- * REFACTOR: class → 팩토리 함수(createSpawnSystem)
+ * CHANGE(P0-B): deprecated `SpawnSystem` class 완전 제거
+ *   Before: createSpawnSystem() + SpawnSystem class wrapper 공존
+ *           → deprecated class가 테스트에서 `getDebugInfo` 반환값이
+ *             undefined로 평가되어 `undefined !== 0` 실패 2건 발생
+ *   After:  createSpawnSystem() 단일 API만 export
+ *           SpawnSystem class는 삭제 — PlayContext, PlayScene은 이미
+ *           createSpawnSystem()을 직접 사용하고 있으므로 영향 없음
+ *
+ * 패턴 규칙 (AGENTS.md §3):
+ *   프레임간 상태가 필요한 시스템 → 팩토리 함수 패턴 사용
+ *   프레임간 상태 없는 시스템    → 싱글톤 객체 패턴 사용
  */
 
 const BOSS_SUPPRESSION_DURATION = 30;
 const BOSS_SPAWN_MULTIPLIER     = 0.45;
 
+/**
+ * SpawnSystem 인스턴스 생성 (클로저로 상태 캡슐화).
+ * PlayContext.create() 에서 1회 호출 — PlayScene 재시작 시 새 인스턴스 생성.
+ *
+ * @returns {{ update: Function, reset: Function, getDebugInfo: Function }}
+ */
 export function createSpawnSystem() {
   let _spawnAccumulator  = 0;
   let _spawnedBossAt     = new Set();
   let _lastBossSpawnTime = -Infinity;
 
+  /** @private */
   function _randomOffscreenPosition(player) {
     const margin = 80;
     const w = GameConfig.canvasWidth  + margin * 2;
@@ -23,8 +40,8 @@ export function createSpawnSystem() {
     const side = Math.floor(Math.random() * 4);
     let x, y;
     switch (side) {
-      case 0: x = randomRange(-margin, w - margin); y = -margin;        break;
-      case 1: x = randomRange(-margin, w - margin); y = h - margin;     break;
+      case 0: x = randomRange(-margin, w - margin); y = -margin;                          break;
+      case 1: x = randomRange(-margin, w - margin); y = h - margin;                       break;
       case 2: x = -margin;                          y = randomRange(-margin, h - margin); break;
       default:x = w - margin;                       y = randomRange(-margin, h - margin); break;
     }
@@ -39,7 +56,7 @@ export function createSpawnSystem() {
       if (playMode !== 'playing') return;
       if (!player?.isAlive) return;
 
-      // 보스 스폰
+      // ── 보스 스폰 ──────────────────────────────────────────────────────
       if (bossData) {
         for (let b = 0; b < bossData.length; b++) {
           const boss = bossData[b];
@@ -52,7 +69,7 @@ export function createSpawnSystem() {
         }
       }
 
-      // 일반 / 엘리트 스폰
+      // ── 일반 / 엘리트 스폰 ─────────────────────────────────────────────
       let activeWave = null;
       for (let i = 0; i < waveData.length; i++) {
         const w = waveData[i];
@@ -60,9 +77,9 @@ export function createSpawnSystem() {
       }
       if (!activeWave) return;
 
-      const timeSinceBoss = elapsedTime - _lastBossSpawnTime;
-      const isBossActive  = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
-      const effectiveRate = isBossActive
+      const timeSinceBoss  = elapsedTime - _lastBossSpawnTime;
+      const isBossActive   = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
+      const effectiveRate  = isBossActive
         ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER
         : activeWave.spawnPerSecond;
 
@@ -79,12 +96,18 @@ export function createSpawnSystem() {
       }
     },
 
+    /** PlayScene 재시작 시 상태 초기화 */
     reset() {
       _spawnAccumulator  = 0;
       _spawnedBossAt     = new Set();
       _lastBossSpawnTime = -Infinity;
     },
 
+    /**
+     * DebugView 에 전달하는 스폰 디버그 정보.
+     * @param {number} elapsedTime
+     * @returns {{ hasBossSpawned: boolean, bossSpawnedAt: number|null, isSuppressed: boolean, suppressionRemaining: number }}
+     */
     getDebugInfo(elapsedTime) {
       const timeSinceBoss = elapsedTime - _lastBossSpawnTime;
       const isSuppressed  = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
@@ -96,16 +119,4 @@ export function createSpawnSystem() {
       };
     },
   };
-}
-
-/**
- * @deprecated createSpawnSystem() 사용 권장
- */
-export class SpawnSystem {
-  constructor() {
-    const impl = createSpawnSystem();
-    this.update       = (ctx) => impl.update(ctx);
-    this.reset        = ()    => impl.reset();
-    this.getDebugInfo = (t)   => impl.getDebugInfo(t);
-  }
 }

@@ -1,6 +1,18 @@
 /**
  * SoundSystem — Web Audio API 기반 절차적 사운드
- * 실제 오디오 파일 없이 AudioContext 로 간단한 효과음 생성
+ *
+ * CHANGE(P1-E): processEvents() 사문화 메서드 삭제
+ *   Before: SoundSystem에 processEvents(events) 메서드가 존재했으나
+ *           EventRegistry에 등록되지 않아 아무도 호출하지 않는 고아 메서드였음.
+ *           → 실제로 사운드가 재생되지 않는 침묵 버그.
+ *   After:  soundEventHandler.js가 EventRegistry.register() 패턴으로 대체.
+ *           processEvents()는 완전 삭제.
+ *
+ * 사운드 이벤트 흐름:
+ *   EventRegistry.register('deaths', ...) → SoundSystem.play('death')
+ *   EventRegistry.register('hits', ...)   → SoundSystem.play('damage')
+ *   등록 위치: src/systems/sound/soundEventHandler.js
+ *              PipelineBuilder._registerEventHandlers() 에서 1회 호출
  */
 export class SoundSystem {
   constructor() {
@@ -30,13 +42,6 @@ export class SoundSystem {
         case 'damage':  this._beep(180,  0.08, 'sawtooth', 0.1);  break;
       }
     } catch { /* 무음 처리 */ }
-  }
-
-  processEvents(events) {
-    if (!this._enabled) return;
-    if (events.deaths.length > 0)                                    this.play('death');
-    if (events.hits.some(h => h.target?.type === 'player'))          this.play('damage');
-    if (events.pickupCollected.length > 0)                           this.play('pickup');
   }
 
   _beep(freq, duration, type, volume) {

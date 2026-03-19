@@ -21,6 +21,11 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
    - 적/무기/업그레이드 등은 `src/data/` 확장을 1순위로 고려한다.
 3. **변경 및 부작용의 최소화**
    - 관련 없는 파일을 무분별하게 건드리지 않고, 확장이 필요하다면 새로운 behavior나 handler를 등록하는 패턴을 쓴다.
+4. **module-level static state 금지 (R-시리즈)**
+   - 시스템 객체가 module scope에 SpatialGrid, 버퍼 배열 등을 선언하지 않는다.
+   - 모든 시스템은 `createXxxSystem()` factory 함수로 생성하며, 상태는 클로저 내부에 보유한다.
+5. **테스트 전용 메서드 금지 (R-시리즈)**
+   - `_testWithData` 등 테스트를 위한 우회 메서드를 프로덕션 코드에 노출하지 않는다.
 
 ---
 
@@ -70,6 +75,16 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | P-① drawEffectRegistry 추가 | drawEffect.js if/else 분기 | drawEffectRegistry.js 위임 패턴 |
 | P-② SpatialGrid _cellsOf GC | 매 호출 객체 배열 생성 | _cellCxBuf/_cellCyBuf Int32Array 재사용 |
 | P-③ 핵심 시스템 테스트 추가 | Damage/Experience/Level/Movement/Flush/Spawn 미비 | 6개 test.js 추가 |
+| **R-01** | `EVENT_TYPES` 단일 정의 | EventRegistry + constants 이중 정의 | `constants/events.js` 단일 소스 |
+| **R-02** | `RenderSystem` 버퍼 선언 | 누락 → 런타임 TypeError | 선언 추가 + 팩토리 패턴 |
+| **R-03** | `SpawnSystem` class 제거 | class + factory 이중 노출 | `createSpawnSystem()` factory만 |
+| **R-04** | `SynergySystem` DI | 직접 import + `_testWithData()` 우회 | `data.synergyData` 주입 |
+| **R-05** | `CollisionSystem` 팩토리화 | module-level `_grid` | `createCollisionSystem()` factory |
+| **R-06** | `EnemyMovementSystem` 팩토리화 | module-level `_grid` + 하드코딩 상수 | `createEnemyMovementSystem()` factory |
+| **R-08** | Input 추상화 (어댑터 패턴) | `Input` 키보드 전용 클래스 | `InputManager + Adapter` 패턴 |
+| **R-09** | `GameDataLoader` 도입 | 씬이 데이터 직접 import | `GameDataLoader.loadDefault()` 위임 |
+| **R-10** | `CullingSystem` 분리 | RenderSystem이 컬링 직접 수행 | `CullingSystem(125)` 독립 분리 |
+| **R-13** | `PlayContext` 팩토리화 | createSpawnSystem import 혼용 | `createSpawnSystem()` 직접 사용 |
 
 ---
 
@@ -91,10 +106,12 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | 80  | DeathSystem |
 | 90  | ExperienceSystem |
 | 100 | LevelSystem |
-| 105 | EventRegistry (asSystem) |
-| 110 | FlushSystem (instance) |
-| 120 | CameraSystem |
-| 130 | RenderSystem |
+| 105 | EventRegistry (asSystem) | |
+| 108 | EffectTickSystem | |
+| 110 | FlushSystem (instance) | |
+| 120 | CameraSystem | |
+| **125** | **CullingSystem (factory)** | **R-10 신규** |
+| 130 | RenderSystem | |
 
 프레임 안에서의 실행 순서는 **"감지 → 기록 → 적용 → 업데이트/정리"**의 흐름을 띤다. (예: `destroyQueue` 사용, 배열을 돌며 즉시 삭제 `splice` 금지)
 
@@ -139,6 +156,8 @@ System 안으로 전체 `PlayContext` 객체를 보내지 않고 **필요한 상
 - 새로운 픽스처 함수가 필요하면 `tests/fixtures/index.js`에 추가하고
   export한다. 테스트 파일 내부에 로컬 팩토리를 만들지 않는다.
 - 테스트 실행 전 import 실패 등 환경 문제가 있으면 가급적 에러를 삼키고(`process.exit(0)`) 깔끔하게 스킵하도록 작성한다.
+- **팩토리 시스템 테스트**: `createXxxSystem()`을 각 `test()` 케이스에서 호출해 독립 인스턴스를 생성한다.
+- **DI 주입 패턴**: 테스트에서 `data: { synergyData: MOCK_DATA }` 형태로 주입한다.
 
 ### 6.2 세션 및 상태 (`sessionState`) 규칙
 - 게임 런이 완전히 종료되었을 때는 반드시 `updateSessionBest()` 처리 후 `saveSession()` (localStorage 저장) 순서로 체인 호출한다.

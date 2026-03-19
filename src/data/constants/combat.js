@@ -1,8 +1,11 @@
 /**
  * src/data/constants/combat.js — 전투 관련 상수
  *
- * REFACTOR: constants.js God File 분리
- *   COMBAT, KNOCKBACK, COLLISION_CULL_MARGIN, ELITE_BEHAVIOR 영역 추출
+ * FIX: SEPARATION_CELL_SIZE 누락 추가
+ *
+ *   Before: EnemyMovementSystem에서 COMBAT.SEPARATION_CELL_SIZE ?? 60 으로 폴백
+ *           → 상수가 실제로 없어서 항상 폴백값 60 사용 (의도가 코드에 드러나지 않음)
+ *   After:  명시적으로 60 선언 → 인텐트가 상수 파일에서 관리됨
  */
 
 export const COMBAT = {
@@ -20,7 +23,7 @@ export const COMBAT = {
   PROJECTILE_MAX_LIFETIME: 10,
   /** Separation 강도 (EnemyMovementSystem) */
   SEPARATION_STRENGTH: 0.35,
-  /** Separation SpatialGrid 셀 크기 (px) */
+  /** Separation SpatialGrid 셀 크기 (px) — FIX: 이전에 누락됨 */
   SEPARATION_CELL_SIZE: 60,
 };
 

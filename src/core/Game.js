@@ -1,14 +1,14 @@
 import { GameConfig }     from './GameConfig.js';
 import { GameLoop }       from './GameLoop.js';
 import { SceneManager }   from './SceneManager.js';
-import { Input }          from './Input.js';
-import { CanvasRenderer } from '../renderer/CanvasRenderer.js';
-import { TitleScene }     from '../scenes/TitleScene.js';
+import { InputManager }    from '../input/InputManager.js';
+import { KeyboardAdapter } from '../input/KeyboardAdapter.js';
+import { TouchAdapter }    from '../input/TouchAdapter.js';
+import { CanvasRenderer }  from '../renderer/CanvasRenderer.js';
+import { TitleScene }      from '../scenes/TitleScene.js';
 import { validateGameData } from '../utils/validateGameData.js';
-import { upgradeData }    from '../data/upgradeData.js';
-import { weaponData }     from '../data/weaponData.js';
-import { waveData }       from '../data/waveData.js';
-import { AssetManager }   from '../managers/AssetManager.js';
+import { GameDataLoader }   from '../data/GameDataLoader.js';
+import { AssetManager }     from '../managers/AssetManager.js';
 import { createSessionState } from '../state/createSessionState.js';
 
 /** Game — 게임 최상위 진입점 */
@@ -22,10 +22,14 @@ export class Game {
     this._resizeCanvas();
     window.addEventListener('resize', this._onResize);
 
-    this.input        = new Input();
-    this.input.init();
+    this.input = new InputManager();
+    this.input.addAdapter(new KeyboardAdapter());
+    if ('ontouchstart' in window) {
+      this.input.addAdapter(new TouchAdapter(this.canvas));
+    }
     this.assets       = new AssetManager();
     this.session      = createSessionState();
+    this.gameData     = GameDataLoader.loadDefault();
     this.sceneManager = new SceneManager();
     this.renderer     = new CanvasRenderer(this.canvas, this.ctx);
     this._loop        = new GameLoop((dt) => this._tick(dt));
@@ -48,6 +52,7 @@ export class Game {
   }
 
   _tick(dt) {
+    this.input.poll();
     this.sceneManager.update(dt);
     this.sceneManager.render();
   }

@@ -3,23 +3,21 @@
  *
  * 무기 행동(weaponBehaviors/*.js)에서 공통으로 사용하는 유틸리티 함수 모음.
  *
- * ── 개선 이력 ──────────────────────────────────────────────────────
- * [기존] findClosestEnemy / findNearestFrom / getLiveEnemies 중앙화 완료.
+ * FIX(P2-7): spawnDirectionalProjectiles — spread 하드코딩 제거
  *
- * [추가 ⑤] spawnDirectionalProjectiles — 확산 투사체 spawnQueue push 로직 추출
- *   Before:
- *     targetProjectile.js 와 areaBurst.js 가 동일한 spread 계산 + spawnQueue.push 루프를
- *     각각 복붙해서 유지. 투사체 필드(statusEffectId 등) 추가 시 두 파일 수정 필요.
- *   After:
- *     spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 로 추출.
- *     targetProjectile.js, areaBurst.js 는 이 함수 1줄 호출로 대체.
- * ──────────────────────────────────────────────────────────────────
+ * Before:
+ *   const spread = Math.PI / 14;  // 하드코딩 — 무기별 확산각 조정 불가
+ *
+ * After:
+ *   const spread = weapon.spread ?? Math.PI / 14;
+ *   → weaponData 에서 'spread' 필드로 무기별 확산각 제어 가능
+ *   → 기존 무기는 weapon.spread 미정의 시 동일 기본값 사용 (하위 호환)
  *
  * 공개 API:
  *   getLiveEnemies(enemies)
  *   findClosestEnemy(origin, enemies, maxRange)
  *   findNearestFrom(origin, candidates, maxRange, visited?)
- *   spawnDirectionalProjectiles(weapon, player, target, spawnQueue)  ← 신규
+ *   spawnDirectionalProjectiles(weapon, player, target, spawnQueue)
  */
 
 import { distanceSq, normalize, sub } from '../../math/Vector2.js';
@@ -93,25 +91,21 @@ export function findNearestFrom(origin, candidates, maxRange, visited) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// 확산 투사체 생성 — 신규 추출 (⑤)
+// 확산 투사체 생성
 // ─────────────────────────────────────────────────────────────────────
 
 /**
  * target 방향으로 weapon.projectileCount 개의 확산 투사체를 spawnQueue에 추가한다.
  *
- * ── 추출 배경 ──────────────────────────────────────────────────────
- * Before:
- *   targetProjectile.js 와 areaBurst.js 가 동일한 spread 계산 + push 루프 복붙.
- *   const dir = normalize(sub(target, player));
- *   for (let i = 0; i < count; i++) {
- *     const offset = (i - (count-1)/2) * spread;
- *     ... spawnQueue.push({ type:'projectile', config:{ ... } });
- *   }
- *   → statusEffectId 등 필드 추가 시 두 파일 모두 수정 필요.
+ * FIX(P2-7): spread 하드코딩 제거
+ *   Before: const spread = Math.PI / 14;  // 약 12.8°, 무기별 조정 불가
+ *   After:  const spread = weapon.spread ?? Math.PI / 14;
+ *           → weaponData 에 spread 필드 추가로 무기별 확산각 제어 가능
+ *           → 미정의 시 기존 기본값 유지 (하위 호환)
  *
- * After:
- *   이 함수 1줄 호출로 대체. 필드 변경은 이 함수 안에서만.
- * ──────────────────────────────────────────────────────────────────
+ * weaponData 사용 예:
+ *   { id: 'shotgun', spread: Math.PI / 6, projectileCount: 3, ... }  // 30° 확산
+ *   { id: 'sniper',  spread: 0,           projectileCount: 1, ... }  // 0° 직선
  *
  * @param {object}   weapon
  * @param {object}   player
@@ -121,7 +115,10 @@ export function findNearestFrom(origin, candidates, maxRange, visited) {
 export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) {
   const dir    = normalize(sub(target, player));
   const count  = weapon.projectileCount ?? 1;
-  const spread = Math.PI / 14;  // ~12.8° 간격
+
+  // FIX(P2-7): weapon.spread로 무기별 확산각 제어 가능
+  // 기본값 Math.PI / 14 ≈ 12.8° (기존 동작 유지)
+  const spread = weapon.spread ?? Math.PI / 14;
 
   for (let i = 0; i < count; i++) {
     const offset = (i - (count - 1) / 2) * spread;

@@ -1,12 +1,13 @@
 /**
- * Input — 키보드 입력 수집
- * FIX(web): 화살표 키 / 스페이스바 등 브라우저 기본 동작 충돌 방지
+ * src/input/KeyboardAdapter.js
+ *
+ * 키보드 입력을 감지하는 어댑터.
  */
 const PREVENT_KEYS = new Set([
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ',
 ]);
 
-export class Input {
+export class KeyboardAdapter {
   constructor() {
     this._keys = new Set();
     this._onKeyDown = null;
@@ -22,7 +23,6 @@ export class Input {
     this._onKeyUp = (e) => {
       this._keys.delete(e.key.toLowerCase());
     };
-    // FIX(web): 포커스 잃으면 키 상태 초기화
     this._onBlur = () => this._keys.clear();
 
     window.addEventListener('keydown', this._onKeyDown);
@@ -30,7 +30,24 @@ export class Input {
     window.addEventListener('blur',    this._onBlur);
   }
 
-  /** FIX(memory): 이벤트 리스너 정리 */
+  /**
+   * @param {import('./InputState.js').InputState} state
+   */
+  poll(state) {
+    if (this._isDown('arrowleft')  || this._isDown('a')) state.moveX -= 1;
+    if (this._isDown('arrowright') || this._isDown('d')) state.moveX += 1;
+    if (this._isDown('arrowup')    || this._isDown('w')) state.moveY -= 1;
+    if (this._isDown('arrowdown')  || this._isDown('s')) state.moveY += 1;
+    
+    // -1 ~ 1 사이로 클램프 (중복 입력 대비)
+    state.moveX = Math.max(-1, Math.min(1, state.moveX));
+    state.moveY = Math.max(-1, Math.min(1, state.moveY));
+
+    if (this._isDown('`')) {
+      state.debug = true;
+    }
+  }
+
   destroy() {
     if (this._onKeyDown) window.removeEventListener('keydown', this._onKeyDown);
     if (this._onKeyUp)   window.removeEventListener('keyup',   this._onKeyUp);
@@ -38,24 +55,7 @@ export class Input {
     this._keys.clear();
   }
 
-  isDown(key) {
+  _isDown(key) {
     return this._keys.has(key.toLowerCase());
-  }
-
-  /**
-   * WASD + 화살표 키 → 정규화된 방향 벡터
-   * @returns {{ x: number, y: number }}
-   */
-  getDirection() {
-    let x = 0, y = 0;
-    if (this.isDown('arrowleft')  || this.isDown('a')) x -= 1;
-    if (this.isDown('arrowright') || this.isDown('d')) x += 1;
-    if (this.isDown('arrowup')    || this.isDown('w')) y -= 1;
-    if (this.isDown('arrowdown')  || this.isDown('s')) y += 1;
-    if (x !== 0 && y !== 0) {
-      const inv = 1 / Math.sqrt(2);
-      x *= inv; y *= inv;
-    }
-    return { x, y };
   }
 }
