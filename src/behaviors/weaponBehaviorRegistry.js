@@ -15,6 +15,7 @@ import { orbit }            from './weaponBehaviors/orbit.js';
 import { areaBurst }        from './weaponBehaviors/areaBurst.js';
 import { boomerang }        from './weaponBehaviors/boomerangWeapon.js';
 import { chainLightning }   from './weaponBehaviors/chainLightning.js';
+import { omnidirectional } from './weaponBehaviors/omnidirectional.js';
 
 /** @type {Map<string, Function>} */
 export const weaponBehaviorRegistry = new Map([
@@ -23,6 +24,7 @@ export const weaponBehaviorRegistry = new Map([
   ['areaBurst',        areaBurst],
   ['boomerang',        boomerang],
   ['chainLightning',   chainLightning],
+  ['omnidirectional',  omnidirectional],
 ]);
 
 /**

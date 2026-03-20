@@ -1,18 +1,34 @@
 /**
  * permanentUpgradeData.js — 영구 업그레이드(메타 진행) 정의
  *
+ * CHANGE: 신규 스탯 영구 강화 추가
+ *   - perm_crit_chance    : 크리티컬 확률 +2%
+ *   - perm_crit_multi     : 크리티컬 피해 배율 +15%
+ *   - perm_cooldown       : 무기 쿨다운 -4%
+ *   - perm_proj_speed     : 투사체 속도 +5%
+ *   - perm_proj_size      : 투사체 크기 +5%
+ *   - perm_xp             : 경험치 획득 +10%
+ *
  * costPerLevel(currentLevel) — 다음 레벨 구매 비용
  * effect.stat               — 적용 대상 스탯
  * effect.valuePerLevel      — 레벨당 적용 수치
  *
  * 지원 stat:
- *   maxHp         — 최대 HP (flat 가산)
- *   moveSpeed     — 이동 속도 (flat 가산)
- *   magnetRadius  — 픽업 흡수 범위 (flat 가산)
- *   lifesteal     — 흡혈 (flat 가산)
- *   damageMult    — 무기 데미지 배율 (flat 가산, 0.05 = +5%)
+ *   maxHp               — 최대 HP (flat 가산)
+ *   moveSpeed           — 이동 속도 (flat 가산)
+ *   magnetRadius        — 픽업 흡수 범위 (flat 가산)
+ *   lifesteal           — 흡혈 (flat 가산)
+ *   damageMult          — 무기 데미지 배율 (flat 가산, 0.05 = +5%)
+ *   critChance          — 크리티컬 확률 (flat 가산, 0.02 = +2%)
+ *   critMultiplier      — 크리티컬 피해 배율 (flat 가산, 0.15 = +15%)
+ *   cooldownMult        — 쿨다운 배율 (flat 감산, -0.04 = 4% 단축)
+ *   projectileSpeedMult — 투사체 속도 배율 (flat 가산, 0.05 = +5%)
+ *   projectileSizeMult  — 투사체 크기 배율 (flat 가산, 0.05 = +5%)
+ *   xpMult              — 경험치 획득 배율 (flat 가산, 0.10 = +10%)
  */
 export const permanentUpgradeData = [
+
+  // ── 기본 스탯 ──────────────────────────────────────────────────────────────
   {
     id:           'perm_hp',
     name:         '강인한 체질',
@@ -58,6 +74,95 @@ export const permanentUpgradeData = [
     costPerLevel: (level) => 25 + level * 12,
     effect:       { stat: 'lifesteal', valuePerLevel: 0.03 },
   },
+
+  // ── 크리티컬 ──────────────────────────────────────────────────────────────
+  {
+    id:           'perm_crit_chance',
+    name:         '예리한 감각',
+    description:  '크리티컬 확률 +2%',
+    icon:         '🎯',
+    maxLevel:     8,
+    costPerLevel: (level) => 20 + level * 10,
+    effect:       { stat: 'critChance', valuePerLevel: 0.02 },
+  },
+  {
+    id:           'perm_crit_multi',
+    name:         '치명적 일격',
+    description:  '크리티컬 피해 배율 +15%',
+    icon:         '💥',
+    maxLevel:     6,
+    costPerLevel: (level) => 28 + level * 14,
+    effect:       { stat: 'critMultiplier', valuePerLevel: 0.15 },
+  },
+
+  // ── 투사체 ────────────────────────────────────────────────────────────────
+  {
+    id:           'perm_proj_speed',
+    name:         '가속의 마법진',
+    description:  '투사체 속도 +5%',
+    icon:         '🔵',
+    maxLevel:     6,
+    costPerLevel: (level) => 18 + level * 9,
+    effect:       { stat: 'projectileSpeedMult', valuePerLevel: 0.05 },
+  },
+  {
+    id:           'perm_proj_size',
+    name:         '확장의 룬',
+    description:  '투사체 크기 및 범위 +5%',
+    icon:         '🌊',
+    maxLevel:     6,
+    costPerLevel: (level) => 18 + level * 9,
+    effect:       { stat: 'projectileSizeMult', valuePerLevel: 0.05 },
+  },
+
+  // ── 배율 스탯 ────────────────────────────────────────────────────────────
+  {
+    id:           'perm_cooldown',
+    name:         '빠른 손놀림',
+    description:  '무기 쿨다운 -4%',
+    icon:         '⚡',
+    maxLevel:     8,
+    costPerLevel: (level) => 22 + level * 11,
+    effect:       { stat: 'cooldownMult', valuePerLevel: -0.04 },
+  },
+  {
+    id:           'perm_xp',
+    name:         '지식 흡수',
+    description:  '경험치 획득 +10%',
+    icon:         '📚',
+    maxLevel:     6,
+    costPerLevel: (level) => 15 + level * 7,
+    effect:       { stat: 'xpMult', valuePerLevel: 0.10 },
+  },
+
+  // ── 슬롯 확장 (기본 3 + 최대 3 = 총 6) ──────────────────────────────────────
+  {
+    id:           'perm_weapon_slot',
+    name:         '무기 슬롯 확장',
+    description:  '최대 보유 가능 무기 수 +1',
+    icon:         '⚔',
+    maxLevel:     3,
+    costPerLevel: (level) => 100 + level * 100,
+    effect:       { stat: 'maxWeaponSlots', valuePerLevel: 1 },
+  },
+  {
+    id:           'perm_accessory_slot',
+    name:         '장신구 슬롯 확장',
+    description:  '최대 보유 가능 장신구 수 +1',
+    icon:         '💍',
+    maxLevel:     3,
+    costPerLevel: (level) => 80 + level * 80,
+    effect:       { stat: 'maxAccessorySlots', valuePerLevel: 1 },
+  },
+  {
+    id:           'perm_projectile_count',
+    name:         '투사체 증가',
+    description:  '모든 무기의 투사체 개수 +1',
+    icon:         '🍀',
+    maxLevel:     2,
+    costPerLevel: (level) => 500 + level * 500,
+    effect:       { stat: 'bonusProjectileCount', valuePerLevel: 1 },
+  },
 ];
 
 /** id로 영구 업그레이드 데이터 조회 */
@@ -69,8 +174,13 @@ export function getPermanentUpgradeById(id) {
  * 세션의 permanentUpgrades를 player 기본 스탯에 반영한다.
  * createPlayer() 내부에서 한 번 호출된다.
  *
- * damageMult는 player.globalDamageMult에 누산된다.
- * 나머지 stat은 flat 가산된다.
+ * 지원 스탯:
+ *   maxHp, moveSpeed, magnetRadius, lifesteal → flat 가산
+ *   damageMult                                 → player.globalDamageMult에 누산
+ *   critChance, critMultiplier                 → flat 가산
+ *   cooldownMult                               → flat 가산 (음수이므로 값 낮아짐, 최솟값 0.1 클램핑)
+ *   projectileSpeedMult, projectileSizeMult     → flat 가산
+ *   xpMult                                     → flat 가산
  *
  * @param {object} player              생성 중인 플레이어 객체
  * @param {Record<string,number>} perm  session.meta.permanentUpgrades
@@ -86,14 +196,60 @@ export function applyPermanentUpgrades(player, perm) {
     const { stat, valuePerLevel } = def.effect;
     const total = valuePerLevel * level;
 
-    if (stat === 'damageMult') {
-      // flat 가산으로 globalDamageMult 증가 (0.05 * 3 = +15% → mult = 1.15)
-      player.globalDamageMult = (player.globalDamageMult ?? 1) + total;
-    } else if (stat === 'maxHp') {
-      player.maxHp += total;
-      player.hp    += total;
-    } else {
-      player[stat] = (player[stat] ?? 0) + total;
+    switch (stat) {
+      case 'damageMult':
+        // flat 가산으로 globalDamageMult 증가 (0.05 * 3 = +15% → mult = 1.15)
+        player.globalDamageMult = (player.globalDamageMult ?? 1) + total;
+        break;
+
+      case 'maxHp':
+        player.maxHp += total;
+        player.hp    += total;
+        break;
+
+      case 'critChance':
+        player.critChance = (player.critChance ?? 0.05) + total;
+        break;
+
+      case 'critMultiplier':
+        player.critMultiplier = (player.critMultiplier ?? 2.0) + total;
+        break;
+
+      case 'cooldownMult':
+        // total은 음수(예: -0.04 * 3 = -0.12) → 1.0 + (-0.12) = 0.88
+        player.cooldownMult = Math.max(0.1,
+          (player.cooldownMult ?? 1.0) + total
+        );
+        break;
+
+      case 'projectileSpeedMult':
+        player.projectileSpeedMult = (player.projectileSpeedMult ?? 1.0) + total;
+        break;
+
+      case 'projectileSizeMult':
+        player.projectileSizeMult = (player.projectileSizeMult ?? 1.0) + total;
+        break;
+
+      case 'xpMult':
+        player.xpMult = (player.xpMult ?? 1.0) + total;
+        break;
+
+      case 'maxWeaponSlots':
+        player.maxWeaponSlots = (player.maxWeaponSlots ?? 3) + total;
+        break;
+
+      case 'maxAccessorySlots':
+        player.maxAccessorySlots = (player.maxAccessorySlots ?? 3) + total;
+        break;
+
+      case 'bonusProjectileCount':
+        player.bonusProjectileCount = (player.bonusProjectileCount ?? 0) + total;
+        break;
+
+      default:
+        // moveSpeed, magnetRadius, lifesteal 등 flat 가산
+        player[stat] = (player[stat] ?? 0) + total;
+        break;
     }
   }
 }

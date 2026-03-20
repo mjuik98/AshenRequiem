@@ -1,5 +1,7 @@
 /**
  * tests/SlotSystem.test.js — 슬롯 시스템 + 다중 투사체 + 크리티컬 단위 테스트
+ * 
+ * CHANGE: 기본 슬롯 3/3, 최대 6/6 체계에 맞게 업데이트
  */
 import assert from 'node:assert/strict';
 import { makePlayer } from './fixtures/index.js';
@@ -15,41 +17,45 @@ try {
 
 console.log('\n[SlotSystem 테스트]');
 
-test('초기 maxWeaponSlots=2, weapon_new는 슬롯 여유 있을 때 등장', () => {
-  const player  = makePlayer({ maxWeaponSlots: 2 });
+test('기본 maxWeaponSlots=3, 슬롯 여유 있을 때 신규 무기 등장', () => {
+  const player  = makePlayer({ maxWeaponSlots: 3, weapons: [] });
   const choices = UpgradeSystem.generateChoices(player);
-  assert.ok(choices.length <= 3, `선택지가 3개 초과 (실제: ${choices.length})`);
+  assert.ok(choices.some(c => c.type === 'weapon_new'), '무기 슬롯 여유가 있는데 신규 무기 미등장');
 });
 
-test('maxAccessorySlots=0이면 장신구 선택지 미등장', () => {
-  const player  = makePlayer({ maxAccessorySlots: 0 });
+test('무기 슬롯이 꽉 차면 신규 무기 미등장', () => {
+  const player = makePlayer({
+    maxWeaponSlots: 3,
+    weapons: [
+      { id: 'magic_bolt', level: 1 },
+      { id: 'holy_aura', level: 1 },
+      { id: 'frost_nova', level: 1 }
+    ]
+  });
+  const choices = UpgradeSystem.generateChoices(player);
+  const hasNewWeapon = choices.some(c => c.type === 'weapon_new');
+  assert.equal(hasNewWeapon, false, '무기 슬롯이 꽉 찼는데 신규 무기 등장');
+});
+
+test('기본 maxAccessorySlots=3, 슬롯 여유 있을 때 장신구 등장', () => {
+  const player  = makePlayer({ maxAccessorySlots: 3, accessories: [] });
   const choices = UpgradeSystem.generateChoices(player);
   const hasAcc  = choices.some(c => c.type === 'accessory');
-  assert.equal(hasAcc, false, '장신구 슬롯 없는데 장신구 등장');
+  assert.equal(hasAcc, true, '장신구 슬롯 여유가 있는데 장신구 미등장');
 });
 
-test('slot_weapon 적용 시 maxWeaponSlots 증가', () => {
-  const player = makePlayer({ maxWeaponSlots: 2 });
-  UpgradeSystem.applyUpgrade(player, { id: 'slot_weapon', type: 'slot', slotType: 'weapon' });
-  assert.equal(player.maxWeaponSlots, 3, `예상 3, 실제: ${player.maxWeaponSlots}`);
-});
-
-test('slot_weapon 최대 4 이상 증가 안 됨', () => {
-  const player = makePlayer({ maxWeaponSlots: 4 });
-  UpgradeSystem.applyUpgrade(player, { id: 'slot_weapon', type: 'slot', slotType: 'weapon' });
-  assert.equal(player.maxWeaponSlots, 4, `최대치 초과`);
-});
-
-test('slot_accessory 적용 시 maxAccessorySlots 증가', () => {
-  const player = makePlayer({ maxAccessorySlots: 0 });
-  UpgradeSystem.applyUpgrade(player, { id: 'slot_accessory', type: 'slot', slotType: 'accessory' });
-  assert.equal(player.maxAccessorySlots, 1, `예상 1, 실제: ${player.maxAccessorySlots}`);
-});
-
-test('slot_accessory 최대 2 이상 증가 안 됨', () => {
-  const player = makePlayer({ maxAccessorySlots: 2 });
-  UpgradeSystem.applyUpgrade(player, { id: 'slot_accessory', type: 'slot', slotType: 'accessory' });
-  assert.equal(player.maxAccessorySlots, 2, `최대치 초과`);
+test('장신구 슬롯이 꽉 차면 신규 장신구 미등장', () => {
+  const player = makePlayer({
+    maxAccessorySlots: 3,
+    accessories: [
+      { id: 'ring_of_speed', level: 1 },
+      { id: 'iron_heart', level: 1 },
+      { id: 'magnet_stone', level: 1 }
+    ]
+  });
+  const choices = UpgradeSystem.generateChoices(player);
+  const hasNewAcc = choices.some(c => c.type === 'accessory');
+  assert.equal(hasNewAcc, false, '장신구 슬롯이 꽉 찼는데 신규 장신구 등장');
 });
 
 console.log('\n[다중 투사체 테스트]');
@@ -71,7 +77,8 @@ test('multishot 적용 시 무기 레벨 변화 없고 projectileCount만 증가
 
 console.log('\n[크리티컬 스탯 테스트]');
 
-test('stat_crit_chance 업그레이드 적용 시 critChance 증가', () => {
+test('stat_crit_chance(stat 타입) 업그레이드 적용 시 critChance 증가', () => {
+  // 레벨업 풀에서는 빠졌지만 applyUpgrade 로직은 여전히 작동해야 함 (상점 등에서 활용 가능)
   const player = makePlayer({ critChance: 0.05 });
   UpgradeSystem.applyUpgrade(player, {
     id: 'stat_crit_chance', type: 'stat',
@@ -80,13 +87,16 @@ test('stat_crit_chance 업그레이드 적용 시 critChance 증가', () => {
   assert.ok(Math.abs(player.critChance - 0.10) < 0.001, `예상 0.10, 실제: ${player.critChance}`);
 });
 
-test('stat_crit_multi 업그레이드 적용 시 critMultiplier 증가', () => {
-  const player = makePlayer({ critMultiplier: 2.0 });
-  UpgradeSystem.applyUpgrade(player, {
-    id: 'stat_crit_multi', type: 'stat',
-    effect: { stat: 'critMultiplier', value: 0.25 },
-  });
-  assert.ok(Math.abs(player.critMultiplier - 2.25) < 0.001, `예상 2.25, 실제: ${player.critMultiplier}`);
+console.log('\n[보너스 투사체 스탯 테스트]');
+
+test('bonusProjectileCount 반영 시 orbit 무기가 더 많은 투사체 생성', async () => {
+  const { orbit } = await import('../src/behaviors/weaponBehaviors/orbit.js');
+  const player = makePlayer({ bonusProjectileCount: 2 }); // +2발 보너스
+  const weapon = { behaviorId: 'orbit', orbitCount: 3, cooldown: 1.0 }; // 기본 3발
+  const spawnQueue = [];
+  
+  orbit({ weapon, player, spawnQueue });
+  assert.equal(spawnQueue.length, 5, `발사 수: ${spawnQueue.length} (기대: 5)`);
 });
 
 summary();

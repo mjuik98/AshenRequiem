@@ -34,15 +34,16 @@ export const synergyData = [
     id:          'iron_will',
     name:        '강철 의지',
     description: '최대 체력 강화 + 이동속도 강화를 모두 보유하면 추가로 흡혈이 생긴다.',
-    // FIX: 'stat_max_hp' → 'stat_maxhp' (upgradeData 실제 ID)
-    requires:    ['stat_maxhp', 'stat_speed'],
+    // FIX: stat_maxhp, stat_speed -> acc_iron_heart, acc_ring_of_speed (실제 존재하는 장신구 참조)
+    requires:    ['acc_iron_heart', 'acc_ring_of_speed'],
     bonus:       { lifestealDelta: 0.05 },
   },
   {
     id:          'vampire_lord',
     name:        '뱀파이어 군주',
     description: '흡혈 강화 + 최대 체력 강화를 모두 보유하면 이동 속도가 증가한다.',
-    requires:    ['stat_lifesteal', 'stat_maxhp'],
+    // FIX: stat_lifesteal -> acc_vampiric_amulet (실제 장신구 참조)
+    requires:    ['acc_vampiric_amulet', 'acc_iron_heart'],
     bonus:       { speedMult: 1.10 },
   },
 
@@ -50,7 +51,7 @@ export const synergyData = [
   {
     id:          'fire_vortex',
     name:        '화염 소용돌이',
-    description: '번개 구체와 냉기 폭발을 동시에 보유하면 번개 구체 데미지가 증가한다.',
+    description: '번개의 고리와 냉기 폭발을 동시에 보유하면 번개의 고리 데미지가 증가한다.',
     // FIX: 'weapon_orbit' → 'lightning_ring', 'weapon_area_burst' → 'frost_nova'
     //      (weaponData 실제 ID 사용)
     requires:    ['lightning_ring', 'frost_nova'],
@@ -67,7 +68,7 @@ export const synergyData = [
   {
     id:          'orbital_fortress',
     name:        '궤도 요새',
-    description: '번개 구체 강화를 최대 적용하면 궤도 반경이 추가 증가한다.',
+    description: '번개의 고리 강화를 최대 적용하면 궤도 반경이 추가 증가한다.',
     // FIX: 'weapon_orbit' → 'lightning_ring', 'upgrade_orbit_max' → 'up_lightning_ring'
     requires:    ['lightning_ring', 'up_lightning_ring'],
     bonus:       { weaponId: 'lightning_ring', orbitRadiusDelta: 24 },

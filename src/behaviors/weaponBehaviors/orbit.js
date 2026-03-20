@@ -21,9 +21,10 @@
  * @returns {true}
  */
 export function orbit({ weapon, player, spawnQueue }) {
-  const count      = weapon.orbitCount   ?? 3;
-  const radius     = weapon.orbitRadius  ?? 72;
-  const speed      = weapon.orbitSpeed   ?? 2.8;
+  const bonus = player?.bonusProjectileCount ?? 0;
+  const count = (weapon.orbitCount ?? 3) + Math.floor(bonus);
+  const radius = weapon.orbitRadius ?? 72;
+  const speed  = weapon.orbitSpeed  ?? 2.8;
   // 쿨다운보다 살짝 길게 살아있어서 빈 프레임 없이 연속 회전
   const lifetime   = weapon.cooldown * 1.02;
 

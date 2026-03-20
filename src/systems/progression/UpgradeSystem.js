@@ -1,10 +1,10 @@
 /**
  * src/systems/progression/UpgradeSystem.js
  *
- * MERGED:
- *   - Phase 2 Final: 슬롯 시스템(최대 무기 4, 장신구 2), 다중 투사체(projectileCountDelta),
- *                    크리티컬(critChance, critMultiplier), 진화 무기 보관 지원.
- *   - Phase 4: 신규 능력치(cooldownMult, projectileSpeedMult, projectileSizeMult, xpMult) 지원 유지.
+ * CHANGE: 레벨업 보상 개편
+ *   - 스탯/슬롯 업그레이드 제거 → 무기/장신구 중심
+ *   - accessory_upgrade 타입 추가 (보유 장신구 Lv5까지 강화)
+ *   - stat_heal은 무기/장신구 후보가 없을 때만 폴백으로 등장
  */
 
 import { upgradeData }      from '../../data/upgradeData.js';
@@ -16,27 +16,31 @@ import { SynergySystem }     from './SynergySystem.js';
 export const UpgradeSystem = {
 
   generateChoices(player) {
-    const { weaponLikePicks, statPicks } = this._buildAvailablePool(player);
-    let result = this._pickBalanced(weaponLikePicks, statPicks);
+    const picks = this._buildAvailablePool(player);
+    let result  = shuffle(picks).slice(0, 3);
 
+    // 폴백: 무기/장신구 후보가 3개 미만이면 stat_heal로 채움
     if (result.length < 3) {
-      const fallback = this._buildFallbackChoices(player, result);
-      for (const f of fallback) {
-        if (result.length >= 3) break;
-        result.push(f);
+      const healUpgrade = upgradeData.find(u => u.id === 'stat_heal');
+      if (healUpgrade) {
+        while (result.length < 3) {
+          result.push({ ...healUpgrade });
+        }
       }
     }
 
-    return shuffle(result).slice(0, Math.min(3, result.length));
+    return result;
   },
 
+  /**
+   * 무기/장신구 관련 선택지만 수집한다.
+   * stat/slot 타입은 완전히 제외된다.
+   */
   _buildAvailablePool(player) {
-    const weaponLikePicks = [];
-    const statPicks       = [];
+    const picks = [];
 
-    const accCount       = player.accessories?.length  ?? 0;
-    const maxWeaponSlots = player.maxWeaponSlots        ?? 2;
-    const maxAccSlots    = player.maxAccessorySlots     ?? 0;
+    const maxWeaponSlots = player.maxWeaponSlots     ?? 3;
+    const maxAccSlots    = player.maxAccessorySlots   ?? 3;
 
     for (const upgrade of upgradeData) {
 
@@ -45,7 +49,7 @@ export const UpgradeSystem = {
         const def = getWeaponDataById(upgrade.weaponId);
         if (!def?.isEvolved && player.weapons.length < maxWeaponSlots
             && !player.weapons.find(w => w.id === upgrade.weaponId)) {
-          weaponLikePicks.push(upgrade);
+          picks.push(upgrade);
         }
 
       } else if (upgrade.type === 'weapon_upgrade') {
@@ -55,50 +59,34 @@ export const UpgradeSystem = {
         if (upgrade.maxCount !== undefined) {
           // maxCount 기반 — skipLevelUp 업그레이드(다중 발사 등)
           const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
-          if (taken < upgrade.maxCount) weaponLikePicks.push(upgrade);
+          if (taken < upgrade.maxCount) picks.push(upgrade);
         } else {
           // 무기 레벨 기반 일반 강화
           const def      = getWeaponDataById(upgrade.weaponId);
           const maxLevel = def?.maxLevel ?? Infinity;
-          if (owned.level < maxLevel) weaponLikePicks.push(upgrade);
+          if (owned.level < maxLevel) picks.push(upgrade);
         }
 
       } else if (upgrade.type === 'accessory') {
         // 장신구 슬롯 여유 있고, 미보유 시
-        if (accCount < maxAccSlots) {
+        if ((player.accessories?.length ?? 0) < maxAccSlots) {
           const alreadyHas = player.accessories?.some(a => a.id === upgrade.accessoryId);
-          if (!alreadyHas) weaponLikePicks.push(upgrade);
+          if (!alreadyHas) picks.push(upgrade);
         }
 
-      } else if (upgrade.type === 'slot') {
-        // 슬롯 해금 — 최대치 미달 시
-        const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
-        if (taken < (upgrade.maxCount ?? 2)) statPicks.push(upgrade);
-
-      } else if (upgrade.type === 'stat') {
-        const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
-        if (upgrade.maxCount === undefined || taken < upgrade.maxCount) {
-          statPicks.push(upgrade);
-        }
+      } else if (upgrade.type === 'accessory_upgrade') {
+        // 보유 장신구 중 maxLevel 미달인 것만 후보
+        const owned = player.accessories?.find(a => a.id === upgrade.accessoryId);
+        if (!owned) continue;
+        const def      = getAccessoryById(upgrade.accessoryId);
+        const maxLevel = def?.maxLevel ?? 5;
+        if ((owned.level ?? 1) < maxLevel) picks.push(upgrade);
       }
+
+      // stat, slot 타입은 의도적으로 무시 — 레벨업 풀에서 완전 제외
     }
 
-    return { weaponLikePicks, statPicks };
-  },
-
-  _pickBalanced(weaponLikePicks, statPicks) {
-    const sw = shuffle(weaponLikePicks);
-    const ss = shuffle(statPicks);
-    const result = [];
-    if (sw.length > 0) result.push(sw[0]);
-    for (const s of ss) { if (result.length >= 3) break; result.push(s); }
-    for (let i = 1; i < sw.length && result.length < 3; i++) result.push(sw[i]);
-    return result;
-  },
-
-  _buildFallbackChoices(player, existing) {
-    const existingIds = new Set(existing.map(u => u.id));
-    return upgradeData.filter(u => !existingIds.has(u.id));
+    return picks;
   },
 
   /**
@@ -152,18 +140,29 @@ export const UpgradeSystem = {
 
     } else if (upgrade.type === 'accessory') {
       const accDef = getAccessoryById(upgrade.accessoryId);
-      if (accDef && (player.accessories?.length ?? 0) < (player.maxAccessorySlots ?? 0)) {
+      if (accDef && (player.accessories?.length ?? 0) < (player.maxAccessorySlots ?? 3)) {
         player.accessories = player.accessories ?? [];
-        player.accessories.push({ ...accDef });
+        // Lv.1로 장착, effects도 복사
+        const newAcc = { ...accDef, level: 1 };
+        player.accessories.push(newAcc);
         _applyAccessoryEffects(player, accDef.effects ?? []);
       }
 
-    } else if (upgrade.type === 'slot') {
-      // 슬롯 해금
-      if (upgrade.slotType === 'weapon') {
-        player.maxWeaponSlots = Math.min((player.maxWeaponSlots ?? 2) + 1, 4);
-      } else if (upgrade.slotType === 'accessory') {
-        player.maxAccessorySlots = Math.min((player.maxAccessorySlots ?? 0) + 1, 2);
+    } else if (upgrade.type === 'accessory_upgrade') {
+      // 보유 장신구 레벨업 — valuePerLevel 적용
+      const owned = player.accessories?.find(a => a.id === upgrade.accessoryId);
+      if (owned) {
+        const def = getAccessoryById(upgrade.accessoryId);
+        const maxLevel = def?.maxLevel ?? 5;
+        if ((owned.level ?? 1) < maxLevel) {
+          owned.level = (owned.level ?? 1) + 1;
+          // valuePerLevel 만큼 효과 추가 적용
+          const levelUpEffects = (def?.effects ?? []).map(e => ({
+            stat:  e.stat,
+            value: e.valuePerLevel ?? 0,
+          })).filter(e => e.value !== 0);
+          _applyAccessoryEffects(player, levelUpEffects);
+        }
       }
 
     } else if (upgrade.type === 'stat') {
@@ -174,13 +173,9 @@ export const UpgradeSystem = {
         } else if (eff.stat === 'maxHp') {
           player.maxHp += eff.value;
           player.hp    += eff.value;
-        } else if (eff.stat === 'cooldownMult') {
-          // Phase 4: 쿨다운 배율 클램핑
-          player.cooldownMult = Math.max(0.1, (player.cooldownMult ?? 1.0) + eff.value);
         } else if (player[eff.stat] !== undefined) {
           player[eff.stat] += eff.value;
         } else {
-          // 존재하지 않는 필드에도 가산 가능 (critChance 등)
           player[eff.stat] = (player[eff.stat] ?? 0) + eff.value;
         }
       }
@@ -224,7 +219,7 @@ function _applyAccessoryEffects(player, effects) {
         player.globalDamageMult = (player.globalDamageMult ?? 1) * eff.value;
         break;
 
-      // Phase 4: 신규 능력치 배율
+      // 신규 능력치 배율
       case 'cooldownMult':
         player.cooldownMult = Math.max(0.1, (player.cooldownMult ?? 1.0) + eff.value);
         break;
@@ -238,7 +233,7 @@ function _applyAccessoryEffects(player, effects) {
         player.xpMult = (player.xpMult ?? 1.0) + eff.value;
         break;
 
-      // Patch: 신규 특수 효과
+      // 특수 효과
       case 'bonusProjectileCount':
         player.bonusProjectileCount = (player.bonusProjectileCount ?? 0) + eff.value;
         break;
@@ -246,7 +241,6 @@ function _applyAccessoryEffects(player, effects) {
         player.critChance = (player.critChance ?? 0.05) + eff.value;
         break;
       case 'critMultiplier':
-        // critMultiplier는 flat 가산 (2.0 기본 + 0.30 = 2.30)
         player.critMultiplier = (player.critMultiplier ?? 2.0) + eff.value;
         break;
 

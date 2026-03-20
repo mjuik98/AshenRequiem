@@ -8,7 +8,7 @@
 export const weaponData = [
   // ── 기본 무기 ──────────────────────────────────────────────────────────────
   {
-    id: 'magic_bolt', name: 'Magic Bolt',
+    id: 'magic_bolt', name: '마법탄',
     description: '가장 가까운 적을 향해 마법탄 발사',
     damage: 2, cooldown: 0.8, projectileSpeed: 350, range: 400,
     radius: 5, pierce: 1, projectileColor: '#ffee58',
@@ -17,7 +17,7 @@ export const weaponData = [
     statusEffectId: 'slow', statusEffectChance: 0.15,
   },
   {
-    id: 'holy_aura', name: 'Holy Aura',
+    id: 'holy_aura', name: '성스러운 오라',
     description: '주변 적에게 지속 데미지',
     damage: 2, cooldown: 0.8, range: 80, radius: 80,
     projectileSpeed: 0, pierce: 999, projectileColor: '#ffd54f',
@@ -27,7 +27,7 @@ export const weaponData = [
     orbitsPlayer: true,
   },
   {
-    id: 'lightning_ring', name: 'Lightning Ring',
+    id: 'lightning_ring', name: '번개의 고리',
     description: '플레이어 주위를 회전하는 전기 구체',
     damage: 3, cooldown: 3.5, radius: 9, pierce: 999,
     projectileColor: '#40c4ff',
@@ -36,7 +36,7 @@ export const weaponData = [
     statusEffectId: 'stun', statusEffectChance: 0.25,
   },
   {
-    id: 'frost_nova', name: 'Frost Nova',
+    id: 'frost_nova', name: '냉기 폭발',
     description: '주변에 냉기 폭발 — 적을 얼린다',
     damage: 2, cooldown: 2.0, range: 100, radius: 100,
     projectileSpeed: 0, pierce: 999, projectileColor: '#80deea',
@@ -64,8 +64,8 @@ export const weaponData = [
 
   // ── 진화 무기 (isEvolved: true — WeaponEvolutionSystem에서만 획득 가능) ───────
   {
-    id: 'arcane_nova', name: 'Arcane Nova',
-    description: '360도 전방향 마법 폭발 — Magic Bolt의 최종 진화',
+    id: 'arcane_nova', name: '비전 폭발',
+    description: '360도 전방향 마법 폭발 — 마법탄의 최종 진화',
     damage: 8, cooldown: 1.2, projectileSpeed: 340, range: 460,
     radius: 7, pierce: 2, projectileColor: '#e040fb',
     projectileCount: 8,
@@ -74,8 +74,8 @@ export const weaponData = [
     isEvolved: true,
   },
   {
-    id: 'storm_crown', name: 'Storm Crown',
-    description: '5개 고속 번개 구체 회전 — Lightning Ring의 최종 진화',
+    id: 'storm_crown', name: '폭풍의 왕관',
+    description: '5개 고속 번개 구체 회전 — 번개의 고리의 최종 진화',
     damage: 6, cooldown: 2.5, radius: 11, pierce: 999,
     projectileColor: '#00e5ff',
     behaviorId: 'orbit', maxLevel: 5,
@@ -84,8 +84,8 @@ export const weaponData = [
     isEvolved: true,
   },
   {
-    id: 'divine_shield', name: 'Divine Shield',
-    description: '광역 신성 방패 — Holy Aura의 최종 진화',
+    id: 'divine_shield', name: '신성한 방패',
+    description: '광역 신성 방패 — 성스러운 오라의 최종 진화',
     damage: 5, cooldown: 0.5, range: 130, radius: 130,
     projectileSpeed: 0, pierce: 999, projectileColor: '#ffffff',
     behaviorId: 'areaBurst', maxLevel: 5,
@@ -95,8 +95,8 @@ export const weaponData = [
     isEvolved: true,
   },
   {
-    id: 'infinity_blade', name: 'Infinity Blade',
-    description: '무한 관통 흡혈 부메랑 — Boomerang의 최종 진화',
+    id: 'infinity_blade', name: '무한의 칼날',
+    description: '무한 관통 흡혈 부메랑 — 부메랑의 최종 진화',
     damage: 18, cooldown: 0.9, projectileSpeed: 360, range: 500,
     radius: 14, pierce: 10, maxRange: 900, projectileColor: '#ff1744',
     projectileCount: 1,
@@ -104,8 +104,8 @@ export const weaponData = [
     isEvolved: true,
   },
   {
-    id: 'blizzard_nova', name: 'Blizzard Nova',
-    description: '초광역 빙하 폭풍 — Frost Nova의 최종 진화',
+    id: 'blizzard_nova', name: '블리자드 노바',
+    description: '초광역 빙하 폭풍 — 냉기 폭발의 최종 진화',
     damage: 6, cooldown: 1.4, range: 160, radius: 160,
     projectileSpeed: 0, pierce: 999, projectileColor: '#b3e5fc',
     behaviorId: 'areaBurst', maxLevel: 5,

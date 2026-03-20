@@ -21,7 +21,7 @@ export const weaponEvolutionData = [
       weaponId:     'magic_bolt',
       accessoryIds: ['tome_of_power'],
     },
-    announceText: 'Magic Bolt이 Arcane Nova로 진화했다!',
+    announceText: '마법탄이 비전 폭발로 진화했다!',
   },
   {
     id:             'evolution_storm_crown',
@@ -30,7 +30,7 @@ export const weaponEvolutionData = [
       weaponId:     'lightning_ring',
       accessoryIds: ['scattered_shot'],
     },
-    announceText: 'Lightning Ring이 Storm Crown으로 진화했다!',
+    announceText: '번개의 고리가 폭풍의 왕관으로 진화했다!',
   },
   {
     id:             'evolution_divine_shield',
@@ -39,7 +39,7 @@ export const weaponEvolutionData = [
       weaponId:     'holy_aura',
       accessoryIds: ['iron_heart'],
     },
-    announceText: 'Holy Aura가 Divine Shield로 진화했다!',
+    announceText: '성스러운 오라가 신성한 방패로 진화했다!',
   },
   {
     id:             'evolution_infinity_blade',
@@ -48,7 +48,7 @@ export const weaponEvolutionData = [
       weaponId:     'boomerang',
       accessoryIds: ['vampiric_amulet'],
     },
-    announceText: 'Boomerang이 Infinity Blade로 진화했다!',
+    announceText: '부메랑이 무한의 칼날로 진화했다!',
   },
   {
     id:             'evolution_blizzard_nova',
@@ -57,7 +57,7 @@ export const weaponEvolutionData = [
       weaponId:     'frost_nova',
       accessoryIds: ['crystal_lens'],
     },
-    announceText: 'Frost Nova가 Blizzard Nova로 진화했다!',
+    announceText: '냉기 폭발이 블리자드 노바로 진화했다!',
   },
 ];
 

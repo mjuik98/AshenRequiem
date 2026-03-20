@@ -47,11 +47,10 @@ export function createPlayer(x = 0, y = 0, session = null) {
     statusEffects: [],
     stunned:       false,
 
-    // ── Phase 2: 슬롯 시스템 (Patch) ────────────────────────────────────────────────
-    // magic_bolt 1개 이미 장착. slot_weapon 업그레이드로 최대 4까지 확장.
-    maxWeaponSlots:       2,
-    // 초기 장신구 슬롯=0. slot_accessory 업그레이드로 최대 2.
-    maxAccessorySlots:    0,
+    // ── 슬롯 시스템 ─────────────────────────────────────────────────────────────────
+    // 기본 3칸. 상점(MetaShop)에서 최대 6칸까지 확장 가능.
+    maxWeaponSlots:       3,
+    maxAccessorySlots:    3,
 
     // ── Phase 2: 다중 투사체 (Patch) ────────────────────────────────────────────────
     // scattered_shot 장신구 등으로 누산.

@@ -88,7 +88,8 @@ export function findNearestFrom(origin, candidates, maxRange, visited) {
  */
 export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) {
   const dir    = normalize(sub(target, player));
-  const count  = (weapon.projectileCount ?? 1) + (player?.bonusProjectileCount ?? 0);
+  const bonus  = player?.bonusProjectileCount ?? 0;
+  const count  = (weapon.projectileCount ?? 1) + Math.floor(bonus);
 
   // FIX(P2-7): weapon.spread로 무기별 확산각 제어 가능
   // 기본값 Math.PI / 14 ≈ 12.8° (기존 동작 유지)
