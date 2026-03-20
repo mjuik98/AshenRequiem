@@ -107,4 +107,5 @@ export {
 // 팩토리 시스템 re-export (직접 접근이 필요한 경우)
 export { createCollisionSystem }      from './combat/CollisionSystem.js';
 export { createEnemyMovementSystem }  from './movement/EnemyMovementSystem.js';
+export { createSynergySystem }       from './progression/SynergySystem.js';
 export { EventRegistry }              from './event/EventRegistry.js';

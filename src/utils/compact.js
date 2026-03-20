@@ -3,4 +3,4 @@
  * 
  * REFACTOR (R-16): entityUtils.js를 re-export 하여 단일 진실의 원천 유지
  */
-export { isLive, isDead, getLiveEnemies } from './entityUtils.js';
+export { isLive, isDead, getLiveEnemies, compactWithPool } from './entityUtils.js';

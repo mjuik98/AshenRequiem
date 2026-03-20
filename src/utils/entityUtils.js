@@ -60,6 +60,36 @@ export function getLivePickups(pickups) {
   return (pickups || []).filter(p => !p.collected && isLive(p));
 }
 
+/**
+ * 배열을 순회하며 죽은 엔티티를 정리하고, 풀이 있으면 반환한다. (In-place)
+ * EntityManager.flushDestroy 등에서 일괄 정리를 위해 사용.
+ * 
+ * @param {object[]} array 정리할 배열
+ * @param {object} pool (Optional) ObjectPool 인스턴스
+ */
+export function compactWithPool(array, pool) {
+  if (!array) return;
+  
+  let writeIdx = 0;
+  for (let readIdx = 0; readIdx < array.length; readIdx++) {
+    const item = array[readIdx];
+    
+    if (isDead(item)) {
+      if (pool && typeof pool.release === 'function') {
+        pool.release(item);
+      }
+    } else {
+      if (readIdx !== writeIdx) {
+        array[writeIdx] = item;
+      }
+      writeIdx++;
+    }
+  }
+  
+  // 나머지 요소 제거
+  array.length = writeIdx;
+}
+
 // ── 상태이상 헬퍼 ────────────────────────────────────────────────────────────
 
 /**

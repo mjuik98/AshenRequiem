@@ -1,3 +1,6 @@
+import { PLAYER_DEFAULTS }     from '../data/constants.js';
+import { getWeaponDataById }  from '../data/weaponData.js';
+import { generateId }         from '../utils/ids.js';
 import { createSynergyState } from '../state/createSynergyState.js';
 
 /** createPlayer — 플레이어 엔티티 생성 */

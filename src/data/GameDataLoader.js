@@ -40,12 +40,13 @@ const FUNCTION_FIELD_MAP = [
 ];
 
 /**
- * JSON clone 후 함수 필드를 원본 배열에서 복원한다.
+ * JSON 직렬화 시 소멸되는 함수 필드 및 Infinity 등을 원본 배열에서 복원한다.
  *
  * @param {object} cloned  JSON clone된 데이터 묶음 객체
  * @param {object} originals  원본 배열 참조 묶음 객체
  */
-function restoreFunctionFields(cloned, originals) {
+function restoreSpecialFields(cloned, originals) {
+  // 1. 명시된 함수 필드 복원 (behaviorState 등)
   for (const { arrayKey, fields } of FUNCTION_FIELD_MAP) {
     const clonedArr   = cloned[arrayKey];
     const originalArr = originals[arrayKey];
@@ -58,6 +59,16 @@ function restoreFunctionFields(cloned, originals) {
         if (typeof original[field] === 'function') {
           item[field] = original[field];
         }
+      }
+    });
+  }
+
+  // 2. waveData의 Infinity 복원 (JSON.stringify 시 null로 변환됨)
+  if (Array.isArray(cloned.waveData) && Array.isArray(originals.waveData)) {
+    cloned.waveData.forEach((wave, i) => {
+      const original = originals.waveData[i];
+      if (original && original.to === Infinity) {
+        wave.to = Infinity;
       }
     });
   }
@@ -96,8 +107,8 @@ export const GameDataLoader = {
     // 1단계: JSON deep clone (함수 필드는 null/undefined로 소멸됨 — 의도적)
     const base = JSON.parse(JSON.stringify(originals));
 
-    // 2단계: 함수 필드 복원 (원본 배열에서 직접 참조 복사)
-    restoreFunctionFields(base, originals);
+    // 2단계: 특수 필드 복원 (함수, Infinity 등)
+    restoreSpecialFields(base, originals);
 
     return { ...base, ...overrides };
   },
