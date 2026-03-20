@@ -26,7 +26,7 @@
 export { RENDER, DAMAGE_TEXT, EFFECT_DEFAULTS } from './render.js';
 
 // ── combat.js ──────────────────────────────────────────────────────────
-export { COMBAT, KNOCKBACK, COLLISION_CULL_MARGIN, ELITE_BEHAVIOR } from './combat.js';
+export { COMBAT, KNOCKBACK, COLLISION_CULL_MARGIN, ELITE_BEHAVIOR, CRIT } from './combat.js';
 
 // ── spawn.js ───────────────────────────────────────────────────────────
 export { SPAWN } from './spawn.js';

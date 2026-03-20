@@ -39,3 +39,17 @@ export const ELITE_BEHAVIOR = {
   DASH_SPEED:        520,
   CIRCLE_DASH_SPEED: 480,
 };
+
+/**
+ * 크리티컬 히트 상수
+ */
+export const CRIT = {
+  /** 플레이어 기본 크리티컬 확률 (5%) */
+  BASE_CHANCE:     0.05,
+  /** 플레이어 기본 크리티컬 배율 (200%) */
+  BASE_MULTIPLIER: 2.0,
+  /** 크리티컬 피해 텍스트 색상 */
+  TEXT_COLOR:      '#ffd740',
+  /** 크리티컬 피해 텍스트 기본 폰트 크기 */
+  TEXT_FONT_SIZE:  19,
+};

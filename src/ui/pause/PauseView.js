@@ -1,33 +1,35 @@
 /**
- * PauseView — ESC 일시정지 오버레이
- * 보유 무기 목록 + 장신구 슬롯 + 플레이어 체력 표시
+ * PauseView — ESC 일시정지 오버레이 (뱀파이어 서바이벌 스타일)
  *
- * CHANGE: 상단에 플레이어 체력바 표시 추가
+ * MERGED:
+ *   - Phase 4: 프리미엄 레이아웃, CSS, 메인메뉴 버튼 유지
+ *   - Phase 2 Final: 크리티컬 스탯(확률/배율), 다중 투사체 갯수, 동적 슬롯(maxWeaponSlots, maxAccessorySlots) 반영
  */
 export class PauseView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.className = 'pause-overlay';
+    this.el.className = 'pv-overlay';
     this.el.style.display = 'none';
-    this._onResume = null;
+    this._onResume    = null;
+    this._onMainMenu  = null;
     this._injectStyles();
     container.appendChild(this.el);
   }
 
-  show(player, onResume) {
-    this._onResume = onResume;
+  show(player, onResume, onMainMenu = null) {
+    this._onResume   = onResume;
+    this._onMainMenu = onMainMenu;
     this._render(player);
     this.el.style.display = 'flex';
   }
 
   hide() {
     this.el.style.display = 'none';
-    this._onResume = null;
+    this._onResume   = null;
+    this._onMainMenu = null;
   }
 
-  isVisible() {
-    return this.el.style.display !== 'none';
-  }
+  isVisible() { return this.el.style.display !== 'none'; }
 
   destroy() { this.el.remove(); }
 
@@ -36,227 +38,532 @@ export class PauseView {
   _render(player) {
     const weapons     = player.weapons     ?? [];
     const accessories = player.accessories ?? [];
+    const maxWpnSlots = player.maxWeaponSlots    ?? 2;
+    const maxAccSlots = player.maxAccessorySlots ?? 0;
 
-    // 체력 계산
     const hp    = Math.ceil(player.hp    ?? 0);
     const maxHp = Math.ceil(player.maxHp ?? 100);
     const hpPct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
 
-    // 체력 비율에 따른 색상
-    const hpColor = hpPct > 60 ? '#ef5350' : hpPct > 30 ? '#ff7043' : '#ff1744';
+    const hpColor   = hpPct > 60 ? '#e53935' : hpPct > 30 ? '#fb8c00' : '#b71c1c';
+    const hpGlow    = hpPct > 60 ? 'rgba(229,57,53,0.45)' : hpPct > 30 ? 'rgba(251,140,0,0.45)' : 'rgba(183,28,28,0.7)';
+
+    const speedVal   = Math.round(player.moveSpeed     ?? 0);
+    const magnetVal  = Math.round(player.magnetRadius  ?? 0);
+    const lifesteal  = ((player.lifesteal ?? 0) * 100).toFixed(0);
+    const level      = player.level ?? 1;
+
+    // Patch 추가 스탯
+    const critChance = ((player.critChance ?? 0.05) * 100).toFixed(0);
+    const critMulti  = ((player.critMultiplier ?? 2.0) * 100).toFixed(0);
+    const bonusProjs = player.bonusProjectileCount ?? 0;
 
     this.el.innerHTML = `
-      <div class="pause-box">
-        <div class="pause-title">⏸ PAUSED</div>
+      <div class="pv-backdrop"></div>
 
-        <!-- 플레이어 체력 -->
-        <div class="pause-hp-section">
-          <div class="pause-hp-header">
-            <span class="pause-hp-label">❤ 체력</span>
-            <span class="pause-hp-text">${hp} / ${maxHp}</span>
+      <div class="pv-panel">
+
+        <!-- ── 상단 타이틀 ── -->
+        <header class="pv-header">
+          <div class="pv-rune" aria-hidden="true">⏸</div>
+          <h2 class="pv-title">PAUSED</h2>
+          <div class="pv-rune" aria-hidden="true">⏸</div>
+        </header>
+
+        <!-- ── 체력 바 ── -->
+        <section class="pv-hp-section" aria-label="플레이어 체력">
+          <div class="pv-hp-meta">
+            <span class="pv-hp-icon">❤</span>
+            <span class="pv-hp-label">HP</span>
+            <span class="pv-hp-frac">${hp} <span class="pv-hp-sep">/</span> ${maxHp}</span>
+            <span class="pv-hp-pct" style="color:${hpColor}">${Math.round(hpPct)}%</span>
           </div>
-          <div class="pause-hp-track">
-            <div class="pause-hp-fill" style="width:${hpPct}%; background:${hpColor};"></div>
+          <div class="pv-hp-track">
+            <div class="pv-hp-fill"
+                 style="width:${hpPct}%; background:${hpColor}; box-shadow:0 0 12px ${hpGlow};"></div>
+            <div class="pv-hp-shine"></div>
           </div>
-        </div>
+        </section>
 
-        <div class="pause-columns">
+        <!-- ── 본문: 좌(아이템) / 우(스탯) ── -->
+        <div class="pv-body">
 
-          <!-- 보유 무기 -->
-          <section class="pause-section">
-            <div class="pause-section-title">⚔ 보유 무기</div>
-            <div class="pause-item-list">
-              ${weapons.length === 0
-                ? '<div class="pause-empty">없음</div>'
-                : weapons.map(w => `
-                    <div class="pause-card weapon-card">
-                      <div class="pc-header">
-                        <span class="pc-name">${w.name}</span>
-                        <span class="pc-badge">Lv.${w.level}</span>
-                      </div>
-                      <div class="pc-desc">${w.description ?? ''}</div>
-                      <div class="pc-stats">
-                        <span>DMG <b>${w.damage}</b></span>
-                        <span>CD <b>${w.cooldown?.toFixed(1)}s</b></span>
-                      </div>
-                    </div>
-                  `).join('')}
-            </div>
-          </section>
+          <!-- 좌측: 무기 + 장신구 -->
+          <aside class="pv-left">
 
-          <!-- 장신구 슬롯 -->
-          <section class="pause-section">
-            <div class="pause-section-title">💍 장신구 (${accessories.length}/2)</div>
-            <div class="pause-item-list">
-              ${[0, 1].map(i => {
-                const acc = accessories[i];
-                if (acc) {
-                  return `
-                    <div class="pause-card acc-card filled">
-                      <div class="pc-header">
-                        <span class="pc-name">${acc.name}</span>
-                        <span class="pc-badge rarity-${acc.rarity ?? 'common'}">${_rarityLabel(acc.rarity)}</span>
-                      </div>
-                      <div class="pc-desc">${acc.description}</div>
-                    </div>
-                  `;
+            <!-- 무기 -->
+            <div class="pv-block">
+              <div class="pv-block-title">
+                <span class="pv-block-icon">⚔</span>무기
+                <span class="pv-block-count">${weapons.length}/${maxWpnSlots}</span>
+              </div>
+              <div class="pv-item-grid">
+                ${weapons.length > 0
+                  ? weapons.map(w => {
+                      const totalProj = (w.projectileCount ?? 1) + bonusProjs;
+                      return `
+                        <div class="pv-item-card pv-item-weapon ${w.isEvolved ? 'pv-evolved' : ''}" title="${w.description ?? w.name}">
+                          <div class="pv-item-icon">${w.isEvolved ? '✨' : _weaponEmoji(w.behaviorId)}</div>
+                          <div class="pv-item-info">
+                            <div class="pv-item-name">${w.name}</div>
+                            <div class="pv-item-stats">
+                              DMG&nbsp;<b>${w.damage}</b>&nbsp;&nbsp;CD&nbsp;<b>${w.cooldown?.toFixed(1)}s</b>
+                              ${totalProj > 1 ? `&nbsp;&nbsp;PROJ&nbsp;<b>${totalProj}</b>` : ''}
+                            </div>
+                          </div>
+                          <div class="pv-item-lvl">Lv.${w.level}</div>
+                        </div>
+                      `;
+                    }).join('')
+                  : `<div class="pv-item-empty">보유 무기 없음</div>`
                 }
-                return `
-                  <div class="pause-card acc-card empty">
-                    <div class="pc-empty-label">빈 슬롯 ${i + 1}</div>
-                  </div>
-                `;
-              }).join('')}
+              </div>
             </div>
-          </section>
+
+            <!-- 장신구 -->
+            <div class="pv-block">
+              <div class="pv-block-title">
+                <span class="pv-block-icon">💍</span>장신구
+                <span class="pv-block-count">${accessories.length}/${maxAccSlots}</span>
+              </div>
+              <div class="pv-acc-grid">
+                ${maxAccSlots === 0
+                  ? `<div class="pv-item-empty">미해금 (레벨업에서 슬롯 해금 필요)</div>`
+                  : Array.from({ length: maxAccSlots }).map((_, i) => {
+                      const acc = accessories[i];
+                      if (acc) {
+                        return `
+                          <div class="pv-acc-card pv-acc-filled pv-acc-rarity-${acc.rarity ?? 'common'}">
+                            <div class="pv-acc-gem">💎</div>
+                            <div class="pv-acc-info">
+                              <div class="pv-acc-name">${acc.name}</div>
+                              <div class="pv-acc-desc">${acc.description}</div>
+                            </div>
+                            <div class="pv-acc-badge">${_rarityLabel(acc.rarity)}</div>
+                          </div>
+                        `;
+                      }
+                      return `
+                        <div class="pv-acc-card pv-acc-empty">
+                          <div class="pv-acc-empty-icon">○</div>
+                          <div class="pv-acc-empty-label">빈 슬롯 ${i + 1}</div>
+                        </div>
+                      `;
+                    }).join('')
+                }
+              </div>
+            </div>
+
+          </aside>
+
+          <!-- 우측: 스탯 -->
+          <aside class="pv-right">
+            <div class="pv-block">
+              <div class="pv-block-title">
+                <span class="pv-block-icon">📊</span>스탯
+              </div>
+              <ul class="pv-stat-list">
+                ${_statRow('레벨',       `Lv.${level}`,       '#ffd54f')}
+                ${_statRow('이동 속도',   speedVal,            '#4fc3f7')}
+                ${_statRow('자석 반경',   `${magnetVal}px`,    '#aed581')}
+                ${_statRow('흡혈',        `${lifesteal}%`,     '#ef9a9a')}
+                <hr style="border:0; border-top:1px solid rgba(255,255,255,0.05); margin:4px 0;">
+                ${_statRow('크리티컬 확률', `${critChance}%`,    '#ffd740')}
+                ${_statRow('크리티컬 배율', `${critMulti}%`,     '#ffb74d')}
+                ${bonusProjs > 0 ? _statRow('추가 투사체', `+${bonusProjs}`, '#ce93d8') : ''}
+              </ul>
+            </div>
+
+            <div class="pv-hint">ESC 또는 버튼으로 재개</div>
+          </aside>
 
         </div>
 
-        <div class="pause-footer">
-          <p class="pause-hint">ESC 또는 버튼으로 재개</p>
-          <button class="pause-resume-btn">▶ 재개</button>
-        </div>
+        <!-- ── 하단 버튼 ── -->
+        <footer class="pv-footer">
+          <button class="pv-btn pv-btn-resume" id="pv-resume-btn">
+            <span class="pv-btn-icon">▶</span>재개
+          </button>
+          ${this._onMainMenu !== null
+            ? `<button class="pv-btn pv-btn-menu" id="pv-menu-btn">
+                 <span class="pv-btn-icon">⌂</span>메인메뉴
+               </button>`
+            : ''
+          }
+        </footer>
+
       </div>
     `;
 
-    this.el.querySelector('.pause-resume-btn')
+    this.el.querySelector('#pv-resume-btn')
       .addEventListener('click', () => { if (this._onResume) this._onResume(); });
+
+    const menuBtn = this.el.querySelector('#pv-menu-btn');
+    if (menuBtn) {
+      menuBtn.addEventListener('click', () => { if (this._onMainMenu) this._onMainMenu(); });
+    }
   }
 
   _injectStyles() {
-    if (document.getElementById('pause-styles')) return;
+    if (document.getElementById('pauseview-styles')) return;
     const s = document.createElement('style');
-    s.id = 'pause-styles';
+    s.id = 'pauseview-styles';
     s.textContent = `
-      .pause-overlay {
+      /* ── 오버레이 ─────────────────────────────────────────── */
+      .pv-overlay {
         position: absolute; inset: 0;
-        background: rgba(0,0,0,0.78);
         display: flex; align-items: center; justify-content: center;
         z-index: 35;
-      }
-      .pause-box {
-        background: linear-gradient(160deg, #1a2030, #0d1117);
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 18px; padding: 32px 36px;
-        width: min(580px, calc(100vw - 32px));
-        box-shadow: 0 10px 48px rgba(0,0,0,0.7);
-        animation: pause-pop 0.22s cubic-bezier(0.34,1.56,0.64,1);
-      }
-      @keyframes pause-pop {
-        from { transform: scale(0.88); opacity: 0; }
-        to   { transform: scale(1);    opacity: 1; }
-      }
-      .pause-title {
-        font-size: 20px; font-weight: 800; color: #90caf9;
-        letter-spacing: 4px; text-align: center;
-        margin-bottom: 20px;
-        text-shadow: 0 0 18px rgba(144,202,249,0.4);
+        font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
       }
 
-      /* 체력 섹션 */
-      .pause-hp-section {
-        margin-bottom: 20px;
+      .pv-backdrop {
+        position: absolute; inset: 0;
+        background: rgba(4, 3, 10, 0.82);
+        backdrop-filter: blur(3px);
+      }
+
+      /* ── 메인 패널 ────────────────────────────────────────── */
+      .pv-panel {
+        position: relative; z-index: 1;
+        width: min(720px, calc(100vw - 24px));
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+        background:
+          linear-gradient(160deg, rgba(24,18,36,0.98) 0%, rgba(10,8,18,0.99) 100%);
+        border: 1px solid rgba(180,140,90,0.22);
+        border-radius: 20px;
+        box-shadow:
+          0 0 0 1px rgba(255,255,255,0.04) inset,
+          0 32px 80px rgba(0,0,0,0.7),
+          0 0 40px rgba(100,60,180,0.08);
+        animation: pv-enter 0.24s cubic-bezier(0.34,1.56,0.64,1) both;
+        padding: 0 0 24px;
+      }
+
+      @keyframes pv-enter {
+        from { opacity:0; transform:scale(0.90) translateY(12px); }
+        to   { opacity:1; transform:scale(1)    translateY(0);    }
+      }
+
+      /* ── 헤더 ─────────────────────────────────────────────── */
+      .pv-header {
+        display: flex; align-items: center; justify-content: center; gap: 14px;
+        padding: 22px 28px 16px;
+        border-bottom: 1px solid rgba(180,140,90,0.15);
+      }
+
+      .pv-title {
+        font-size: 18px; font-weight: 800; letter-spacing: 6px;
+        color: #c9a86c;
+        text-shadow: 0 0 24px rgba(201,168,108,0.45);
+        margin: 0;
+      }
+
+      .pv-rune {
+        font-size: 14px; color: rgba(201,168,108,0.5);
+        animation: pv-rune-pulse 2.4s ease-in-out infinite alternate;
+      }
+      @keyframes pv-rune-pulse {
+        from { opacity: 0.4; } to { opacity: 1; }
+      }
+
+      /* ── HP 바 ────────────────────────────────────────────── */
+      .pv-hp-section {
+        padding: 18px 28px 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+
+      .pv-hp-meta {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 9px;
+      }
+
+      .pv-hp-icon { font-size: 14px; }
+
+      .pv-hp-label {
+        font-size: 12px; font-weight: 700; letter-spacing: 2px;
+        color: rgba(240,220,190,0.6); text-transform: uppercase;
+        flex: 1;
+      }
+
+      .pv-hp-frac {
+        font-size: 16px; font-weight: 700; color: #f0dcc8;
+      }
+      .pv-hp-sep { color: rgba(240,220,200,0.3); font-size: 13px; margin: 0 2px; }
+
+      .pv-hp-pct {
+        font-size: 12px; font-weight: 700; width: 38px; text-align: right;
+        transition: color 0.3s;
+      }
+
+      .pv-hp-track {
+        position: relative; height: 12px;
+        background: rgba(0,0,0,0.55);
+        border-radius: 6px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.07);
+      }
+
+      .pv-hp-fill {
+        height: 100%; border-radius: 6px;
+        transition: width 0.3s ease;
+      }
+
+      .pv-hp-shine {
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg,
+          rgba(255,255,255,0.12) 0%, transparent 55%);
+        border-radius: 6px; pointer-events: none;
+      }
+
+      /* ── 본문 ─────────────────────────────────────────────── */
+      .pv-body {
+        display: grid; grid-template-columns: 1fr 220px;
+        gap: 0; padding: 18px 28px 0;
+      }
+
+      .pv-left  { padding-right: 20px; border-right: 1px solid rgba(255,255,255,0.05); }
+      .pv-right { padding-left: 20px; }
+
+      /* ── 블록 공통 ────────────────────────────────────────── */
+      .pv-block { margin-bottom: 18px; }
+
+      .pv-block-title {
+        display: flex; align-items: center; gap: 7px;
+        font-size: 11px; font-weight: 700; letter-spacing: 2px;
+        color: rgba(201,168,108,0.75); text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .pv-block-icon { font-size: 13px; }
+      .pv-block-count {
+        margin-left: auto;
+        font-size: 11px; color: rgba(255,255,255,0.3);
+      }
+
+      /* ── 무기 카드 ────────────────────────────────────────── */
+      .pv-item-grid { display: flex; flex-direction: column; gap: 7px; }
+
+      .pv-item-card {
+        display: flex; align-items: center; gap: 10px;
         background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(239,83,80,0.25);
-        border-radius: 10px; padding: 12px 14px;
+        border: 1px solid rgba(255,213,79,0.14);
+        border-radius: 10px; padding: 9px 12px;
+        position: relative; overflow: hidden;
+        transition: border-color 0.2s, background 0.2s;
       }
-      .pause-hp-header {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 8px;
+      .pv-item-card::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(90deg,
+          rgba(255,213,79,0.05) 0%, transparent 60%);
+        pointer-events: none;
       }
-      .pause-hp-label {
-        font-size: 12px; font-weight: 700; color: #ef9a9a;
-        letter-spacing: 1px; text-transform: uppercase;
+      .pv-item-card:hover {
+        border-color: rgba(255,213,79,0.3);
+        background: rgba(255,213,79,0.06);
       }
-      .pause-hp-text {
-        font-size: 14px; font-weight: 700; color: #eee;
+      .pv-item-card.pv-evolved {
+        border-color: rgba(224,64,251,0.4);
+        background: rgba(224,64,251,0.05);
       }
-      .pause-hp-track {
-        width: 100%; height: 10px;
-        background: rgba(0,0,0,0.5);
-        border-radius: 5px; overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-      .pause-hp-fill {
-        height: 100%;
-        border-radius: 5px;
-        transition: width 0.2s ease;
-        box-shadow: 0 0 6px rgba(239,83,80,0.4);
+      .pv-item-card.pv-evolved:hover {
+        border-color: rgba(224,64,251,0.6);
+        background: rgba(224,64,251,0.08);
       }
 
-      .pause-columns {
-        display: flex; gap: 20px; margin-bottom: 22px;
+      .pv-item-icon {
+        font-size: 22px; width: 34px; text-align: center; flex-shrink: 0;
+        filter: drop-shadow(0 0 6px rgba(255,213,79,0.3));
       }
-      .pause-section {
-        flex: 1; min-width: 0;
+      .pv-evolved .pv-item-icon {
+        filter: drop-shadow(0 0 8px rgba(224,64,251,0.5));
       }
-      .pause-section-title {
-        font-size: 12px; font-weight: 700; color: #ffd54f;
-        letter-spacing: 1px; margin-bottom: 10px;
-        text-transform: uppercase;
+
+      .pv-item-info { flex: 1; min-width: 0; }
+
+      .pv-item-name {
+        font-size: 13px; font-weight: 700; color: #f0dcc8;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 3px;
       }
-      .pause-item-list {
+
+      .pv-item-stats {
+        font-size: 11px; color: rgba(255,255,255,0.45);
+      }
+      .pv-item-stats b { color: rgba(255,255,255,0.7); }
+
+      .pv-item-lvl {
+        font-size: 11px; font-weight: 800; color: #ffd54f;
+        background: rgba(255,213,79,0.12);
+        border: 1px solid rgba(255,213,79,0.25);
+        border-radius: 20px; padding: 2px 8px;
+        white-space: nowrap; flex-shrink: 0;
+      }
+      .pv-evolved .pv-item-lvl {
+        color: #e040fb;
+        background: rgba(224,64,251,0.12);
+        border-color: rgba(224,64,251,0.25);
+      }
+
+      .pv-item-empty {
+        font-size: 12px; color: rgba(255,255,255,0.2);
+        padding: 12px 0; text-align: center;
+      }
+
+      /* ── 장신구 ───────────────────────────────────────────── */
+      .pv-acc-grid { display: flex; flex-direction: column; gap: 7px; }
+
+      .pv-acc-card {
+        display: flex; align-items: center; gap: 10px;
+        border-radius: 10px; padding: 9px 12px;
+        border: 1px solid transparent;
+        transition: border-color 0.2s;
+      }
+
+      .pv-acc-filled {
+        background: rgba(255,255,255,0.04);
+      }
+      .pv-acc-rarity-common {
+        border-color: rgba(173,216,230,0.2);
+      }
+      .pv-acc-rarity-rare {
+        border-color: rgba(206,147,216,0.3);
+        background: rgba(206,147,216,0.04);
+      }
+
+      .pv-acc-empty {
+        border: 1px dashed rgba(255,255,255,0.1);
+        opacity: 0.4;
+      }
+
+      .pv-acc-gem { font-size: 20px; flex-shrink: 0; }
+      .pv-acc-empty-icon {
+        font-size: 18px; color: rgba(255,255,255,0.2); flex-shrink: 0;
+        width: 20px; text-align: center;
+      }
+
+      .pv-acc-info { flex: 1; min-width: 0; }
+      .pv-acc-name {
+        font-size: 13px; font-weight: 700; color: #e8d8f0;
+        margin-bottom: 3px;
+      }
+      .pv-acc-desc { font-size: 11px; color: rgba(255,255,255,0.4); }
+      .pv-acc-empty-label { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+      .pv-acc-badge {
+        font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+        flex-shrink: 0;
+        background: rgba(206,147,216,0.15); color: #ce93d8;
+        border: 1px solid rgba(206,147,216,0.3);
+      }
+      .pv-acc-rarity-common .pv-acc-badge {
+        background: rgba(144,202,249,0.12); color: #90caf9;
+        border-color: rgba(144,202,249,0.25);
+      }
+
+      /* ── 스탯 리스트 ──────────────────────────────────────── */
+      .pv-stat-list {
+        list-style: none; margin: 0; padding: 0;
         display: flex; flex-direction: column; gap: 8px;
       }
-      .pause-card {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 10px; padding: 10px 12px;
+
+      .pv-stat-row {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px;
       }
-      .weapon-card { border-color: rgba(255,213,79,0.18); }
-      .acc-card.filled { border-color: rgba(144,202,249,0.25); }
-      .acc-card.empty {
-        border-style: dashed; border-color: rgba(255,255,255,0.1);
-        opacity: 0.5;
+      .pv-stat-key  { color: rgba(255,255,255,0.4); }
+      .pv-stat-val  { font-weight: 700; }
+
+      .pv-hint {
+        margin-top: 20px;
+        font-size: 11px; color: rgba(255,255,255,0.2);
+        text-align: center; line-height: 1.6;
       }
-      .pc-header {
-        display: flex; justify-content: space-between;
-        align-items: center; margin-bottom: 4px;
+
+      /* ── 푸터 버튼 ────────────────────────────────────────── */
+      .pv-footer {
+        display: flex; justify-content: center; gap: 12px;
+        padding: 20px 28px 0;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        margin-top: 18px;
       }
-      .pc-name { font-size: 13px; font-weight: 700; color: #eee; }
-      .pc-badge {
-        font-size: 11px; color: #90caf9; font-weight: 600;
-        background: rgba(144,202,249,0.12);
-        padding: 1px 7px; border-radius: 10px;
+
+      .pv-btn {
+        display: flex; align-items: center; gap: 8px;
+        padding: 12px 32px; border: none; border-radius: 10px;
+        font-size: 14px; font-weight: 700; letter-spacing: 1px;
+        cursor: pointer;
+        transition: transform 0.16s, box-shadow 0.16s, filter 0.16s;
       }
-      .pc-badge.rarity-rare {
-        color: #ce93d8;
-        background: rgba(206,147,216,0.12);
+      .pv-btn:hover { transform: translateY(-2px); }
+
+      .pv-btn-icon { font-size: 13px; }
+
+      .pv-btn-resume {
+        background: linear-gradient(135deg, #1565c0, #1976d2);
+        color: #e3f2fd;
+        box-shadow: 0 4px 18px rgba(21,101,192,0.4);
+        border: 1px solid rgba(66,165,245,0.3);
       }
-      .pc-desc { font-size: 11px; color: #999; line-height: 1.5; }
-      .pc-stats {
-        display: flex; gap: 12px; margin-top: 5px;
-        font-size: 11px; color: #aaa;
+      .pv-btn-resume:hover {
+        box-shadow: 0 6px 24px rgba(21,101,192,0.6);
+        filter: brightness(1.1);
       }
-      .pc-stats b { color: #eee; }
-      .pc-empty-label {
-        font-size: 12px; color: #555; text-align: center;
-        padding: 6px 0;
+
+      .pv-btn-menu {
+        background: linear-gradient(135deg, rgba(40,28,18,0.9), rgba(30,20,12,0.95));
+        color: #c9a86c;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+        border: 1px solid rgba(201,168,108,0.3);
       }
-      .pause-empty { font-size: 12px; color: #555; padding: 4px 0; }
-      .pause-footer { text-align: center; }
-      .pause-hint { font-size: 11px; color: #555; margin-bottom: 10px; }
-      .pause-resume-btn {
-        padding: 10px 40px; border: none; border-radius: 8px;
-        background: linear-gradient(90deg, #42a5f5, #1e88e5);
-        color: #fff; font-size: 14px; font-weight: 700;
-        cursor: pointer; letter-spacing: 1px;
-        transition: transform 0.15s, box-shadow 0.15s;
-        box-shadow: 0 4px 16px rgba(66,165,245,0.3);
+      .pv-btn-menu:hover {
+        background: linear-gradient(135deg, rgba(60,42,22,0.95), rgba(40,28,14,0.98));
+        box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+        border-color: rgba(201,168,108,0.55);
       }
-      .pause-resume-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 22px rgba(66,165,245,0.5);
+
+      /* ── 반응형 ───────────────────────────────────────────── */
+      @media (max-width: 540px) {
+        .pv-body { grid-template-columns: 1fr; }
+        .pv-left { padding-right: 0; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 16px; }
+        .pv-right { padding-left: 0; padding-top: 16px; }
+        .pv-footer { flex-direction: column-reverse; }
+        .pv-btn { justify-content: center; }
       }
-      @media (max-width: 480px) {
-        .pause-columns { flex-direction: column; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .pv-panel, .pv-btn, .pv-rune { animation: none !important; transition: none !important; }
       }
     `;
     document.head.appendChild(s);
   }
 }
 
+// ── 헬퍼 ─────────────────────────────────────────────────────────────
+
+function _statRow(key, val, color) {
+  if (!val && val !== 0) return '';
+  return `
+    <li class="pv-stat-row">
+      <span class="pv-stat-key">${key}</span>
+      <span class="pv-stat-val" style="color:${color}">${val}</span>
+    </li>
+  `;
+}
+
 function _rarityLabel(rarity) {
-  if (rarity === 'rare') return '희귀';
-  return '일반';
+  return rarity === 'rare' ? '희귀' : '일반';
+}
+
+/** behaviorId → 무기 이모지 매핑 */
+function _weaponEmoji(behaviorId) {
+  const MAP = {
+    targetProjectile: '🔵',
+    orbit:            '⚡',
+    areaBurst:        '✨',
+    boomerang:        '🪃',
+    chainLightning:   '⚡',
+    omnidirectional:  '🌀',
+  };
+  return MAP[behaviorId] ?? '⚔';
 }

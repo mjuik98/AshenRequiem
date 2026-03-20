@@ -1,27 +1,33 @@
 /**
  * src/scenes/play/PlayUI.js — 플레이 씬 UI 뷰 통합 관리
  *
- * CHANGE: PauseView 추가 (Phase 1 ESC 일시정지)
+ * MERGED:
+ *   - Phase 1: PauseView 추가
+ *   - Phase 2 Final: BossAnnouncementView, WeaponEvolutionAnnounceView 추가
  */
 
-import { HudView }     from '../../ui/hud/HudView.js';
-import { LevelUpView } from '../../ui/levelup/LevelUpView.js';
-import { ResultView }  from '../../ui/result/ResultView.js';
-import { DebugView }   from '../../ui/debug/DebugView.js';
-import { BossHudView } from '../../ui/boss/BossHudView.js';
-import { PauseView }   from '../../ui/pause/PauseView.js';
+import { HudView }                      from '../../ui/hud/HudView.js';
+import { LevelUpView }                  from '../../ui/levelup/LevelUpView.js';
+import { ResultView }                   from '../../ui/result/ResultView.js';
+import { DebugView }                    from '../../ui/debug/DebugView.js';
+import { BossHudView }                  from '../../ui/boss/BossHudView.js';
+import { PauseView }                    from '../../ui/pause/PauseView.js';
+import { BossAnnouncementView }         from '../../ui/boss/BossAnnouncementView.js';
+import { WeaponEvolutionAnnounceView }  from '../../ui/WeaponEvolutionAnnounceView.js';
 
 export class PlayUI {
   /**
    * @param {HTMLElement} container  mountUI() 반환값 (#ui-container)
    */
   constructor(container) {
-    this._hud     = new HudView(container);
-    this._levelUp = new LevelUpView(container);
-    this._result  = new ResultView(container);
-    this._debug   = new DebugView(container);
-    this._bossHud = new BossHudView(container);
-    this._pause   = new PauseView(container);
+    this._hud         = new HudView(container);
+    this._levelUp     = new LevelUpView(container);
+    this._result      = new ResultView(container);
+    this._debug       = new DebugView(container);
+    this._bossHud     = new BossHudView(container);
+    this._pause       = new PauseView(container);
+    this._bossAnnounce = new BossAnnouncementView(container);
+    this._evoAnnounce  = new WeaponEvolutionAnnounceView(container);
   }
 
   // ── HUD ──────────────────────────────────────────────────────────────
@@ -45,15 +51,22 @@ export class PlayUI {
     this._debug.update(world, ctx, dt, waveData, spawnDebug);
   }
 
+  // ── 보스 등장 / 진화 연출 (Patch) ──────────────────────────────────────────
+
+  /** 서비스에서 참조할 수 있도록 뷰 인스턴스 반환 */
+  getBossAnnouncementView()  { return this._bossAnnounce; }
+  getWeaponEvolutionView()   { return this._evoAnnounce; }
+
   // ── 일시정지 (Phase 1) ────────────────────────────────────────────────
 
   /**
    * 일시정지 모달 표시
    * @param {object}   player
-   * @param {Function} onResume  재개 콜백
+   * @param {Function} onResume     재개 콜백
+   * @param {Function} onMainMenu   메인메뉴 콜백
    */
-  showPause(player, onResume) {
-    this._pause.show(player, onResume);
+  showPause(player, onResume, onMainMenu) {
+    this._pause.show(player, onResume, onMainMenu);
   }
 
   hidePause() {
@@ -89,7 +102,9 @@ export class PlayUI {
   // ── 생명주기 ──────────────────────────────────────────────────────────
 
   destroy() {
-    [this._hud, this._levelUp, this._result, this._debug, this._bossHud, this._pause]
-      .forEach(v => v?.destroy());
+    [
+      this._hud, this._levelUp, this._result, this._debug,
+      this._bossHud, this._pause, this._bossAnnounce, this._evoAnnounce,
+    ].forEach(v => v?.destroy());
   }
 }

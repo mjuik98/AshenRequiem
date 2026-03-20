@@ -32,6 +32,7 @@ export const DAMAGE_TEXT = {
   MAX_PER_FRAME: 12,
   COLOR_ENEMY:   '#ef5350',
   COLOR_PLAYER:  '#ffffff',
+  COLOR_CRIT:    '#ffd740',   // 크리티컬 피해 — 황금색
   DURATION:      0.5,
 };
 

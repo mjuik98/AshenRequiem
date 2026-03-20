@@ -30,6 +30,7 @@ import { DeathSystem }          from './combat/DeathSystem.js';
 import { ExperienceSystem }     from './progression/ExperienceSystem.js';
 import { LevelSystem }          from './progression/LevelSystem.js';
 import { UpgradeApplySystem }   from './progression/UpgradeApplySystem.js';
+import { WeaponEvolutionSystem } from './progression/WeaponEvolutionSystem.js';
 import { EffectTickSystem }     from './spawn/EffectTickSystem.js';
 import { FlushSystem }          from './spawn/FlushSystem.js';
 import { CameraSystem }         from './camera/CameraSystem.js';
@@ -72,6 +73,7 @@ export const SYSTEM_REGISTRY = [
   { system: DeathSystem,            priority: 80  },
   { system: ExperienceSystem,       priority: 90  },
   // synergySystem (95) → PipelineBuilder에서 팩토리 등록
+  { system: WeaponEvolutionSystem,  priority: 96  },
   { system: LevelSystem,            priority: 100 },
   { system: UpgradeApplySystem,     priority: 101 },
 
@@ -98,6 +100,7 @@ export {
   ExperienceSystem,
   LevelSystem,
   UpgradeApplySystem,
+  WeaponEvolutionSystem,
   EffectTickSystem,
   FlushSystem,
   CameraSystem,

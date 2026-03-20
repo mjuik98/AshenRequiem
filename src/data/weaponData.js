@@ -1,18 +1,18 @@
 /**
  * weaponData.js — 무기 정의
  *
- * BUGFIX:
- *   BUG-6: 오라형 무기(holy_aura, frost_nova)에 orbitsPlayer: true 추가
- *
- *     Before (버그): 오라 무기 투사체가 발사 위치에 고정 → 이동 중 공백 발생
- *     After (수정):  orbitsPlayer: true → ProjectileSystem이 매 프레임 위치 동기화
+ * MERGED:
+ *   - Phase 2 Final: projectileCount 필드 추가, 진화 무기 5종 추가
+ *   - Phase 4: orbitsPlayer 속성 등 버그 수정 사항 유지
  */
 export const weaponData = [
+  // ── 기본 무기 ──────────────────────────────────────────────────────────────
   {
     id: 'magic_bolt', name: 'Magic Bolt',
     description: '가장 가까운 적을 향해 마법탄 발사',
     damage: 2, cooldown: 0.8, projectileSpeed: 350, range: 400,
     radius: 5, pierce: 1, projectileColor: '#ffee58',
+    projectileCount: 1,
     behaviorId: 'targetProjectile', maxLevel: 5,
     statusEffectId: 'slow', statusEffectChance: 0.15,
   },
@@ -24,7 +24,6 @@ export const weaponData = [
     behaviorId: 'areaBurst', maxLevel: 5,
     burstDuration: 0.85,
     statusEffectId: 'poison', statusEffectChance: 0.2,
-    // FIX(BUG-6): 오라형 무기는 플레이어 위치를 따라가야 함
     orbitsPlayer: true,
   },
   {
@@ -44,9 +43,6 @@ export const weaponData = [
     behaviorId: 'areaBurst', maxLevel: 5,
     burstDuration: 0.6,
     statusEffectId: 'stun', statusEffectChance: 0.6,
-    // FIX(BUG-6): frost_nova도 플레이어 주변 오라이므로 orbitsPlayer 적용
-    // NOTE: 단발 폭발형이므로 orbitsPlayer 없이 고정 위치도 가능하나
-    //       짧은 지속시간(0.6s) 동안 이동 중에도 피해가 유지되도록 true 설정
     orbitsPlayer: true,
   },
   {
@@ -54,6 +50,7 @@ export const weaponData = [
     description: '가까운 적을 향해 발사되며 돌아오는 관통 부메랑',
     damage: 8, cooldown: 1.4, projectileSpeed: 280, range: 400,
     radius: 10, pierce: 3, maxRange: 600, projectileColor: '#ffd54f',
+    projectileCount: 1,
     behaviorId: 'boomerang', maxLevel: 5,
   },
   {
@@ -63,6 +60,59 @@ export const weaponData = [
     chainCount: 3, chainRange: 120, radius: 12,
     projectileColor: '#b388ff',
     behaviorId: 'chainLightning', maxLevel: 5,
+  },
+
+  // ── 진화 무기 (isEvolved: true — WeaponEvolutionSystem에서만 획득 가능) ───────
+  {
+    id: 'arcane_nova', name: 'Arcane Nova',
+    description: '360도 전방향 마법 폭발 — Magic Bolt의 최종 진화',
+    damage: 8, cooldown: 1.2, projectileSpeed: 340, range: 460,
+    radius: 7, pierce: 2, projectileColor: '#e040fb',
+    projectileCount: 8,
+    behaviorId: 'omnidirectional', maxLevel: 5,
+    statusEffectId: 'slow', statusEffectChance: 0.35,
+    isEvolved: true,
+  },
+  {
+    id: 'storm_crown', name: 'Storm Crown',
+    description: '5개 고속 번개 구체 회전 — Lightning Ring의 최종 진화',
+    damage: 6, cooldown: 2.5, radius: 11, pierce: 999,
+    projectileColor: '#00e5ff',
+    behaviorId: 'orbit', maxLevel: 5,
+    orbitCount: 5, orbitRadius: 92, orbitSpeed: 4.8,
+    statusEffectId: 'stun', statusEffectChance: 0.4,
+    isEvolved: true,
+  },
+  {
+    id: 'divine_shield', name: 'Divine Shield',
+    description: '광역 신성 방패 — Holy Aura의 최종 진화',
+    damage: 5, cooldown: 0.5, range: 130, radius: 130,
+    projectileSpeed: 0, pierce: 999, projectileColor: '#ffffff',
+    behaviorId: 'areaBurst', maxLevel: 5,
+    burstDuration: 1.1,
+    statusEffectId: 'poison', statusEffectChance: 0.45,
+    orbitsPlayer: true,
+    isEvolved: true,
+  },
+  {
+    id: 'infinity_blade', name: 'Infinity Blade',
+    description: '무한 관통 흡혈 부메랑 — Boomerang의 최종 진화',
+    damage: 18, cooldown: 0.9, projectileSpeed: 360, range: 500,
+    radius: 14, pierce: 10, maxRange: 900, projectileColor: '#ff1744',
+    projectileCount: 1,
+    behaviorId: 'boomerang', maxLevel: 5,
+    isEvolved: true,
+  },
+  {
+    id: 'blizzard_nova', name: 'Blizzard Nova',
+    description: '초광역 빙하 폭풍 — Frost Nova의 최종 진화',
+    damage: 6, cooldown: 1.4, range: 160, radius: 160,
+    projectileSpeed: 0, pierce: 999, projectileColor: '#b3e5fc',
+    behaviorId: 'areaBurst', maxLevel: 5,
+    burstDuration: 0.9,
+    statusEffectId: 'stun', statusEffectChance: 0.75,
+    orbitsPlayer: true,
+    isEvolved: true,
   },
 ];
 

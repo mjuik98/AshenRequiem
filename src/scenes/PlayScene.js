@@ -50,6 +50,16 @@ export class PlayScene {
       session:          this.game.session,
     });
 
+    // ── UI를 먼저 생성 ──────────────────────────────────────────────────
+    this._ui = new PlayUI(mountUI());
+    this._ui.showHud();
+
+    // CHANGE: 연출 뷰를 PlayContext에 주입 (buildPipeline 전에)
+    this._ctx.setAnnouncementViews(
+      this._ui.getBossAnnouncementView(),
+      this._ui.getWeaponEvolutionView(),
+    );
+
     const { pipeline, pipelineCtx, systems } = this._ctx.buildPipeline(
       this.world,
       this.game.input,
@@ -58,9 +68,6 @@ export class PlayScene {
     this._pipeline    = pipeline;
     this._pipelineCtx = pipelineCtx;
     this._systems     = systems;
-
-    this._ui = new PlayUI(mountUI());
-    this._ui.showHud();
 
     this._resultHandler = new PlayResultHandler(this.game.session);
 
@@ -134,10 +141,19 @@ export class PlayScene {
     const mode = this.world.playMode;
     if (mode === PlayMode.PLAYING) {
       transitionPlayMode(this.world, PlayMode.PAUSED);
-      this._ui.showPause(this.world.player, () => {
-        transitionPlayMode(this.world, PlayMode.PLAYING);
-        this._ui.hidePause();
-      });
+      this._ui.showPause(
+        this.world.player,
+        () => {
+          transitionPlayMode(this.world, PlayMode.PLAYING);
+          this._ui.hidePause();
+        },
+        () => {
+          // 메인메뉴(타이틀)로 이동
+          import('./TitleScene.js').then(({ TitleScene }) => {
+            this.game.sceneManager.changeScene(new TitleScene(this.game));
+          });
+        }
+      );
     } else if (mode === PlayMode.PAUSED) {
       transitionPlayMode(this.world, PlayMode.PLAYING);
       this._ui.hidePause();

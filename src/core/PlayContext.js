@@ -57,6 +57,10 @@ export class PlayContext {
     ctx.canvas    = canvas;
     ctx.renderer  = renderer;
 
+    // CHANGE: 연출 뷰는 PlayScene이 주입한다 (buildPipeline 전에 setAnnouncementViews 호출)
+    ctx.bossAnnouncementView = null;
+    ctx.weaponEvolutionView  = null;
+
     return ctx;
   }
 
@@ -73,6 +77,20 @@ export class PlayContext {
     this._builder       = null;
     this.assets         = null;
     this.session        = null;
+    this.bossAnnouncementView = null;
+    this.weaponEvolutionView  = null;
+  }
+
+  /**
+   * PlayScene이 PlayUI 생성 후 뷰를 주입한다.
+   * buildPipeline() 전에 호출해야 한다.
+   *
+   * @param {object} bossAnnouncementView
+   * @param {object} weaponEvolutionView
+   */
+  setAnnouncementViews(bossAnnouncementView, weaponEvolutionView) {
+    this.bossAnnouncementView = bossAnnouncementView;
+    this.weaponEvolutionView  = weaponEvolutionView;
   }
 
   /**
@@ -115,6 +133,9 @@ export class PlayContext {
       soundSystem:    this.soundSystem,
       canvas:         this.canvas,
       renderer:       this.renderer,
+      // CHANGE: 연출 뷰를 서비스로 노출
+      bossAnnouncementView: this.bossAnnouncementView,
+      weaponEvolutionView:  this.weaponEvolutionView,
     };
   }
 }
