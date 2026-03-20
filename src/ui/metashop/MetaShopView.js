@@ -1,9 +1,10 @@
 /**
  * MetaShopView — 영구 강화 상점 DOM UI
  *
- * show(session, onPurchase, onStart) 호출로 초기화.
+ * show(session, onPurchase, onBack) 호출로 초기화.
  * 구매 시 onPurchase(upgradeId) 콜백 → MetaShopScene이 처리.
  * refresh(session)으로 구매 후 UI 재렌더.
+ * CHANGE: "게임 시작" 버튼 → "메인화면으로" 복귀 버튼
  */
 import { permanentUpgradeData } from '../../data/permanentUpgradeData.js';
 
@@ -12,14 +13,14 @@ export class MetaShopView {
     this.el = document.createElement('div');
     this.el.className = 'ms-root';
     this._onPurchase = null;
-    this._onStart    = null;
+    this._onBack     = null;
     this._injectStyles();
     container.appendChild(this.el);
   }
 
-  show(session, onPurchase, onStart) {
+  show(session, onPurchase, onBack) {
     this._onPurchase = onPurchase;
-    this._onStart    = onStart;
+    this._onBack     = onBack;
     this._render(session);
   }
 
@@ -62,7 +63,6 @@ export class MetaShopView {
             const isMaxed   = curLevel >= u.maxLevel;
             const cost      = isMaxed ? 0 : u.costPerLevel(curLevel);
             const canAfford = !isMaxed && currency >= cost;
-            const pctFilled = curLevel / u.maxLevel;
 
             return `
               <div class="ms-card ${isMaxed ? 'is-maxed' : ''} ${canAfford ? 'can-afford' : ''}">
@@ -93,7 +93,7 @@ export class MetaShopView {
 
         <!-- 하단 버튼 -->
         <div class="ms-footer">
-          <button class="ms-start-btn">▶ 게임 시작</button>
+          <button class="ms-back-btn">← 메인화면으로</button>
         </div>
 
       </div>
@@ -106,9 +106,9 @@ export class MetaShopView {
       });
     });
 
-    // 시작 버튼 이벤트
-    this.el.querySelector('.ms-start-btn').addEventListener('click', () => {
-      if (this._onStart) this._onStart();
+    // 메인화면 복귀 버튼 이벤트
+    this.el.querySelector('.ms-back-btn').addEventListener('click', () => {
+      if (this._onBack) this._onBack();
     });
   }
 
@@ -198,17 +198,19 @@ export class MetaShopView {
         color: #555; cursor: default;
       }
       .ms-footer { text-align: center; }
-      .ms-start-btn {
+      .ms-back-btn {
         padding: 14px 60px; border: none; border-radius: 10px;
-        background: linear-gradient(90deg, #66bb6a, #43a047);
-        color: #fff; font-size: 16px; font-weight: 700;
+        background: linear-gradient(90deg, #546e7a, #37474f);
+        color: #cfd8dc; font-size: 16px; font-weight: 700;
         cursor: pointer; letter-spacing: 1px;
         transition: transform 0.15s, box-shadow 0.15s;
-        box-shadow: 0 4px 20px rgba(102,187,106,0.3);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       }
-      .ms-start-btn:hover {
+      .ms-back-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 28px rgba(102,187,106,0.5);
+        background: linear-gradient(90deg, #607d8b, #455a64);
+        box-shadow: 0 6px 28px rgba(0,0,0,0.4);
+        color: #fff;
       }
     `;
     document.head.appendChild(s);

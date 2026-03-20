@@ -1,11 +1,11 @@
 import { getXpForLevel } from '../../data/constants.js';
 
 /**
- * HudView — 상단 HUD (HP 바, XP 바, 레벨, 킬 수, 경과 시간)
+ * HudView — 상단 HUD (XP 바, 레벨, 킬 수, 경과 시간)
  *
- * FIX(bug): document.getElementById → this.el.querySelector
- *   PlayScene 재시작 시 이전 HUD 노드의 id와 충돌하지 않도록 scoped 탐색
- * PERF: textContent / style.width 만 갱신 (innerHTML 전체 교체 없음)
+ * CHANGE: 상단 검정 배경 박스 제거, 체력바 제거
+ *   - .hud-stats 검정 배경(rgba(0,0,0,0.45)) 제거 → 투명하게
+ *   - .hud-hp-container 완전 제거 (ESC 일시정지 화면에서 확인 가능)
  */
 export class HudView {
   constructor(container) {
@@ -31,18 +31,11 @@ export class HudView {
           <div class="hud-xp-bar"></div>
         </div>
       </div>
-      <div class="hud-hp-container">
-        <div class="hud-hp-bar"></div>
-        <div class="hud-hp-text"></div>
-      </div>
     `;
-    // FIX(bug): id 대신 className + querySelector로 scoped 탐색
     this._elLevel  = this.el.querySelector('.hud-level');
     this._elKills  = this.el.querySelector('.hud-kills');
     this._elTime   = this.el.querySelector('.hud-time');
     this._elXpBar  = this.el.querySelector('.hud-xp-bar');
-    this._elHpBar  = this.el.querySelector('.hud-hp-bar');
-    this._elHpText = this.el.querySelector('.hud-hp-text');
   }
 
   show() { this.el.style.display = 'block'; }
@@ -53,7 +46,6 @@ export class HudView {
 
     const xpNeeded = getXpForLevel(player.level);
     const xpPct    = xpNeeded > 0 ? Math.min(100, (player.xp / xpNeeded) * 100) : 100;
-    const hpPct    = player.maxHp > 0 ? Math.max(0, (player.hp / player.maxHp) * 100) : 0;
     const secs     = Math.floor(world.elapsedTime);
     const mm       = Math.floor(secs / 60);
     const ss       = String(secs % 60).padStart(2, '0');
@@ -62,8 +54,6 @@ export class HudView {
     this._elKills.textContent  = `킬: ${world.killCount}`;
     this._elTime.textContent   = `${mm}:${ss}`;
     this._elXpBar.style.width  = `${xpPct}%`;
-    this._elHpBar.style.width  = `${hpPct}%`;
-    this._elHpText.textContent = `${Math.ceil(player.hp)} / ${player.maxHp}`;
   }
 
   destroy() { this.el.remove(); }
@@ -80,37 +70,22 @@ export class HudView {
       .hud-top { display: flex; flex-direction: column; gap: 4px; }
       .hud-stats {
         display: flex; justify-content: space-between; align-items: flex-start;
-        font-size: 13px; color: #ccc; font-family: 'Segoe UI', sans-serif;
-        background: rgba(0,0,0,0.45); border-radius: 4px;
+        font-size: 13px; color: #eee; font-family: 'Segoe UI', sans-serif;
+        /* 검정 배경 박스 제거 */
         padding: 4px 8px;
+        text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6);
       }
       .hud-right-stats {
         display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
       }
       .hud-xp-bar-container {
-        width: 100%; height: 8px;
-        background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden;
+        width: 100%; height: 6px;
+        background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden;
       }
       .hud-xp-bar {
         height: 100%; width: 0%;
         background: linear-gradient(90deg, #66bb6a, #aed581);
-        border-radius: 4px; transition: width 0.15s ease;
-      }
-      .hud-hp-container {
-        position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-        width: 200px; height: 14px;
-        background: rgba(0,0,0,0.5); border-radius: 7px; overflow: hidden;
-      }
-      .hud-hp-bar {
-        height: 100%; width: 100%;
-        background: linear-gradient(90deg, #ef5350, #ff7043);
-        border-radius: 7px; transition: width 0.15s ease;
-      }
-      .hud-hp-text {
-        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 10px; color: #fff;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        border-radius: 3px; transition: width 0.15s ease;
       }
     `;
     document.head.appendChild(s);

@@ -1,6 +1,8 @@
 /**
  * PauseView — ESC 일시정지 오버레이
- * 보유 무기 목록 + 장신구 슬롯 표시
+ * 보유 무기 목록 + 장신구 슬롯 + 플레이어 체력 표시
+ *
+ * CHANGE: 상단에 플레이어 체력바 표시 추가
  */
 export class PauseView {
   constructor(container) {
@@ -35,9 +37,28 @@ export class PauseView {
     const weapons     = player.weapons     ?? [];
     const accessories = player.accessories ?? [];
 
+    // 체력 계산
+    const hp    = Math.ceil(player.hp    ?? 0);
+    const maxHp = Math.ceil(player.maxHp ?? 100);
+    const hpPct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
+
+    // 체력 비율에 따른 색상
+    const hpColor = hpPct > 60 ? '#ef5350' : hpPct > 30 ? '#ff7043' : '#ff1744';
+
     this.el.innerHTML = `
       <div class="pause-box">
         <div class="pause-title">⏸ PAUSED</div>
+
+        <!-- 플레이어 체력 -->
+        <div class="pause-hp-section">
+          <div class="pause-hp-header">
+            <span class="pause-hp-label">❤ 체력</span>
+            <span class="pause-hp-text">${hp} / ${maxHp}</span>
+          </div>
+          <div class="pause-hp-track">
+            <div class="pause-hp-fill" style="width:${hpPct}%; background:${hpColor};"></div>
+          </div>
+        </div>
 
         <div class="pause-columns">
 
@@ -128,9 +149,41 @@ export class PauseView {
       .pause-title {
         font-size: 20px; font-weight: 800; color: #90caf9;
         letter-spacing: 4px; text-align: center;
-        margin-bottom: 22px;
+        margin-bottom: 20px;
         text-shadow: 0 0 18px rgba(144,202,249,0.4);
       }
+
+      /* 체력 섹션 */
+      .pause-hp-section {
+        margin-bottom: 20px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(239,83,80,0.25);
+        border-radius: 10px; padding: 12px 14px;
+      }
+      .pause-hp-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 8px;
+      }
+      .pause-hp-label {
+        font-size: 12px; font-weight: 700; color: #ef9a9a;
+        letter-spacing: 1px; text-transform: uppercase;
+      }
+      .pause-hp-text {
+        font-size: 14px; font-weight: 700; color: #eee;
+      }
+      .pause-hp-track {
+        width: 100%; height: 10px;
+        background: rgba(0,0,0,0.5);
+        border-radius: 5px; overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+      .pause-hp-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.2s ease;
+        box-shadow: 0 0 6px rgba(239,83,80,0.4);
+      }
+
       .pause-columns {
         display: flex; gap: 20px; margin-bottom: 22px;
       }

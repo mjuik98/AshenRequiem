@@ -35,6 +35,32 @@ export function drawPlayer(ctx, player, camera) {
     ctx.beginPath();
     ctx.arc(sx, sy, player.radius + 4, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── HP 바 (최대체력 미만일 때만 표시) ──────────────────────────────
+  if (player.hp < player.maxHp && player.maxHp > 0) {
+    const pct  = Math.max(0, player.hp / player.maxHp);
+    const barW = player.radius * 2.2;
+    const barH = 4;
+    const barX = sx - barW / 2;
+    const barY = sy + player.radius + 5;
+
+    // 체력 비율에 따른 색상 (적과 동일한 스타일)
+    const hpColor = pct > 0.6 ? '#4fc3f7' : pct > 0.3 ? '#ff7043' : '#ff1744';
+
+    ctx.shadowBlur  = 0;
+    ctx.globalAlpha = 0.9;
+
+    // 배경
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(barX, barY, barW, barH);
+
+    // 체력 채움
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(barX, barY, barW * pct, barH);
+
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();

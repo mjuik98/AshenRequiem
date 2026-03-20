@@ -1,13 +1,8 @@
 /**
  * MetaShopScene — 영구 강화 상점 씬
  *
- * 흐름:
- *   게임 종료 → ResultView "강화 상점" 버튼 → MetaShopScene
- *   구매 완료 or "게임 시작" 버튼 → PlayScene
- *
- * 규칙:
- *   Session 수정은 purchasePermanentUpgrade() + saveSession() 경유
- *   씬은 흐름 제어만 담당
+ * CHANGE: "게임 시작" → "메인화면으로" 복귀 버튼 대응
+ *   onBack 콜백 → TitleScene으로 복귀
  */
 import { MetaShopView }            from '../ui/metashop/MetaShopView.js';
 import { getPermanentUpgradeById } from '../data/permanentUpgradeData.js';
@@ -26,13 +21,12 @@ export class MetaShopScene {
     this._view.show(
       this.game.session,
       (id) => this._handlePurchase(id),
-      ()   => this._startGame(),
+      ()   => this._goToTitle(),
     );
   }
 
   update() {}
   render() {
-    // 배경만 클리어 (캔버스 아티팩트 방지)
     if (this.game.renderer) {
       this.game.renderer.clear();
       this.game.renderer.drawBackground({ x: 0, y: 0 });
@@ -62,10 +56,10 @@ export class MetaShopScene {
     }
   }
 
-  _startGame() {
-    // 동적 import로 순환 참조 회피
-    import('./PlayScene.js').then(({ PlayScene }) => {
-      this.game.sceneManager.changeScene(new PlayScene(this.game));
+  /** 메인화면(TitleScene)으로 복귀 */
+  _goToTitle() {
+    import('./TitleScene.js').then(({ TitleScene }) => {
+      this.game.sceneManager.changeScene(new TitleScene(this.game));
     });
   }
 }
