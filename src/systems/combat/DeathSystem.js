@@ -45,10 +45,13 @@ export const DeathSystem = {
 
         // FIX(BUG-XP-NAN): xpValue ?? 0
         // R-15: spawnPickup 팩토리 사용
+        // CHANGE: xpValue 기반으로 젬 색상 결정
+        const xpVal = entity.xpValue ?? 0;
         spawnQueue.push(spawnPickup({
           x:       entity.x,
           y:       entity.y,
-          xpValue: entity.xpValue ?? 0,
+          xpValue: xpVal,
+          config:  { color: _getXpGemColor(xpVal) },
         }));
 
         // 사망 이펙트
@@ -72,6 +75,23 @@ export const DeathSystem = {
     }
   },
 };
+
+/**
+ * xpValue 기반으로 경험치 젬 색상을 반환한다.
+ *
+ * 색상 기준 (적의 xpValue):
+ *   1  ~ 3  : 파란색 (#64b5f6) — zombie, bat, mini_slime 등 일반
+ *   4  ~ 10 : 초록색 (#66bb6a) — skeleton, ghost, slime, golem 등 중급
+ *   11+     : 붉은색 (#ef5350) — 엘리트(14~18), 보스(60) 등 고급
+ *
+ * @param {number} xpValue
+ * @returns {string} CSS 색상 문자열
+ */
+function _getXpGemColor(xpValue) {
+  if (xpValue <= 3)  return '#64b5f6';  // 파란색 — 일반 몬스터
+  if (xpValue <= 10) return '#66bb6a';  // 초록색 — 중간 몬스터
+  return '#ef5350';                     // 붉은색 — 엘리트/보스
+}
 
 export function _calcCurrencyReward(enemy) {
   const base = enemy.currencyValue ?? 1;
