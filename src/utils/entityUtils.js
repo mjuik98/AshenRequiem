@@ -61,6 +61,15 @@ export function getLivePickups(pickups) {
 }
 
 /**
+ * 살아있는 이펙트 목록 반환.
+ * @param {object[]} effects
+ * @returns {object[]}
+ */
+export function getLiveEffects(effects) {
+  return (effects || []).filter(isLive);
+}
+
+/**
  * 배열을 순회하며 죽은 엔티티를 정리하고, 풀이 있으면 반환한다. (In-place)
  * EntityManager.flushDestroy 등에서 일괄 정리를 위해 사용.
  * 

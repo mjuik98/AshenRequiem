@@ -1,5 +1,6 @@
 import { randomPick, randomRange } from '../../utils/random.js';
 import { GameConfig }              from '../../core/GameConfig.js';
+import { spawnEnemy }              from '../../state/spawnRequest.js';
 
 /**
  * SpawnSystem — 시간 기반 적 스폰 (팩토리 함수 패턴)
@@ -64,7 +65,7 @@ export function createSpawnSystem() {
             _spawnedBossAt.add(boss.at);
             _lastBossSpawnTime = elapsedTime;
             const pos = _randomOffscreenPosition(player);
-            spawnQueue.push({ type: 'enemy', config: { enemyId: boss.enemyId, x: pos.x, y: pos.y } });
+            spawnQueue.push(spawnEnemy({ enemyId: boss.enemyId, x: pos.x, y: pos.y }));
           }
         }
       }
@@ -92,7 +93,7 @@ export function createSpawnSystem() {
         if (!pool?.length) continue;
         const enemyId = randomPick(pool);
         const pos     = _randomOffscreenPosition(player);
-        spawnQueue.push({ type: 'enemy', config: { enemyId, x: pos.x, y: pos.y } });
+        spawnQueue.push(spawnEnemy({ enemyId, x: pos.x, y: pos.y }));
       }
     },
 

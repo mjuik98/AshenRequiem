@@ -4,7 +4,10 @@
  * REFACTOR (R-16): getLiveEnemies re-export (entityUtils.js)
  */
 import { distanceSq, normalize, sub } from '../../math/Vector2.js';
-export { getLiveEnemies } from '../../utils/entityUtils.js';
+import { isDead, isLive, getLiveEnemies } from '../../utils/entityUtils.js';
+import { spawnProjectile } from '../../state/spawnRequest.js';
+
+export { getLiveEnemies };
 
 // ─────────────────────────────────────────────────────────────────────
 // 근접 적 탐색
@@ -24,7 +27,7 @@ export function findClosestEnemy(origin, enemies, maxRange) {
 
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
-    if (!e.isAlive || e.pendingDestroy) continue;
+    if (isDead(e)) continue;
     const dSq = distanceSq(origin, e);
     if (dSq < minDistSq) {
       minDistSq = dSq;
@@ -50,6 +53,7 @@ export function findNearestFrom(origin, candidates, maxRange, visited) {
 
   for (let i = 0; i < candidates.length; i++) {
     const e = candidates[i];
+    if (isDead(e)) continue;
     if (visited?.has(e.id)) continue;
     const dSq = distanceSq(origin, e);
     if (dSq < minDistSq) {
@@ -95,11 +99,11 @@ export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 
     const cos = Math.cos(offset);
     const sin = Math.sin(offset);
 
-    spawnQueue.push({
-      type: 'projectile',
+    spawnQueue.push(spawnProjectile({
+      weapon,
+      x: player.x,
+      y: player.y,
       config: {
-        x:      player.x,
-        y:      player.y,
         dirX:   dir.x * cos - dir.y * sin,
         dirY:   dir.x * sin + dir.y * cos,
         speed:              weapon.projectileSpeed ?? 350,
@@ -114,6 +118,6 @@ export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 
         statusEffectId:     weapon.statusEffectId     ?? null,
         statusEffectChance: weapon.statusEffectChance ?? 1.0,
       },
-    });
+    }));
   }
 }

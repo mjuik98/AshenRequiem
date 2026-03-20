@@ -15,7 +15,14 @@
  *   - 삭제: entity.pendingDestroy = true
  *   - 프레임 끝(FlushSystem)에서 EntityManager.flush(world)가 일괄 처리
  */
-import { isDead, compactWithPool } from '../utils/compact.js';
+import { 
+  isDead, 
+  compactWithPool, 
+  getLiveEnemies, 
+  getLiveProjectiles, 
+  getLivePickups, 
+  getLiveEffects 
+} from '../utils/entityUtils.js';
 
 export const EntityManager = {
 
@@ -23,10 +30,10 @@ export const EntityManager = {
   // 조회
   // ─────────────────────────────────────────────
 
-  getLiveEnemies(world)     { return world.enemies.filter(e => e.isAlive && !e.pendingDestroy); },
-  getLiveProjectiles(world) { return world.projectiles.filter(p => p.isAlive && !p.pendingDestroy); },
-  getLivePickups(world)     { return world.pickups.filter(p => !p.collected && !p.pendingDestroy); },
-  getLiveEffects(world)     { return world.effects.filter(e => e.isAlive && !e.pendingDestroy); },
+  getLiveEnemies(world)     { return getLiveEnemies(world.enemies); },
+  getLiveProjectiles(world) { return getLiveProjectiles(world.projectiles); },
+  getLivePickups(world)     { return getLivePickups(world.pickups); },
+  getLiveEffects(world)     { return getLiveEffects(world.effects); },
 
   // ─────────────────────────────────────────────
   // 스폰 큐 처리 (FlushSystem 전용)
