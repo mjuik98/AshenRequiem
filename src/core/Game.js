@@ -36,8 +36,16 @@ export class Game {
   }
 
   async start() {
-    validateGameData({ upgradeData, weaponData, waveData });
-    
+    // FIX(R-17): import 없는 변수 참조 버그 수정
+    //   Before: validateGameData({ upgradeData, weaponData, waveData })
+    //           → upgradeData/weaponData/waveData가 선언되지 않아 ReferenceError
+    //   After:  constructor에서 이미 로드한 this.gameData 재사용
+    validateGameData({
+      upgradeData: this.gameData.upgradeData,
+      weaponData:  this.gameData.weaponData,
+      waveData:    this.gameData.waveData,
+    });
+
     // 에셋 로드 시작 (MVP: 현재는 등록된 에셋이 없으므로 즉시 완료됨)
     await this.assets.loadAll();
     

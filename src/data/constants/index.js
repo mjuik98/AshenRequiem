@@ -38,4 +38,4 @@ export { PROGRESSION, BOSS, DEBUG, XP_TABLE, getXpForLevel } from './progression
 export { EVENT_TYPES } from './events.js';
 
 // ── entities.js ────────────────────────────────────────────────────────
-export { PLAYER_DEFAULTS, PICKUP_DEFAULTS } from './entities.js';
+export { PLAYER_DEFAULTS, PICKUP_DEFAULTS, PICKUP_BEHAVIOR } from './entities.js';

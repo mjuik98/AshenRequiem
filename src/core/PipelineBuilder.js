@@ -1,22 +1,9 @@
 /**
  * src/core/PipelineBuilder.js — 파이프라인 조립 전담 빌더
  *
- * REFACTOR: 팩토리 시스템 직접 생성 + EventRegistry 인스턴스 수신
- *
- * Before:
- *   - spawnSystem, cullingSystem을 PlayContext에서 받음
- *   - CollisionSystem, EnemyMovementSystem이 SYSTEM_REGISTRY에서 모듈 레벨 객체로 등록
- *   - EventRegistry.asSystem이 모듈 레벨 싱글턴 사용
- *   - bossPhaseHandler, soundEventHandler에 registry 미전달 → 누수
- *
- * After:
- *   - spawnSystem, cullingSystem도 PipelineBuilder가 직접 생성
- *   - CollisionSystem → createCollisionSystem() 팩토리로 생성 후 등록
- *   - EnemyMovementSystem → createEnemyMovementSystem() 팩토리로 생성 후 등록
- *   - EventRegistry 인스턴스를 받아 asSystem() 등록
- *   - bossPhaseHandler, soundEventHandler에 registry 인스턴스 전달
- *   - build()가 { pipeline, pipelineCtx, systems } 반환
- *     systems.spawnSystem은 PlayScene이 getDebugInfo()에 접근할 수 있도록 노출
+ * CHANGE(P0): currencyHandler 등록 추가
+ * CHANGE(P1): session을 4번째 파라미터로 분리 수신 (R-14 준수)
+ * CHANGE(P3): eventHandlerRegistry를 통한 핸들러 등록 일원화
  */
 
 import { Pipeline }  from './Pipeline.js';
@@ -25,51 +12,46 @@ import { createCollisionSystem }     from '../systems/combat/CollisionSystem.js'
 import { createEnemyMovementSystem } from '../systems/movement/EnemyMovementSystem.js';
 import { createSpawnSystem }         from '../systems/spawn/SpawnSystem.js';
 import { createCullingSystem }       from '../systems/render/CullingSystem.js';
+import { createSynergySystem }       from '../systems/progression/SynergySystem.js';
 
 import { registerBossPhaseHandler }   from '../systems/event/bossPhaseHandler.js';
 import { registerSoundEventHandlers } from '../systems/sound/soundEventHandler.js';
+import { registerCurrencyHandler }    from '../systems/event/currencyHandler.js';
+import { getEventHandlers }           from '../systems/event/eventHandlerRegistry.js';
 
 export class PipelineBuilder {
   /**
-   * @param {object}                                  services
+   * @param {object}                                  services   (session 제외)
    * @param {import('../systems/event/EventRegistry.js').EventRegistry} eventRegistry
+   * @param {import('../state/createSessionState.js').SessionState|null} session
    * @param {object|null}                             [profiler]
    */
-  constructor(services, eventRegistry, profiler = null) {
+  constructor(services, eventRegistry, session = null, profiler = null) {
     this._services      = services;
     this._eventRegistry = eventRegistry;
+    this._session       = session;  // services가 아닌 독립 상태로 보유 (R-14)
     this._profiler      = profiler;
     this._pipeline      = null;
 
-    // 팩토리 시스템 — build() 시 생성됨
     this._spawnSystem         = null;
     this._cullingSystem       = null;
     this._collisionSystem     = null;
     this._enemyMovementSystem = null;
+    this._synergySystem       = null;
   }
 
   /**
    * Pipeline을 생성하고 모든 시스템과 이벤트 핸들러를 등록한다.
-   *
-   * @param {object} world
-   * @param {object} input
-   * @param {object} [data]
-   * @returns {{
-   *   pipeline: Pipeline,
-   *   pipelineCtx: object,
-   *   systems: { spawnSystem: object, cullingSystem: object }
-   * }}
    */
   build(world, input, data = {}) {
-    // 팩토리 시스템 인스턴스 생성
     this._spawnSystem         = createSpawnSystem();
     this._cullingSystem       = createCullingSystem();
     this._collisionSystem     = createCollisionSystem();
     this._enemyMovementSystem = createEnemyMovementSystem();
+    this._synergySystem       = createSynergySystem();
 
     const pipeline = new Pipeline();
 
-    // CHANGE(P2-B): dt, dpr 명시적 초기화
     const pipelineCtx = {
       world,
       input,
@@ -94,10 +76,10 @@ export class PipelineBuilder {
     return {
       pipeline,
       pipelineCtx,
-      // PlayScene이 getDebugInfo()에 접근할 수 있도록 systems 노출
       systems: {
         spawnSystem:   this._spawnSystem,
         cullingSystem: this._cullingSystem,
+        synergySystem: this._synergySystem,
       },
     };
   }
@@ -108,24 +90,13 @@ export class PipelineBuilder {
 
   /** @private */
   _registerSystems(pipeline) {
-    // ── 인스턴스 기반 시스템 (팩토리 생성) ──────────────────────────────
-    // SpawnSystem — 인스턴스 상태 보유 (스폰 누적, 보스 타이밍)
     pipeline.register(this._spawnSystem,         { priority: 10  });
-
-    // EnemyMovementSystem — SpatialGrid 상태 캡슐화
     pipeline.register(this._enemyMovementSystem, { priority: 30  });
-
-    // CollisionSystem — SpatialGrid 상태 캡슐화
+    pipeline.register(this._synergySystem,       { priority: 95  });
     pipeline.register(this._collisionSystem,     { priority: 60  });
-
-    // EventRegistry System — 인스턴스의 processAll 실행
     pipeline.register(this._eventRegistry.asSystem(), { priority: 105 });
-
-    // CullingSystem — 가시 엔티티 버퍼 보유
     pipeline.register(this._cullingSystem,       { priority: 125 });
 
-    // ── 싱글턴 시스템 (SYSTEM_REGISTRY) ────────────────────────────────
-    // CHANGE(P2-A): SYSTEM_REGISTRY 루프로 등록 — 새 시스템은 systems/index.js만 수정
     for (const { system, priority } of SYSTEM_REGISTRY) {
       pipeline.register(system, { priority });
     }
@@ -133,8 +104,14 @@ export class PipelineBuilder {
 
   /** @private */
   _registerEventHandlers() {
-    // EventRegistry 인스턴스에 등록 → dispose() 시 자동 정리 (메모리 누수 방지)
+    // 기본 핸들러 (명시적 등록)
     registerBossPhaseHandler(this._services, this._eventRegistry);
     registerSoundEventHandlers(this._services.soundSystem, this._eventRegistry);
+    registerCurrencyHandler(this._session, this._eventRegistry);
+
+    // P3: 레지스트리 기반 추가 핸들러 일괄 실행
+    for (const register of getEventHandlers()) {
+      register(this._services, this._eventRegistry, this._session);
+    }
   }
 }

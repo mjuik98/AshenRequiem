@@ -1,35 +1,12 @@
 /**
  * tests/fixtures/index.js
  *
- * ── 개선 P1: Phase 2 팩토리 함수 추가 ────────────────────────────────────
- *
- * Before:
- *   makePlayer, makeEnemy, makeWorld, makeEvents, makePickup, makeEntity 만 존재.
- *   BossPhaseSystem, SynergySystem, SessionState 테스트 작성 시
- *   각 파일에서 로컬 팩토리를 중복 선언하는 패턴으로 회귀.
- *
- * After:
- *   makeBoss          — 보스 엔티티 (isBoss 플래그, phases 배열)
- *   makeBossData      — bossData 정의 객체
- *   makeSessionState  — v2 SessionState 기본값
- *   makeSynergyWorld  — SynergySystem 테스트용 world stub
- *   makeWeapon        — 무기 엔티티 (weaponId, level, cooldown 등)
- *
- * 규칙 (AGENTS.md §6.1):
- *   새 픽스처가 필요하면 이 파일에 추가하고 export한다.
- *   테스트 파일 내부에 로컬 팩토리를 만들지 않는다.
- *
- * 사용법:
- *   import {
- *     makePlayer, makeEnemy, makeWorld, makeEvents,
- *     makeBoss, makeBossData, makeSessionState, makeWeapon,
- *   } from './fixtures/index.js';
+ * FIX(R-25 지원): makePlayer에 synergyState 초기 슬롯 추가
+ * FIX(BUG-6 지원): makeEnemy에 enemyDataId 필드 추가 (enemyId 하위 호환 유지)
  */
 
 let _id = 0;
 const uid = () => `entity_${++_id}`;
-
-// ── 기존 팩토리 ───────────────────────────────────────────────────────────
 
 export function makePlayer(overrides = {}) {
   return {
@@ -40,6 +17,7 @@ export function makePlayer(overrides = {}) {
     hp:              100,
     maxHp:           100,
     speed:           150,
+    moveSpeed:       150,
     xp:              0,
     level:           1,
     isAlive:         true,
@@ -48,15 +26,23 @@ export function makePlayer(overrides = {}) {
     acquiredUpgrades: new Set(),
     upgradeCounts:   {},
     lifesteal:       0,
+    invincibleTimer: 0,
+    magnetRadius:    60,
+    statusEffects:   [],
+    activeSynergies: [],
     ...overrides,
   };
 }
 
 export function makeEnemy(overrides = {}) {
+  const id = uid();
   return {
-    id:             uid(),
+    id,
     type:           'enemy',
+    // FIX(BUG-6 지원): enemyDataId 추가 — BossPhaseSystem이 이 필드를 사용
+    // enemyId는 하위 호환을 위해 유지 (픽스처 전용)
     enemyId:        'goblin',
+    enemyDataId:    overrides.enemyId ?? 'goblin',  // enemyDataId = enemyId 기본값 동기화
     x:              100,
     y:              100,
     hp:             20,
@@ -71,6 +57,8 @@ export function makeEnemy(overrides = {}) {
     isElite:        false,
     statusEffects:  [],
     ...overrides,
+    // enemyDataId는 overrides.enemyDataId가 있으면 그걸 우선, 없으면 enemyId에서 동기화
+    enemyDataId:    overrides.enemyDataId ?? overrides.enemyId ?? 'goblin',
   };
 }
 
@@ -108,6 +96,7 @@ export function makeEvents(overrides = {}) {
     statusApplied:    [],
     bossPhaseChanged: [],
     spawnRequested:   [],
+    currencyEarned:   [],  // FIX(BUG-4 지원): currencyEarned 큐 추가
     ...overrides,
   };
 }
@@ -126,24 +115,24 @@ export function makeWorld(overrides = {}) {
     deltaTime:   0.016,
     killCount:   0,
     playMode:    'playing',
+    pendingLevelUpChoices: null,
+    synergyState: {
+      appliedSpeedMult:     1,
+      appliedLifesteal:     0,
+      appliedWeaponBonuses: {},
+      activeSynergies:      [],
+    },
     ...overrides,
   };
 }
 
-// ── Phase 2 신규 팩토리 ───────────────────────────────────────────────────
-
-/**
- * 보스 엔티티 생성.
- * BossPhaseSystem, DeathSystem 테스트에 사용.
- *
- * @param {object} overrides
- * @returns {object} bossEntity
- */
 export function makeBoss(overrides = {}) {
+  const enemyDataId = overrides.enemyDataId ?? overrides.enemyId ?? 'boss_lich';
   return {
     id:             uid(),
     type:           'enemy',
-    enemyId:        'boss_lich',
+    enemyId:        enemyDataId,   // 픽스처 호환
+    enemyDataId,                   // FIX(BUG-6): 프로덕션 필드명 동기화
     x:              400,
     y:              300,
     hp:             1000,
@@ -157,18 +146,12 @@ export function makeBoss(overrides = {}) {
     isBoss:         true,
     isElite:        false,
     statusEffects:  [],
-    _phaseFlags:    null,   // BossPhaseSystem이 초기화
+    _phaseFlags:    null,
     ...overrides,
+    enemyDataId,
   };
 }
 
-/**
- * bossData 정의 객체 생성.
- * BossPhaseSystem.update()의 data.bossData 에 전달.
- *
- * @param {object} overrides
- * @returns {object[]} bossData 배열
- */
 export function makeBossData(overrides = {}) {
   return [
     {
@@ -182,116 +165,81 @@ export function makeBossData(overrides = {}) {
   ];
 }
 
-/**
- * v2 SessionState 기본값 생성.
- * SessionState / Meta-Progression 테스트에 사용.
- *
- * @param {object} overrides  best, meta, options 일부 덮어쓰기
- * @returns {object} SessionState
- */
 export function makeSessionState(overrides = {}) {
   return {
     _version: 2,
-    last: {
-      kills:        0,
-      survivalTime: 0,
-      level:        1,
-      weaponsUsed:  [],
-    },
-    best: {
-      kills:        0,
-      survivalTime: 0,
-      level:        1,
-      ...(overrides.best ?? {}),
-    },
-    meta: {
-      currency:          0,
-      permanentUpgrades: {},
-      ...(overrides.meta ?? {}),
-    },
-    options: {
-      soundEnabled: true,
-      musicEnabled: true,
-      showFps:      false,
-      ...(overrides.options ?? {}),
-    },
+    last: { kills: 0, survivalTime: 0, level: 1, weaponsUsed: [] },
+    best: { kills: 0, survivalTime: 0, level: 1, ...(overrides.best ?? {}) },
+    meta: { currency: 0, permanentUpgrades: {}, ...(overrides.meta ?? {}) },
+    options: { soundEnabled: true, musicEnabled: true, showFps: false, ...(overrides.options ?? {}) },
   };
 }
 
-/**
- * 시너지 테스트용 world stub 생성.
- * SynergySystem.applyAll() 호출 시 전달.
- *
- * @param {object} playerOverrides
- * @returns {object} { player }
- */
 export function makeSynergyWorld(playerOverrides = {}) {
   return {
     player: makePlayer({
       weapons:          [],
       acquiredUpgrades: new Set(),
       upgradeCounts:    {},
-      synergyBonuses:   {},
       ...playerOverrides,
     }),
+    synergyState: {
+      appliedSpeedMult:     1,
+      appliedLifesteal:     0,
+      appliedWeaponBonuses: {},
+      activeSynergies:      [],
+    },
   };
 }
 
-/**
- * 무기 엔티티 생성.
- * WeaponSystem, SynergySystem, UpgradeSystem 테스트에 사용.
- *
- * @param {object} overrides
- * @returns {object} weapon
- */
 export function makeWeapon(overrides = {}) {
   return {
-    id:             'magic_bolt',
-    behaviorId:     'basic',
-    damage:         10,
-    cooldown:       1.0,
+    id:              'magic_bolt',
+    behaviorId:      'basic',
+    damage:          10,
+    cooldown:        1.0,
     currentCooldown: 0,
-    range:          500,
+    range:           500,
     projectileCount: 1,
     projectileSpeed: 350,
-    level:          1,
-    maxLevel:       5,
-    speed:          300,
-    radius:         5,
-    pierce:         1,
+    level:           1,
+    maxLevel:        5,
+    speed:           300,
+    radius:          5,
+    pierce:          1,
     ...overrides,
   };
 }
 
 export function makeProjectile(overrides = {}) {
   return {
-    id:          uid(),
-    type:        'projectile',
-    x:           0,
-    y:           0,
-    radius:      5,
-    damage:      10,
-    pierce:      1,
-    hitCount:    0,
-    ownerId:     'player',
-    isAlive:     true,
+    id:             uid(),
+    type:           'projectile',
+    x:              0,
+    y:              0,
+    radius:         5,
+    damage:         10,
+    pierce:         1,
+    hitCount:       0,
+    ownerId:        'player',
+    isAlive:        true,
     pendingDestroy: false,
-    hitTargets:  new Set(),
+    hitTargets:     new Set(),
     ...overrides,
   };
 }
 
 export function makeEffect(overrides = {}) {
   return {
-    id:          uid(),
-    type:        'damageText',
-    x:           0,
-    y:           0,
-    text:        '10',
-    color:       '#ffffff',
-    lifetime:    0,
-    maxLifetime: 1.0,
-    isAlive:     true,
+    id:             uid(),
+    type:           'damageText',
+    x:              0,
+    y:              0,
+    text:           '10',
+    color:          '#ffffff',
+    lifetime:       0,
+    maxLifetime:    1.0,
+    isAlive:        true,
     pendingDestroy: false,
     ...overrides,
   };

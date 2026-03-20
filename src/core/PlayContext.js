@@ -1,15 +1,7 @@
 /**
  * src/core/PlayContext.js — PlayScene 서비스 컨테이너
  *
- * REFACTOR: deprecated SpawnSystem class → createSpawnSystem() factory
- *
- *   Before: import { createSpawnSystem } from '../systems/spawn/SpawnSystem.js'
- *           // 내부적으로 createSpawnSystem을 썼지만 class wrapper를 통해 노출
- *   After:  createSpawnSystem() 직접 사용, class 의존성 제거
- *
- *   PipelineBuilder는 팩토리 기반 시스템(CollisionSystem, EnemyMovementSystem 등)을
- *   내부에서 생성하므로 PlayContext가 개별 시스템을 직접 보유할 필요가 없어졌다.
- *   PlayContext 책임: Pool 생성, SoundSystem 초기화, PipelineBuilder 위임
+ * CHANGE(P1): session을 services에서 제거 — R-14 완전 준수
  */
 
 import { ObjectPool }        from '../managers/ObjectPool.js';
@@ -58,8 +50,7 @@ export class PlayContext {
       ? (() => { const s = new SoundSystem(); s.init(); return s; })()
       : new NullSoundSystem();
 
-    // ── EventRegistry (인스턴스 — R-13/R-series) ─────────────────────
-    // 모듈 레벨 싱글톤 대신 인스턴스를 소유하여 재시작 시 핸들러 누수 방지
+    // ── EventRegistry (인스턴스) ─────────────────────────────────────
     ctx.eventRegistry = new EventRegistry();
 
     ctx.profiler  = profilingEnabled ? new PipelineProfiler() : null;
@@ -91,10 +82,12 @@ export class PlayContext {
    */
   buildPipeline(world, input, data = {}) {
     const services = this._buildServices();
-    // REFACTOR: EventRegistry 인스턴스 전달
-    this._builder  = new PipelineBuilder(
+
+    // CHANGE(P1): session을 별도 파라미터로 전달 (services에서 제거)
+    this._builder = new PipelineBuilder(
       services,
       this.eventRegistry,
+      this.session,
       this.profiler,
     );
     return this._builder.build(world, input, data);
@@ -107,14 +100,12 @@ export class PlayContext {
   dispose() {
     this.soundSystem?.stopBgm?.();
     this.soundSystem?.destroy?.();
-
-    // EventRegistry 핸들러 명시적 정리 (재시작 시 누수 방지 — R-13)
     this.eventRegistry?.dispose();
     this.eventRegistry = null;
-
     this._builder = null;
   }
 
+  /** @private — session 제거됨 (R-14 완전 준수) */
   _buildServices() {
     return {
       projectilePool: this.projectilePool,
@@ -124,7 +115,6 @@ export class PlayContext {
       soundSystem:    this.soundSystem,
       canvas:         this.canvas,
       renderer:       this.renderer,
-      session:        this.session,
     };
   }
 }

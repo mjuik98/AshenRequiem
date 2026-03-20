@@ -71,6 +71,7 @@ export const SYSTEM_REGISTRY = [
   // priority 80~100: 처리/성장
   { system: DeathSystem,            priority: 80  },
   { system: ExperienceSystem,       priority: 90  },
+  // synergySystem (95) → PipelineBuilder에서 팩토리 등록
   { system: LevelSystem,            priority: 100 },
   { system: UpgradeApplySystem,     priority: 101 },
 

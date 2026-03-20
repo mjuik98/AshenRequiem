@@ -57,9 +57,11 @@ export const DeathSystem = {
           x:          entity.x,
           y:          entity.y,
           effectType: 'burst',
-          color:      entity.color,
-          radius:     entity.radius * 1.5,
-          duration:   EFFECT_DEFAULTS.burstDuration,
+          config: {
+            color:    entity.color,
+            radius:   entity.radius * 1.5,
+            duration: EFFECT_DEFAULTS.burstDuration,
+          }
         }));
       }
 

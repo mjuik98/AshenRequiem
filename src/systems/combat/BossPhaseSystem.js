@@ -1,5 +1,7 @@
 /**
  * src/systems/combat/BossPhaseSystem.js — 보스 HP 임계값 기반 페이즈 전환
+ *
+ * FIX(BUG-6): enemyId vs enemyDataId 필드명 불일치 수정
  */
 export const BossPhaseSystem = {
   update({ world, data: { bossData } }) {
@@ -9,16 +11,16 @@ export const BossPhaseSystem = {
       const enemy = world.enemies[i];
       if (!enemy.isAlive || enemy.pendingDestroy || !enemy.isBoss) continue;
 
-      const bossDef = bossData.find(b => b.enemyId === enemy.enemyId);
+      // FIX(BUG-6): enemy.enemyId → enemy.enemyDataId
+      const bossDef = bossData.find(b => b.enemyId === enemy.enemyDataId);
       if (!bossDef?.phases) continue;
 
       if (!enemy._phaseFlags) {
         enemy._phaseFlags = new Array(bossDef.phases.length).fill(false);
       }
 
-      // FIX(BUG-4): maxHp 가드
       if (!enemy.maxHp || enemy.maxHp <= 0) {
-        console.warn(`[BossPhaseSystem] ${enemy.enemyId} maxHp 미설정 — 페이즈 검사 스킵`);
+        console.warn(`[BossPhaseSystem] ${enemy.enemyDataId} maxHp 미설정 — 페이즈 검사 스킵`);
         continue;
       }
 
@@ -33,7 +35,7 @@ export const BossPhaseSystem = {
 
           world.events.bossPhaseChanged.push({
             enemy,
-            enemyId:       enemy.enemyId,
+            enemyId:       enemy.enemyDataId,  // FIX: enemyDataId 사용
             phaseIndex:    pi,
             newBehaviorId: phase.behaviorId,
             announceText:  phase.announceText ?? '',

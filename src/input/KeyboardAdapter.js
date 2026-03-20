@@ -44,7 +44,7 @@ export class KeyboardAdapter {
     state.moveY = Math.max(-1, Math.min(1, state.moveY));
 
     if (this._isDown('`')) {
-      state.debug = true;
+      state.actions.add('debug');
     }
   }
 

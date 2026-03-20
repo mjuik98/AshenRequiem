@@ -1,6 +1,4 @@
-import { generateId }       from '../utils/ids.js';
-import { PLAYER_DEFAULTS }  from '../data/constants.js';
-import { getWeaponDataById } from '../data/weaponData.js';
+import { createSynergyState } from '../state/createSynergyState.js';
 
 /** createPlayer — 플레이어 엔티티 생성 */
 export function createPlayer(x = 0, y = 0) {
@@ -23,6 +21,7 @@ export function createPlayer(x = 0, y = 0) {
     invincibleDuration: 0.5,
     lifesteal:     0,
     upgradeCounts: {},
+    synergyState:  createSynergyState(),
     statusEffects: [],
     stunned:       false,
     isAlive:       true,

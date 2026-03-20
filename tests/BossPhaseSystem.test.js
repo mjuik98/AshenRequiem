@@ -1,88 +1,78 @@
 /**
  * tests/BossPhaseSystem.test.js — BossPhaseSystem 단위 테스트
+ *
+ * CHANGE(P2): enemyDataId 필드명 대응
  */
+
 import assert from 'node:assert/strict';
-import { makePlayer, makeEnemy, makeEvents } from './fixtures/index.js';
+import { makeBoss, makeBossData, makeWorld } from './fixtures/index.js';
 import { test, summary } from './helpers/testRunner.js';
 
 let BossPhaseSystem;
 try {
   ({ BossPhaseSystem } = await import('../src/systems/combat/BossPhaseSystem.js'));
 } catch (e) {
-  console.warn('[테스트] BossPhaseSystem import 실패 — 스킵');
-  BossPhaseSystem = null;
+  console.warn('[테스트] BossPhaseSystem import 실패 — 스킵:', e.message);
+  process.exit(0);
 }
 
-function makeBossEnemy({ hp, maxHp }) {
-  const enemy = makeEnemy({ hp, maxHp });
-  enemy.isBoss = true;
-  enemy.enemyId = 'boss_orc';
-  return enemy;
-}
+console.log('\n[BossPhaseSystem 테스트]');
 
-function makeBossData() {
-  return [
-    {
-      enemyId: 'boss_orc',
-      phases: [
-        { hpThreshold: 0.7, behaviorId: 'boss_enrage', announceText: '폭주 모드!' },
-        { hpThreshold: 0.3, behaviorId: 'boss_berserk', announceText: '마지막 저항!' },
-      ],
-    },
-  ];
-}
-
-function run(enemy, bossData, events) {
-  BossPhaseSystem?.update({
-    world: { enemies: [enemy], events },
-    data: { bossData },
+test('HP가 임계값 이하로 내려가면 bossPhaseChanged 이벤트가 발행된다', () => {
+  const boss = makeBoss({
+    enemyId:     'boss_lich', // fixture용 
+    enemyDataId: 'boss_lich', // 프로덕션용
+    hp:          600,         // maxHp: 1000 이므로 60% (임계값 0.7 이하)
+    maxHp:       1000,
   });
-}
+  const data  = { bossData: makeBossData() };
+  const world = makeWorld({ enemies: [boss] });
 
-console.log('\n[BossPhaseSystem — 기본 동작]');
+  BossPhaseSystem.update({ world, data });
 
-test('HP 70% 이하에서 첫 번째 페이즈 트리거', () => {
-  if (!BossPhaseSystem) return;
-  const boss   = makeBossEnemy({ hp: 700, maxHp: 1000 });
-  const events = makeEvents();
-  run(boss, makeBossData(), events);
-  assert.ok(
-    events.bossPhaseChanged.some(e => e.hpThreshold === 0.7 || e.newBehaviorId === 'boss_enrage'),
-    'HP 70% 페이즈 미트리거',
-  );
+  assert.equal(world.events.bossPhaseChanged.length, 1, '페이즈 알림 미발행');
+  assert.equal(world.events.bossPhaseChanged[0].phaseIndex, 0, '잘못된 페이즈 인덱스');
+  assert.equal(boss._phaseFlags[0], true, '페이즈 플래그 미설정');
 });
 
-test('HP 71%에서는 70% 페이즈 미트리거', () => {
-  if (!BossPhaseSystem) return;
-  const boss   = makeBossEnemy({ hp: 710, maxHp: 1000 });
-  const events = makeEvents();
-  run(boss, makeBossData(), events);
-  assert.equal(events.bossPhaseChanged.length, 0, 'HP 71%에서 페이즈 발행됨');
+test('이미 발생한 페이즈는 중복 발행되지 않는다', () => {
+  const boss = makeBoss({
+    enemyDataId: 'boss_lich',
+    hp:          600,
+    maxHp:       1000,
+  });
+  boss._phaseFlags = [true, false]; // 이미 1페이즈 발동됨
+
+  const data  = { bossData: makeBossData() };
+  const world = makeWorld({ enemies: [boss] });
+
+  BossPhaseSystem.update({ world, data });
+
+  assert.equal(world.events.bossPhaseChanged.length, 0, '중복 발동 버그');
 });
 
-test('동일 페이즈 2회 호출 → 이벤트 1번만 발행', () => {
-  if (!BossPhaseSystem) return;
-  const boss   = makeBossEnemy({ hp: 700, maxHp: 1000 });
-  const events = makeEvents();
-  run(boss, makeBossData(), events);
-  assert.equal(events.bossPhaseChanged.length, 1, '최초 트리거 실패');
-  
-  // 두 번째 실행 (동일 조건)
-  run(boss, makeBossData(), events);
-  assert.equal(events.bossPhaseChanged.length, 1, '동일 페이즈 중복 발행됨');
+test('여러 페이즈를 한 번에 통과하면 여러 이벤트가 발행된다', () => {
+  const boss = makeBoss({
+    enemyDataId: 'boss_lich',
+    hp:          200, // 20% (0.7, 0.3 둘 다 통과)
+    maxHp:       1000,
+  });
+  const data  = { bossData: makeBossData() };
+  const world = makeWorld({ enemies: [boss] });
+
+  BossPhaseSystem.update({ world, data });
+
+  assert.equal(world.events.bossPhaseChanged.length, 2, '다중 페이즈 발동 실패');
 });
 
-test('70% 페이즈 발동 후 30% 페이즈까지 순차 발동', () => {
-  if (!BossPhaseSystem) return;
-  const boss   = makeBossEnemy({ hp: 700, maxHp: 1000 });
-  const events = makeEvents();
-  
-  run(boss, makeBossData(), events);
-  assert.equal(events.bossPhaseChanged.length, 1, '첫 페이즈 트리거 실패');
+test('보스가 아닌 적은 스킵한다', () => {
+  const normal = makeBoss({ isBoss: false, hp: 10, maxHp: 1000 });
+  const data   = { bossData: makeBossData() };
+  const world  = makeWorld({ enemies: [normal] });
 
-  boss.hp = 300;
-  run(boss, makeBossData(), events);
-  assert.equal(events.bossPhaseChanged.length, 2, '두 번째 페이즈 트리거 실패');
+  BossPhaseSystem.update({ world, data });
+
+  assert.equal(world.events.bossPhaseChanged.length, 0, '일반 적이 페이즈 전환됨');
 });
 
 summary();

@@ -11,7 +11,6 @@ import { createWorld }          from '../state/createWorld.js';
 import { createPlayer }         from '../entities/createPlayer.js';
 import { GameDataLoader }       from '../data/GameDataLoader.js';
 import { mountUI }              from '../ui/dom/mountUI.js';
-import { UpgradeSystem }        from '../systems/progression/UpgradeSystem.js';
 import { PlayUI }               from './play/PlayUI.js';
 import { PlayResultHandler }    from './play/PlayResultHandler.js';
 import { PlayModeStateMachine }   from '../core/PlayModeStateMachine.js';
@@ -24,7 +23,7 @@ export class PlayScene {
     this._ctx             = null;
     this._pipeline        = null;
     this._pipelineCtx     = null;
-    this._systems         = null; // { spawnSystem, cullingSystem }
+    this._systems         = null; // { spawnSystem, cullingSystem, synergySystem }
     this._dpr             = 1;
 
     this._ui              = null;
@@ -90,6 +89,8 @@ export class PlayScene {
 
   _runGamePipeline(dt) {
     if (!this.world) return;
+    // R-21+: world.deltaTime 직접 설정 (WorldTickSystem 하위호환 유지하며 점진적 이전)
+    this.world.deltaTime  = dt;
     this._pipelineCtx.dt  = dt;
     this._pipelineCtx.dpr = this._dpr;
     this._pipeline.run(this._pipelineCtx);
@@ -114,7 +115,8 @@ export class PlayScene {
   }
 
   _showLevelUpUI() {
-    const choices = UpgradeSystem.generateChoices(this.world.player);
+    // R-19: LevelSystem이 미리 생성해둔 선택지를 사용
+    const choices = this.world.pendingLevelUpChoices || [];
     if (choices.length === 0) {
       transitionPlayMode(this.world, PlayMode.PLAYING);
       return;

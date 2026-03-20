@@ -1,19 +1,7 @@
 /**
  * src/systems/event/EventRegistry.js
  *
- * REFACTOR: 모듈 레벨 싱글턴 → 인스턴스 기반 클래스 (메모리 누수 수정)
- *
- * Before (버그):
- *   const _handlers = new Map(); // 모듈 레벨 상태
- *   PipelineBuilder._registerEventHandlers() 호출마다 핸들러가 push만 됨
- *   PlayScene 2회 재시작 → 보스 페이즈 알림 3번 발생, 사운드 3중 재생
- *
- * After:
- *   PlayContext가 new EventRegistry() 소유
- *   PlayContext.dispose() 시 GC에 의해 자동 정리
- *   → 재시작마다 완전히 새로운 핸들러 세트 보장
- *
- * CHANGE(SSOT): EVENT_TYPES는 constants/events.js에서 단일 관리 (기존 유지)
+ * CHANGE(P1): processAll()에서 clearAll() 제거 — 이벤트 큐 초기화 SSOT 확립
  */
 
 import { EVENT_TYPES } from '../../data/constants/events.js';
@@ -45,6 +33,7 @@ export class EventRegistry {
 
   /**
    * world.events의 모든 큐를 비운다.
+   * WorldTickSystem(priority 0)이 프레임 시작 시 호출한다.
    * @param {object} events  world.events
    */
   clearAll(events) {
@@ -56,7 +45,9 @@ export class EventRegistry {
   // ── 처리 ─────────────────────────────────────────────────────────────
 
   /**
-   * 등록된 핸들러를 실행하고 큐를 비운다.
+   * 등록된 핸들러를 실행한다.
+   *
+   * CHANGE(P1): clearAll() 제거 — WorldTickSystem(priority 0)이 초기화 단독 담당.
    * @param {object} events  world.events
    * @param {object} world
    */
@@ -69,7 +60,7 @@ export class EventRegistry {
         for (const fn of handlers) fn(event, world);
       }
     }
-    this.clearAll(events);
+    // clearAll(events) 제거 — WorldTickSystem(priority 0)이 다음 프레임 시작 시 초기화
   }
 
   // ── 빈 이벤트 객체 생성 ────────────────────────────────────────────────
@@ -88,8 +79,6 @@ export class EventRegistry {
 
   /**
    * Pipeline에 priority 105로 등록하기 위한 시스템 어댑터 객체를 반환한다.
-   * 인스턴스 메서드이므로 this가 올바르게 바인딩됨.
-   *
    * @returns {{ update: Function }}
    */
   asSystem() {

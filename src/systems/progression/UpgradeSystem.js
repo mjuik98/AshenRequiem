@@ -1,20 +1,7 @@
 /**
  * src/systems/progression/UpgradeSystem.js
  *
- * FIX: SynergySystem.applyAll()에 synergyData 전달
- *
- *   Before (암묵적 의존):
- *     SynergySystem.applyAll({ player })
- *     → SynergySystem이 내부에서 synergyData를 직접 import
- *     → SynergySystem의 DI 개선(data에서 수신)과 불일치
- *
- *   After (명시적 전달):
- *     UpgradeSystem.applyUpgrade(player, upgrade, synergyData?)
- *     → synergyData가 있으면 SynergySystem.applyAll({ player, synergyData })로 전달
- *     → 없으면 SynergySystem 내부 폴백(직접 import)이 처리
- *     → 하위 호환 유지 (synergyData 없이 호출해도 동작)
- *
- * AGENTS.md §6.4: applyUpgrade() 직후 SynergySystem.applyAll() 호출
+ * CHANGE(P1): applyUpgrade에 synergyState 파라미터 추가
  */
 
 import { upgradeData }      from '../../data/upgradeData.js';
@@ -23,6 +10,7 @@ import { getWeaponDataById } from '../../data/weaponData.js';
 import { SynergySystem }     from './SynergySystem.js';
 
 export const UpgradeSystem = {
+
   generateChoices(player) {
     const { weaponPicks, statPicks } = this._buildAvailablePool(player);
     let result = this._pickBalanced(weaponPicks, statPicks);
@@ -82,11 +70,12 @@ export const UpgradeSystem = {
   /**
    * 업그레이드를 플레이어에게 적용한다.
    *
-   * @param {object}       player
-   * @param {object}       upgrade
-   * @param {object[]|undefined} synergyData  DI된 시너지 데이터 (없으면 폴백)
+   * @param {object}             player
+   * @param {object}             upgrade
+   * @param {object[]|undefined} synergyData    DI된 시너지 데이터
+   * @param {object|undefined}   synergyState   world.synergyState
    */
-  applyUpgrade(player, upgrade, synergyData) {
+  applyUpgrade(player, upgrade, synergyData, synergyState) {
     if (upgrade.type === 'weapon_new') {
       const def = getWeaponDataById(upgrade.weaponId);
       if (def) player.weapons.push({ ...def, currentCooldown: 0, level: 1 });
@@ -127,15 +116,13 @@ export const UpgradeSystem = {
       }
     }
 
-    // FIX: upgradeCounts 분기 밖에서 1회만 증가
     player.upgradeCounts = player.upgradeCounts ?? {};
     player.upgradeCounts[upgrade.id] = (player.upgradeCounts[upgrade.id] ?? 0) + 1;
 
     player.acquiredUpgrades = player.acquiredUpgrades ?? new Set();
     player.acquiredUpgrades.add(upgrade.id);
 
-    // FIX: synergyData를 명시적으로 전달해 DI 흐름 일관성 유지
-    // synergyData가 없으면 SynergySystem 내부에서 직접 import로 폴백함
-    SynergySystem.applyAll({ player, synergyData });
+    // CHANGE(P1): synergyState 명시적 전달
+    SynergySystem.applyAll({ player, synergyData, synergyState });
   },
 };

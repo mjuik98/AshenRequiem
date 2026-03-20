@@ -16,6 +16,16 @@ export const CameraSystem = {
   update({ world: { player, camera } }) {
     if (!player) return;
 
+    // P3: camera 메타 미설정 방어 (WorldTickSystem 실행 순서 이상 감지용)
+    // WorldTickSystem(priority 0)이 정상 실행되면 width/height가 반드시 설정됨
+    if (!camera.width || !camera.height) {
+      console.warn(
+        '[CameraSystem] camera.width/height가 설정되지 않았습니다. '
+        + 'WorldTickSystem(priority 0)의 실행 순서를 확인하세요.'
+      );
+      return;
+    }
+
     // camera.width/height는 WorldTickSystem이 이미 설정했으므로 그대로 참조
     camera.x = player.x - camera.width  / 2;
     camera.y = player.y - camera.height / 2;

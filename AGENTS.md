@@ -179,16 +179,12 @@ getLiveEnemies(enemies)
 
 ### 6.7 새 규칙 요약
 ```
-R-14: System → Session 직접 접근 금지 (이벤트로만 기록)
-R-15: spawnQueue는 SpawnRequest 팩토리 함수로만 생성
-R-16: isLive/isDead는 entityUtils.js만 참조 (인라인 패턴 금지)
-R-17: Game.js는 GameDataLoader 반환값으로 validateGameData 호출
-R-18: SynergySystem은 synergyData 직접 import 금지 (DI 강제)
-R-19: PlayScene은 UpgradeSystem.applyUpgrade() 직접 호출 금지 (pendingUpgrade 사용)
-R-20: playMode 변경은 transitionPlayMode() 사용 (직접 대입 금지)
-R-21: 이벤트 큐 초기화는 WorldTickSystem(priority 0)이 담당
 R-22: InputState.actions Set 사용 (bool 직접 할당 금지)
 R-23: EFFECT_DEFAULTS.duration = 0.5 (entityDefaults.maxLifetime와 통일)
+R-24: spawnRequest 팩토리는 config를 그대로 전달한다. (destructuring 필드 유실 금지)
+R-25: 엔티티 객체에 _ 시스템 내부 상태 저장 금지 (synergyState 등 전용 슬롯 사용)
+R-26: GameDataLoader의 JSON clone 시 behaviorState 등 함수 필드 복원 필수
+R-27: 프로덕션 시스템은 enemy.enemyDataId를 참조한다. (enemyId는 테스트 전용)
 ```
 
 ### 6.8 폴더 구조 스냅샷(권장)
