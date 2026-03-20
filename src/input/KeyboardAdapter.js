@@ -2,6 +2,7 @@
  * src/input/KeyboardAdapter.js
  *
  * 키보드 입력을 감지하는 어댑터.
+ * CHANGE: ESC 키 → 'pause' 액션 추가
  */
 const PREVENT_KEYS = new Set([
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ',
@@ -38,13 +39,18 @@ export class KeyboardAdapter {
     if (this._isDown('arrowright') || this._isDown('d')) state.moveX += 1;
     if (this._isDown('arrowup')    || this._isDown('w')) state.moveY -= 1;
     if (this._isDown('arrowdown')  || this._isDown('s')) state.moveY += 1;
-    
+
     // -1 ~ 1 사이로 클램프 (중복 입력 대비)
     state.moveX = Math.max(-1, Math.min(1, state.moveX));
     state.moveY = Math.max(-1, Math.min(1, state.moveY));
 
     if (this._isDown('`')) {
       state.actions.add('debug');
+    }
+
+    // CHANGE: ESC 키 → 'pause' 액션
+    if (this._isDown('escape')) {
+      state.actions.add('pause');
     }
   }
 

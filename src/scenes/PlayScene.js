@@ -1,10 +1,9 @@
 /**
  * src/scenes/PlayScene.js
  *
- * REFACTOR: Phase 2 아키텍처 통합
- *   - buildPipeline() 반환값에서 systems 인스턴스들을 통합 관리 (_systems)
- *   - playMode 변경 시 transitionPlayMode() 사용 (R-20)
- *   - UpgradeApplySystem 연동 (world.pendingUpgrade 기록)
+ * CHANGE (Phase 1): ESC 일시정지 토글 추가 (_pauseWasDown 엣지 감지)
+ * CHANGE (Phase 2): createPlayer에 session 전달 (영구 업그레이드 반영)
+ * CHANGE (Phase 3): _showResultUI에 MetaShopScene 콜백 추가
  */
 import { PlayContext }         from '../core/PlayContext.js';
 import { createWorld }          from '../state/createWorld.js';
@@ -15,6 +14,7 @@ import { PlayUI }               from './play/PlayUI.js';
 import { PlayResultHandler }    from './play/PlayResultHandler.js';
 import { PlayModeStateMachine }   from '../core/PlayModeStateMachine.js';
 import { transitionPlayMode, PlayMode } from '../state/PlayMode.js';
+import { MetaShopScene }        from './MetaShopScene.js';
 
 export class PlayScene {
   constructor(game) {
@@ -23,18 +23,22 @@ export class PlayScene {
     this._ctx             = null;
     this._pipeline        = null;
     this._pipelineCtx     = null;
-    this._systems         = null; // { spawnSystem, cullingSystem, synergySystem }
+    this._systems         = null;
     this._dpr             = 1;
 
     this._ui              = null;
     this._resultHandler   = null;
     this._uiState         = null;
     this._gameData        = null;
+
+    // Phase 1: ESC 엣지 감지용 플래그
+    this._pauseWasDown    = false;
   }
 
   enter() {
     this.world        = createWorld();
-    this.world.player = createPlayer(0, 0);
+    // CHANGE (Phase 2/3): session 전달 → 영구 업그레이드 + 장신구 슬롯 반영
+    this.world.player = createPlayer(0, 0, this.game.session);
 
     this._gameData = GameDataLoader.loadDefault();
 
@@ -63,9 +67,11 @@ export class PlayScene {
     this._uiState = new PlayModeStateMachine({
       onLevelUp: () => this._showLevelUpUI(),
       onDead:    () => this._showResultUI(),
+      onResume:  () => this._ui.hidePause(),
     });
 
-    this._dpr = window.devicePixelRatio || 1;
+    this._dpr          = window.devicePixelRatio || 1;
+    this._pauseWasDown = false;
   }
 
   update(dt) {
@@ -82,6 +88,13 @@ export class PlayScene {
       this._systems?.spawnSystem?.getDebugInfo(this.world.elapsedTime),
     );
 
+    // ── Phase 1: ESC 엣지 감지 → 일시정지 토글 ──────────────────────
+    const pauseDown = inputState.isAction('pause');
+    if (pauseDown && !this._pauseWasDown) {
+      this._handlePauseToggle();
+    }
+    this._pauseWasDown = pauseDown;
+
     if (this._uiState.tick(this.world.playMode)) return;
 
     this._runGamePipeline(dt);
@@ -89,7 +102,6 @@ export class PlayScene {
 
   _runGamePipeline(dt) {
     if (!this.world) return;
-    // R-21+: world.deltaTime 직접 설정 (WorldTickSystem 하위호환 유지하며 점진적 이전)
     this.world.deltaTime  = dt;
     this._pipelineCtx.dt  = dt;
     this._pipelineCtx.dpr = this._dpr;
@@ -112,10 +124,27 @@ export class PlayScene {
     this._systems     = null;
     this._gameData    = null;
     this.world        = null;
+    this._pauseWasDown = false;
+  }
+
+  // ── 내부 핸들러 ───────────────────────────────────────────────────────
+
+  /** Phase 1: ESC 키 → 일시정지 / 재개 토글 */
+  _handlePauseToggle() {
+    const mode = this.world.playMode;
+    if (mode === PlayMode.PLAYING) {
+      transitionPlayMode(this.world, PlayMode.PAUSED);
+      this._ui.showPause(this.world.player, () => {
+        transitionPlayMode(this.world, PlayMode.PLAYING);
+        this._ui.hidePause();
+      });
+    } else if (mode === PlayMode.PAUSED) {
+      transitionPlayMode(this.world, PlayMode.PLAYING);
+      this._ui.hidePause();
+    }
   }
 
   _showLevelUpUI() {
-    // R-19: LevelSystem이 미리 생성해둔 선택지를 사용
     const choices = this.world.pendingLevelUpChoices || [];
     if (choices.length === 0) {
       transitionPlayMode(this.world, PlayMode.PLAYING);
@@ -123,7 +152,6 @@ export class PlayScene {
     }
 
     this._ui.showLevelUp(choices, (selectedUpgrade) => {
-      // world.pendingUpgrade에 기록만 수행. UpgradeApplySystem이 실제 적용.
       this.world.pendingUpgrade = selectedUpgrade;
       transitionPlayMode(this.world, PlayMode.PLAYING);
     });
@@ -131,8 +159,12 @@ export class PlayScene {
 
   _showResultUI() {
     const stats = this._resultHandler.process(this.world);
-    this._ui.showResult(stats, () => {
-      this.game.sceneManager.changeScene(new PlayScene(this.game));
-    });
+
+    // CHANGE (Phase 3): MetaShopScene 콜백 추가
+    this._ui.showResult(
+      stats,
+      () => this.game.sceneManager.changeScene(new PlayScene(this.game)),
+      () => this.game.sceneManager.changeScene(new MetaShopScene(this.game)),
+    );
   }
 }

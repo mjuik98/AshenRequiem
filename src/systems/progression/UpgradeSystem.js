@@ -1,19 +1,23 @@
 /**
  * src/systems/progression/UpgradeSystem.js
  *
- * CHANGE(P1): applyUpgrade에 synergyState 파라미터 추가
+ * CHANGE (Phase 2): 장신구(accessory) 타입 처리 추가
+ *   - generateChoices: 장신구 슬롯 제한(2개), 중복 장착 방지
+ *   - applyUpgrade: 'accessory' 케이스 추가
+ *   - weapon_new: globalDamageMult 반영 (장신구/영구강화 데미지 배율)
  */
 
 import { upgradeData }      from '../../data/upgradeData.js';
 import { shuffle }           from '../../utils/random.js';
 import { getWeaponDataById } from '../../data/weaponData.js';
+import { getAccessoryById }  from '../../data/accessoryData.js';
 import { SynergySystem }     from './SynergySystem.js';
 
 export const UpgradeSystem = {
 
   generateChoices(player) {
-    const { weaponPicks, statPicks } = this._buildAvailablePool(player);
-    let result = this._pickBalanced(weaponPicks, statPicks);
+    const { weaponLikePicks, statPicks } = this._buildAvailablePool(player);
+    let result = this._pickBalanced(weaponLikePicks, statPicks);
 
     if (result.length < 3) {
       const fallback = this._buildFallbackChoices(player, result);
@@ -27,21 +31,34 @@ export const UpgradeSystem = {
   },
 
   _buildAvailablePool(player) {
-    const weaponPicks = [], statPicks = [];
+    const weaponLikePicks = [];  // 무기 신규/강화 + 장신구
+    const statPicks       = [];
+
+    const accCount = player.accessories?.length ?? 0;
 
     for (const upgrade of upgradeData) {
       if (upgrade.type === 'weapon_new') {
         if (!player.weapons.find(w => w.id === upgrade.weaponId)) {
-          weaponPicks.push(upgrade);
+          weaponLikePicks.push(upgrade);
         }
+
       } else if (upgrade.type === 'weapon_upgrade') {
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
         if (owned) {
           const def      = getWeaponDataById(upgrade.weaponId);
           const maxLevel = def?.maxLevel ?? Infinity;
-          if (owned.level < maxLevel) weaponPicks.push(upgrade);
+          if (owned.level < maxLevel) weaponLikePicks.push(upgrade);
         }
+
+      } else if (upgrade.type === 'accessory') {
+        // CHANGE: 슬롯 여유 있고 동일 장신구 미장착 시만 등장
+        if (accCount < 2) {
+          const alreadyHas = player.accessories?.some(a => a.id === upgrade.accessoryId);
+          if (!alreadyHas) weaponLikePicks.push(upgrade);
+        }
+
       } else {
+        // stat
         const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
         if (upgrade.maxCount === undefined || taken < upgrade.maxCount) {
           statPicks.push(upgrade);
@@ -49,11 +66,11 @@ export const UpgradeSystem = {
       }
     }
 
-    return { weaponPicks, statPicks };
+    return { weaponLikePicks, statPicks };
   },
 
-  _pickBalanced(weaponPicks, statPicks) {
-    const sw = shuffle(weaponPicks);
+  _pickBalanced(weaponLikePicks, statPicks) {
+    const sw = shuffle(weaponLikePicks);
     const ss = shuffle(statPicks);
     const result = [];
     if (sw.length > 0) result.push(sw[0]);
@@ -72,19 +89,26 @@ export const UpgradeSystem = {
    *
    * @param {object}             player
    * @param {object}             upgrade
-   * @param {object[]|undefined} synergyData    DI된 시너지 데이터
-   * @param {object|undefined}   synergyState   world.synergyState
+   * @param {object[]|undefined} synergyData
+   * @param {object|undefined}   synergyState
    */
   applyUpgrade(player, upgrade, synergyData, synergyState) {
+
     if (upgrade.type === 'weapon_new') {
       const def = getWeaponDataById(upgrade.weaponId);
-      if (def) player.weapons.push({ ...def, currentCooldown: 0, level: 1 });
+      if (def) {
+        const newWeapon = { ...def, currentCooldown: 0, level: 1 };
+        // CHANGE: globalDamageMult 반영 (장신구/영구강화 누산 배율)
+        if (player.globalDamageMult && player.globalDamageMult !== 1) {
+          newWeapon.damage = Math.max(1, Math.round(newWeapon.damage * player.globalDamageMult));
+        }
+        player.weapons.push(newWeapon);
+      }
 
     } else if (upgrade.type === 'weapon_upgrade') {
       const owned = player.weapons.find(w => w.id === upgrade.weaponId);
       if (owned) {
         owned.level++;
-
         const dmgDelta    = upgrade.damageDelta      ?? 1;
         const cdMult      = upgrade.cooldownMult     ?? 0.92;
         const orbitRDelta = upgrade.orbitRadiusDelta ?? 0;
@@ -100,6 +124,15 @@ export const UpgradeSystem = {
             && owned.behaviorId !== 'orbit' && owned.behaviorId !== 'areaBurst') {
           owned.pierce += pierceDelta;
         }
+      }
+
+    } else if (upgrade.type === 'accessory') {
+      // CHANGE (Phase 2): 장신구 장착
+      const accDef = getAccessoryById(upgrade.accessoryId);
+      if (accDef && (player.accessories?.length ?? 0) < 2) {
+        player.accessories = player.accessories ?? [];
+        player.accessories.push({ ...accDef });
+        _applyAccessoryEffects(player, accDef.effects ?? []);
       }
 
     } else if (upgrade.type === 'stat') {
@@ -122,7 +155,48 @@ export const UpgradeSystem = {
     player.acquiredUpgrades = player.acquiredUpgrades ?? new Set();
     player.acquiredUpgrades.add(upgrade.id);
 
-    // CHANGE(P1): synergyState 명시적 전달
     SynergySystem.applyAll({ player, synergyData, synergyState });
   },
 };
+
+// ── 장신구 효과 적용 헬퍼 ──────────────────────────────────────────────────────
+
+/**
+ * 장신구 effects 배열을 순회하며 플레이어 스탯에 즉시 반영한다.
+ * damageMult는 현재 무기 전체에 곱하고 globalDamageMult에도 누산한다.
+ */
+function _applyAccessoryEffects(player, effects) {
+  for (const eff of effects) {
+    switch (eff.stat) {
+      case 'moveSpeed':
+        player.moveSpeed += eff.value;
+        break;
+      case 'maxHp':
+        player.maxHp += eff.value;
+        player.hp = Math.min(player.hp + eff.value, player.maxHp);
+        break;
+      case 'lifesteal':
+        player.lifesteal = (player.lifesteal ?? 0) + eff.value;
+        break;
+      case 'magnetRadius':
+        player.magnetRadius = (player.magnetRadius ?? 60) + eff.value;
+        break;
+      case 'invincibleDuration':
+        player.invincibleDuration = (player.invincibleDuration ?? 0.5) + eff.value;
+        break;
+      case 'damageMult':
+        // 현재 보유 무기 모두에 배율 적용
+        (player.weapons ?? []).forEach(w => {
+          w.damage = Math.max(1, Math.round(w.damage * eff.value));
+        });
+        // 이후 획득 무기를 위해 누산 기록
+        player.globalDamageMult = (player.globalDamageMult ?? 1) * eff.value;
+        break;
+      default:
+        if (player[eff.stat] !== undefined) {
+          player[eff.stat] += eff.value;
+        }
+        break;
+    }
+  }
+}

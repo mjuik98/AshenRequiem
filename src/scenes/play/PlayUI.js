@@ -1,22 +1,7 @@
 /**
- * src/scenes/play/PlayUI.js — 플레이 씬 UI 뷰 통합 관리 (신규)
+ * src/scenes/play/PlayUI.js — 플레이 씬 UI 뷰 통합 관리
  *
- * REFACTOR: PlayScene UI 책임 분리
- *   Before: PlayScene.enter() 에서 5개 뷰 인스턴스를 직접 생성·보관·파괴
- *           PlayScene.update() 에서 직접 각 뷰 메서드 호출
- *           → PlayScene이 게임 흐름 + UI 뷰 관리 두 가지 책임을 가짐
- *
- *   After:  PlayUI 가 5개 뷰의 생명주기를 단일 책임으로 관리
- *           PlayScene 은 this._ui.showLevelUp(), this._ui.showResult() 만 호출
- *           → PlayScene 은 순수하게 흐름 제어만 담당
- *
- * 사용법 (PlayScene.enter()):
- *   this._ui = new PlayUI(mountUI());
- *   this._ui.showHud();
- *
- * 사용법 (PlayScene.exit()):
- *   this._ui.destroy();
- *   this._ui = null;
+ * CHANGE: PauseView 추가 (Phase 1 ESC 일시정지)
  */
 
 import { HudView }     from '../../ui/hud/HudView.js';
@@ -24,6 +9,7 @@ import { LevelUpView } from '../../ui/levelup/LevelUpView.js';
 import { ResultView }  from '../../ui/result/ResultView.js';
 import { DebugView }   from '../../ui/debug/DebugView.js';
 import { BossHudView } from '../../ui/boss/BossHudView.js';
+import { PauseView }   from '../../ui/pause/PauseView.js';
 
 export class PlayUI {
   /**
@@ -35,6 +21,7 @@ export class PlayUI {
     this._result  = new ResultView(container);
     this._debug   = new DebugView(container);
     this._bossHud = new BossHudView(container);
+    this._pause   = new PauseView(container);
   }
 
   // ── HUD ──────────────────────────────────────────────────────────────
@@ -58,6 +45,25 @@ export class PlayUI {
     this._debug.update(world, ctx, dt, waveData, spawnDebug);
   }
 
+  // ── 일시정지 (Phase 1) ────────────────────────────────────────────────
+
+  /**
+   * 일시정지 모달 표시
+   * @param {object}   player
+   * @param {Function} onResume  재개 콜백
+   */
+  showPause(player, onResume) {
+    this._pause.show(player, onResume);
+  }
+
+  hidePause() {
+    this._pause.hide();
+  }
+
+  isPaused() {
+    return this._pause.isVisible();
+  }
+
   // ── 레벨업 오버레이 ───────────────────────────────────────────────────
 
   /**
@@ -71,18 +77,19 @@ export class PlayUI {
   // ── 결과 화면 ─────────────────────────────────────────────────────────
 
   /**
-   * @param {{ killCount: number, survivalTime: number, level: number }} stats
-   * @param {Function} onRestart  재시작 콜백
+   * @param {object}        stats        결과 통계
+   * @param {Function}      onRestart    재시작 콜백
+   * @param {Function|null} onMetaShop   강화 상점 콜백 (없으면 버튼 미표시)
    */
-  showResult(stats, onRestart) {
+  showResult(stats, onRestart, onMetaShop = null) {
     this.hideHud();
-    this._result.show(stats, onRestart);
+    this._result.show(stats, onRestart, onMetaShop);
   }
 
   // ── 생명주기 ──────────────────────────────────────────────────────────
 
   destroy() {
-    [this._hud, this._levelUp, this._result, this._debug, this._bossHud]
+    [this._hud, this._levelUp, this._result, this._debug, this._bossHud, this._pause]
       .forEach(v => v?.destroy());
   }
 }

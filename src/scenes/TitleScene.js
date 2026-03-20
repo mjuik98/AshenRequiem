@@ -1,4 +1,5 @@
 import { PlayScene } from './PlayScene.js';
+import { MetaShopScene } from './MetaShopScene.js';
 
 /**
  * TitleScene — 타이틀 화면
@@ -110,13 +111,15 @@ export class TitleScene {
               <span class="t-btn-badge">▶</span>
             </button>
 
-            <button class="t-btn is-disabled" data-action="settings" type="button" aria-disabled="true">
+            <button class="t-btn" id="title-shop" data-action="shop" type="button">
               <span class="t-btn-left">
-                <span class="t-btn-label">Settings</span>
-                <span class="t-btn-meta">준비 중</span>
+                <span class="t-btn-label">Meta Shop</span>
+                <span class="t-btn-meta">영구 강화를 구매합니다</span>
               </span>
-              <span class="t-btn-badge">—</span>
+              <span class="t-btn-badge">⚗</span>
             </button>
+
+            <button class="t-btn is-disabled" data-action="settings" type="button" aria-disabled="true">
 
             <button class="t-btn is-disabled" data-action="quit" type="button" aria-disabled="true">
               <span class="t-btn-left">
@@ -213,6 +216,10 @@ export class TitleScene {
       btn.addEventListener('click', () => {
         const action = btn.dataset.action;
         if (action === 'start') { startGame(); return; }
+        if (action === 'shop') {
+          this.game.sceneManager.changeScene(new MetaShopScene(this.game));
+          return;
+        }
         handleDisabled(action);
       });
     });
