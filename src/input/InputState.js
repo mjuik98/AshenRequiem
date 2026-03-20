@@ -7,7 +7,7 @@ export class InputState {
   constructor() {
     this.moveX = 0;   // -1 ~ 1
     this.moveY = 0;   // -1 ~ 1
-    this.debug = false;
+    this.actions = new Set(); // R-22: actions Set 기반으로 전환
   }
 
   /**
@@ -21,8 +21,17 @@ export class InputState {
     if (k === 'd' || k === 'arrowright') return this.moveX > 0.1;
     if (k === 'w' || k === 'arrowup')    return this.moveY < -0.1;
     if (k === 's' || k === 'arrowdown')  return this.moveY > 0.1;
-    if (k === '`')                       return this.debug === true;
+    if (k === '`')                       return this.actions.has('debug');
     return false;
+  }
+
+  /**
+   * 특정 액션이 활성화되어 있는지 확인한다. (R-22 API)
+   * @param {string} action
+   * @returns {boolean}
+   */
+  isAction(action) {
+    return this.actions.has(action);
   }
 
   /**
@@ -44,6 +53,6 @@ export class InputState {
   reset() {
     this.moveX = 0;
     this.moveY = 0;
-    this.debug = false;
+    this.actions.clear();
   }
 }

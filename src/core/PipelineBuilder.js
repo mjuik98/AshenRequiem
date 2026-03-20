@@ -1,39 +1,51 @@
 /**
  * src/core/PipelineBuilder.js — 파이프라인 조립 전담 빌더
  *
- * CHANGE(P2-A): 고팬아웃 해소 — SYSTEM_REGISTRY를 systems/index.js에서 import
- *   Before: 18개 시스템을 이 파일에서 각각 직접 import
- *           → 새 시스템 추가 시 이 파일 수정 필요
- *   After:  SYSTEM_REGISTRY만 import — 새 시스템은 systems/index.js 수정으로 해결
- *           → PipelineBuilder는 시스템 목록 관리에서 분리됨
+ * REFACTOR: 팩토리 시스템 직접 생성 + EventRegistry 인스턴스 수신
  *
- * CHANGE(P2-B): pipelineCtx에 dt / dpr 명시적 초기화
- *   Before: ctx = { world, input, data, services } — dt/dpr 미포함
- *           PlayScene이 매 프레임 ctx.dt = dt 로 동적 프로퍼티 추가
- *           → 타입 추론 불가, undefined 가능성
- *   After:  build() 시 ctx = { world, input, data, services, dt: 0, dpr: 1 }
- *           → 명시적 필드로 초기화, WorldTickSystem이 dt를 안전하게 읽을 수 있음
- *           → PlayScene은 여전히 실행 전 ctx.dt = actualDt로 덮어씀 (기존 코드 유지)
+ * Before:
+ *   - spawnSystem, cullingSystem을 PlayContext에서 받음
+ *   - CollisionSystem, EnemyMovementSystem이 SYSTEM_REGISTRY에서 모듈 레벨 객체로 등록
+ *   - EventRegistry.asSystem이 모듈 레벨 싱글턴 사용
+ *   - bossPhaseHandler, soundEventHandler에 registry 미전달 → 누수
+ *
+ * After:
+ *   - spawnSystem, cullingSystem도 PipelineBuilder가 직접 생성
+ *   - CollisionSystem → createCollisionSystem() 팩토리로 생성 후 등록
+ *   - EnemyMovementSystem → createEnemyMovementSystem() 팩토리로 생성 후 등록
+ *   - EventRegistry 인스턴스를 받아 asSystem() 등록
+ *   - bossPhaseHandler, soundEventHandler에 registry 인스턴스 전달
+ *   - build()가 { pipeline, pipelineCtx, systems } 반환
+ *     systems.spawnSystem은 PlayScene이 getDebugInfo()에 접근할 수 있도록 노출
  */
+
 import { Pipeline }  from './Pipeline.js';
 import { SYSTEM_REGISTRY } from '../systems/index.js';
+import { createCollisionSystem }     from '../systems/combat/CollisionSystem.js';
+import { createEnemyMovementSystem } from '../systems/movement/EnemyMovementSystem.js';
+import { createSpawnSystem }         from '../systems/spawn/SpawnSystem.js';
+import { createCullingSystem }       from '../systems/render/CullingSystem.js';
 
 import { registerBossPhaseHandler }   from '../systems/event/bossPhaseHandler.js';
 import { registerSoundEventHandlers } from '../systems/sound/soundEventHandler.js';
 
 export class PipelineBuilder {
   /**
-   * @param {object}      services
-   * @param {object}      spawnSystem     createSpawnSystem() 반환값
-   * @param {object}      cullingSystem   createCullingSystem() 반환값
-   * @param {object|null} [profiler]      PipelineProfiler 인스턴스
+   * @param {object}                                  services
+   * @param {import('../systems/event/EventRegistry.js').EventRegistry} eventRegistry
+   * @param {object|null}                             [profiler]
    */
-  constructor(services, spawnSystem, cullingSystem, profiler = null) {
+  constructor(services, eventRegistry, profiler = null) {
     this._services      = services;
-    this._spawnSystem   = spawnSystem;
-    this._cullingSystem = cullingSystem;
+    this._eventRegistry = eventRegistry;
     this._profiler      = profiler;
     this._pipeline      = null;
+
+    // 팩토리 시스템 — build() 시 생성됨
+    this._spawnSystem         = null;
+    this._cullingSystem       = null;
+    this._collisionSystem     = null;
+    this._enemyMovementSystem = null;
   }
 
   /**
@@ -42,20 +54,32 @@ export class PipelineBuilder {
    * @param {object} world
    * @param {object} input
    * @param {object} [data]
-   * @returns {{ pipeline: Pipeline, ctx: object }}
+   * @returns {{
+   *   pipeline: Pipeline,
+   *   pipelineCtx: object,
+   *   systems: { spawnSystem: object, cullingSystem: object }
+   * }}
    */
   build(world, input, data = {}) {
+    // 팩토리 시스템 인스턴스 생성
+    this._spawnSystem         = createSpawnSystem();
+    this._cullingSystem       = createCullingSystem();
+    this._collisionSystem     = createCollisionSystem();
+    this._enemyMovementSystem = createEnemyMovementSystem();
+
     const pipeline = new Pipeline();
 
-    // CHANGE(P2-B): dt, dpr을 명시적 필드로 초기화
-    // PlayScene._runGamePipeline(dt)이 매 프레임 ctx.dt와 ctx.dpr을 덮어씀
-    const ctx = {
+    // CHANGE(P2-B): dt, dpr 명시적 초기화
+    const pipelineCtx = {
       world,
       input,
       data,
-      services: this._services,
-      dt:  0,   // 명시적 초기화 — WorldTickSystem이 `dt ?? 0` 없이 안전하게 읽을 수 있음
-      dpr: 1,   // 명시적 초기화
+      services: {
+        ...this._services,
+        cullingSystem: this._cullingSystem,
+      },
+      dt:  0,
+      dpr: 1,
     };
 
     this._registerSystems(pipeline);
@@ -66,7 +90,16 @@ export class PipelineBuilder {
     }
 
     this._pipeline = pipeline;
-    return { pipeline, ctx };
+
+    return {
+      pipeline,
+      pipelineCtx,
+      // PlayScene이 getDebugInfo()에 접근할 수 있도록 systems 노출
+      systems: {
+        spawnSystem:   this._spawnSystem,
+        cullingSystem: this._cullingSystem,
+      },
+    };
   }
 
   setSystemEnabled(system, enabled) {
@@ -75,12 +108,24 @@ export class PipelineBuilder {
 
   /** @private */
   _registerSystems(pipeline) {
-    // 인스턴스 기반 상태 보유 시스템
-    pipeline.register(this._spawnSystem,   { priority: 10 });
-    pipeline.register(this._cullingSystem, { priority: 125 }); // R-10 신규
+    // ── 인스턴스 기반 시스템 (팩토리 생성) ──────────────────────────────
+    // SpawnSystem — 인스턴스 상태 보유 (스폰 누적, 보스 타이밍)
+    pipeline.register(this._spawnSystem,         { priority: 10  });
 
-    // CHANGE(P2-A): 개별 import 제거 → SYSTEM_REGISTRY 루프로 대체
-    // 새 시스템은 src/systems/index.js의 SYSTEM_REGISTRY에만 추가하면 됨
+    // EnemyMovementSystem — SpatialGrid 상태 캡슐화
+    pipeline.register(this._enemyMovementSystem, { priority: 30  });
+
+    // CollisionSystem — SpatialGrid 상태 캡슐화
+    pipeline.register(this._collisionSystem,     { priority: 60  });
+
+    // EventRegistry System — 인스턴스의 processAll 실행
+    pipeline.register(this._eventRegistry.asSystem(), { priority: 105 });
+
+    // CullingSystem — 가시 엔티티 버퍼 보유
+    pipeline.register(this._cullingSystem,       { priority: 125 });
+
+    // ── 싱글턴 시스템 (SYSTEM_REGISTRY) ────────────────────────────────
+    // CHANGE(P2-A): SYSTEM_REGISTRY 루프로 등록 — 새 시스템은 systems/index.js만 수정
     for (const { system, priority } of SYSTEM_REGISTRY) {
       pipeline.register(system, { priority });
     }
@@ -88,7 +133,8 @@ export class PipelineBuilder {
 
   /** @private */
   _registerEventHandlers() {
-    registerBossPhaseHandler(this._services);
-    registerSoundEventHandlers(this._services.soundSystem);
+    // EventRegistry 인스턴스에 등록 → dispose() 시 자동 정리 (메모리 누수 방지)
+    registerBossPhaseHandler(this._services, this._eventRegistry);
+    registerSoundEventHandlers(this._services.soundSystem, this._eventRegistry);
   }
 }

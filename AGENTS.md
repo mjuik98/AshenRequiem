@@ -32,59 +32,18 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 ## 3. Architecture Changes Log
 | Change | Before | After |
 |--------|--------|-------|
-| P1-① SpawnSystem | singleton object | class — `new SpawnSystem()` |
-| P1-② PlayScene pipeline | in `update()` | extracted to `_runGamePipeline()` |
-| P1-③ EliteBehaviorSystem | `systems/movement/` | `systems/combat/` |
-| P2-④ Enemy pooling | `createEnemy()` | `ObjectPool` with `resetEnemy()` |
-| P2-⑤ Camera state | `PlayScene.this.camera` | `world.camera` |
-| P3-⑥ CollisionSystem 테스트 | 미존재 | `tests/CollisionSystem.test.js` 추가 |
-| P3-⑦ UpgradeSystem 테스트 | 미존재 | `tests/UpgradeSystem.test.js` 추가 |
-| P3-⑧ StatusEffectSystem 테스트 | 미존재 | `tests/StatusEffectSystem.test.js` 추가 |
-| P3-⑨ StatusEffect | switch/if in System | `statusEffectRegistry` handlers |
-| P3-⑩ AssetManager | 미존재 (canvas 직접 그리기만 사용) | `src/managers/AssetManager.js` 최소 인터페이스 |
-| P3-⑪ createSessionState | 기본 객체 리터럴, localStorage 없음 | localStorage 연동 + updateSessionBest() 추가 |
-| P-① WeaponSystem 리팩터링 | if/else behaviorId 분기 | `weaponBehaviorRegistry` 위임 패턴 |
-| P-② 무기 동작 파일 분리 | WeaponSystem 내부 인라인 | `behaviors/weaponBehaviors/*.js` |
-| P-③ SynergySystem 추가 | 미존재 | `systems/progression/SynergySystem.js` |
-| P-④ 테스트 자동화 | 개별 node 실행 | `npm test` → `scripts/runTests.js` |
-| P-⑤ Vite 빌드 도입 | 없음 (bare ES module) | `vite.config.js` |
-| P-⑥ PlayContext 도입 | PlayScene이 pool·service 직접 소유 | `src/core/PlayContext.js` 컨테이너 분리 |
-| P-⑦ Pipeline.js 도입 | `_runGamePipeline()` 수동 호출 | `src/core/Pipeline.js` — priority 기반 등록/실행 |
-| P-⑧ EventRegistry 추가 | EventBusHandler 단일 파일 | `src/systems/event/EventRegistry.js` — 타입별 핸들러 등록 |
-| P-⑨ BossPhaseSystem 추가 | 미존재 | `src/systems/spawn/BossPhaseSystem.js` |
-| P-⑩ PipelineProfiler 추가 | 미존재 | `src/systems/debug/PipelineProfiler.js` |
-| P-⑪ SoundSystem 추가 | 미존재 | `src/systems/sound/SoundSystem.js` |
-| P-⑫ WeaponSystem 테스트 | 미존재 | `tests/WeaponSystem.test.js` 추가 |
-| P-⑬ DeathSystem 테스트 | 미존재 | `tests/DeathSystem.test.js` 추가 |
-| P-⑭ 무기 행동 추가 | targetProjectile/orbit/areaBurst 3종 | boomerang, chainLightning 추가 (registry 2줄) |
-| Q-① EliteBehaviorSystem stub | src/systems/movement/EliteBehaviorSystem.js 존재 | 파일 삭제 (re-export stub 제거) |
-| Q-② SpatialGrid 구버전 | src/utils/SpatialGrid.js 미사용 중복 | 파일 삭제 (managers/ 버전 사용) |
-| Q-③ validateData KNOWN_WEAPON_BEHAVIORS | 'boomerang','chainLightning' 누락 | 목록 동기화 수정 |
-| Q-④ createEnemy dead branch | Dummy fallback 후 if (!data) 데드코드 | fallback 제거, 명확한 null 반환 |
-| Q-⑤ validateUpgradeData type 버그 | u.type === 'weapon' (항상 false) | weapon_new/weapon_upgrade로 수정 |
-| P0-① validateData 자동 동기화 | KNOWN_WEAPON_BEHAVIORS 하드코딩 | getRegisteredBehaviorIds() import |
-| P0-② SynergySystem 데이터 경로 | upgradeData 인자 | synergyData.js 직접 import |
-| P1-① 공용 테스트 픽스처 | 각 .test.js 내 중복 선언 | tests/fixtures/index.js 통합 |
-| P1-② SynergySystem 테스트 | 미존재 | tests/SynergySystem.test.js 추가 |
-| P1-② BossPhaseSystem 테스트 | 미존재 | tests/BossPhaseSystem.test.js 추가 |
-| P1-③ sessionState v2 | v1 (best+options만) | v2 + meta{currency, permanentUpgrades} |
-| P2-① drawBehaviorRegistry | drawProjectile.js 분기 | drawBehaviorRegistry 위임 패턴 |
-| P2-② GLOW_THRESHOLD | RenderSystem.js 하드코딩 | constants.js RENDER.GLOW_THRESHOLD |
-| P2-③ npm run profile | 미존재 | scripts/profile.js 헤드리스 시뮬레이션 |
-| P2-④ EventRegistry 자동화 | clearAll 수동 나열 | EVENT_TYPES 루프 |
-| P-① drawEffectRegistry 추가 | drawEffect.js if/else 분기 | drawEffectRegistry.js 위임 패턴 |
-| P-② SpatialGrid _cellsOf GC | 매 호출 객체 배열 생성 | _cellCxBuf/_cellCyBuf Int32Array 재사용 |
-| P-③ 핵심 시스템 테스트 추가 | Damage/Experience/Level/Movement/Flush/Spawn 미비 | 6개 test.js 추가 |
-| **R-01** | `EVENT_TYPES` 단일 정의 | EventRegistry + constants 이중 정의 | `constants/events.js` 단일 소스 |
-| **R-02** | `RenderSystem` 버퍼 선언 | 누락 → 런타임 TypeError | 선언 추가 + 팩토리 패턴 |
-| **R-03** | `SpawnSystem` class 제거 | class + factory 이중 노출 | `createSpawnSystem()` factory만 |
-| **R-04** | `SynergySystem` DI | 직접 import + `_testWithData()` 우회 | `data.synergyData` 주입 |
-| **R-05** | `CollisionSystem` 팩토리화 | module-level `_grid` | `createCollisionSystem()` factory |
-| **R-06** | `EnemyMovementSystem` 팩토리화 | module-level `_grid` + 하드코딩 상수 | `createEnemyMovementSystem()` factory |
-| **R-08** | Input 추상화 (어댑터 패턴) | `Input` 키보드 전용 클래스 | `InputManager + Adapter` 패턴 |
-| **R-09** | `GameDataLoader` 도입 | 씬이 데이터 직접 import | `GameDataLoader.loadDefault()` 위임 |
-| **R-10** | `CullingSystem` 분리 | RenderSystem이 컬링 직접 수행 | `CullingSystem(125)` 독립 분리 |
-| **R-13** | `PlayContext` 팩토리화 | createSpawnSystem import 혼용 | `createSpawnSystem()` 직접 사용 |
+| **R-05** | `CollisionSystem` singleton + module-level `_grid` | `createCollisionSystem()` factory |
+| **R-06** | `EnemyMovementSystem` singleton + module-level `_grid` | `createEnemyMovementSystem()` factory |
+| **R-14** | `DeathSystem`이 `services.session.meta.currency` 직접 수정 | `world.events.currencyEarned` 이벤트 발행 → `PipelineBuilder` 핸들러가 수정 |
+| **R-15** | `spawnQueue.push({ type, config })` 리터럴 직접 작성 | `spawnEnemy/Pickup/Effect/Projectile()` 팩토리 함수 사용 (`src/state/spawnRequest.js`) |
+| **R-16** | `isLive/isDead/getLiveEnemies` 세 곳에 분산 구현 | `src/utils/entityUtils.js` 단일 소스. `compact.js`, `weaponBehaviorUtils.js`는 re-export |
+| **R-17** | `Game.js`에서 `validateGameData({ upgradeData, weaponData, waveData })` — import 없이 사용 | `this.gameData`(이미 로드된 데이터) 재사용 |
+| **R-18** | `SynergySystem`이 `synergyData`를 직접 import + DI 이중 접근 | 직접 import 완전 제거. `data.synergyData` DI 강제 |
+| **R-19** | `PlayScene._showLevelUpUI()` → `UpgradeSystem.applyUpgrade()` 직접 호출 | `world.pendingUpgrade` 기록 → `UpgradeApplySystem`(priority 101)이 적용 |
+| **R-20** | `PlayScene.js`에서 `world.playMode = 'playing'` 직접 대입 | `transitionPlayMode(world, PlayMode.PLAYING)` 사용 |
+| **R-21** | `WorldTickSystem`이 이벤트 큐 초기화 안 함 | 프레임 시작 시 `EVENT_TYPES` 루프로 모든 이벤트 큐 초기화 |
+| **R-22** | `InputState.debug = false` — bool 직접 할당 | `InputState.actions = Set<string>`. `isAction('debug')` API 사용 |
+| **R-23** | `EFFECT_DEFAULTS.duration = 0.4` vs `EFFECT_DEFAULTS_SHAPE.maxLifetime = 0.5` 불일치 | 두 값 모두 `0.5`로 통일 |
 
 ---
 
@@ -113,86 +72,124 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | **125** | **CullingSystem (factory)** | **R-10 신규** |
 | 130 | RenderSystem | |
 
-프레임 안에서의 실행 순서는 **"감지 → 기록 → 적용 → 업데이트/정리"**의 흐름을 띤다. (예: `destroyQueue` 사용, 배열을 돌며 즉시 삭제 `splice` 금지)
+| Priority | System | 패턴 |
+|----------|--------|------|
+| 0   | WorldTickSystem (이벤트 큐 초기화 + 시간 갱신) | singleton |
+| 10  | SpawnSystem (instance) | factory |
+| 20  | PlayerMovementSystem | singleton |
+| 30  | EnemyMovementSystem | **factory** (R-06) |
+| 35  | EliteBehaviorSystem | singleton |
+| 40  | WeaponSystem | singleton |
+| 50  | ProjectileSystem | singleton |
+| 60  | CollisionSystem | **factory** (R-05) |
+| 65  | StatusEffectSystem | singleton |
+| 70  | DamageSystem | singleton |
+| 75  | BossPhaseSystem | singleton |
+| 80  | DeathSystem | singleton |
+| 90  | ExperienceSystem | singleton |
+| 100 | LevelSystem | singleton |
+| **101** | **UpgradeApplySystem** | singleton (R-19 신규) |
+| 105 | EventRegistry.asSystem | singleton |
+| 108 | EffectTickSystem | singleton |
+| 110 | FlushSystem (instance) | factory |
+| 120 | CameraSystem | singleton |
+| 125 | CullingSystem (factory) | factory |
+| 130 | RenderSystem | singleton |
 
-Pipeline context 구조:
+---
+
+## 5. 시스템 계약 구조
+
+### 이벤트 흐름 (R-14 이후)
+```
+전투 시스템          world.events.*         인프라 핸들러 (PipelineBuilder)
+─────────────────────────────────────────────────────────────────
+DeathSystem     →  currencyEarned       →  earnCurrency(session, amount)
+DeathSystem     →  deaths               →  bossPhaseHandler, soundHandler
+LevelSystem     →  levelUpRequested     →  soundHandler
+```
+
+**전투/진행 시스템은 `session`을 직접 참조하지 않는다. (R-14)**
+
+### pendingUpgrade 흐름 (R-19)
+```
+PlayScene._showLevelUpUI()
+  → world.pendingUpgrade = selectedUpgrade   (씬: 기록만)
+  → transitionPlayMode(world, PlayMode.PLAYING)
+
+UpgradeApplySystem.update() [priority 101]
+  → world.pendingUpgrade 소비
+  → UpgradeSystem.applyUpgrade(player, upgrade, data.synergyData)
+  → world.pendingUpgrade = null
+```
+
+### SpawnRequest 표준 (R-15)
 ```js
-{ world, input, data, services }
-// services: { projectilePool, effectPool, enemyPool, pickupPool, soundSystem, canvas }
+// 금지 — 리터럴 직접 작성
+spawnQueue.push({ type: 'enemy', config: { enemyId: 'zombie', x, y } });
+
+// 권장 — 팩토리 함수 사용
+import { spawnEnemy, spawnPickup, spawnEffect } from '../../state/spawnRequest.js';
+spawnQueue.push(spawnEnemy({ enemyId: 'zombie', x, y }));
+```
+
+### 엔티티 생사 판정 (R-16)
+```js
+// 금지 — 인라인 필터 패턴
+enemies.filter(e => e.isAlive && !e.pendingDestroy)
+
+// 권장 — entityUtils 사용
+import { isLive, isDead, getLiveEnemies } from '../../utils/entityUtils.js';
+getLiveEnemies(enemies)
 ```
 
 ---
 
-## 5. 시스템 계약 구조 (System Contract)
+## 6. 개발 및 확장 상세 규칙
 
-각 System은 `update({ dt, input, world, data, services })` 혹은 구조분해할당된 매개변수를 받는다.
-System 안으로 전체 `PlayContext` 객체를 보내지 않고 **필요한 상태 필드만 분해해서** 쓰는 것이 권장된다. (예: `world.player`, `world.deltaTime` 등)
-
-* **상태 관리**: 
-  - `world`: 프레임 간 런타임 게임 상태 (player, enemies, projectiles 등)
-  - `world.events`: 프레임 내 단발성 이벤트 기록 (hits, deaths, levelUpRequested 등) - `EventRegistry`가 프레임 후반(105)에 소비/클리어함
-  - `uiState`: 프레임과 무관한 UI 연동 (오버레이, 결과창 등)
-  - `sessionState`: 런 종료 후나 재시작 시 유지되는 기록 (최고기록 등)
-* **금지 패턴**:
-  - 생성/삭제 즉시 반영 금지 (배열 순회 도중 삭제 X). `spawnQueue`, `pendingDestroy=true`를 활용한다.
-  - Renderer가 충돌로 체력을 깎거나, Entity 내부 메서드에 복잡한 전투 스크립트를 짜는 것 금지.
-
----
-
-## 6. 개발 및 확장 상세 규칙 (AI Extensions)
-
-### 6.1 테스트 작성 & 검증 규칙
-- 단위 테스트 실행: `npm test` (또는 `node --experimental-vm-modules scripts/runTests.js`)
-- 데이터 무결성 검증: `npm run validate`
-- 새 System이나 주요 로직을 추가할 때는 **반드시 같은 이름의 `.test.js` 파일을 `tests/` 에 함께 추가**한다.
-- 테스트 픽스처(`makeEnemy`, `makePlayer`, `makeWorld` 등 공용 팩토리 함수)는
-  **반드시 `tests/fixtures/index.js`에서 import**하여 사용한다.
-  픽스처를 각 테스트 파일에서 중복 선언하지 않는다.
-
-  ```js
-  import { makePlayer, makeEnemy, makeWorld, makeEvents } from './fixtures/index.js';
-  ```
-
-- 새로운 픽스처 함수가 필요하면 `tests/fixtures/index.js`에 추가하고
-  export한다. 테스트 파일 내부에 로컬 팩토리를 만들지 않는다.
-- 테스트 실행 전 import 실패 등 환경 문제가 있으면 가급적 에러를 삼키고(`process.exit(0)`) 깔끔하게 스킵하도록 작성한다.
-- **팩토리 시스템 테스트**: `createXxxSystem()`을 각 `test()` 케이스에서 호출해 독립 인스턴스를 생성한다.
-- **DI 주입 패턴**: 테스트에서 `data: { synergyData: MOCK_DATA }` 형태로 주입한다.
+### 6.1 테스트 작성 규칙
+- 픽스처는 반드시 `tests/fixtures/index.js`에서 import
+- factory 시스템: 각 테스트 케이스에서 `createXxxSystem()` 호출해 독립 인스턴스 사용
+- DI 주입 패턴: `data: { synergyData: makeSynergyData(), ... }` 형태로 주입
+- `makeWorldWithData()` 픽스처를 활용해 world + data 묶음 생성
 
 ### 6.2 세션 및 상태 (`sessionState`) 규칙
-- 게임 런이 완전히 종료되었을 때는 반드시 `updateSessionBest()` 처리 후 `saveSession()` (localStorage 저장) 순서로 체인 호출한다.
-- `session.last`는 이번 판의 임시 결과용이며, 영구저장하지 않는다.
-- `session.best`는 각 기록 축(예: 최다 킬, 최장 생존)별 독립된 수치이므로 한 런의 결과로 덮어쓰지 않고 각 필드별로 갱신판정을 한다.
+- **System은 session에 직접 접근하지 않는다** (R-14)
+- session 수정은 PipelineBuilder에 등록된 이벤트 핸들러가 담당
+- `updateSessionBest()` → `saveSession()` 체인은 PlayResultHandler에서만 호출
 
 ### 6.3 무기 동작(Weapon/Behavior) 추가 규칙
-- 새로운 투사체나 무기 패턴(예: boomerang)을 만들 때는 `src/behaviors/weaponBehaviors/` 에 별도 파일을 생성한다.
-- `src/behaviors/weaponBehaviorRegistry.js` 에 해당 모듈을 import하고 `registry.set('newBehaviorId', fn)` 2줄을 추가한다.
-- **`WeaponSystem.js` 코드는 직접 분기문(if/switch)을 넣거나 수정하지 않는다** (레지스트리 위임 패턴 준수).
-- 발동 함수 시그니처: `({ weapon, player, enemies, spawnQueue, events? }) => boolean`
-  - 발동 성공 시 `true`를 반환해 쿨다운을 소모시킨다.
-  - 실패 시 `false`를 반환하면 WeaponSystem이 해당 무기 쿨다운을 0으로 만들어 다음 프레임에 곧바로 재시도를 유도한다.
-- `chainLightning`처럼 즉발/관통 데미지면 투사체 없이 `events.hits` 큐에 직접 `Math.random()` 기반의 범위 내 적을 타격판정으로 밀어넣어도 좋다.
-- `ProjectileSystem`단에서 특수한 이동/충돌 로직 분기가 필요하다면 해당 behavior 파일 최상단 주석에 가이드 코드를 명시하여 추적 가능하게 둔다.
+- `src/behaviors/weaponBehaviors/`에 별도 파일 생성
+- `weaponBehaviorRegistry.js`에 2줄 추가
+- `WeaponSystem.js` 직접 수정 금지
 
 ### 6.4 시너지 (`SynergySystem`) 규칙
-- 시너지 로직 추가 시, `SynergySystem.applyAll()` 은 `UpgradeSystem.applyUpgrade()` 적용 직후에 호출된다.
-- 시너지 데이터 정의는 `upgradeData.js`와 분리된 `src/data/synergyData.js`에서 독립적으로 관리한다.
-- 시너지는 특정 업그레이드 해제/삭제 시 처리가 꼬이는 것을 방지하기 위해 **매번 전체 조건을 재조사하고 완전 덮어씌우기(재계산) 연산 방식**을 택한다.
+- `synergyData`는 반드시 `data.synergyData`로 DI됨 (직접 import 금지)
+- `UpgradeSystem.applyUpgrade(player, upgrade, synergyData)` — synergyData 명시적 전달 필수
 
 ### 6.5 컨텍스트 (`PlayContext`) / 파이프라인 규칙
-- 전역 Pool(오브젝트 리용)이나 Service(사운드 등) 객체 생성 및 부착은 오직 `PlayContext.create()` 안에서만 수행한다.
-- 파이프라인 등록 및 순서 변경은 오직 `PlayContext.buildPipeline()` 함수 안에서만 수행한다.
-- 런타임 도중 특정 시스템 실행을 막고 싶다면 `PlayContext.setSystemEnabled(system, false)` 를 쓴다.
+- factory 시스템(`createXxxSystem()`)은 PipelineBuilder가 인스턴스를 생성함
+- SYSTEM_REGISTRY에 `{ factory: createXxxSystem, priority: N }` 형태로 등록
 
 ### 6.6 이벤트 (`EventRegistry`) 규칙
-- 이벤트 핸들링 추가 시 `EventRegistry.register('eventType', handlerFn)` 로 등록한다.
-- 컴포넌트나 시스템에서 발생한 일은 가급적 다른 시스템을 직접 부르지 않고 `world.events.{type}.push(...)` 로 큐잉한다.
-- `EventRegistry.clearAll(events)` 와 `EventRegistry.processAll(events)` 는 파이프라인에서 순위(현재 기준 105) 맞춰 자동 처리되므로, 각 시스템 안에서 임의로 큐를 비우지 않는다.
+- 새 이벤트 타입은 `src/data/constants/events.js`의 `EVENT_TYPES`에 추가
+- EventRegistry와 자동 동기화됨 (루프 기반)
+- `EventRegistry.asSystem`(priority 105) 이후 시스템은 이벤트를 읽어서는 안 됨
+- WorldTickSystem(priority 0)이 프레임 시작 시 이벤트 큐를 초기화함
 
-### 6.7 데이터 중심 설계 원칙
-- **Id는 문자열**: `enemyId`, `weaponId` 등은 문자열로 식별.
-- **단위 규약**: 속도(초당 픽셀), 쿨다운(초), 시간(초) 등 일관된 단위 체계 유지.
-- 런타임 필드(`pendingDestroy`, 변동된 체력값)와 정적 데이터(`maxHp`, `baseDamage`)를 데이터 객체 내에 혼합하지 않는다.
+### 6.7 새 규칙 요약
+```
+R-14: System → Session 직접 접근 금지 (이벤트로만 기록)
+R-15: spawnQueue는 SpawnRequest 팩토리 함수로만 생성
+R-16: isLive/isDead는 entityUtils.js만 참조 (인라인 패턴 금지)
+R-17: Game.js는 GameDataLoader 반환값으로 validateGameData 호출
+R-18: SynergySystem은 synergyData 직접 import 금지 (DI 강제)
+R-19: PlayScene은 UpgradeSystem.applyUpgrade() 직접 호출 금지 (pendingUpgrade 사용)
+R-20: playMode 변경은 transitionPlayMode() 사용 (직접 대입 금지)
+R-21: 이벤트 큐 초기화는 WorldTickSystem(priority 0)이 담당
+R-22: InputState.actions Set 사용 (bool 직접 할당 금지)
+R-23: EFFECT_DEFAULTS.duration = 0.5 (entityDefaults.maxLifetime와 통일)
+```
 
 ### 6.8 폴더 구조 스냅샷(권장)
 ```text

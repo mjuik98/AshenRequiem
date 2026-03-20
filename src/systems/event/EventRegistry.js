@@ -1,109 +1,109 @@
 /**
  * src/systems/event/EventRegistry.js
  *
- * CHANGE(P1-A): EVENT_TYPES 자체 선언 제거 → constants/events.js에서 import
- *   Before: EVENT_TYPES를 이 파일 안에 중복 정의
- *           → constants/events.js에 타입 추가 시 이 파일도 수동 동기화 필요
- *           → 두 파일이 실제로 일치하는지 런타임 전까지 검증 불가
- *   After:  단일 진실의 원천(SSOT) — constants/events.js에서 import
- *           → 타입 추가 시 constants/events.js 한 곳만 수정
- *           → re-export로 기존 import 경로 호환성 유지
+ * REFACTOR: 모듈 레벨 싱글턴 → 인스턴스 기반 클래스 (메모리 누수 수정)
  *
- * 이전 사용 코드는 변경 없이 동작:
- *   import { EVENT_TYPES } from '../systems/event/EventRegistry.js';  ← 여전히 동작
+ * Before (버그):
+ *   const _handlers = new Map(); // 모듈 레벨 상태
+ *   PipelineBuilder._registerEventHandlers() 호출마다 핸들러가 push만 됨
+ *   PlayScene 2회 재시작 → 보스 페이즈 알림 3번 발생, 사운드 3중 재생
+ *
+ * After:
+ *   PlayContext가 new EventRegistry() 소유
+ *   PlayContext.dispose() 시 GC에 의해 자동 정리
+ *   → 재시작마다 완전히 새로운 핸들러 세트 보장
+ *
+ * CHANGE(SSOT): EVENT_TYPES는 constants/events.js에서 단일 관리 (기존 유지)
  */
+
 import { EVENT_TYPES } from '../../data/constants/events.js';
 
-// re-export — 기존 코드 하위 호환
 export { EVENT_TYPES };
 
-/** @type {Map<string, Function[]>} */
-const _handlers = new Map();
-
-// ── 등록 ─────────────────────────────────────────────────────────────────────
-
-/**
- * 이벤트 핸들러를 등록한다.
- * @param {string}   eventType  EVENT_TYPES 중 하나
- * @param {Function} handlerFn  (event, world) => void
- */
-export function register(eventType, handlerFn) {
-  if (!EVENT_TYPES.includes(eventType)) {
-    console.warn(`[EventRegistry] 알 수 없는 이벤트 타입: "${eventType}"`);
+export class EventRegistry {
+  constructor() {
+    /** @type {Map<string, Function[]>} */
+    this._handlers = new Map();
   }
-  if (!_handlers.has(eventType)) _handlers.set(eventType, []);
-  _handlers.get(eventType).push(handlerFn);
-}
 
-// ── 비우기 ────────────────────────────────────────────────────────────────────
+  // ── 등록 ─────────────────────────────────────────────────────────────
 
-/**
- * world.events의 모든 큐를 비운다.
- * EVENT_TYPES 루프로 자동화 — 새 타입 추가 시 constants/events.js만 수정하면 자동 반영.
- *
- * @param {object} events  world.events
- */
-export function clearAll(events) {
-  for (const type of EVENT_TYPES) {
-    if (Array.isArray(events[type])) {
-      events[type].length = 0;
+  /**
+   * 이벤트 핸들러를 등록한다.
+   * @param {string}   eventType  EVENT_TYPES 중 하나
+   * @param {Function} handlerFn  (event, world) => void
+   */
+  register(eventType, handlerFn) {
+    if (!EVENT_TYPES.includes(eventType)) {
+      console.warn(`[EventRegistry] 알 수 없는 이벤트 타입: "${eventType}"`);
+    }
+    if (!this._handlers.has(eventType)) this._handlers.set(eventType, []);
+    this._handlers.get(eventType).push(handlerFn);
+  }
+
+  // ── 비우기 ────────────────────────────────────────────────────────────
+
+  /**
+   * world.events의 모든 큐를 비운다.
+   * @param {object} events  world.events
+   */
+  clearAll(events) {
+    for (const type of EVENT_TYPES) {
+      if (Array.isArray(events[type])) events[type].length = 0;
     }
   }
-}
 
-// ── 처리 ─────────────────────────────────────────────────────────────────────
+  // ── 처리 ─────────────────────────────────────────────────────────────
 
-/**
- * 등록된 핸들러를 실행하고 큐를 비운다.
- * @param {object} events  world.events
- * @param {object} world
- */
-export function processAll(events, world) {
-  for (const type of EVENT_TYPES) {
-    const queue    = events[type];
-    const handlers = _handlers.get(type);
-    if (!handlers || !Array.isArray(queue) || queue.length === 0) continue;
-
-    for (const event of queue) {
-      for (const fn of handlers) {
-        fn(event, world);
+  /**
+   * 등록된 핸들러를 실행하고 큐를 비운다.
+   * @param {object} events  world.events
+   * @param {object} world
+   */
+  processAll(events, world) {
+    for (const type of EVENT_TYPES) {
+      const queue    = events[type];
+      const handlers = this._handlers.get(type);
+      if (!handlers || !Array.isArray(queue) || queue.length === 0) continue;
+      for (const event of queue) {
+        for (const fn of handlers) fn(event, world);
       }
     }
+    this.clearAll(events);
   }
-  clearAll(events);
-}
 
-// ── 빈 이벤트 객체 생성 ────────────────────────────────────────────────────
+  // ── 빈 이벤트 객체 생성 ────────────────────────────────────────────────
 
-/**
- * world.events 초기값을 생성한다.
- * EVENT_TYPES 루프로 자동 생성 — 새 타입 추가 시 자동 반영.
- *
- * @returns {object}
- */
-export function createEmptyEvents() {
-  const events = {};
-  for (const type of EVENT_TYPES) {
-    events[type] = [];
+  /**
+   * world.events 초기값을 생성한다.
+   * @returns {object}
+   */
+  createEmptyEvents() {
+    const events = {};
+    for (const type of EVENT_TYPES) events[type] = [];
+    return events;
   }
-  return events;
+
+  // ── Pipeline System 어댑터 ────────────────────────────────────────────
+
+  /**
+   * Pipeline에 priority 105로 등록하기 위한 시스템 어댑터 객체를 반환한다.
+   * 인스턴스 메서드이므로 this가 올바르게 바인딩됨.
+   *
+   * @returns {{ update: Function }}
+   */
+  asSystem() {
+    return {
+      update: ({ world }) => this.processAll(world.events, world),
+    };
+  }
+
+  // ── 해제 ──────────────────────────────────────────────────────────────
+
+  /**
+   * 모든 핸들러를 제거한다. PlayContext.dispose() 시 호출.
+   */
+  dispose() {
+    this._handlers.clear();
+  }
 }
-
-// ── Pipeline System 어댑터 ────────────────────────────────────────────────
-
-/**
- * Pipeline에 priority 105로 등록하는 시스템 어댑터.
- */
-export const asSystem = {
-  update({ world }) {
-    processAll(world.events, world);
-  },
-};
-
-export const EventRegistry = {
-  register,
-  clearAll,
-  processAll,
-  createEmptyEvents,
-  asSystem,
-};

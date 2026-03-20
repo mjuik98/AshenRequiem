@@ -1,40 +1,10 @@
 /**
  * src/behaviors/weaponBehaviors/weaponBehaviorUtils.js
  *
- * 무기 행동(weaponBehaviors/*.js)에서 공통으로 사용하는 유틸리티 함수 모음.
- *
- * FIX(P2-7): spawnDirectionalProjectiles — spread 하드코딩 제거
- *
- * Before:
- *   const spread = Math.PI / 14;  // 하드코딩 — 무기별 확산각 조정 불가
- *
- * After:
- *   const spread = weapon.spread ?? Math.PI / 14;
- *   → weaponData 에서 'spread' 필드로 무기별 확산각 제어 가능
- *   → 기존 무기는 weapon.spread 미정의 시 동일 기본값 사용 (하위 호환)
- *
- * 공개 API:
- *   getLiveEnemies(enemies)
- *   findClosestEnemy(origin, enemies, maxRange)
- *   findNearestFrom(origin, candidates, maxRange, visited?)
- *   spawnDirectionalProjectiles(weapon, player, target, spawnQueue)
+ * REFACTOR (R-16): getLiveEnemies re-export (entityUtils.js)
  */
-
 import { distanceSq, normalize, sub } from '../../math/Vector2.js';
-
-// ─────────────────────────────────────────────────────────────────────
-// 적 목록 필터링
-// ─────────────────────────────────────────────────────────────────────
-
-/**
- * 살아있는 적 목록 반환 (pendingDestroy 제외).
- *
- * @param {object[]} enemies
- * @returns {object[]}
- */
-export function getLiveEnemies(enemies) {
-  return enemies.filter(e => e.isAlive && !e.pendingDestroy);
-}
+export { getLiveEnemies } from '../../utils/entityUtils.js';
 
 // ─────────────────────────────────────────────────────────────────────
 // 근접 적 탐색

@@ -1,6 +1,14 @@
 /**
  * tests/SynergySystem.test.js — SynergySystem 단위 테스트
  *
+ * CHANGE(R-04): _testWithData 제거, DI 방식으로 전환
+ *   Before: _testWithData(world, MOCK_DATA) 우회 메서드 사용 (§2.5 위반).
+ *   After:  SynergySystem.update({ world, data: { synergyData: MOCK } })
+ *           또는 SynergySystem.applyAll({ player, synergyData: MOCK })
+ *           → 프로덕션 코드 경로와 동일한 DI 흐름 검증.
+ *
+ * NEW: 시너지 보너스 누적 버그(BUG-SYNERGY-MULT) 검증 케이스 추가
+ *
  * 실행: npm test
  */
 
@@ -16,21 +24,18 @@ try {
   process.exit(0);
 }
 
-// ── synergyData mock ──────────────────────────────────────────────────────
-// 실제 synergyData.js가 없는 테스트 환경을 위해
-// SynergySystem 내부 synergyData를 직접 주입하는 방어 패턴
 const MOCK_SYNERGIES = [
   {
     id: 'fireAndIce',
     name: '불과 얼음',
     requires: ['fireBolt', 'iceSpear'],
-    bonus: { damageMultiplier: 1.5 },
+    bonus: { speedMult: 1.3 },
   },
   {
-    id: 'speedster',
-    name: '질풍',
-    requires: ['dashBoot'],
-    bonus: { speedMultiplier: 1.3 },
+    id: 'vampire',
+    name: '흡혈귀',
+    requires: ['darkMagic'],
+    bonus: { lifestealDelta: 0.1 },
   },
 ];
 
@@ -41,30 +46,23 @@ test('조건 충족 시 activeSynergies에 시너지 ID가 추가된다', () => 
   const player = makePlayer({
     upgradeCounts: { fireBolt: 1, iceSpear: 1 },
     activeSynergies: [],
+    _synergySpeedMult: 1, _synergyLifestealDelta: 0,
   });
   const world = makeWorld({ player });
-
-  // synergyData를 mock으로 교체 (모듈 내부 import는 테스트 환경 한계로 stub)
-  // SynergySystem이 applyAll을 외부 데이터로 호출 가능한 구조라면 직접 전달
-  if (typeof SynergySystem._testWithData === 'function') {
-    SynergySystem._testWithData(world, MOCK_SYNERGIES);
-    assert.ok(player.activeSynergies.includes('fireAndIce'),
-      'fireAndIce 시너지가 활성화되지 않음');
-  } else {
-    // 실제 synergyData.js가 있는 환경에서만 통과 가능
-    SynergySystem.update({ world });
-    assert.ok(Array.isArray(player.activeSynergies), 'activeSynergies가 배열이 아님');
-  }
+  SynergySystem.update({ world, data: { synergyData: MOCK_SYNERGIES } });
+  assert.ok(player.activeSynergies.includes('fireAndIce'),
+    'fireAndIce 시너지가 활성화되지 않음');
 });
 
 test('조건 미충족 시 시너지가 활성화되지 않는다', () => {
   if (!SynergySystem) return;
   const player = makePlayer({
-    upgradeCounts: { fireBolt: 1 }, // iceSpear 없음
+    upgradeCounts: { fireBolt: 1 },
     activeSynergies: [],
+    _synergySpeedMult: 1, _synergyLifestealDelta: 0,
   });
   const world = makeWorld({ player });
-  SynergySystem.update({ world });
+  SynergySystem.update({ world, data: { synergyData: MOCK_SYNERGIES } });
   assert.ok(!player.activeSynergies.includes('fireAndIce'),
     '조건 미충족인데 fireAndIce 활성화됨');
 });
@@ -74,27 +72,84 @@ test('applyAll 호출 시 이전 시너지 효과가 초기화된다 (재계산 
   const player = makePlayer({
     upgradeCounts: {},
     activeSynergies: ['oldSynergy'],
+    _synergySpeedMult: 1,
+    _synergyLifestealDelta: 0,
     _synergyDamageBonus: 2.0,
   });
   const world = makeWorld({ player });
-  SynergySystem.update({ world });
+  SynergySystem.update({ world, data: { synergyData: MOCK_SYNERGIES } });
   assert.equal(player.activeSynergies.length, 0,
     '재계산 후 이전 시너지가 남아있음');
-  assert.equal(player._synergyDamageBonus, 1,
-    '데미지 보너스가 초기화되지 않음');
+});
+
+test('FIX(BUG-SYNERGY-MULT): applyAll 반복 호출 시 speedMult가 누적되지 않는다', () => {
+  if (!SynergySystem) return;
+  const player = makePlayer({
+    moveSpeed: 200,
+    upgradeCounts: { fireBolt: 1, iceSpear: 1 },
+    activeSynergies: [],
+    _synergySpeedMult: 1,
+    _synergyLifestealDelta: 0,
+  });
+
+  // 1회 적용
+  SynergySystem.applyAll({ player, synergyData: MOCK_SYNERGIES });
+  const afterFirst = player.moveSpeed;
+
+  // 2회 적용 (동일 조건 — 멱등성이 보장되면 결과가 같아야 함)
+  SynergySystem.applyAll({ player, synergyData: MOCK_SYNERGIES });
+  const afterSecond = player.moveSpeed;
+
+  assert.equal(afterFirst, afterSecond,
+    `speedMult 누적 버그: 1회(${afterFirst}) vs 2회(${afterSecond}) 결과가 다름`);
+});
+
+test('FIX(BUG-SYNERGY-MULT): lifestealDelta가 applyAll 반복 호출 시 누적되지 않는다', () => {
+  if (!SynergySystem) return;
+  const player = makePlayer({
+    lifesteal: 0,
+    upgradeCounts: { darkMagic: 1 },
+    activeSynergies: [],
+    _synergySpeedMult: 1,
+    _synergyLifestealDelta: 0,
+  });
+
+  SynergySystem.applyAll({ player, synergyData: MOCK_SYNERGIES });
+  const after1 = player.lifesteal;
+
+  SynergySystem.applyAll({ player, synergyData: MOCK_SYNERGIES });
+  const after2 = player.lifesteal;
+
+  assert.ok(Math.abs(after1 - after2) < 0.001,
+    `lifestealDelta 누적 버그: 1회(${after1}) vs 2회(${after2})`);
 });
 
 test('activeSynergies가 없는 플레이어에 update를 호출해도 에러 없음', () => {
   if (!SynergySystem) return;
-  const player = makePlayer({});
+  const player = makePlayer({
+    _synergySpeedMult: 1, _synergyLifestealDelta: 0,
+  });
   delete player.activeSynergies;
   const world = makeWorld({ player });
-  assert.doesNotThrow(() => SynergySystem.update({ world }));
+  assert.doesNotThrow(() =>
+    SynergySystem.update({ world, data: { synergyData: MOCK_SYNERGIES } })
+  );
 });
 
 test('world.player가 null이어도 에러 없음', () => {
   if (!SynergySystem) return;
-  assert.doesNotThrow(() => SynergySystem.applyAll({ player: null }));
+  assert.doesNotThrow(() =>
+    SynergySystem.applyAll({ player: null, synergyData: [] })
+  );
+});
+
+test('data.synergyData가 없으면 조용히 스킵한다', () => {
+  if (!SynergySystem) return;
+  const player = makePlayer({ _synergySpeedMult: 1, _synergyLifestealDelta: 0 });
+  const world  = makeWorld({ player });
+  assert.doesNotThrow(() =>
+    SynergySystem.update({ world, data: {} })
+  );
 });
 
 summary();

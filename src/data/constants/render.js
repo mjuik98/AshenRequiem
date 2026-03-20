@@ -36,7 +36,7 @@ export const DAMAGE_TEXT = {
 };
 
 export const EFFECT_DEFAULTS = {
-  duration:           0.4,
+  duration:           0.5,
   burstDuration:      0.45,
   levelFlashDuration: 0.6,
 };

@@ -16,4 +16,5 @@ export const EVENT_TYPES = [
   'statusApplied',
   'bossPhaseChanged',
   'spawnRequested',
+  'currencyEarned',
 ];
