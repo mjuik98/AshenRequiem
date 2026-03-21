@@ -29,14 +29,16 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-21: `subscreenTheme`에 공통 `renderSubscreenHeader()` / `renderSubscreenFooter()` helper를 추가하고 `CodexView`/`SettingsView`/`MetaShopView`가 공통 서브스크린 셸 마크업을 직접 재사용하도록 정리. `sceneNavigation`에는 `change()` / `load()`를 추가해 `TitleScene`의 shop 포함 모든 서브화면 전환을 같은 가드 경계로 통일.
 - 2026-03-21: Playwright로 `http://127.0.0.1:4177/`에서 `Meta Shop`/`Codex`/`Settings` 진입과 `Escape` 복귀를 smoke 확인. 모바일 뷰포트(390x844)에서 `Meta Shop`의 `.ms-root` 스크롤 높이 `2407px`, wheel 입력 후 `scrollTop`이 `0 -> 500`으로 변해 실제 스크롤 동작도 확인. 콘솔 에러/경고 없음.
 - 2026-03-21: 신규 helper/source 회귀 테스트(`tests/SubscreenTheme.test.js`, `tests/SceneNavigation.test.js`, `tests/SceneInfrastructureSource.test.js`, `tests/TitleAndCodexSource.test.js`) 갱신 후 `node scripts/runTests.js`, `npm run build` 재검증 통과.
+- 2026-03-21: ESC 일시정지 모달을 `로드아웃` 단일 탭 + 선택형 상세 패널 구조로 재설계. `pauseLoadoutContent` helper로 장비/빈 슬롯/잠금 슬롯 리스트와 상세 패널을 렌더하고, `PauseView`는 선택 상태/탭/툴팁 wiring만 유지하도록 정리. 카드 하단 assist row(시너지/진화/진행), 실제 관계 기반 linked items, tooltip 보조화도 함께 반영.
+- 2026-03-21: 신규 회귀 테스트 `tests/PauseLoadoutContent.test.js`, 갱신된 `tests/PauseAndInputSource.test.js`, `tests/ResultAndProgressionSource.test.js` 포함 전체 `scripts/runTests.js` 42 PASS, `npm run build` 통과. 이번 세션에서는 브라우저 smoke는 다시 돌리지 못했고, 실제 런타임 상호작용은 다음 Playwright 검증에서 한 번 더 확인 필요.
 - 2026-03-21: Playwright로 실제 전투 중 레벨업 오버레이를 재현해 `남은 리롤 2`, `남은 봉인 1` 노출을 확인. 가운데 카드 리롤 후 `마법탄 + -> 골드 획득`으로 교체되고 `남은 리롤 2 -> 1` 감소 확인, 봉인 모드에서 `골드 획득` 카드 클릭 후 `남은 봉인 1 -> 0` 감소와 카드 교체도 확인.
 - 2026-03-21: Playwright 실제 입력으로 레벨업 종료 후 전투 중 `Escape` 장입 상태(`keyboard.down`)를 유지해 ESC 일시정지 모달 표시를 확인. `.pv-overlay` DOM 상태가 `display:flex`, `aria-hidden=false`로 바뀌고 무기/장신구/스탯/사운드 탭, `전투 포기`, `재개` 버튼 렌더도 함께 확인. 짧은 `press Escape`만으로는 poll 기반 입력 프레임과 어긋나 검증이 흔들릴 수 있음.
 - 2026-03-21: Playwright로 ESC 모달 추가 실검증 완료. 무기 카드 hover 시 `.pv-tooltip`이 `display:block`으로 열리고 상세 스탯/시너지/진화 조건 텍스트가 렌더됨. `사운드` 탭에서 `masterVolume 80 -> 72`, `soundEnabled ON -> OFF`를 변경했고 `ashenRequiem_session.options`에도 같은 값이 저장되는 것을 확인. 모바일 축소(390x600)에서는 `.pv-panel`의 `scrollHeight 739`, `clientHeight 558`, wheel 입력 후 `scrollTop 0 -> 181`로 실제 내부 스크롤 확인. `전투 포기` 클릭 후 결과 화면 `☠ GAME OVER`와 `⌂ 메인 화면으로`/`다시 시작` 버튼 노출도 확인.
-- 2026-03-21: 장신구 툴팁은 별도 런에서 리롤 10회를 주고 장신구 선택지를 재현하려 했지만 이번 시도한 첫 레벨업 풀에서는 장신구 카드가 뜨지 않아 브라우저 hover 검증까지는 미도달.
+- 2026-03-21: 장신구 툴팁 브라우저 최종 검증 완료. Playwright에서 실제 `PlayScene` 진입 후 `tome_of_power` 장신구를 주입하고 ESC pause overlay를 띄운 다음 장신구 카드 hover로 `.pv-tooltip`이 `visible=true` 상태에서 `마력의 서`, `희귀`, `데미지 Lv1 +10% → Lv2 +20% → Lv3 +30% → Lv4 +40% → Lv5 +50%`, `마법탄 진화 연결` 텍스트를 렌더하는 것을 확인. 최종 스크린샷은 `output/playwright/pause-accessory-tooltip.png`.
 - 2026-03-21: 구조 정리 추가 반영. `PauseView`는 `src/ui/pause/pauseViewSections.js`, `src/ui/pause/pauseTooltipContent.js`로 렌더/tooltip 빌더를 분리했고, `ResultView`/`PauseView` 액션 버튼은 `src/ui/shared/actionButtonTheme.js` 공통 토큰을 사용하도록 변경. `PlayScene`의 레벨업 선택/리롤/봉인 로직은 `src/scenes/play/levelUpController.js`로 이동.
 - 2026-03-21: `src/core/runtimeHooks.js`를 추가하고 `Game`에서 `window.advanceTime(ms)` / `window.render_game_to_text()`를 등록하도록 변경. Playwright로 `http://127.0.0.1:4177/`에서 훅 존재를 확인했고, 실제 플레이 진입 후 `elapsedTime`이 `1.8474 -> 2.8474`로 증가해 `advanceTime(1000)` 반영도 확인.
 - 2026-03-21: 새 source 테스트 `tests/UiStructureSource.test.js` 추가, `tests/LevelUpSource.test.js`를 controller 위임 구조에 맞게 갱신. `node scripts/runTests.js` 39개 PASS, `npm run build` 통과.
-- TODO: 브라우저에서 실제 장신구 획득 런을 만든 뒤 `PauseView` 장신구 카드 hover tooltip까지 최종 확인하고 필요 시 후속 보정.
+- 2026-03-21: 브라우저 검증 훅 후속 보강. `render_game_to_text()` snapshot에 `ui.pauseVisible`, `ui.levelUpVisible`, `ui.resultVisible`를 추가해 ESC/레벨업/결과 화면 smoke를 DOM 파싱 없이도 판별할 수 있게 했고, `tests/RuntimeHooks.test.js`로 회귀를 고정.
 
 - 2026-03-21: 타이틀 종료 버튼 활성화 작업 시작. 종료 버튼 source 회귀 테스트를 먼저 추가해 red 확인 예정.
 - 2026-03-21: TitleScene Quit 버튼을 활성화. window.close() 시도 후 차단 시 라이브 메시지 폴백을 추가하고 비활성 스타일/문구를 제거.
@@ -47,3 +49,10 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-21: pauseTooltipContent의 formatWeaponSynergyBonus를 export하고 PauseView가 재사용하도록 수정. 정의되지 않은 _formatSynergyBonus 호출 제거.
 - 2026-03-21: 무기 progression/Lv.7 테스트를 새 구조 기준으로 갱신. 개별 테스트 RED 확인 중.
 - 2026-03-21: 신규 weapon behavior/무기 테스트 추가. 레지스트리, spawn config, projectile runtime 동작 RED 확인 예정.
+- 2026-03-21: 무기 성장 구조를 `weaponProgressionData` 단일 소스로 전환. 무기 업그레이드 카드는 무기당 1종만 남기고, 레벨 2~7 성장표를 번갈이 적용하도록 변경. 기본/진화 무기 `maxLevel`과 진화 조건도 모두 Lv.7 기준으로 상향.
+- 2026-03-21: 신규 기본 무기 6종(`solar_ray`, `piercing_spear`, `flame_zone`, `venom_bog`, `crystal_shard`, `radiant_orb`)과 신규 behavior 3종(`laserBeam`, `groundZone`, `ricochetProjectile`) 추가. `ProjectileSystem`에 장판 tick reset / 반사 재조준 처리와 draw registry도 함께 확장.
+- 2026-03-21: 신규 무기 전용 진화 무기 6종(`helios_lance`, `astral_pike`, `inferno_field`, `plague_marsh`, `prism_volley`, `seraph_disc`) 및 진화 레시피를 추가. 신규 무기 밸런스는 역할 공백 메우기형 기준으로 기본 스펙과 progression 수치를 1차 조정.
+- 2026-03-21: 브라우저 smoke 재검증은 `dist/`를 Python 정적 서버(`127.0.0.1:43210`)로 서빙해 진행. Playwright로 시작 무기 선택에서 `solar_ray`, `flame_zone`, `crystal_shard` 선택 후 실제 게임 진입 스크린샷을 확보했고, `output/web-game/start-three/summary.json`에서 각 시작 무기가 플레이어 보유 무기로 반영됨을 확인.
+- 2026-03-21: Playwright로 Codex 무기 탭을 열어 신규 진화 무기 카드 ID 6종(`helios_lance`, `astral_pike`, `inferno_field`, `plague_marsh`, `prism_volley`, `seraph_disc`)이 DOM에 실제 존재함을 확인. 스크린샷은 `output/web-game/codex-shot/codex.png`, ID 목록은 `output/web-game/codex-shot/ids.json`.
+- 2026-03-21: `runtimeHooks`가 `scene.constructor.name`에 의존해 minify된 `"e"`를 노출하던 문제를 수정. 모든 scene 클래스에 안정적인 `sceneId`를 추가하고 `tests/RuntimeHooks.test.js`로 red-green 회귀를 고정.
+- 2026-03-21: `dist/`를 `127.0.0.1:43210`에서 다시 서빙해 `WEB_GAME_CLIENT` 및 Playwright smoke를 재실행. `output/web-game/runtimehooks-play-client2/state-0.json`에서 `scene: "PlayScene"` 복구를 확인했고, 스크린샷은 `output/web-game/runtimehooks-play-client2/shot-0.png`.
