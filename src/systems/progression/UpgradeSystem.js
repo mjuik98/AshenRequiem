@@ -11,6 +11,7 @@ import { upgradeData }      from '../../data/upgradeData.js';
 import { shuffle }           from '../../utils/random.js';
 import { getWeaponDataById } from '../../data/weaponData.js';
 import { getAccessoryById }  from '../../data/accessoryData.js';
+import { getNextWeaponProgression } from '../../data/weaponProgressionData.js';
 import { SynergySystem }     from './SynergySystem.js';
 
 export const UpgradeSystem = {
@@ -62,15 +63,12 @@ export const UpgradeSystem = {
         const def      = getWeaponDataById(upgrade.weaponId);
         const maxLevel = def?.maxLevel ?? Infinity;
         if (owned.level >= maxLevel) continue;
-
-        if (upgrade.maxCount !== undefined) {
-          // maxCount 기반 — skipLevelUp 업그레이드(다중 발사 등)
-          const taken = player.upgradeCounts?.[upgrade.id] ?? 0;
-          if (taken < upgrade.maxCount) picks.push(upgrade);
-        } else {
-          // 무기 레벨 기반 일반 강화
-          if (owned.level < maxLevel) picks.push(upgrade);
-        }
+        const nextProgression = getNextWeaponProgression(owned);
+        if (!nextProgression) continue;
+        picks.push({
+          ...upgrade,
+          description: nextProgression.description ?? upgrade.description,
+        });
 
       } else if (upgrade.type === 'accessory') {
         // 장신구 슬롯 여유 있고, 미보유 시
@@ -133,31 +131,64 @@ export const UpgradeSystem = {
     } else if (upgrade.type === 'weapon_upgrade') {
       const owned = player.weapons.find(w => w.id === upgrade.weaponId);
       if (owned) {
-        // skipLevelUp: 무기 레벨을 소모하지 않는 특수 업그레이드(다중 발사 등)
-        if (!upgrade.skipLevelUp) {
-          owned.level++;
+        const nextProgression = getNextWeaponProgression(owned);
+        if (!nextProgression) return;
+
+        owned.level = nextProgression.level;
+
+        const dmgDelta = nextProgression.damageDelta ?? 0;
+        if (dmgDelta !== 0) {
+          owned.damage = (owned.damage || 1) + dmgDelta;
         }
 
-        const dmgDelta    = upgrade.damageDelta      ?? 1;
-        const cdMult      = upgrade.cooldownMult     ?? 0.92;
-        const orbitRDelta = upgrade.orbitRadiusDelta ?? 0;
-        const pierceDelta = upgrade.pierceDelta      ?? 0;
+        const cdMult = nextProgression.cooldownMult ?? 1;
+        if (cdMult !== 1) {
+          owned.cooldown = Math.max(0.1, (owned.cooldown || 1) * cdMult);
+        }
 
-        owned.damage   = (owned.damage   || 1) + dmgDelta;
-        owned.cooldown = Math.max(0.1, (owned.cooldown || 1) * cdMult);
-
+        const orbitRDelta = nextProgression.orbitRadiusDelta ?? 0;
         if (orbitRDelta > 0 && owned.orbitRadius !== undefined) {
           owned.orbitRadius += orbitRDelta;
         }
+
+        const orbitCountDelta = nextProgression.orbitCountDelta ?? 0;
+        if (orbitCountDelta > 0 && owned.orbitCount !== undefined) {
+          owned.orbitCount += orbitCountDelta;
+        }
+
+        const pierceDelta = nextProgression.pierceDelta ?? 0;
         if (pierceDelta > 0 && owned.pierce !== undefined
             && owned.behaviorId !== 'orbit' && owned.behaviorId !== 'areaBurst') {
           owned.pierce += pierceDelta;
         }
 
-        // 다중 투사체 업그레이드
-        const projCountDelta = upgrade.projectileCountDelta ?? 0;
+        const projCountDelta = nextProgression.projectileCountDelta ?? 0;
         if (projCountDelta > 0) {
           owned.projectileCount = (owned.projectileCount ?? 1) + projCountDelta;
+        }
+
+        const radiusDelta = nextProgression.radiusDelta ?? 0;
+        if (radiusDelta > 0) {
+          if (owned.radius !== undefined) owned.radius += radiusDelta;
+          if (owned.range !== undefined) owned.range += radiusDelta;
+        }
+
+        const chainCountDelta = nextProgression.chainCountDelta ?? 0;
+        if (chainCountDelta > 0 && owned.chainCount !== undefined) {
+          owned.chainCount += chainCountDelta;
+        }
+
+        const beamLengthDelta = nextProgression.beamLengthDelta ?? 0;
+        if (beamLengthDelta > 0 && owned.beamLength !== undefined) {
+          owned.beamLength += beamLengthDelta;
+        }
+
+        const bounceCountDelta = nextProgression.bounceCountDelta ?? 0;
+        if (bounceCountDelta > 0 && owned.bounceCount !== undefined) {
+          owned.bounceCount += bounceCountDelta;
+          if (owned.pierce !== undefined) {
+            owned.pierce = Math.max(owned.pierce, owned.bounceCount + 1);
+          }
         }
       }
 

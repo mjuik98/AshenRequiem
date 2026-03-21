@@ -14,6 +14,9 @@ test('LevelUpView는 카드별 리롤 버튼과 봉인 모드 UI를 렌더링한
   assert.equal(levelUpViewSource.includes('봉인 모드'), true, 'LevelUpView에 봉인 모드 문구가 없음');
   assert.equal(levelUpViewSource.includes('남은 리롤'), true, 'LevelUpView에 리롤 잔여 횟수 문구가 없음');
   assert.equal(levelUpViewSource.includes('남은 봉인'), true, 'LevelUpView에 봉인 잔여 횟수 문구가 없음');
+  assert.equal(levelUpViewSource.includes('levelup-card-shell'), true, 'LevelUpView가 카드 외부 하단 액션 래퍼를 사용하지 않음');
+  assert.equal(levelUpViewSource.includes('card-footer-actions'), true, 'LevelUpView가 카드 하단 풋터 액션 영역을 사용하지 않음');
+  assert.equal(levelUpViewSource.includes('card-actions'), false, 'LevelUpView에 기존 카드 내부 액션 영역이 남아 있음');
 });
 
 test('LevelUpView는 선택과 카드별 리롤/봉인 토글 콜백을 구분해서 받는다', () => {

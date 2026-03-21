@@ -144,12 +144,12 @@ export class TitleScene {
               <span class="t-btn-badge">⚙</span>
             </button>
 
-            <button class="t-btn is-disabled" data-action="quit" type="button" aria-disabled="true">
+            <button class="t-btn" data-action="quit" type="button">
               <span class="t-btn-left">
                 <span class="t-btn-label">Quit</span>
-                <span class="t-btn-meta">브라우저 MVP 제외</span>
+                <span class="t-btn-meta">창 또는 탭을 닫습니다</span>
               </span>
-              <span class="t-btn-badge">—</span>
+              <span class="t-btn-badge">✕</span>
             </button>
           </nav>
 
@@ -222,10 +222,32 @@ export class TitleScene {
       this._openStartLoadout({ setMessage, pulseFlash });
     };
 
+    const attemptQuit = () => {
+      pulseFlash();
+      setMessage('게임을 종료하는 중…');
+
+      const showBlockedMessage = () => {
+        setMessage('브라우저가 종료를 차단했습니다. 탭 또는 창을 직접 닫아주세요.');
+      };
+
+      try {
+        window.close();
+      } catch (error) {
+        console.warn('[TitleScene] 창 종료 시도 실패:', error);
+        showBlockedMessage();
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (!window.closed) {
+          showBlockedMessage();
+        }
+      }, 180);
+    };
+
     const handleDisabled = (action) => {
       const msgs = {
         settings: '설정 UI는 아직 준비 중입니다.',
-        quit:     '브라우저 빌드에서는 탭을 닫아 종료할 수 있습니다.',
       };
       pulseFlash();
       setMessage(msgs[action] || '아직 사용할 수 없는 메뉴입니다.');
@@ -252,6 +274,10 @@ export class TitleScene {
           this._nav.load(() => import('./SettingsScene.js'), ({ SettingsScene }) => {
             this.game.sceneManager.changeScene(new SettingsScene(this.game));
           }, (e) => console.error('[TitleScene] SettingsScene 로드 실패:', e));
+          return;
+        }
+        if (action === 'quit') {
+          attemptQuit();
           return;
         }
         handleDisabled(action);
@@ -709,18 +735,6 @@ export class TitleScene {
 
       .t-btn.primary { border-color: rgba(199,163,93,0.34); }
       .t-btn.primary .t-btn-label { color: var(--t-gold-hi); }
-
-      .t-btn.is-disabled {
-        opacity: 0.72; cursor: default;
-      }
-      .t-btn.is-disabled:hover {
-        transform: none;
-        border-color: rgba(199,163,93,0.18);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
-          rgba(10,7,16,0.58);
-        box-shadow: 0 10px 24px rgba(0,0,0,0.2);
-      }
 
       .t-btn-left { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
       .t-btn-label {

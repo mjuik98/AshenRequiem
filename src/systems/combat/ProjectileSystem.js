@@ -32,7 +32,7 @@
  *   FIX(BUG-C): 귀환 중 player가 null이면 무한 이동 방지
  */
 export const ProjectileSystem = {
-  update({ world: { projectiles, player, deltaTime } }) {
+  update({ world: { projectiles, player, enemies = [], deltaTime } }) {
     for (let i = 0; i < projectiles.length; i++) {
       const p = projectiles[i];
       if (!p.isAlive || p.pendingDestroy) continue;
@@ -59,7 +59,7 @@ export const ProjectileSystem = {
         if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
 
       // ── areaBurst ────────────────────────────────────────────────────
-      } else if (p.behaviorId === 'areaBurst') {
+      } else if (p.behaviorId === 'areaBurst' || p.behaviorId === 'laserBeam') {
         // FIX(BUG-6): orbitsPlayer 플래그가 있으면 플레이어 위치에 동기화
         // Before: 발사 시점의 x/y에 고정 → 이동 중 오라 공백 발생
         // After:  orbitsPlayer=true인 투사체는 매 프레임 player 위치로 이동
@@ -70,6 +70,62 @@ export const ProjectileSystem = {
         }
         p.lifetime += deltaTime;
         if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
+
+      // ── groundZone ────────────────────────────────────────────────────
+      } else if (p.behaviorId === 'groundZone') {
+        p.lifetime += deltaTime;
+        if (p.tickInterval && p.tickInterval > 0) {
+          p.tickTimer = (p.tickTimer ?? 0) + deltaTime;
+          while (p.tickTimer >= p.tickInterval) {
+            p.tickTimer -= p.tickInterval;
+            p.hitTargets.clear();
+            p.hitCount = 0;
+          }
+        }
+        if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
+
+      // ── ricochetProjectile ────────────────────────────────────────────
+      } else if (p.behaviorId === 'ricochetProjectile') {
+        if (p.hitCount > (p._lastRicochetHitCount ?? 0)) {
+          p._lastRicochetHitCount = p.hitCount;
+
+          if ((p.bounceRemaining ?? 0) > 0) {
+            const sourceEnemyId = [...p.hitTargets].at(-1) ?? null;
+            const sourceEnemy = enemies.find((enemy) => enemy.id === sourceEnemyId) ?? p;
+            const visited = p.hitTargets;
+            let nearest = null;
+            let minDistSq = Infinity;
+
+            for (let j = 0; j < enemies.length; j++) {
+              const enemy = enemies[j];
+              if (!enemy.isAlive || enemy.pendingDestroy || visited.has(enemy.id)) continue;
+              const dx = enemy.x - sourceEnemy.x;
+              const dy = enemy.y - sourceEnemy.y;
+              const distSq = dx * dx + dy * dy;
+              if (distSq < minDistSq) {
+                minDistSq = distSq;
+                nearest = enemy;
+              }
+            }
+
+            if (nearest) {
+              const dx = nearest.x - p.x;
+              const dy = nearest.y - p.y;
+              const len = Math.hypot(dx, dy) || 1;
+              p.dirX = dx / len;
+              p.dirY = dy / len;
+            }
+
+            p.bounceRemaining -= 1;
+          }
+        }
+
+        const dist = p.speed * deltaTime;
+        p.x += p.dirX * dist;
+        p.y += p.dirY * dist;
+        p.distanceTraveled = (p.distanceTraveled ?? 0) + dist;
+        if (p.distanceTraveled >= p.maxRange) { p.isAlive = false; p.pendingDestroy = true; }
+        if (p.hitCount >= p.pierce)           { p.isAlive = false; p.pendingDestroy = true; }
 
       // ── boomerang ────────────────────────────────────────────────────
       } else if (p.behaviorId === 'boomerang') {

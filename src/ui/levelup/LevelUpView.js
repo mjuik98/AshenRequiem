@@ -66,8 +66,10 @@ export class LevelUpView {
     });
 
     choices.forEach((upgrade, index) => {
+      const cardShell = document.createElement('div');
       const card = document.createElement('div');
       const typeClass = _getTypeClass(upgrade.type);
+      cardShell.className = 'levelup-card-shell';
       card.className = `levelup-card ${typeClass}${banishMode ? ' is-banish-mode' : ''}`;
 
       const badge = _getBadge(upgrade.type);
@@ -78,16 +80,22 @@ export class LevelUpView {
         <div class="card-name">${upgrade.name}</div>
         <div class="card-desc">${upgrade.description}</div>
         ${upgrade.type === 'slot' ? `<div class="card-slot-hint">슬롯 확장</div>` : ''}
-        <div class="card-actions">
-          <button class="card-reroll-btn" type="button" ${rerollDisabled ? 'disabled' : ''}>리롤</button>
-        </div>
       `;
       card.addEventListener('click', () => this._pick(upgrade, index));
-      card.querySelector('.card-reroll-btn')?.addEventListener('click', (event) => {
+
+      const footerActions = document.createElement('div');
+      footerActions.className = 'card-footer-actions';
+      footerActions.innerHTML = `
+        <button class="card-reroll-btn" type="button" ${rerollDisabled ? 'disabled' : ''}>리롤</button>
+      `;
+      footerActions.querySelector('.card-reroll-btn')?.addEventListener('click', (event) => {
         event.stopPropagation();
         this._onReroll?.(index);
       });
-      cardsEl.appendChild(card);
+
+      cardShell.appendChild(card);
+      cardShell.appendChild(footerActions);
+      cardsEl.appendChild(cardShell);
     });
 
     this.el.style.display = 'flex';
@@ -181,9 +189,16 @@ export class LevelUpView {
       .levelup-cards {
         display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
       }
+      .levelup-card-shell {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        width: 168px;
+      }
       .levelup-card {
         position: relative;
-        width: 168px; padding: 20px 14px 18px;
+        width: 100%; padding: 20px 14px 18px;
         background: linear-gradient(160deg, #1e2736, #141b26);
         border: 1px solid rgba(255,255,255,0.12);
         border-radius: 12px; cursor: pointer;
@@ -238,17 +253,17 @@ export class LevelUpView {
         margin-top: 8px; font-size: 10px; color: #64b5f6;
         letter-spacing: 0.12em; text-transform: uppercase;
       }
-      .card-actions {
-        margin-top: 12px;
+      .card-footer-actions {
         display: flex;
         justify-content: center;
       }
       .card-reroll-btn {
-        min-width: 84px;
+        width: 100%;
+        min-height: 36px;
         padding: 7px 10px;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.05);
+        background: rgba(9, 14, 22, 0.88);
         color: #eceff1;
         font-size: 11px;
         font-weight: 700;

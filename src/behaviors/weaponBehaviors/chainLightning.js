@@ -25,7 +25,7 @@
  *     id: 'chain_lightning', name: '연쇄 번개', behaviorId: 'chainLightning',
  *     damage: 12, cooldown: 2.0, range: 350,
  *     chainCount: 3, chainRange: 120, radius: 12,
- *     projectileColor: '#b388ff', maxLevel: 5,
+ *     projectileColor: '#b388ff', maxLevel: 7,
  *   }
  */
 

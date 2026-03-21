@@ -67,20 +67,18 @@ test('장신구 슬롯이 꽉 차면 신규 장신구 미등장', () => {
   assert.equal(hasNewAcc, false, '장신구 슬롯이 꽉 찼는데 신규 장신구 등장');
 });
 
-console.log('\n[다중 투사체 테스트]');
+console.log('\n[무기 progression 테스트]');
 
-test('multishot 적용 시 무기 레벨 변화 없고 projectileCount만 증가', () => {
+test('번갈이 progression 특성으로 추가 투사체가 적용된다', () => {
   const player = makePlayer({
-    weapons: [{ id: 'magic_bolt', level: 5, currentCooldown: 0,
-                damage: 5, cooldown: 0.8, projectileCount: 1 }],
+    weapons: [{ id: 'magic_bolt', level: 2, currentCooldown: 0,
+                damage: 6, cooldown: 0.94, projectileCount: 1 }],
   });
   UpgradeSystem.applyUpgrade(player, {
-    id: 'up_magic_bolt_multishot', type: 'weapon_upgrade',
-    weaponId: 'magic_bolt', projectileCountDelta: 1,
-    damageDelta: 0, cooldownMult: 1.0, skipLevelUp: true,
+    id: 'up_magic_bolt', type: 'weapon_upgrade', weaponId: 'magic_bolt',
   });
   const w = player.weapons.find(w => w.id === 'magic_bolt');
-  assert.equal(w.level, 5, '레벨이 변경됨 (skipLevelUp 버그)');
+  assert.equal(w.level, 3, 'progression 적용 후 레벨이 3이 아님');
   assert.equal(w.projectileCount, 2, 'projectileCount 미증가');
 });
 

@@ -133,6 +133,65 @@ function drawChainLightning(ctx, proj, camera) {
   ctx.restore();
 }
 
+function drawLaserBeam(ctx, proj, camera, lowQuality) {
+  const sx = proj.x - camera.x;
+  const sy = proj.y - camera.y;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(proj.beamAngle ?? 0);
+  ctx.fillStyle = proj.color ?? '#ffd166';
+  if (!lowQuality) {
+    ctx.shadowColor = proj.color ?? '#ffd166';
+    ctx.shadowBlur = 16;
+  }
+  ctx.fillRect(
+    -(proj.beamLength ?? 16) * 0.5,
+    -(proj.radius ?? 8) * 0.5,
+    proj.beamLength ?? 16,
+    proj.radius ?? 8,
+  );
+  ctx.restore();
+}
+
+function drawGroundZone(ctx, proj, camera, lowQuality) {
+  const sx = proj.x - camera.x;
+  const sy = proj.y - camera.y;
+  const pulse = 1 + Math.sin((proj.lifetime ?? 0) * 8) * 0.06;
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.arc(sx, sy, (proj.radius ?? 24) * pulse, 0, Math.PI * 2);
+  ctx.fillStyle = proj.color ?? '#ff7043';
+  if (!lowQuality) {
+    ctx.shadowColor = proj.color ?? '#ff7043';
+    ctx.shadowBlur = 14;
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawRicochetProjectile(ctx, proj, camera, lowQuality) {
+  const sx = proj.x - camera.x;
+  const sy = proj.y - camera.y;
+  const r = proj.radius ?? 6;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Math.atan2(proj.dirY ?? 0, proj.dirX ?? 1));
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(0, r * 0.8);
+  ctx.lineTo(-r, 0);
+  ctx.lineTo(0, -r * 0.8);
+  ctx.closePath();
+  ctx.fillStyle = proj.color ?? '#8ecae6';
+  if (!lowQuality) {
+    ctx.shadowColor = proj.color ?? '#8ecae6';
+    ctx.shadowBlur = 10;
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
 // ── 레지스트리 ────────────────────────────────────────────────────────────
 
 /** @type {Map<string, Function>} behaviorId → draw 함수 */
@@ -143,6 +202,9 @@ const _registry = new Map([
   ['areaBurst',       drawAreaBurst],
   ['boomerang',       drawBoomerang],
   ['chainLightning',  drawChainLightning],
+  ['laserBeam',       drawLaserBeam],
+  ['groundZone',      drawGroundZone],
+  ['ricochetProjectile', drawRicochetProjectile],
 ]);
 
 /**

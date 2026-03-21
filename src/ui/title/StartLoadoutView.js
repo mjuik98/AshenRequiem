@@ -231,6 +231,9 @@ function _getWeaponEmoji(behaviorId) {
     boomerang: '🪃',
     chainLightning: '⚡',
     omnidirectional: '🌀',
+    laserBeam: '☀️',
+    groundZone: '🔥',
+    ricochetProjectile: '💠',
   };
   return map[behaviorId] ?? '⚔';
 }
@@ -243,6 +246,9 @@ function _getWeaponTag(behaviorId) {
     boomerang: '관통',
     chainLightning: '연쇄',
     omnidirectional: '전방향',
+    laserBeam: '레이저',
+    groundZone: '장판',
+    ricochetProjectile: '반사',
   };
   return map[behaviorId] ?? '기본';
 }

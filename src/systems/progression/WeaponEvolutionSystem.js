@@ -4,7 +4,7 @@
  * 파이프라인 priority 96 (SynergySystem 95 이후, LevelSystem 100 이전)
  *
  * 진화 조건:
- *   1. 기반 무기가 maxLevel에 도달해야 함 (기본 level 5)
+ *   1. 기반 무기가 maxLevel에 도달해야 함 (현재 기본/진화 무기 level 7)
  *   2. 필요한 장신구를 모두 보유해야 함
  *   3. 이미 진화한 레시피는 다시 처리하지 않음 (player.evolvedWeapons Set)
  *

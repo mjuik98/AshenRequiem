@@ -36,6 +36,7 @@ import {
 import {
   buildPauseAccessoryTooltipContent,
   buildPauseWeaponTooltipContent,
+  formatWeaponSynergyBonus,
 } from './pauseTooltipContent.js';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -431,7 +432,7 @@ export class PauseView {
                   <div class="pv-syn-name">${_escapeHtml(s.name ?? s.id)}</div>
                   <div class="pv-syn-desc">${_escapeHtml(s.description ?? '')}</div>
                 </div>
-                <div class="pv-syn-bonus">${_escapeHtml(_formatSynergyBonus(s.bonus))}</div>
+                <div class="pv-syn-bonus">${_escapeHtml(formatWeaponSynergyBonus(s.bonus))}</div>
               </div>
             `).join('')}
           </div>

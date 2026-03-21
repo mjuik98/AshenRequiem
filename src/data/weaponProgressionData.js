@@ -1,0 +1,151 @@
+export const weaponProgressionData = {
+  magic_bolt: [
+    { level: 2, damageDelta: 1, cooldownMult: 0.94, description: '마법탄 데미지 +1, 쿨다운 6% 감소' },
+    { level: 3, projectileCountDelta: 1, description: '마법탄 동시 발사 +1' },
+    { level: 4, damageDelta: 1, cooldownMult: 0.94, description: '마법탄 데미지 +1, 쿨다운 6% 감소' },
+    { level: 5, projectileCountDelta: 1, description: '마법탄 동시 발사 +1' },
+    { level: 6, damageDelta: 2, cooldownMult: 0.92, description: '마법탄 데미지 +2, 쿨다운 8% 감소' },
+    { level: 7, projectileCountDelta: 1, description: '마법탄 동시 발사 +1' },
+  ],
+  holy_aura: [
+    { level: 2, damageDelta: 1, description: '오라 데미지 +1' },
+    { level: 3, orbitRadiusDelta: 8, description: '오라 범위 +8px' },
+    { level: 4, damageDelta: 1, description: '오라 데미지 +1' },
+    { level: 5, orbitRadiusDelta: 8, description: '오라 범위 +8px' },
+    { level: 6, damageDelta: 2, description: '오라 데미지 +2' },
+    { level: 7, orbitRadiusDelta: 10, description: '오라 범위 +10px' },
+  ],
+  lightning_ring: [
+    { level: 2, damageDelta: 1, description: '전기 구체 데미지 +1' },
+    { level: 3, orbitCountDelta: 1, description: '회전 구체 수 +1' },
+    { level: 4, damageDelta: 1, description: '전기 구체 데미지 +1' },
+    { level: 5, orbitCountDelta: 1, description: '회전 구체 수 +1' },
+    { level: 6, damageDelta: 2, description: '전기 구체 데미지 +2' },
+    { level: 7, orbitCountDelta: 1, description: '회전 구체 수 +1' },
+  ],
+  frost_nova: [
+    { level: 2, damageDelta: 2, description: '냉기 폭발 데미지 +2' },
+    { level: 3, radiusDelta: 16, description: '냉기 반경 +16px' },
+    { level: 4, damageDelta: 2, description: '냉기 폭발 데미지 +2' },
+    { level: 5, radiusDelta: 16, description: '냉기 반경 +16px' },
+    { level: 6, damageDelta: 3, description: '냉기 폭발 데미지 +3' },
+    { level: 7, radiusDelta: 20, description: '냉기 반경 +20px' },
+  ],
+  boomerang: [
+    { level: 2, damageDelta: 2, pierceDelta: 1, description: '부메랑 데미지 +2, 관통 +1' },
+    { level: 3, projectileCountDelta: 1, description: '부메랑 동시 투척 +1' },
+    { level: 4, damageDelta: 2, pierceDelta: 1, description: '부메랑 데미지 +2, 관통 +1' },
+    { level: 5, projectileCountDelta: 1, description: '부메랑 동시 투척 +1' },
+    { level: 6, damageDelta: 3, pierceDelta: 1, description: '부메랑 데미지 +3, 관통 +1' },
+    { level: 7, projectileCountDelta: 1, description: '부메랑 동시 투척 +1' },
+  ],
+  chain_lightning: [
+    { level: 2, damageDelta: 2, description: '연쇄 번개 데미지 +2' },
+    { level: 3, chainCountDelta: 1, description: '연쇄 대상 수 +1' },
+    { level: 4, damageDelta: 2, description: '연쇄 번개 데미지 +2' },
+    { level: 5, chainCountDelta: 1, description: '연쇄 대상 수 +1' },
+    { level: 6, damageDelta: 3, description: '연쇄 번개 데미지 +3' },
+    { level: 7, chainCountDelta: 1, description: '연쇄 대상 수 +1' },
+  ],
+  solar_ray: [
+    { level: 2, damageDelta: 1, description: '태양 광선 데미지 +1' },
+    { level: 3, beamLengthDelta: 24, description: '태양 광선 길이 +24px' },
+    { level: 4, damageDelta: 1, description: '태양 광선 데미지 +1' },
+    { level: 5, beamLengthDelta: 24, description: '태양 광선 길이 +24px' },
+    { level: 6, damageDelta: 2, description: '태양 광선 데미지 +2' },
+    { level: 7, beamLengthDelta: 32, description: '태양 광선 길이 +32px' },
+  ],
+  piercing_spear: [
+    { level: 2, damageDelta: 2, description: '관통 창 데미지 +2' },
+    { level: 3, pierceDelta: 1, description: '관통 창 관통 +1' },
+    { level: 4, damageDelta: 2, description: '관통 창 데미지 +2' },
+    { level: 5, pierceDelta: 1, description: '관통 창 관통 +1' },
+    { level: 6, damageDelta: 3, description: '관통 창 데미지 +3' },
+    { level: 7, projectileCountDelta: 1, description: '관통 창 동시 발사 +1' },
+  ],
+  flame_zone: [
+    { level: 2, damageDelta: 1, description: '화염 지대 데미지 +1' },
+    { level: 3, radiusDelta: 8, description: '화염 지대 반경 +8px' },
+    { level: 4, damageDelta: 1, description: '화염 지대 데미지 +1' },
+    { level: 5, radiusDelta: 8, description: '화염 지대 반경 +8px' },
+    { level: 6, damageDelta: 2, description: '화염 지대 데미지 +2' },
+    { level: 7, radiusDelta: 12, description: '화염 지대 반경 +12px' },
+  ],
+  venom_bog: [
+    { level: 2, damageDelta: 1, description: '독성 늪 데미지 +1' },
+    { level: 3, radiusDelta: 8, description: '독성 늪 반경 +8px' },
+    { level: 4, damageDelta: 1, description: '독성 늪 데미지 +1' },
+    { level: 5, radiusDelta: 8, description: '독성 늪 반경 +8px' },
+    { level: 6, damageDelta: 2, description: '독성 늪 데미지 +2' },
+    { level: 7, radiusDelta: 12, description: '독성 늪 반경 +12px' },
+  ],
+  crystal_shard: [
+    { level: 2, damageDelta: 1, description: '수정 파편 데미지 +1' },
+    { level: 3, bounceCountDelta: 1, description: '수정 파편 반사 +1' },
+    { level: 4, damageDelta: 1, description: '수정 파편 데미지 +1' },
+    { level: 5, bounceCountDelta: 1, description: '수정 파편 반사 +1' },
+    { level: 6, damageDelta: 2, description: '수정 파편 데미지 +2' },
+    { level: 7, projectileCountDelta: 1, description: '수정 파편 동시 발사 +1' },
+  ],
+  radiant_orb: [
+    { level: 2, damageDelta: 1, description: '성광 탄환 데미지 +1' },
+    { level: 3, bounceCountDelta: 1, description: '성광 탄환 반사 +1' },
+    { level: 4, damageDelta: 1, description: '성광 탄환 데미지 +1' },
+    { level: 5, projectileCountDelta: 1, description: '성광 탄환 동시 발사 +1' },
+    { level: 6, damageDelta: 2, description: '성광 탄환 데미지 +2' },
+    { level: 7, bounceCountDelta: 1, description: '성광 탄환 반사 +1' },
+  ],
+  arcane_nova: [
+    { level: 2, damageDelta: 2, cooldownMult: 0.95, description: '비전 폭발 데미지 +2, 쿨다운 5% 감소' },
+    { level: 3, projectileCountDelta: 1, description: '비전 탄환 수 +1' },
+    { level: 4, damageDelta: 2, cooldownMult: 0.95, description: '비전 폭발 데미지 +2, 쿨다운 5% 감소' },
+    { level: 5, projectileCountDelta: 1, description: '비전 탄환 수 +1' },
+    { level: 6, damageDelta: 3, cooldownMult: 0.92, description: '비전 폭발 데미지 +3, 쿨다운 8% 감소' },
+    { level: 7, projectileCountDelta: 1, description: '비전 탄환 수 +1' },
+  ],
+  storm_crown: [
+    { level: 2, damageDelta: 2, description: '폭풍 구체 데미지 +2' },
+    { level: 3, orbitCountDelta: 1, description: '회전 구체 수 +1' },
+    { level: 4, damageDelta: 2, description: '폭풍 구체 데미지 +2' },
+    { level: 5, orbitCountDelta: 1, description: '회전 구체 수 +1' },
+    { level: 6, damageDelta: 3, description: '폭풍 구체 데미지 +3' },
+    { level: 7, orbitCountDelta: 1, description: '회전 구체 수 +1' },
+  ],
+  divine_shield: [
+    { level: 2, damageDelta: 2, description: '신성한 방패 데미지 +2' },
+    { level: 3, orbitRadiusDelta: 12, description: '방패 범위 +12px' },
+    { level: 4, damageDelta: 2, description: '신성한 방패 데미지 +2' },
+    { level: 5, orbitRadiusDelta: 12, description: '방패 범위 +12px' },
+    { level: 6, damageDelta: 3, description: '신성한 방패 데미지 +3' },
+    { level: 7, orbitRadiusDelta: 14, description: '방패 범위 +14px' },
+  ],
+  infinity_blade: [
+    { level: 2, damageDelta: 4, pierceDelta: 2, description: '무한의 칼날 데미지 +4, 관통 +2' },
+    { level: 3, projectileCountDelta: 1, description: '칼날 동시 투척 +1' },
+    { level: 4, damageDelta: 4, pierceDelta: 2, description: '무한의 칼날 데미지 +4, 관통 +2' },
+    { level: 5, projectileCountDelta: 1, description: '칼날 동시 투척 +1' },
+    { level: 6, damageDelta: 5, pierceDelta: 2, description: '무한의 칼날 데미지 +5, 관통 +2' },
+    { level: 7, projectileCountDelta: 1, description: '칼날 동시 투척 +1' },
+  ],
+  blizzard_nova: [
+    { level: 2, damageDelta: 2, description: '블리자드 노바 데미지 +2' },
+    { level: 3, radiusDelta: 18, description: '빙하 폭풍 반경 +18px' },
+    { level: 4, damageDelta: 2, description: '블리자드 노바 데미지 +2' },
+    { level: 5, radiusDelta: 18, description: '빙하 폭풍 반경 +18px' },
+    { level: 6, damageDelta: 3, description: '블리자드 노바 데미지 +3' },
+    { level: 7, radiusDelta: 22, description: '빙하 폭풍 반경 +22px' },
+  ],
+};
+
+export function getWeaponProgressionData(weaponId) {
+  return weaponProgressionData[weaponId] ?? [];
+}
+
+export function getWeaponProgressionForLevel(weaponId, level) {
+  return getWeaponProgressionData(weaponId).find((step) => step.level === level) ?? null;
+}
+
+export function getNextWeaponProgression(weapon) {
+  const nextLevel = (weapon?.level ?? 1) + 1;
+  return getWeaponProgressionForLevel(weapon?.id, nextLevel);
+}

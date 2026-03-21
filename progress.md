@@ -37,3 +37,13 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-21: `src/core/runtimeHooks.js`를 추가하고 `Game`에서 `window.advanceTime(ms)` / `window.render_game_to_text()`를 등록하도록 변경. Playwright로 `http://127.0.0.1:4177/`에서 훅 존재를 확인했고, 실제 플레이 진입 후 `elapsedTime`이 `1.8474 -> 2.8474`로 증가해 `advanceTime(1000)` 반영도 확인.
 - 2026-03-21: 새 source 테스트 `tests/UiStructureSource.test.js` 추가, `tests/LevelUpSource.test.js`를 controller 위임 구조에 맞게 갱신. `node scripts/runTests.js` 39개 PASS, `npm run build` 통과.
 - TODO: 브라우저에서 실제 장신구 획득 런을 만든 뒤 `PauseView` 장신구 카드 hover tooltip까지 최종 확인하고 필요 시 후속 보정.
+
+- 2026-03-21: 타이틀 종료 버튼 활성화 작업 시작. 종료 버튼 source 회귀 테스트를 먼저 추가해 red 확인 예정.
+- 2026-03-21: TitleScene Quit 버튼을 활성화. window.close() 시도 후 차단 시 라이브 메시지 폴백을 추가하고 비활성 스타일/문구를 제거.
+- 2026-03-21: 종료 버튼 변경 후 source 회귀 테스트와 전체 테스트(39/39), 빌드 통과 확인. 정적 서버 기반 Playwright smoke는 현재 소스와 다른 타이틀 UI가 렌더되어 Quit 클릭 검증 근거로 사용하지 않음.
+- 2026-03-21: 레벨업 리롤 버튼을 카드 내부에서 카드 하단 외부로 옮기는 작업 시작. source 테스트를 먼저 갱신해 red 확인 예정.
+- 2026-03-21: LevelUpView를 카드 래퍼 + 하단 풋터 액션 구조로 변경. 리롤 버튼을 카드 외부 아래로 이동.
+- 2026-03-21: PauseView 시너지 보너스 포맷터 누락 버그 수정 시작. source 회귀 테스트를 먼저 추가해 red 확인 예정.
+- 2026-03-21: pauseTooltipContent의 formatWeaponSynergyBonus를 export하고 PauseView가 재사용하도록 수정. 정의되지 않은 _formatSynergyBonus 호출 제거.
+- 2026-03-21: 무기 progression/Lv.7 테스트를 새 구조 기준으로 갱신. 개별 테스트 RED 확인 중.
+- 2026-03-21: 신규 weapon behavior/무기 테스트 추가. 레지스트리, spawn config, projectile runtime 동작 RED 확인 예정.

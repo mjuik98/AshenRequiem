@@ -22,7 +22,7 @@ const MOCK_EVOLUTION_DATA = [
   },
 ];
 
-function makeWeaponMaxLevel(id = 'magic_bolt', level = 5) {
+function makeWeaponMaxLevel(id = 'magic_bolt', level = 7) {
   return { id, level, currentCooldown: 0, damage: 10, cooldown: 0.8 };
 }
 
@@ -30,7 +30,7 @@ console.log('\n[WeaponEvolutionSystem 테스트]');
 
 test('기반 무기 maxLevel + 장신구 조건 충족 시 진화 실행', () => {
   const player = makePlayer({
-    weapons:     [makeWeaponMaxLevel('magic_bolt', 5)],
+    weapons:     [makeWeaponMaxLevel('magic_bolt', 7)],
     accessories: [{ id: 'tome_of_power' }],
     evolvedWeapons: new Set(),
   });
@@ -45,7 +45,7 @@ test('기반 무기 maxLevel + 장신구 조건 충족 시 진화 실행', () =>
 
 test('기반 무기 레벨 미달 시 진화 미발생', () => {
   const player = makePlayer({
-    weapons:     [makeWeaponMaxLevel('magic_bolt', 3)],  // level 3 (maxLevel 5 미달)
+    weapons:     [makeWeaponMaxLevel('magic_bolt', 6)],  // level 6 (maxLevel 7 미달)
     accessories: [{ id: 'tome_of_power' }],
     evolvedWeapons: new Set(),
   });
@@ -61,7 +61,7 @@ test('기반 무기 레벨 미달 시 진화 미발생', () => {
 
 test('장신구 조건 미충족 시 진화 미발생', () => {
   const player = makePlayer({
-    weapons:     [makeWeaponMaxLevel('magic_bolt', 5)],
+    weapons:     [makeWeaponMaxLevel('magic_bolt', 7)],
     accessories: [],  // tome_of_power 없음
     evolvedWeapons: new Set(),
   });
@@ -76,7 +76,7 @@ test('장신구 조건 미충족 시 진화 미발생', () => {
 
 test('이미 진화한 레시피는 중복 실행 안 됨', () => {
   const player = makePlayer({
-    weapons:     [makeWeaponMaxLevel('magic_bolt', 5)],
+    weapons:     [makeWeaponMaxLevel('magic_bolt', 7)],
     accessories: [{ id: 'tome_of_power' }],
     evolvedWeapons: new Set(['evo_test']),  // 이미 진화됨
   });
@@ -92,7 +92,7 @@ test('이미 진화한 레시피는 중복 실행 안 됨', () => {
 
 test('진화 성공 시 weaponEvolved 이벤트 발행', () => {
   const player = makePlayer({
-    weapons:     [makeWeaponMaxLevel('magic_bolt', 5)],
+    weapons:     [makeWeaponMaxLevel('magic_bolt', 7)],
     accessories: [{ id: 'tome_of_power' }],
     evolvedWeapons: new Set(),
   });

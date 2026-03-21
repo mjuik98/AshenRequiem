@@ -96,7 +96,7 @@ export function findNearestFrom(origin, candidates, maxRange, visited) {
  * @param {object}   target      방향 기준 적 엔티티
  * @param {object[]} spawnQueue
  */
-export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) {
+export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue, extraConfig = {}) {
   const dir    = normalize(sub(target, player));
   const bonus  = player?.bonusProjectileCount ?? 0;
   const count  = (weapon.projectileCount ?? 1) + Math.floor(bonus);
@@ -131,10 +131,11 @@ export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 
         hitCount:           0,
         maxRange,
         maxLifetime,
-        behaviorId:         'targetProjectile',
+        behaviorId:         weapon.behaviorId ?? 'targetProjectile',
         ownerId:            player.id,
         statusEffectId:     weapon.statusEffectId     ?? null,
         statusEffectChance: weapon.statusEffectChance ?? 1.0,
+        ...extraConfig,
       },
     }));
   }

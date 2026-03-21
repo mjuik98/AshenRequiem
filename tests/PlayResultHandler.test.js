@@ -41,15 +41,28 @@ test('런 종료 시 신규 해금을 세션 메타에 반영한다', () => {
       'unlock_boomerang',
       'unlock_chain_lightning',
       'unlock_coin_pendant',
+      'unlock_crystal_shard',
+      'unlock_flame_zone',
       'unlock_lightning_ring',
       'unlock_persistence_charm',
+      'unlock_piercing_spear',
+      'unlock_solar_ray',
       'unlock_wind_crystal',
     ].sort(),
     '달성한 해금 ID가 세션에 반영되지 않음',
   );
   assert.deepEqual(
     session.meta.unlockedWeapons.sort(),
-    ['magic_bolt', 'boomerang', 'lightning_ring', 'chain_lightning'].sort(),
+    [
+      'magic_bolt',
+      'boomerang',
+      'lightning_ring',
+      'chain_lightning',
+      'solar_ray',
+      'piercing_spear',
+      'flame_zone',
+      'crystal_shard',
+    ].sort(),
     '무기 해금 보상이 세션에 반영되지 않음',
   );
   assert.deepEqual(

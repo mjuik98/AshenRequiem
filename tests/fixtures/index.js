@@ -223,7 +223,7 @@ export function makeWeapon(overrides = {}) {
     projectileCount: 1,
     projectileSpeed: 350,
     level:           1,
-    maxLevel:        5,
+    maxLevel:        7,
     speed:           300,
     radius:          5,
     pierce:          1,

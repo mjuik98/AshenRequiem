@@ -20,85 +20,83 @@ export const upgradeData = [
   { id: 'get_frost_nova',     type: 'weapon_new',     weaponId: 'frost_nova',     name: '냉기 폭발',     description: '냉기 폭발 획득' },
   { id: 'get_boomerang',      type: 'weapon_new',     weaponId: 'boomerang',      name: '부메랑',      description: '관통 부메랑 획득' },
   { id: 'get_chain_lightning',type: 'weapon_new',     weaponId: 'chain_lightning',name: '연쇄 번개',       description: '연쇄 번개 획득' },
+  { id: 'get_solar_ray',      type: 'weapon_new',     weaponId: 'solar_ray',      name: '태양 광선',      description: '직선 관통 레이저 획득' },
+  { id: 'get_piercing_spear', type: 'weapon_new',     weaponId: 'piercing_spear', name: '관통 창',       description: '직선 관통 창 획득' },
+  { id: 'get_flame_zone',     type: 'weapon_new',     weaponId: 'flame_zone',     name: '화염 지대',      description: '지속 피해 장판 획득' },
+  { id: 'get_venom_bog',      type: 'weapon_new',     weaponId: 'venom_bog',      name: '독성 늪',       description: '감속 독늪 장판 획득' },
+  { id: 'get_crystal_shard',  type: 'weapon_new',     weaponId: 'crystal_shard',  name: '수정 파편',      description: '반사 탄환 획득' },
+  { id: 'get_radiant_orb',    type: 'weapon_new',     weaponId: 'radiant_orb',    name: '성광 탄환',      description: '안정적인 반사 구체 획득' },
 
   // ── 무기 강화 ────────────────────────────────────────────────────────────────
   {
     id: 'up_magic_bolt', type: 'weapon_upgrade', weaponId: 'magic_bolt',
-    name: '마법탄 +', description: '마법탄 데미지 +1, 쿨다운 감소',
-    damageDelta: 1, cooldownMult: 0.92,
+    name: '마법탄 +', description: '다음 성장 적용',
   },
   {
     id: 'up_holy_aura', type: 'weapon_upgrade', weaponId: 'holy_aura',
-    name: '성스러운 오라 +', description: '오라 데미지 +1, 범위 확대',
-    damageDelta: 1, cooldownMult: 0.92, orbitRadiusDelta: 8,
+    name: '성스러운 오라 +', description: '다음 성장 적용',
   },
   {
     id: 'up_lightning_ring', type: 'weapon_upgrade', weaponId: 'lightning_ring',
-    name: '번개의 고리 +', description: '전기 구체 데미지 +1',
-    damageDelta: 1, cooldownMult: 0.95,
+    name: '번개의 고리 +', description: '다음 성장 적용',
   },
   {
     id: 'up_frost_nova', type: 'weapon_upgrade', weaponId: 'frost_nova',
-    name: '냉기 폭발 +', description: '냉기 폭발 데미지 +2',
-    damageDelta: 2, cooldownMult: 0.92,
+    name: '냉기 폭발 +', description: '다음 성장 적용',
   },
   {
     id: 'up_boomerang', type: 'weapon_upgrade', weaponId: 'boomerang',
-    name: '부메랑 +', description: '부메랑 데미지 +1, 관통 +1',
-    damageDelta: 1, cooldownMult: 0.95, pierceDelta: 1,
+    name: '부메랑 +', description: '다음 성장 적용',
   },
   {
     id: 'up_chain_lightning', type: 'weapon_upgrade', weaponId: 'chain_lightning',
-    name: '연쇄 번개 +', description: '번개 데미지 +2, 연쇄 +1',
-    damageDelta: 2, cooldownMult: 0.93,
-  },
-
-  // ── 다중 투사체 강화 ─────────────────────────────────────────────────────────
-  {
-    id: 'up_magic_bolt_multishot', type: 'weapon_upgrade', weaponId: 'magic_bolt',
-    name: '마법탄 다중 발사',
-    description: '마법탄 동시 발사 수 +1 (최대 3발)',
-    damageDelta: 0, cooldownMult: 1.0,
-    projectileCountDelta: 1,
-    skipLevelUp: true,
-    maxCount: 2,
+    name: '연쇄 번개 +', description: '다음 성장 적용',
   },
   {
-    id: 'up_boomerang_multishot', type: 'weapon_upgrade', weaponId: 'boomerang',
-    name: 'Boomerang 다중 투척',
-    description: '부메랑 동시 투척 수 +1 (최대 2개)',
-    damageDelta: 0, cooldownMult: 1.0,
-    projectileCountDelta: 1,
-    skipLevelUp: true,
-    maxCount: 1,
+    id: 'up_solar_ray', type: 'weapon_upgrade', weaponId: 'solar_ray',
+    name: '태양 광선 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_piercing_spear', type: 'weapon_upgrade', weaponId: 'piercing_spear',
+    name: '관통 창 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_flame_zone', type: 'weapon_upgrade', weaponId: 'flame_zone',
+    name: '화염 지대 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_venom_bog', type: 'weapon_upgrade', weaponId: 'venom_bog',
+    name: '독성 늪 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_crystal_shard', type: 'weapon_upgrade', weaponId: 'crystal_shard',
+    name: '수정 파편 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_radiant_orb', type: 'weapon_upgrade', weaponId: 'radiant_orb',
+    name: '성광 탄환 +', description: '다음 성장 적용',
   },
 
   // ── 진화 무기 강화 ───────────────────────────────────────────────────────────
   {
     id: 'up_arcane_nova_plus', type: 'weapon_upgrade', weaponId: 'arcane_nova',
-    name: '비전 폭발 +', description: 'Nova 데미지 +2, 발사 수 +2',
-    damageDelta: 2, cooldownMult: 0.92,
-    projectileCountDelta: 2,
+    name: '비전 폭발 +', description: '다음 성장 적용',
   },
   {
     id: 'up_storm_crown_plus', type: 'weapon_upgrade', weaponId: 'storm_crown',
-    name: '폭풍의 왕관 +', description: 'Storm Crown 데미지 +2',
-    damageDelta: 2, cooldownMult: 0.95,
+    name: '폭풍의 왕관 +', description: '다음 성장 적용',
   },
   {
     id: 'up_divine_shield_plus', type: 'weapon_upgrade', weaponId: 'divine_shield',
-    name: '신성한 방패 +', description: 'Shield 데미지 +3, 범위 확대',
-    damageDelta: 3, cooldownMult: 0.92, orbitRadiusDelta: 12,
+    name: '신성한 방패 +', description: '다음 성장 적용',
   },
   {
     id: 'up_infinity_blade_plus', type: 'weapon_upgrade', weaponId: 'infinity_blade',
-    name: '무한의 칼날 +', description: 'Blade 데미지 +5, 관통 +3',
-    damageDelta: 5, cooldownMult: 0.92, pierceDelta: 3,
+    name: '무한의 칼날 +', description: '다음 성장 적용',
   },
   {
     id: 'up_blizzard_nova_plus', type: 'weapon_upgrade', weaponId: 'blizzard_nova',
-    name: '블리자드 노바 +', description: 'Nova 데미지 +2, 범위 확대',
-    damageDelta: 2, cooldownMult: 0.92, orbitRadiusDelta: 15,
+    name: '블리자드 노바 +', description: '다음 성장 적용',
   },
 
   // ── HP 회복 (폴백 전용) ──────────────────────────────────────────────────────

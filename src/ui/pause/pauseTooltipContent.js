@@ -13,7 +13,7 @@ function formatSeconds(value, digits = 1) {
   return Number.isFinite(value) ? `${value.toFixed(digits)}s` : '—';
 }
 
-function formatWeaponSynergyBonus(bonus) {
+export function formatWeaponSynergyBonus(bonus) {
   if (!bonus) return '';
   if (bonus.speedMult) return `속도 ×${bonus.speedMult}`;
   if (bonus.lifestealDelta) return `흡혈 +${Math.round(bonus.lifestealDelta * 100)}%`;
