@@ -5,6 +5,7 @@ import { bossData } from '../src/data/bossData.js';
 import { enemyData } from '../src/data/enemyData.js';
 import { waveData } from '../src/data/waveData.js';
 import { unlockData } from '../src/data/unlockData.js';
+import { renderPauseTabPanels } from '../src/ui/pause/pauseViewSections.js';
 
 const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
 const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
@@ -12,14 +13,23 @@ const playSceneSource = readFileSync(new URL('../src/scenes/PlayScene.js', impor
 
 console.log('\n[Result/Progression Source]');
 
-test('ESC 무기 카드는 요약 본문과 쿨다운 바 없이 이름/아이콘/태그/레벨만 유지한다', () => {
-  assert.equal(pauseViewSource.includes('pv-wsummary'), false, 'PauseView 무기 카드 요약 본문이 아직 남아 있음');
-  assert.equal(pauseViewSource.includes('pv-cd-row'), false, 'PauseView 무기 카드 쿨다운 바가 아직 남아 있음');
-  assert.equal(pauseViewSource.includes('pv-evo-hint'), false, 'PauseView 무기 카드 진화 힌트 본문이 아직 남아 있음');
-});
+test('ESC 로드아웃 통합은 무기/장신구의 분리 렌더 경로를 제거한다', () => {
+  const panelsHtml = renderPauseTabPanels({
+    activeTabName: 'loadout',
+    weapons: [{ id: 'magic_bolt' }],
+    accessories: [{ id: 'iron_heart' }],
+    maxAccSlots: 3,
+    weaponCardsHtml: '<section data-old-panel="weapons">weapons</section>',
+    accessoryGridHtml: '<section data-old-panel="accessories">accessories</section>',
+    statsHtml: '',
+    soundControlsHtml: '',
+  });
 
-test('ESC 장신구 카드는 현재 레벨 설명만 표시한다', () => {
-  assert.equal(pauseViewSource.includes('Lv2:'), false, 'PauseView 장신구 카드 본문에 다음 레벨 설명이 남아 있음');
+  assert.equal(panelsHtml.includes('pv-loadout-panel'), true, '로드아웃 패널 셸이 없음');
+  assert.equal(panelsHtml.includes('pv-loadout-list'), true, '로드아웃 리스트가 없음');
+  assert.equal(panelsHtml.includes('pv-loadout-detail'), true, '로드아웃 상세 패널이 없음');
+  assert.equal(panelsHtml.includes('pv-tab-weapons'), false, '무기 전용 패널이 아직 남아 있음');
+  assert.equal(panelsHtml.includes('pv-tab-accessories'), false, '장신구 전용 패널이 아직 남아 있음');
 });
 
 test('결과 화면은 강화 상점 대신 메인 화면 버튼을 사용한다', () => {
