@@ -14,6 +14,7 @@ import { createSpawnSystem }         from '../systems/spawn/SpawnSystem.js';
 import { createCullingSystem }       from '../systems/render/CullingSystem.js';
 import { createSynergySystem }       from '../systems/progression/SynergySystem.js';
 
+import { registerChestRewardHandler } from '../systems/event/chestRewardHandler.js';
 import { registerBossPhaseHandler }   from '../systems/event/bossPhaseHandler.js';
 import { registerSoundEventHandlers } from '../systems/sound/soundEventHandler.js';
 import { registerCurrencyHandler }    from '../systems/event/currencyHandler.js';
@@ -107,6 +108,7 @@ export class PipelineBuilder {
 
   /** @private */
   _registerEventHandlers() {
+    registerChestRewardHandler(this._eventRegistry);
     // 기본 핸들러 (명시적 등록)
     registerBossPhaseHandler(this._services, this._eventRegistry);
     registerSoundEventHandlers(this._services.soundSystem, this._eventRegistry);

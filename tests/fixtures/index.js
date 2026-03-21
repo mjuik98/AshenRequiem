@@ -117,6 +117,8 @@ export function makeWorld(overrides = {}) {
     deltaTime:   0.016,
     killCount:   0,
     playMode:    'playing',
+    chestRewardQueue: 0,
+    pendingLevelUpType: null,
     pendingLevelUpChoices: null,
     synergyState: {
       appliedSpeedMult:     1,

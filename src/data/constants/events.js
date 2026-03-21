@@ -1,11 +1,7 @@
 /**
  * src/data/constants/events.js — 이벤트 타입 목록 (단일 진실의 원천)
  *
- * REFACTOR: constants.js God File 분리
- *   EVENT_TYPES 영역 추출
- *
- * NOTE: EventRegistry.js 에도 동일한 배열이 있었음.
- *       이 파일이 단일 소스이므로, EventRegistry.js 는 여기서 import 하도록 점진적 마이그레이션 예정.
+ * CHANGE: chestCollected 추가 — 상자 획득 이벤트
  */
 
 export const EVENT_TYPES = [
@@ -18,4 +14,5 @@ export const EVENT_TYPES = [
   'spawnRequested',
   'currencyEarned',
   'weaponAcquired',
+  'chestCollected',   // ← NEW: 상자 획득 시 발행
 ];

@@ -2,8 +2,117 @@
  * accessoryData.js — 장신구 정의
  *
  * CHANGE: coin_pendant 추가 — 골드 획득량 +30% (rare)
- *   currencyMult stat: 골드 획득 배율 (flat 가산, 0.30 = +30%)
+ * CHANGE: buildAccessoryLevelDesc / buildAccessoryShortDesc 헬퍼 추가
+ *   뱀파이어 서바이버 스타일로 레벨별 효과를 표시한다.
  */
+
+// ── 레벨별 설명 생성 내부 유틸 ───────────────────────────────────────────────
+
+const _STAT_LABELS = {
+  moveSpeed:            '이동 속도',
+  maxHp:                '최대 HP',
+  lifesteal:            '흡혈',
+  magnetRadius:         '자석 범위',
+  damageMult:           '데미지',
+  cooldownMult:         '쿨다운 단축',
+  projectileSpeedMult:  '투사체 속도',
+  projectileSizeMult:   '투사체 크기',
+  xpMult:               '경험치 획득',
+  critChance:           '크리티컬 확률',
+  critMultiplier:       '크리티컬 피해',
+  bonusProjectileCount: '추가 투사체',
+  invincibleDuration:   '무적 시간',
+  currencyMult:         '골드 획득',
+};
+
+function _formatStatVal(stat, value) {
+  switch (stat) {
+    case 'damageMult':
+      return `+${Math.round(value * 100)}%`;
+    case 'cooldownMult':
+      return `-${Math.round(Math.abs(value) * 100)}%`;
+    case 'lifesteal':
+    case 'critChance':
+    case 'critMultiplier':
+    case 'projectileSpeedMult':
+    case 'projectileSizeMult':
+    case 'xpMult':
+    case 'currencyMult':
+      return `+${Math.round(value * 100)}%`;
+    case 'bonusProjectileCount':
+      return `+${value}발`;
+    case 'invincibleDuration':
+      return `+${value.toFixed(1)}초`;
+    default:
+      return `+${Math.round(value)}`;
+  }
+}
+
+function _calcEffectAtLevel(effect, level) {
+  const perLv = effect.valuePerLevel ?? 0;
+  if (effect.stat === 'damageMult') {
+    return (effect.value - 1) + perLv * (level - 1);
+  }
+  if (effect.stat === 'cooldownMult') {
+    return Math.abs(effect.value) + Math.abs(perLv) * (level - 1);
+  }
+  return effect.value + perLv * (level - 1);
+}
+
+/**
+ * 장신구의 레벨별 효과 전체 설명 문자열 반환.
+ *
+ * 예시: "이동 속도  Lv1 +30 → Lv2 +36 → Lv3 +42 → Lv4 +48 → Lv5 +54"
+ *
+ * @param {object} accDef  accessoryData 항목
+ * @returns {string[]}  효과별 라인 배열
+ */
+export function buildAccessoryLevelDesc(accDef) {
+  if (!accDef?.effects?.length) return [accDef?.description ?? ''];
+
+  const maxLevel = accDef.maxLevel ?? 5;
+  return accDef.effects.map(effect => {
+    const label = _STAT_LABELS[effect.stat] ?? effect.stat;
+    const parts = [];
+    for (let lv = 1; lv <= maxLevel; lv++) {
+      const val = _calcEffectAtLevel(effect, lv);
+      parts.push(`Lv${lv} ${_formatStatVal(effect.stat, val)}`);
+    }
+    return `${label}  ${parts.join(' → ')}`;
+  });
+}
+
+/**
+ * 현재 레벨 기준 "현재 → 다음 레벨" 간단 설명 반환.
+ * PauseView 카드의 한 줄 설명에 사용.
+ *
+ * 예시 (Lv1):  "이동 속도 +30 → Lv2: +36"
+ * 예시 (MAX):  "이동 속도 +54 (MAX)"
+ *
+ * @param {object} accDef
+ * @param {number} currentLevel  1-based
+ * @returns {string[]}  효과별 라인 배열
+ */
+export function buildAccessoryShortDesc(accDef, currentLevel = 1) {
+  if (!accDef?.effects?.length) return [accDef?.description ?? ''];
+
+  const maxLevel = accDef.maxLevel ?? 5;
+  return accDef.effects.map(effect => {
+    const label  = _STAT_LABELS[effect.stat] ?? effect.stat;
+    const curVal = _calcEffectAtLevel(effect, currentLevel);
+    const curStr = _formatStatVal(effect.stat, curVal);
+
+    if (currentLevel >= maxLevel) {
+      return `${label}  ${curStr} (MAX)`;
+    }
+    const nxtVal = _calcEffectAtLevel(effect, currentLevel + 1);
+    const nxtStr = _formatStatVal(effect.stat, nxtVal);
+    return `${label}  ${curStr} → Lv${currentLevel + 1}: ${nxtStr}`;
+  });
+}
+
+// ── 장신구 데이터 ─────────────────────────────────────────────────────────────
+
 export const accessoryData = [
   // ── 기존 장신구 ──────────────────────────────────────────────────────────────
   {

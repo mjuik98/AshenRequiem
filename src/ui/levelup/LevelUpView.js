@@ -1,9 +1,10 @@
 /**
- * src/ui/levelup/LevelUpView.js — 레벨업 카드 선택 UI
+ * src/ui/levelup/LevelUpView.js — 레벨업 / 상자 보상 카드 선택 UI
  *
- * MERGED:
- *   - Phase 2 Final: 카드 타입별 색상 구분 및 배지 추가
- *   - 기존 스타일 구조 유지
+ * CHANGE: show()에 title 파라미터 추가
+ *   - 레벨업: '⬆ LEVEL UP'
+ *   - 상자 보상: '📦 상자 보상!'
+ *   - 카드 스타일은 동일하게 유지
  */
 export class LevelUpView {
   constructor(container) {
@@ -15,10 +16,20 @@ export class LevelUpView {
     this._onSelect = null;
   }
 
-  show(choices, onSelectCallback) {
+  /**
+   * @param {object[]} choices
+   * @param {Function} onSelectCallback
+   * @param {string}   [title='⬆ LEVEL UP']  UI 상단 타이틀
+   */
+  show(choices, onSelectCallback, title = '⬆ LEVEL UP') {
     this._onSelect = onSelectCallback;
+
+    // 상자 보상 여부에 따라 타이틀 색상 클래스 변경
+    const isChest    = title.includes('상자');
+    const titleClass = isChest ? 'levelup-title chest-title' : 'levelup-title';
+
     this.el.innerHTML = `
-      <div class="levelup-title">⬆ LEVEL UP</div>
+      <div class="${titleClass}">${title}</div>
       <div class="levelup-cards"></div>
     `;
     const cardsEl = this.el.querySelector('.levelup-cards');
@@ -70,6 +81,12 @@ export class LevelUpView {
         letter-spacing: 4px;
         animation: levelup-pulse 0.6s ease-out;
       }
+      /* 상자 보상 타이틀 — 금색 계열로 차별화 */
+      .chest-title {
+        color: #ffb300;
+        text-shadow: 0 0 24px #ff8f00, 0 0 48px rgba(255,143,0,0.4);
+        letter-spacing: 3px;
+      }
       @keyframes levelup-pulse {
         0%   { transform: scale(0.7); opacity: 0; }
         60%  { transform: scale(1.1); }
@@ -92,7 +109,6 @@ export class LevelUpView {
         box-shadow: 0 8px 28px rgba(0,0,0,0.4);
       }
 
-      /* 타입별 색상 */
       .levelup-card.type-weapon:hover   { border-color: #ffd54f; box-shadow: 0 6px 24px rgba(255,213,79,0.3); }
       .levelup-card.type-stat:hover     { border-color: #66bb6a; box-shadow: 0 6px 24px rgba(102,187,106,0.3); }
       .levelup-card.type-accessory:hover{ border-color: #ce93d8; box-shadow: 0 6px 24px rgba(206,147,216,0.3); }

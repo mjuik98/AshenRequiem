@@ -83,10 +83,10 @@ export class CanvasRenderer {
 
   // ── IRenderer 구현 ───────────────────────────────────────────────────────
 
-  drawPickups(pickups, camera) {
+  drawPickups(pickups, camera, timestamp = 0) {
     const ctx = this.ctx;
     for (let i = 0; i < pickups.length; i++) {
-      drawPickup(ctx, pickups[i], camera);
+      drawPickup(ctx, pickups[i], camera, timestamp);
     }
   }
 

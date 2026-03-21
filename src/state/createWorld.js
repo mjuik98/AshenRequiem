@@ -1,15 +1,16 @@
 /**
  * src/state/createWorld.js
  *
- * CHANGE(P1): synergyState 필드 추가
+ * CHANGE: chestRewardQueue, pendingLevelUpType 필드 추가
+ *   - chestRewardQueue  : 처리 대기 중인 상자 보상 횟수
+ *   - pendingLevelUpType: 현재 레벨업 UI의 원인 ('levelup' | 'chest' | null)
  */
 
-import { EVENT_TYPES }       from '../data/constants/events.js';
-import { createSynergyState } from './createSynergyState.js';
+import { EVENT_TYPES }        from '../data/constants/events.js';
+import { createSynergyState }  from './createSynergyState.js';
 
 /** createWorld — 월드 상태 초기화 */
 export function createWorld() {
-  // 이벤트 큐 — EVENT_TYPES 기반 자동 생성
   const events = {};
   for (const type of EVENT_TYPES) events[type] = [];
 
@@ -39,10 +40,23 @@ export function createWorld() {
     playMode:    'playing',
 
     // ── 업그레이드 대기열 ─────────────────────────────────────────────
-    pendingUpgrade: null,
+    pendingUpgrade:        null,
     pendingLevelUpChoices: null,
 
-    // ── 시너지 추적 상태 (P1) ─────────────────────────────────────────
+    /**
+     * 현재 레벨업 UI의 원인.
+     * 'levelup' = 경험치 레벨업 / 'chest' = 상자 보상 / null = 없음
+     * @type {'levelup'|'chest'|null}
+     */
+    pendingLevelUpType: null,
+
+    /**
+     * 처리 대기 중인 상자 보상 횟수.
+     * chestRewardHandler에서 증가, LevelSystem에서 감소.
+     */
+    chestRewardQueue: 0,
+
+    // ── 시너지 추적 상태 ──────────────────────────────────────────────
     synergyState: createSynergyState(),
   };
 }

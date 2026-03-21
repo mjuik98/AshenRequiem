@@ -70,8 +70,8 @@ export class PlayUI {
 
   // ── 레벨업 오버레이 ───────────────────────────────────────────────────
 
-  showLevelUp(choices, onSelect) {
-    this._levelUp.show(choices, onSelect);
+  showLevelUp(choices, onSelect, title) {
+    this._levelUp.show(choices, onSelect, title);
   }
 
   // ── 결과 화면 ─────────────────────────────────────────────────────────

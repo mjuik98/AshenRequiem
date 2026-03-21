@@ -1,39 +1,47 @@
 /**
  * src/renderer/draw/drawPickup.js
  *
- * 픽업(경험치 젬 등)을 그린다.
- * drawEffect.js에서 픽업 파트를 분리하여 유지하는 파일.
+ * FIX(3): Date.now() → timestamp 파라미터로 교체
+ *   Before: Date.now() 기반 펄스 → 게임 일시정지 중에도 상자가 계속 반짝임
+ *   After:  CanvasRenderer에서 넘기는 timestamp(performance.now() / 1000)를
+ *           drawPickup(ctx, pickup, camera, timestamp) 4번째 인수로 받아 사용.
+ *           timestamp가 없으면 0으로 fallback (하위 호환).
+ *
+ * CHANGE: 상자는 자석에 반응하지 않음을 강조하는 시각 힌트 추가
+ *   - 상자 하단에 "TOUCH" 라벨 표시 (작게)
  */
 
 /**
- * 단일 pickup 엔티티를 그린다.
- *
  * @param {CanvasRenderingContext2D} ctx
- * @param {object} pickup
+ * @param {object}                  pickup
  * @param {{ x: number, y: number }} camera
+ * @param {number}                  [timestamp=0]  performance.now() / 1000
  */
-export function drawPickup(ctx, pickup, camera) {
+export function drawPickup(ctx, pickup, camera, timestamp = 0) {
+  if (pickup.pickupType === 'chest') {
+    _drawChest(ctx, pickup, camera, timestamp);
+    return;
+  }
+
+  // ── 기존 XP 젬 렌더링 ───────────────────────────────────────────────
   const sx = pickup.x - camera.x;
   const sy = pickup.y - camera.y;
   const r  = pickup.radius || 6;
 
   ctx.save();
 
-  // 글로우 효과 (경험치 젬의 신비로운 느낌)
   ctx.shadowColor = pickup.color || '#66bb6a';
   ctx.shadowBlur  = 8;
   ctx.fillStyle   = pickup.color || '#66bb6a';
 
-  // 다이아몬드/젬 형태 그리기
   ctx.beginPath();
-  ctx.moveTo(sx, sy - r);         // 위
-  ctx.lineTo(sx + r, sy);         // 오른쪽
-  ctx.lineTo(sx, sy + r);         // 아래
-  ctx.lineTo(sx - r, sy);         // 왼쪽
+  ctx.moveTo(sx, sy - r);
+  ctx.lineTo(sx + r, sy);
+  ctx.lineTo(sx, sy + r);
+  ctx.lineTo(sx - r, sy);
   ctx.closePath();
   ctx.fill();
 
-  // 하이라이트 (반짝임 포인트)
   ctx.fillStyle   = '#ffffff';
   ctx.globalAlpha = 0.4;
   ctx.beginPath();
@@ -45,4 +53,120 @@ export function drawPickup(ctx, pickup, camera) {
   ctx.fill();
 
   ctx.restore();
+}
+
+/**
+ * 보물 상자 렌더링
+ *
+ * FIX(3): timestamp 기반 펄스 (일시정지 시 정지됨)
+ */
+function _drawChest(ctx, pickup, camera, timestamp) {
+  const sx = pickup.x - camera.x;
+  const sy = pickup.y - camera.y;
+  const r  = (pickup.radius || 18) * 0.9;
+
+  const w   = r * 2.2;
+  const h   = r * 1.6;
+  const lx  = sx - w / 2;
+  const ty  = sy - h / 2;
+  const bh  = h * 0.55;
+  const ldh = h * 0.45;
+  const by  = ty + ldh;
+
+  // FIX(3): timestamp 기반 펄스 (period 2s)
+  const pulse = 0.5 + 0.5 * Math.sin(timestamp * Math.PI);
+
+  ctx.save();
+
+  // ── 황금 글로우 ──────────────────────────────────────────────────────
+  ctx.shadowColor = `rgba(255, 215, 0, ${0.5 + pulse * 0.4})`;
+  ctx.shadowBlur  = 18 + pulse * 10;
+
+  // ── 뚜껑 ─────────────────────────────────────────────────────────────
+  ctx.fillStyle = '#5d4037';
+  _roundRect(ctx, lx, ty, w, ldh, 3);
+  ctx.fill();
+
+  // ── 본체 ─────────────────────────────────────────────────────────────
+  ctx.shadowBlur = 0;
+  ctx.fillStyle  = '#6d4c41';
+  _roundRect(ctx, lx, by, w, bh, 3);
+  ctx.fill();
+
+  // ── 금색 테두리 ───────────────────────────────────────────────────────
+  ctx.strokeStyle = '#ffd54f';
+  ctx.lineWidth   = 2;
+  ctx.shadowColor = '#ffd54f';
+  ctx.shadowBlur  = 6;
+  _roundRect(ctx, lx, ty, w, h, 3);
+  ctx.stroke();
+
+  // ── 뚜껑 구분선 ───────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(lx, by);
+  ctx.lineTo(lx + w, by);
+  ctx.stroke();
+
+  // ── 잠금장치 ──────────────────────────────────────────────────────────
+  ctx.shadowBlur  = 0;
+  const lockX     = sx;
+  const lockCY    = by;
+
+  ctx.lineWidth   = 2.5;
+  ctx.strokeStyle = '#ffd54f';
+  ctx.beginPath();
+  ctx.arc(lockX, lockCY - r * 0.2, r * 0.22, Math.PI, 0);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffd54f';
+  const lkW = r * 0.42;
+  const lkH = r * 0.3;
+  _roundRect(ctx, lockX - lkW / 2, lockCY - r * 0.12, lkW, lkH, 2);
+  ctx.fill();
+
+  // ── 반짝임 파티클 ─────────────────────────────────────────────────────
+  if (pulse > 0.7) {
+    const sparkAlpha = (pulse - 0.7) / 0.3;
+    ctx.globalAlpha  = sparkAlpha * 0.85;
+    ctx.fillStyle    = '#fff9c4';
+    ctx.shadowColor  = '#ffd54f';
+    ctx.shadowBlur   = 8;
+
+    const sparks = [
+      { dx: -w * 0.6, dy: -h * 0.55 },
+      { dx:  w * 0.6, dy: -h * 0.55 },
+      { dx:  0,       dy: -h * 0.85 },
+    ];
+    for (const sp of sparks) {
+      ctx.beginPath();
+      ctx.arc(sx + sp.dx, sy + sp.dy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ── "TOUCH" 힌트 라벨 ─────────────────────────────────────────────────
+  // 상자는 자석에 반응하지 않으므로 직접 밟아야 함을 알려주는 시각 단서
+  const labelAlpha = 0.45 + pulse * 0.35;
+  ctx.globalAlpha  = labelAlpha;
+  ctx.shadowBlur   = 0;
+  ctx.fillStyle    = '#ffd54f';
+  ctx.font         = `bold ${Math.round(r * 0.55)}px sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.fillText('TOUCH', sx, sy + h / 2 + r * 0.9);
+
+  ctx.restore();
+}
+
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }

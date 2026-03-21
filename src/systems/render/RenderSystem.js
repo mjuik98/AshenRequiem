@@ -32,7 +32,7 @@ export const RenderSystem = {
     const timestamp = performance.now() / 1000;
 
     // ── 픽업 ────────────────────────────────────────────────────────────
-    renderer.drawPickups(visible.pickups, camera);
+    renderer.drawPickups(visible.pickups, camera, timestamp);
 
     // ── 일반 이펙트 ─────────────────────────────────────────────────────
     renderer.drawEffects(visible.effects, camera, dpr);

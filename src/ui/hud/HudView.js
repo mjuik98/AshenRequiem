@@ -1,12 +1,12 @@
+/**
+ * src/ui/hud/HudView.js
+ *
+ * FIX(4): 상자 대기 카운터 표시 추가
+ *   - world.chestRewardQueue > 0 일 때 HUD 우측에 '📦 ×N' 표시
+ *   - 레벨업 선택 후 연속으로 상자 UI가 열리는 이유를 플레이어가 알 수 있음
+ */
 import { getXpForLevel } from '../../data/constants.js';
 
-/**
- * HudView — 상단 HUD (XP 바, 레벨, 킬 수, 경과 시간)
- *
- * CHANGE: 상단 검정 배경 박스 제거, 체력바 제거
- *   - .hud-stats 검정 배경(rgba(0,0,0,0.45)) 제거 → 투명하게
- *   - .hud-hp-container 완전 제거 (ESC 일시정지 화면에서 확인 가능)
- */
 export class HudView {
   constructor(container) {
     this.el = document.createElement('div');
@@ -18,7 +18,6 @@ export class HudView {
   }
 
   _buildDOM() {
-    // XP 바를 stats 위로 이동 — 화면 최상단에 고정 표시
     this.el.innerHTML = `
       <div class="hud-xp-bar-container">
         <div class="hud-xp-bar"></div>
@@ -32,11 +31,18 @@ export class HudView {
           </div>
         </div>
       </div>
+      <!-- FIX(4): 상자 대기 카운터 -->
+      <div class="hud-chest-queue" id="hud-chest-queue" style="display:none">
+        <span class="hud-chest-icon">📦</span>
+        <span class="hud-chest-count" id="hud-chest-count">×1</span>
+      </div>
     `;
-    this._elLevel  = this.el.querySelector('.hud-level');
-    this._elKills  = this.el.querySelector('.hud-kills');
-    this._elTime   = this.el.querySelector('.hud-time');
-    this._elXpBar  = this.el.querySelector('.hud-xp-bar');
+    this._elLevel      = this.el.querySelector('.hud-level');
+    this._elKills      = this.el.querySelector('.hud-kills');
+    this._elTime       = this.el.querySelector('.hud-time');
+    this._elXpBar      = this.el.querySelector('.hud-xp-bar');
+    this._elChestQueue = this.el.querySelector('#hud-chest-queue');
+    this._elChestCount = this.el.querySelector('#hud-chest-count');
   }
 
   show() { this.el.style.display = 'block'; }
@@ -55,6 +61,15 @@ export class HudView {
     this._elKills.textContent  = `킬: ${world.killCount}`;
     this._elTime.textContent   = `${mm}:${ss}`;
     this._elXpBar.style.width  = `${xpPct}%`;
+
+    // FIX(4): 상자 대기 카운터 업데이트
+    const queueCount = world.chestRewardQueue ?? 0;
+    if (queueCount > 0) {
+      this._elChestCount.textContent   = `×${queueCount}`;
+      this._elChestQueue.style.display = 'flex';
+    } else {
+      this._elChestQueue.style.display = 'none';
+    }
   }
 
   destroy() { this.el.remove(); }
@@ -68,7 +83,6 @@ export class HudView {
         position: absolute; top: 0; left: 0; right: 0;
         pointer-events: none;
       }
-      /* XP 바 — 화면 최상단 고정 */
       .hud-xp-bar-container {
         position: fixed;
         top: 0; left: 0; right: 0;
@@ -82,7 +96,6 @@ export class HudView {
         background: linear-gradient(90deg, #66bb6a, #aed581);
         transition: width 0.15s ease;
       }
-      /* 레벨/시간/킬 통계 — XP 바 바로 아래 */
       .hud-top {
         padding-top: 8px;
       }
@@ -94,6 +107,39 @@ export class HudView {
       }
       .hud-right-stats {
         display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+      }
+
+      /* FIX(4): 상자 대기 카운터 */
+      .hud-chest-queue {
+        position: fixed;
+        top: 14px; left: 50%;
+        transform: translateX(-50%);
+        display: flex; align-items: center; gap: 5px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 213, 79, 0.55);
+        border-radius: 20px;
+        padding: 4px 12px;
+        pointer-events: none;
+        z-index: 101;
+        animation: hud-chest-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      @keyframes hud-chest-pop {
+        from { opacity: 0; transform: translateX(-50%) scale(0.7); }
+        to   { opacity: 1; transform: translateX(-50%) scale(1);   }
+      }
+      .hud-chest-icon {
+        font-size: 14px;
+        animation: hud-chest-bounce 1.2s ease-in-out infinite;
+      }
+      @keyframes hud-chest-bounce {
+        0%, 100% { transform: translateY(0); }
+        50%       { transform: translateY(-3px); }
+      }
+      .hud-chest-count {
+        font-size: 13px; font-weight: 700;
+        color: #ffd54f;
+        text-shadow: 0 0 8px rgba(255, 213, 79, 0.6);
+        font-family: 'Segoe UI', sans-serif;
       }
     `;
     document.head.appendChild(s);

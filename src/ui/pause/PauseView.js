@@ -26,6 +26,9 @@
  * FIX: destroy() 시 tooltip DOM 반드시 정리 (TOOLTIP-LEAK)
  */
 
+import { getAccessoryById, buildAccessoryLevelDesc, buildAccessoryShortDesc }
+  from '../../data/accessoryData.js';
+
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 const GOLD          = '#d4af6a';
 const GOLD_DIM      = 'rgba(212,175,106,0.55)';
@@ -380,7 +383,7 @@ export class PauseView {
               <span class="pv-rarity-badge ${isRare ? 'rb-rare' : 'rb-common'}">${isRare ? '희귀' : '일반'}</span>
             </div>
             <div class="pv-aname">${_escapeHtml(acc.name ?? acc.id ?? '장신구')}</div>
-            <div class="pv-aeffect">${_escapeHtml(acc.description ?? '')}</div>
+            <div class="pv-aeffect">${_buildShortEffectHtml(acc, this._indexes?.accessoryById)}</div>
             <div class="pv-alevel-row">
               <div class="pv-level-pips">${lvPips}</div>
               <span class="pv-alv-label">Lv.${acc.level ?? 1}</span>
@@ -699,23 +702,11 @@ export class PauseView {
     const evoData    = this._data?.weaponEvolutionData ?? [];
     const weaponById = this._indexes?.weaponById ?? new Map();
 
-    const statLabel = {
-      moveSpeed:'이동 속도', maxHp:'최대 HP', lifesteal:'흡혈',
-      magnetRadius:'자석 반경', invincibleDuration:'무적 시간',
-      damageMult:'데미지 배율', cooldownMult:'쿨다운 단축',
-      projectileSpeedMult:'투사체 속도', projectileSizeMult:'투사체 크기',
-      xpMult:'경험치 배율', critChance:'크리티컬 확률',
-      critMultiplier:'크리티컬 배율', bonusProjectileCount:'추가 투사체',
-    };
-
-    const effHtml = (acc.effects ?? []).map(e => {
-      const label = statLabel[e?.stat] ?? (e?.stat ?? '효과');
-      const isRatio = ['Mult','lifesteal','critChance'].some(k => (e?.stat ?? '').includes(k));
-      const val = isRatio
-        ? `${(e?.value ?? 0) > 0 ? '+' : ''}${Math.round((e?.value ?? 0) * 100)}%`
-        : `${(e?.value ?? 0) > 0 ? '+' : ''}${e?.value ?? 0}`;
-      return `<div class="pvt-row"><span class="pvt-key">${_escapeHtml(label)}</span><span class="pvt-val">${_escapeHtml(val)}</span></div>`;
-    }).join('');
+    const def = this._indexes?.accessoryById?.get(accessoryId);
+    const levelLines = def ? buildAccessoryLevelDesc(def) : [];
+    const effHtml = levelLines
+      .map(line => `<div class="pvt-level-row">${_escapeHtml(line)}</div>`)
+      .join('');
 
     const evoRecipes = evoData.filter(r => r.requires?.accessoryIds?.includes(accessoryId));
     const evoHtml    = evoRecipes.map(r => {
@@ -943,6 +934,11 @@ export class PauseView {
       .rb-common { color: rgba(200,190,160,0.45); }
       .pv-aname   { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.82); margin-bottom: 4px; }
       .pv-aeffect { font-size: 11px; color: rgba(255,255,255,0.36); margin-bottom: 10px; line-height: 1.5; }
+      .pv-aeffect-line { display: block; }
+      .pvt-level-row {
+        font-size: 10px; color: rgba(255,255,255,0.6);
+        line-height: 1.7; letter-spacing: 0.01em;
+      }
       .pv-alevel-row { display: flex; align-items: center; justify-content: space-between; }
       .pv-alv-label  { font-size: 10px; font-weight: 700; color: rgba(212,175,106,0.5); }
 
@@ -1114,6 +1110,13 @@ function _weaponEmoji(behaviorId) {
     boomerang: '🪃', chainLightning: '⚡', omnidirectional: '🌀',
   };
   return MAP[behaviorId] ?? '⚔';
+}
+
+function _buildShortEffectHtml(acc, accessoryById) {
+  const def = accessoryById?.get(acc.id);
+  if (!def?.effects?.length) return _escapeHtml(acc.description ?? '');
+  const lines = buildAccessoryShortDesc(def, acc.level ?? 1);
+  return lines.map(l => `<span class="pv-aeffect-line">${_escapeHtml(l)}</span>`).join('');
 }
 
 function _escapeHtml(v) {

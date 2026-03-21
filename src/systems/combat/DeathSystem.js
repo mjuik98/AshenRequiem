@@ -1,23 +1,15 @@
+/**
+ * src/systems/combat/DeathSystem.js
+ *
+ * FIX(5): 상자 드랍 시 burst 이펙트 추가
+ *   Before: 상자가 조용히 스폰됨
+ *   After:  spawnEffect로 황금빛 burst 이펙트를 함께 스폰
+ *           → 플레이어에게 "특별한 것이 드랍됐다"는 시각적 피드백 제공
+ */
 import { EFFECT_DEFAULTS }                      from '../../data/constants.js';
 import { transitionPlayMode, PlayMode }          from '../../state/PlayMode.js';
 import { spawnPickup, spawnEffect, spawnEnemy }  from '../../state/spawnRequest.js';
 
-/**
- * src/systems/combat/DeathSystem.js — 사망 후처리
- *
- * REFACTOR (R-14): DeathSystem → Session 직접 접근 제거
- * REFACTOR (R-15): spawnQueue 요청 시 SpawnRequest 팩토리 사용
- *
- * FIX(P3-8): world.playMode 직접 변경 → transitionPlayMode() 사용
- * FIX(BUG-XP-NAN): entity.xpValue 미설정 시 NaN XP 전파 방지
- *
- * CHANGE: currencyMult 적용 — player.currencyMult 배율을 골드 보상에 곱함
- *   _calcCurrencyReward(entity, player) 시그니처 변경 (player 인수 추가)
- *
- * CHANGE: 보스 처치 시 경험치 아이템 대량 드랍 (뱀서 스타일)
- *   보스는 xpValue가 60이므로 큰 경험치 젬을 여러 개 사방으로 뿌림.
- *   각 젬은 기존 픽업과 동일하게 magnetRadius로 흡수 가능.
- */
 export const DeathSystem = {
   update({ world }) {
     const { events, spawnQueue } = world;
@@ -28,8 +20,6 @@ export const DeathSystem = {
       if (entity.type === 'enemy') {
         world.killCount++;
 
-        // R-14: currencyEarned 이벤트 발행 (PipelineBuilder 핸들러가 처리)
-        // CHANGE: player.currencyMult 배율 적용
         if (world.events.currencyEarned) {
           const reward = _calcCurrencyReward(entity, world.player);
           world.events.currencyEarned.push({ amount: reward });
@@ -53,11 +43,35 @@ export const DeathSystem = {
         const xpVal = entity.xpValue ?? 0;
 
         if (entity.isBoss) {
-          // ── 보스 처치: 경험치 젬 대량 드랍 (뱀서 스타일) ─────────────────────
-          // 큰 젬 4개 + 중간 젬 여러 개를 방사형으로 흩뿌림
+          // XP 젬 대량 드랍
           _spawnBossXpDrop(spawnQueue, entity, xpVal);
+
+          // 상자 드랍
+          spawnQueue.push(spawnPickup({
+            x:       entity.x,
+            y:       entity.y,
+            xpValue: 0,
+            config:  {
+              pickupType: 'chest',
+              color:      '#ffd54f',
+              radius:     18,
+            },
+          }));
+
+          // FIX(5): 상자 등장 황금 burst 이펙트 (일반 사망 burst보다 크고 밝음)
+          spawnQueue.push(spawnEffect({
+            x:          entity.x,
+            y:          entity.y,
+            effectType: 'burst',
+            config: {
+              color:    '#ffd54f',
+              radius:   entity.radius * 2.2,
+              duration: EFFECT_DEFAULTS.burstDuration * 1.4,
+            },
+          }));
+
         } else {
-          // ── 일반 / 엘리트: 기존 단일 젬 드랍 ──────────────────────────────────
+          // 일반 / 엘리트: 단일 젬 드랍
           spawnQueue.push(spawnPickup({
             x:       entity.x,
             y:       entity.y,
@@ -66,7 +80,7 @@ export const DeathSystem = {
           }));
         }
 
-        // 사망 이펙트
+        // 사망 이펙트 (보스 포함 항상)
         spawnQueue.push(spawnEffect({
           x:          entity.x,
           y:          entity.y,
@@ -86,27 +100,14 @@ export const DeathSystem = {
   },
 };
 
-/**
- * 보스 처치 시 경험치 젬을 방사형으로 대량 드랍한다.
- *
- * 구성:
- *   - 큰 젬(xpValue 높음) 4개: 상하좌우로 넓게 흩어짐
- *   - 중간 젬 8개: 방사형 균등 배치
- *   - 잔여 XP: 작은 젬들로 랜덤 배치
- *
- * @param {object[]} spawnQueue
- * @param {object}   boss
- * @param {number}   totalXp
- */
 function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
-  const BIG_GEM_XP    = 12;   // 큰 젬 1개당 XP
-  const MED_GEM_XP    = 5;    // 중간 젬 1개당 XP
-  const BIG_COUNT     = 4;
-  const MED_COUNT     = 8;
+  const BIG_GEM_XP = 12;
+  const MED_GEM_XP = 5;
+  const BIG_COUNT  = 4;
+  const MED_COUNT  = 8;
 
   let remaining = totalXp;
 
-  // 큰 젬 4개 (상하좌우 대각선)
   for (let i = 0; i < BIG_COUNT && remaining > 0; i++) {
     const angle   = (i / BIG_COUNT) * Math.PI * 2 + Math.PI / 4;
     const scatter = 60 + Math.random() * 40;
@@ -116,11 +117,10 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
       x:       boss.x + Math.cos(angle) * scatter,
       y:       boss.y + Math.sin(angle) * scatter,
       xpValue: gemXp,
-      config:  { color: '#ef5350', radius: 14 },   // 큰 빨간 젬
+      config:  { color: '#ef5350', radius: 14 },
     }));
   }
 
-  // 중간 젬 8개 방사형
   for (let i = 0; i < MED_COUNT && remaining > 0; i++) {
     const angle   = (i / MED_COUNT) * Math.PI * 2;
     const scatter = 30 + Math.random() * 50;
@@ -134,7 +134,6 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
     }));
   }
 
-  // 나머지 XP → 작은 젬들로 분산
   while (remaining > 0) {
     const gemXp  = Math.min(3, remaining);
     remaining   -= gemXp;
@@ -149,22 +148,12 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
   }
 }
 
-/**
- * xpValue 기반으로 경험치 젬 색상을 반환한다.
- */
 function _getXpGemColor(xpValue) {
   if (xpValue <= 3)  return '#64b5f6';
   if (xpValue <= 10) return '#66bb6a';
   return '#ef5350';
 }
 
-/**
- * CHANGE: player.currencyMult 배율 적용
- *
- * @param {object}      enemy
- * @param {object|null} player
- * @returns {number}
- */
 export function _calcCurrencyReward(enemy, player) {
   const base = enemy.currencyValue ?? 1;
   const mult = player?.currencyMult ?? 1;

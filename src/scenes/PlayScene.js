@@ -250,11 +250,15 @@ export class PlayScene {
       return;
     }
 
+    // ✦ NEW: 상자 보상 여부에 따라 타이틀 결정
+    const isChest = this.world.pendingLevelUpType === 'chest';
+    const title   = isChest ? '📦 상자 보상!' : '⬆ LEVEL UP';
+
     this._ui.showLevelUp(choices, selectedUpgrade => {
       if (!this.world || this._isSceneChanging) return;
       this.world.pendingUpgrade = selectedUpgrade;
       transitionPlayMode(this.world, PlayMode.PLAYING);
-    });
+    }, title);
   }
 
   _showResultUI() {
