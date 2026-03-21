@@ -7,12 +7,40 @@ import { drawEffect, drawPickup } from './draw/drawEffect.js';
 
 /**
  * CanvasRenderer — Canvas 클리어 + 배경 그리기 및 IRenderer 구현
+ *
+ * CHANGE(Settings): 품질 프리셋 기능 추가
+ *   - _qualityPreset: 'low' | 'medium' | 'high'  (기본 'medium')
+ *   - setQualityPreset(preset): 외부에서 프리셋 설정
+ *   - setQuality(low)에서 프리셋 강제 적용
+ *     - 'low'  → 항상 lowQuality = true  (글로우 항상 비활성)
+ *     - 'high' → 항상 lowQuality = false (글로우 항상 활성)
+ *     - 'medium' → RenderSystem의 자동 판단 유지 (기존 동작)
  */
 export class CanvasRenderer {
   constructor(canvas, ctx) {
     this.canvas = canvas;
     this.ctx    = ctx;
-    this._lowQuality = false;
+    this._lowQuality    = false;
+    this._qualityPreset = 'medium';  // 설정 화면에서 지정하는 품질 프리셋
+    this._glowEnabled   = true;
+  }
+
+  // ── 품질 프리셋 ──────────────────────────────────────────────────────────
+
+  /**
+   * 렌더링 품질 프리셋을 설정한다.
+   * PlayScene.enter()에서 session.options.quality 기반으로 호출된다.
+   *
+   * @param {'low'|'medium'|'high'} preset
+   */
+  setQualityPreset(preset) {
+    this._qualityPreset = preset ?? 'medium';
+    this.setQuality(this._lowQuality);
+  }
+
+  setGlowEnabled(enabled) {
+    this._glowEnabled = enabled !== false;
+    this.setQuality(this._lowQuality);
   }
 
   clear() {
@@ -38,7 +66,6 @@ export class CanvasRenderer {
     ctx.strokeStyle = 'rgba(255,255,255,0.04)';
     ctx.lineWidth   = 1;
 
-    // PERF: 수직선 전체를 하나의 path에 담아 stroke 1회
     ctx.beginPath();
     for (let x = offsetX; x < w; x += gridSize) {
       ctx.moveTo(x, 0);
@@ -46,7 +73,6 @@ export class CanvasRenderer {
     }
     ctx.stroke();
 
-    // PERF: 수평선 전체를 하나의 path에 담아 stroke 1회
     ctx.beginPath();
     for (let y = offsetY; y < h; y += gridSize) {
       ctx.moveTo(0, y);
@@ -55,7 +81,7 @@ export class CanvasRenderer {
     ctx.stroke();
   }
 
-  // --- IRenderer Implementation ---
+  // ── IRenderer 구현 ───────────────────────────────────────────────────────
 
   drawPickups(pickups, camera) {
     const ctx = this.ctx;
@@ -110,6 +136,7 @@ export class CanvasRenderer {
 
   /**
    * [P2-③] 투사체 수 기준으로 자동으로 lowQuality 모드 전환.
+   * setQuality()에서 프리셋이 적용되므로 autoQuality도 프리셋을 존중한다.
    */
   autoQuality(projectileCount) {
     const shouldBeLow = projectileCount > RENDER.GLOW_THRESHOLD;
@@ -118,10 +145,28 @@ export class CanvasRenderer {
     }
   }
 
+  /**
+   * 품질 모드를 설정한다.
+   *
+   * CHANGE(Settings): _qualityPreset에 따라 입력값을 강제 재정의한다.
+   *   - 'low'  → lowQuality = true  (항상 글로우 OFF)
+   *   - 'high' → lowQuality = false (항상 글로우 ON)
+   *   - 'medium' → RenderSystem이 전달한 autoLow 값 그대로 사용
+   *
+   * @param {boolean} lowQuality  RenderSystem이 계산한 자동 품질 값
+   */
   setQuality(lowQuality) {
+    if (this._qualityPreset === 'low') {
+      lowQuality = true;
+    } else if (this._qualityPreset === 'high') {
+      lowQuality = false;
+    } else if (!this._glowEnabled) {
+      lowQuality = true;
+    }
+
     this._lowQuality = lowQuality;
-    if (this._lowQuality) {
-      this.ctx.shadowBlur = 0;
+    if (this._lowQuality || !this._glowEnabled) {
+      this.ctx.shadowBlur  = 0;
       this.ctx.shadowColor = 'transparent';
     }
   }

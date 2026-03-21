@@ -1,6 +1,10 @@
 /**
  * src/scenes/PlayScene.js
  *
+ * CHANGE(Settings): session.options 기반 설정 적용 추가
+ *   - PlayContext.create() 시 soundEnabled를 session.options에서 읽음
+ *   - _applySessionOptions(): 볼륨 및 품질 프리셋 반영
+ *
  * PATCH:
  * - pause 메뉴에서 메인메뉴 이동 시 중복 전환 방지
  * - 비동기 import 레이스 방지용 플래그 추가
@@ -43,10 +47,13 @@ export class PlayScene {
 
     this._gameData = GameDataLoader.loadDefault();
 
+    // CHANGE(Settings): soundEnabled를 session.options에서 읽음
+    const opts = this.game.session?.options ?? {};
+
     this._ctx = PlayContext.create({
       canvas:           this.game.canvas,
       renderer:         this.game.renderer,
-      soundEnabled:     true,
+      soundEnabled:     opts.soundEnabled ?? true,
       profilingEnabled: true,
       session:          this.game.session,
     });
@@ -68,6 +75,9 @@ export class PlayScene {
     this._pipelineCtx = pipelineCtx;
     this._systems     = systems;
 
+    // CHANGE(Settings): 볼륨·품질 설정 반영
+    this._applySessionOptions();
+
     this._resultHandler = new PlayResultHandler(this.game.session);
 
     this._uiState = new PlayModeStateMachine({
@@ -76,21 +86,63 @@ export class PlayScene {
       onResume:  () => this._ui.hidePause(),
     });
 
-    this._dpr             = window.devicePixelRatio || 1;
+    this._dpr             = this._getEffectiveDpr();
     this._pauseWasDown    = false;
     this._isSceneChanging = false;
     this._sceneChangeToken += 1;
   }
 
+  /**
+   * 세션 설정을 실행 중인 시스템에 반영한다.
+   * enter() 직후 1회 호출된다.
+   *
+   * - 볼륨: SoundSystem.setVolume(master, bgm, sfx)
+   * - 품질: CanvasRenderer.setQualityPreset(preset)
+   */
+  _applySessionOptions() {
+    const opts = this.game.session?.options ?? {};
+
+    if (typeof this._ctx.soundSystem?.setEnabled === 'function') {
+      this._ctx.soundSystem.setEnabled(opts.soundEnabled ?? true);
+    }
+
+    if (typeof this._ctx.soundSystem?.setMusicEnabled === 'function') {
+      this._ctx.soundSystem.setMusicEnabled(opts.musicEnabled ?? true);
+    }
+
+    // 볼륨 설정 적용
+    if (typeof this._ctx.soundSystem?.setVolume === 'function') {
+      this._ctx.soundSystem.setVolume(
+        (opts.masterVolume ?? 80)  / 100,
+        (opts.bgmVolume    ?? 60)  / 100,
+        (opts.sfxVolume    ?? 100) / 100,
+      );
+    }
+
+    if (typeof this.game.renderer?.setGlowEnabled === 'function') {
+      this.game.renderer.setGlowEnabled(opts.glowEnabled ?? true);
+    }
+
+    // 렌더링 품질 프리셋 적용
+    if (typeof this.game.renderer?.setQualityPreset === 'function') {
+      this.game.renderer.setQualityPreset(opts.quality ?? 'medium');
+    }
+  }
+
+  _getEffectiveDpr() {
+    const useDpr = this.game.session?.options?.useDevicePixelRatio ?? true;
+    return useDpr ? (window.devicePixelRatio || 1) : 1;
+  }
+
   update(dt) {
     if (!this.world || !this._ctx || !this._uiState || this._isSceneChanging) return;
 
-    const nextDpr = window.devicePixelRatio || 1;
+    const nextDpr = this._getEffectiveDpr();
     if (nextDpr !== this._dpr) {
       this._dpr = nextDpr;
     }
 
-    const inputState = this.game.input.poll();
+    const inputState = this.game.inputState ?? this.game.input.poll();
 
     this._ui.handleInput(inputState);
     this._ui.updateDebug(
@@ -174,6 +226,7 @@ export class PlayScene {
             }
           }
         },
+        this.world,
       );
     } else if (mode === PlayMode.PAUSED) {
       transitionPlayMode(this.world, PlayMode.PLAYING);

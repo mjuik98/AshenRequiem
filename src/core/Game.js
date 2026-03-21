@@ -9,13 +9,16 @@ import { TitleScene }      from '../scenes/TitleScene.js';
 import { validateGameData } from '../utils/validateGameData.js';
 import { GameDataLoader }   from '../data/GameDataLoader.js';
 import { AssetManager }     from '../managers/AssetManager.js';
-import { createSessionState } from '../state/createSessionState.js';
+import { loadSession } from '../state/createSessionState.js';
 
 /** Game — 게임 최상위 진입점 */
 export class Game {
   constructor() {
     this.canvas = document.getElementById('game-canvas');
     this.ctx    = this.canvas.getContext('2d');
+
+    this.session = loadSession();
+    this.inputState = null;
 
     // FIX(memory): resize 핸들러를 인스턴스에 저장해 나중에 제거 가능하도록
     this._onResize = () => this._resizeCanvas();
@@ -28,7 +31,6 @@ export class Game {
       this.input.addAdapter(new TouchAdapter(this.canvas));
     }
     this.assets       = new AssetManager();
-    this.session      = createSessionState();
     this.gameData     = GameDataLoader.loadDefault();
     this.sceneManager = new SceneManager();
     this.renderer     = new CanvasRenderer(this.canvas, this.ctx);
@@ -36,19 +38,14 @@ export class Game {
   }
 
   async start() {
-    // FIX(R-17): import 없는 변수 참조 버그 수정
-    //   Before: validateGameData({ upgradeData, weaponData, waveData })
-    //           → upgradeData/weaponData/waveData가 선언되지 않아 ReferenceError
-    //   After:  constructor에서 이미 로드한 this.gameData 재사용
     validateGameData({
       upgradeData: this.gameData.upgradeData,
       weaponData:  this.gameData.weaponData,
       waveData:    this.gameData.waveData,
     });
 
-    // 에셋 로드 시작 (MVP: 현재는 등록된 에셋이 없으므로 즉시 완료됨)
     await this.assets.loadAll();
-    
+
     this.sceneManager.changeScene(new TitleScene(this));
     this._loop.start();
   }
@@ -56,18 +53,28 @@ export class Game {
   destroy() {
     this._loop.stop();
     this.input.destroy();
+    this.inputState = null;
     window.removeEventListener('resize', this._onResize);
   }
 
   _tick(dt) {
-    this.input.poll();
+    this.inputState = this.input.poll();
     this.sceneManager.update(dt);
     this.sceneManager.render();
   }
 
-  /** FIX(web): devicePixelRatio 대응 + 리사이즈 시 캔버스 동기화 */
+  /**
+   * FIX(web): devicePixelRatio 대응 + 리사이즈 시 캔버스 동기화
+   *
+   * CHANGE(Settings): useDevicePixelRatio를 session.options에서 읽도록 변경.
+   *   session이 없거나 options 필드가 없을 때는 GameConfig.useDevicePixelRatio 폴백 사용.
+   *   SettingsScene._handleSave()에서 저장 직후 호출되어 즉시 반영된다.
+   */
   _resizeCanvas() {
-    const dpr = GameConfig.useDevicePixelRatio ? (window.devicePixelRatio || 1) : 1;
+    const useDpr = this.session?.options?.useDevicePixelRatio
+      ?? GameConfig.useDevicePixelRatio;
+    const dpr = useDpr ? (window.devicePixelRatio || 1) : 1;
+
     const w = window.innerWidth, h = window.innerHeight;
     this.canvas.width  = w * dpr;
     this.canvas.height = h * dpr;

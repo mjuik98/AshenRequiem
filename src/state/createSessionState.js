@@ -3,34 +3,90 @@
  *
  * ── 개선 P0: SessionState 단일 진실의 원천 ────────────────────────────────
  *
- * Before (버그):
- *   - 마이그레이션 로직이 이 파일과 NullSoundSystem.js 하단에 중복 정의됨.
- *   - best 필드명 불일치:
- *       createSessionState.js → { kills, survivalTime, level }
- *       NullSoundSystem.js   → { killCount, elapsedTime, playerLevel }
- *   - 버전 키 불일치: '_version' vs 'version'
- *   - _migrate()가 기존 데이터를 보존하지 않고 재초기화만 함.
- *
- * After (수정):
- *   - 이 파일이 SessionState 스키마 · 마이그레이션 · CRUD의 유일한 소스.
- *   - NullSoundSystem.js는 순수 NullObject만 보유 (SessionState 코드 없음).
- *   - best 필드명을 { kills, survivalTime, level }로 통일.
- *   - 버전 키를 '_version'으로 통일.
- *   - v0 → v1 → v2 순차 마이그레이션 체인으로 기존 데이터 보존.
- *
- * 규칙 (AGENTS.md §6.2):
- *   - 런 종료 시: updateSessionBest() → saveSession() 순서.
- *   - session.last: 이번 판 임시 결과, 영구 저장 안 함.
- *   - session.best: 각 필드별 독립 갱신 판정.
+ * CHANGE (Settings): SESSION_VERSION 2 → 3, options 필드 확장
+ *   - masterVolume, bgmVolume, sfxVolume : 볼륨 조절
+ *   - quality                           : 렌더링 품질 프리셋 ('low'|'medium'|'high')
+ *   - glowEnabled                       : 발광 효과 온오프
+ *   - useDevicePixelRatio               : 고해상도 렌더링
+ *   - v2 → v3 마이그레이션 추가 (기존 저장값 보존)
  */
 
 const STORAGE_KEY      = 'ashenRequiem_session';
-const SESSION_VERSION  = 2;
+const SESSION_VERSION  = 3;
+
+function _createDefaultLast() {
+  return {
+    kills:        0,
+    survivalTime: 0,
+    level:        1,
+    weaponsUsed:  [],
+  };
+}
+
+function _createDefaultBest() {
+  return {
+    kills:        0,
+    survivalTime: 0,
+    level:        1,
+  };
+}
+
+function _createDefaultMeta() {
+  return {
+    currency:          0,
+    permanentUpgrades: {},
+  };
+}
+
+function _createDefaultOptions() {
+  return {
+    soundEnabled:        true,
+    musicEnabled:        true,
+    masterVolume:        80,
+    bgmVolume:           60,
+    sfxVolume:           100,
+    quality:             'medium',
+    glowEnabled:         true,
+    showFps:             false,
+    useDevicePixelRatio: true,
+  };
+}
+
+function _normalizeSessionState(state) {
+  const defaults = createSessionState();
+  const quality = state?.options?.quality;
+  const normalizedQuality = quality === 'low' || quality === 'medium' || quality === 'high'
+    ? quality
+    : defaults.options.quality;
+
+  return {
+    _version: SESSION_VERSION,
+    last: {
+      ...defaults.last,
+      ...(state?.last ?? {}),
+      weaponsUsed: Array.isArray(state?.last?.weaponsUsed) ? [...state.last.weaponsUsed] : [],
+    },
+    best: {
+      ...defaults.best,
+      ...(state?.best ?? {}),
+    },
+    meta: {
+      ...defaults.meta,
+      ...(state?.meta ?? {}),
+      permanentUpgrades: { ...(state?.meta?.permanentUpgrades ?? {}) },
+    },
+    options: {
+      ...defaults.options,
+      ...(state?.options ?? {}),
+      quality: normalizedQuality,
+    },
+  };
+}
 
 // ── 기본값 생성 ───────────────────────────────────────────────────────────
 
 /**
- * v2 세션 기본값 생성.
+ * v3 세션 기본값 생성.
  * @returns {SessionState}
  */
 export function createSessionState() {
@@ -38,33 +94,16 @@ export function createSessionState() {
     _version: SESSION_VERSION,
 
     /** 현재 런 최종 결과 (임시, 저장 안 함) */
-    last: {
-      kills:        0,
-      survivalTime: 0,
-      level:        1,
-      weaponsUsed:  [],
-    },
+    last: _createDefaultLast(),
 
     /** 역대 최고 기록 (각 축 독립 갱신) */
-    best: {
-      kills:        0,
-      survivalTime: 0,
-      level:        1,
-    },
+    best: _createDefaultBest(),
 
     /** Meta-Progression */
-    meta: {
-      currency:          0,
-      /** @type {Record<string, number>} upgradeId → 구매 횟수 */
-      permanentUpgrades: {},
-    },
+    meta: _createDefaultMeta(),
 
     /** UI / 설정 */
-    options: {
-      soundEnabled: true,
-      musicEnabled: true,
-      showFps:      false,
-    },
+    options: _createDefaultOptions(),
   };
 }
 
@@ -72,10 +111,6 @@ export function createSessionState() {
 
 /**
  * localStorage에서 읽은 raw 데이터를 최신 버전으로 순차 마이그레이션한다.
- * 새 버전 추가 방법:
- *   1. SESSION_VERSION 증가
- *   2. _migrations 배열에 { from, migrate } 항목 추가
- *   3. migrate()는 이전 버전 객체를 받아 다음 버전 객체를 반환
  *
  * @param {object|null} raw  localStorage에서 읽은 원본 객체
  * @returns {SessionState}   최신 버전 SessionState
@@ -83,7 +118,6 @@ export function createSessionState() {
 function _migrate(raw) {
   if (!raw) return createSessionState();
 
-  // 버전 키 정규화: 구버전은 'version' 키를 사용했을 수 있음
   let state   = { ...raw };
   let version = state._version ?? state.version ?? 0;
 
@@ -128,13 +162,29 @@ function _migrate(raw) {
         };
       },
     },
-    // 향후 v2 → v3 마이그레이션은 여기에 추가:
-    // {
-    //   from: 2,
-    //   migrate(s) {
-    //     return { ...s, _version: 3, newField: defaultValue };
-    //   },
-    // },
+    {
+      from: 2,
+      // v2 → v3: options 확장 (볼륨, 품질, 화면 설정)
+      migrate(s) {
+        return {
+          ...s,
+          _version: 3,
+          options: {
+            // 기존 필드 보존
+            soundEnabled: s.options?.soundEnabled ?? true,
+            musicEnabled: s.options?.musicEnabled ?? true,
+            showFps:      s.options?.showFps      ?? false,
+            // 신규 필드 — 기본값으로 초기화
+            masterVolume:        s.options?.masterVolume        ?? 80,
+            bgmVolume:           s.options?.bgmVolume           ?? 60,
+            sfxVolume:           s.options?.sfxVolume           ?? 100,
+            quality:             s.options?.quality             ?? 'medium',
+            glowEnabled:         s.options?.glowEnabled         ?? true,
+            useDevicePixelRatio: s.options?.useDevicePixelRatio ?? true,
+          },
+        };
+      },
+    },
   ];
 
   for (const m of migrations) {
@@ -152,7 +202,7 @@ function _migrate(raw) {
     return createSessionState();
   }
 
-  return /** @type {SessionState} */ (state);
+  return _normalizeSessionState(state);
 }
 
 // ── 갱신 ──────────────────────────────────────────────────────────────────
@@ -211,11 +261,12 @@ export function purchasePermanentUpgrade(session, upgradeId, cost) {
  */
 export function saveSession(session) {
   try {
+    const normalized = _normalizeSessionState(session);
     const toSave = {
       _version: SESSION_VERSION,
-      best:     session.best,
-      meta:     session.meta,
-      options:  session.options,
+      best:     normalized.best,
+      meta:     normalized.meta,
+      options:  normalized.options,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
@@ -248,7 +299,17 @@ export function loadSession() {
  * @property {{ kills: number, survivalTime: number, level: number, weaponsUsed: string[] }} last
  * @property {{ kills: number, survivalTime: number, level: number }} best
  * @property {{ currency: number, permanentUpgrades: Record<string, number> }} meta
- * @property {{ soundEnabled: boolean, musicEnabled: boolean, showFps: boolean }} options
+ * @property {{
+ *   soundEnabled: boolean,
+ *   musicEnabled: boolean,
+ *   masterVolume: number,
+ *   bgmVolume: number,
+ *   sfxVolume: number,
+ *   quality: 'low'|'medium'|'high',
+ *   glowEnabled: boolean,
+ *   showFps: boolean,
+ *   useDevicePixelRatio: boolean
+ * }} options
  */
 
 export {};
