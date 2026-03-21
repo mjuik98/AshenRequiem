@@ -59,11 +59,19 @@ export class PlayUI {
 
   hideLevelUp() { this._levelUp.hide(); }
 
+  isLevelUpVisible() {
+    return this._levelUp?.el?.style.display !== 'none';
+  }
+
   // ── 결과 화면 ─────────────────────────────────────────────────────────
 
   showResult(stats, onRestart, onMetaShop = null) {
     this.hideHud();
     this._result.show(stats, onRestart, onMetaShop);
+  }
+
+  isResultVisible() {
+    return this._result?.el?.style.display !== 'none';
   }
 
   // ── 생명주기 ──────────────────────────────────────────────────────────

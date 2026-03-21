@@ -7,7 +7,7 @@
 import { updateSessionBest } from '../../state/createSessionState.js';
 import { unlockData } from '../../data/unlockData.js';
 import { evaluateUnlocks } from '../../systems/progression/unlockEvaluator.js';
-import { appendUnique } from '../../state/sessionMeta.js';
+import { appendUnique, ensureCodexMeta } from '../../state/sessionMeta.js';
 import { persistSession } from '../../state/sessionFacade.js';
 
 export class PlayResultHandler {
@@ -32,6 +32,9 @@ export class PlayResultHandler {
    */
   process(world) {
     const outcome = world.runOutcome?.type ?? 'defeat';
+    ensureCodexMeta(this._session);
+    this._session.meta.totalRuns = (this._session.meta.totalRuns ?? 0) + 1;
+
     const runResult = {
       kills:        world.killCount,
       survivalTime: world.elapsedTime,

@@ -98,6 +98,30 @@ export const upgradeData = [
     id: 'up_blizzard_nova_plus', type: 'weapon_upgrade', weaponId: 'blizzard_nova',
     name: '블리자드 노바 +', description: '다음 성장 적용',
   },
+  {
+    id: 'up_helios_lance_plus', type: 'weapon_upgrade', weaponId: 'helios_lance',
+    name: '헬리오스 랜스 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_astral_pike_plus', type: 'weapon_upgrade', weaponId: 'astral_pike',
+    name: '아스트랄 파이크 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_inferno_field_plus', type: 'weapon_upgrade', weaponId: 'inferno_field',
+    name: '인페르노 필드 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_plague_marsh_plus', type: 'weapon_upgrade', weaponId: 'plague_marsh',
+    name: '플레그 마시 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_prism_volley_plus', type: 'weapon_upgrade', weaponId: 'prism_volley',
+    name: '프리즘 볼리 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_seraph_disc_plus', type: 'weapon_upgrade', weaponId: 'seraph_disc',
+    name: '세라프 디스크 +', description: '다음 성장 적용',
+  },
 
   // ── HP 회복 (폴백 전용) ──────────────────────────────────────────────────────
   { id: 'stat_heal', type: 'stat', name: 'HP 회복', description: '현재 HP +25 즉시 회복', effect: { stat: 'hp', value: 25 } },

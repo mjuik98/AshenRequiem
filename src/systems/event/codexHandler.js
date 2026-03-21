@@ -47,11 +47,6 @@ export function registerCodexHandlers(session, registry) {
       }
     }
 
-    if (entity.type === 'player') {
-      // 런 종료(사망) 시 totalRuns 증가
-      ensureCodexMeta(session);
-      session.meta.totalRuns = (session.meta.totalRuns ?? 0) + 1;
-    }
   });
 
   // 무기 진화 이벤트 추적

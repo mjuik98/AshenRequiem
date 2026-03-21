@@ -7,3 +7,9 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Generated local browser/automation artifacts
+.playwright-cli/
+.superpowers/brainstorm/
+output/playwright/
+output/web-game/

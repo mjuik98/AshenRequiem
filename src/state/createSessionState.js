@@ -11,7 +11,7 @@
  *   - v2 → v3 마이그레이션 추가 (기존 저장값 보존)
  */
 
-import { createDefaultSessionMeta } from './sessionMeta.js';
+import { createDefaultSessionMeta, reconcileSessionUnlocks } from './sessionMeta.js';
 import {
   SESSION_OPTION_DEFAULTS,
   normalizeSessionOptions,
@@ -55,7 +55,7 @@ function _createDefaultOptions() {
 function _normalizeSessionState(state) {
   const defaults = createSessionState();
 
-  return {
+  const normalized = {
     _version: SESSION_VERSION,
     last: {
       ...defaults.last,
@@ -91,6 +91,8 @@ function _normalizeSessionState(state) {
       }),
     },
   };
+
+  return reconcileSessionUnlocks(normalized);
 }
 
 // ── 기본값 생성 ───────────────────────────────────────────────────────────

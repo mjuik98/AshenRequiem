@@ -59,6 +59,60 @@ export const weaponEvolutionData = [
     },
     announceText: '냉기 폭발이 블리자드 노바로 진화했다!',
   },
+  {
+    id:             'evolution_helios_lance',
+    resultWeaponId: 'helios_lance',
+    requires: {
+      weaponId:     'solar_ray',
+      accessoryIds: ['arcane_prism'],
+    },
+    announceText: '태양 광선이 헬리오스 랜스로 진화했다!',
+  },
+  {
+    id:             'evolution_astral_pike',
+    resultWeaponId: 'astral_pike',
+    requires: {
+      weaponId:     'piercing_spear',
+      accessoryIds: ['wind_crystal'],
+    },
+    announceText: '관통 창이 아스트랄 파이크로 진화했다!',
+  },
+  {
+    id:             'evolution_inferno_field',
+    resultWeaponId: 'inferno_field',
+    requires: {
+      weaponId:     'flame_zone',
+      accessoryIds: ['swift_hourglass'],
+    },
+    announceText: '화염 지대가 인페르노 필드로 진화했다!',
+  },
+  {
+    id:             'evolution_plague_marsh',
+    resultWeaponId: 'plague_marsh',
+    requires: {
+      weaponId:     'venom_bog',
+      accessoryIds: ['persistence_charm'],
+    },
+    announceText: '독성 늪이 플레그 마시로 진화했다!',
+  },
+  {
+    id:             'evolution_prism_volley',
+    resultWeaponId: 'prism_volley',
+    requires: {
+      weaponId:     'crystal_shard',
+      accessoryIds: ['duplicator'],
+    },
+    announceText: '수정 파편이 프리즘 볼리로 진화했다!',
+  },
+  {
+    id:             'evolution_seraph_disc',
+    resultWeaponId: 'seraph_disc',
+    requires: {
+      weaponId:     'radiant_orb',
+      accessoryIds: ['crit_gem'],
+    },
+    announceText: '성광 탄환이 세라프 디스크로 진화했다!',
+  },
 ];
 
 /** id로 레시피 조회 */

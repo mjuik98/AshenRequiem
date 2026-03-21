@@ -95,10 +95,11 @@ export function makeEvents(overrides = {}) {
     levelUpRequested: [],
     statusApplied:    [],
     bossPhaseChanged: [],
+    bossSpawned:      [],
     spawnRequested:   [],
     currencyEarned:   [],  // FIX(BUG-4 지원): currencyEarned 큐 추가
-    bossAnnounced:    [],
     weaponEvolved:    [],
+    weaponAcquired:   [],
     ...overrides,
   };
 }

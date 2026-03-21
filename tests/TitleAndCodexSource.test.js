@@ -67,7 +67,6 @@ test('타이틀 하위 화면은 공통 ss-root로 스크롤과 포인터 입력
 test('타이틀 하위 화면의 닫기 버튼 문구는 메인 화면으로로 통일된다', () => {
   assert.equal(codexViewSource.includes('renderSubscreenFooter'), true, 'Codex 닫기 문구가 공통 footer helper로 통일되지 않음');
   assert.equal(metaShopViewSource.includes('메인 화면으로'), true, 'MetaShop 닫기 문구가 통일되지 않음');
-  assert.equal(settingsViewSource.includes('메인 화면으로'), true, 'Settings 닫기 문구가 통일되지 않음');
   assert.equal(codexViewSource.includes('돌아가기'), false, 'Codex에 이전 닫기 문구가 남아 있음');
   assert.equal(metaShopViewSource.includes('메인화면으로'), false, 'MetaShop에 이전 닫기 문구가 남아 있음');
   assert.equal(settingsViewSource.includes('← 뒤로'), false, 'Settings에 이전 닫기 문구가 남아 있음');
@@ -80,6 +79,21 @@ test('타이틀 하위 화면은 공통 서브스크린 테마를 사용한다',
   assert.equal(codexViewSource.includes('renderSubscreenFooter'), true, 'CodexView가 공통 복귀 footer helper를 사용하지 않음');
   assert.equal(metaShopViewSource.includes('renderSubscreenFooter'), true, 'MetaShopView가 공통 복귀 footer helper를 사용하지 않음');
   assert.equal(settingsViewSource.includes('renderSubscreenFooter'), true, 'SettingsView가 공통 복귀 footer helper를 사용하지 않음');
+});
+
+test('Settings 헤더는 저장 안내 pill을 더 이상 렌더링하지 않는다', () => {
+  assert.equal(
+    settingsViewSource.includes('저장 후 메인 화면으로 복귀'),
+    false,
+    'Settings 헤더 우측 저장 안내 pill이 아직 남아 있음',
+  );
+});
+
+test('Meta Shop 헤더는 최고 기록 pill 묶음을 더 이상 렌더링하지 않는다', () => {
+  assert.equal(metaShopViewSource.includes('ms-best-row'), false, 'Meta Shop 헤더에 최고 기록 row가 아직 남아 있음');
+  assert.equal(metaShopViewSource.includes('best.level'), false, 'Meta Shop 헤더가 최고 레벨을 여전히 렌더링함');
+  assert.equal(metaShopViewSource.includes('best.kills'), false, 'Meta Shop 헤더가 킬 수를 여전히 렌더링함');
+  assert.equal(metaShopViewSource.includes('best.survivalTime'), false, 'Meta Shop 헤더가 생존 시간을 여전히 렌더링함');
 });
 
 test('타이틀 하위 화면은 공통 서브스크린 header/footer helper를 사용한다', () => {

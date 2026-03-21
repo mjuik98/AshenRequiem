@@ -11,8 +11,10 @@ export const EVENT_TYPES = [
   'levelUpRequested',
   'statusApplied',
   'bossPhaseChanged',
+  'bossSpawned',
   'spawnRequested',
   'currencyEarned',
+  'weaponEvolved',
   'weaponAcquired',
   'chestCollected',   // ← NEW: 상자 획득 시 발행
 ];

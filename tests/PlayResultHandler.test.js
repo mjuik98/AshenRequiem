@@ -74,4 +74,30 @@ test('런 종료 시 신규 해금을 세션 메타에 반영한다', () => {
   assert.equal(session.last.kills, 42, '기존 결과 저장 경로가 끊김');
 });
 
+test('승리 런도 totalRuns를 1 증가시킨다', () => {
+  const session = makeSessionState({ meta: { totalRuns: 3 } });
+  const world = makeWorld({
+    runOutcome: { type: 'victory' },
+    player: makePlayer({ level: 4, weapons: [] }),
+  });
+
+  const handler = new PlayResultHandler(session);
+  handler.process(world);
+
+  assert.equal(session.meta.totalRuns, 4, '승리 런이 totalRuns에 반영되지 않음');
+});
+
+test('패배 런도 totalRuns를 1 증가시킨다', () => {
+  const session = makeSessionState({ meta: { totalRuns: 7 } });
+  const world = makeWorld({
+    runOutcome: { type: 'defeat' },
+    player: makePlayer({ level: 2, weapons: [] }),
+  });
+
+  const handler = new PlayResultHandler(session);
+  handler.process(world);
+
+  assert.equal(session.meta.totalRuns, 8, '패배 런이 totalRuns에 반영되지 않음');
+});
+
 summary();

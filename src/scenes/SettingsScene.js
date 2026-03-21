@@ -18,6 +18,7 @@ import { createSceneNavigationGuard } from './sceneNavigation.js';
 export class SettingsScene {
   constructor(game) {
     this.game  = game;
+    this.sceneId = 'SettingsScene';
     this._view = null;
     this._nav  = createSceneNavigationGuard();
   }

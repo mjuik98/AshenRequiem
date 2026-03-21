@@ -32,6 +32,10 @@ export function createSpawnSystem() {
   let _spawnedBossAt     = new Set();
   let _lastBossSpawnTime = -Infinity;
 
+  function _getEnemyName(enemyId, enemyData = []) {
+    return enemyData.find((enemy) => enemy.id === enemyId)?.name ?? enemyId;
+  }
+
   /** @private */
   function _randomOffscreenPosition(player) {
     const margin = 80;
@@ -53,7 +57,7 @@ export function createSpawnSystem() {
   }
 
   return {
-    update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode }, data: { waveData, bossData } }) {
+    update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode, events }, data: { waveData, bossData, enemyData = [] } }) {
       if (playMode !== 'playing') return;
       if (!player?.isAlive) return;
 
@@ -66,6 +70,10 @@ export function createSpawnSystem() {
             _lastBossSpawnTime = elapsedTime;
             const pos = _randomOffscreenPosition(player);
             spawnQueue.push(spawnEnemy({ enemyId: boss.enemyId, x: pos.x, y: pos.y }));
+            events?.bossSpawned?.push({
+              enemyId: boss.enemyId,
+              bossName: _getEnemyName(boss.enemyId, enemyData),
+            });
           }
         }
       }

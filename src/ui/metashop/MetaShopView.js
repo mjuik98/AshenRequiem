@@ -52,7 +52,6 @@ export class MetaShopView {
   _render(session) {
     const currency = session.meta.currency;
     const perms    = session.meta.permanentUpgrades;
-    const best     = session.best;
 
     this.el.innerHTML = `
       <div class="ms-panel ss-panel">
@@ -67,13 +66,6 @@ export class MetaShopView {
           rune: '⚗',
           title: 'Meta Shop',
           subtitle: '영구 강화를 구매해 다음 런을 준비합니다.',
-          right: `
-            <div class="ms-best-row">
-              <span class="ms-best-item ss-pill">🏆 Lv.${best.level}</span>
-              <span class="ms-best-item ss-pill">☠ ${best.kills}</span>
-              <span class="ms-best-item ss-pill">⏱ ${_formatTime(best.survivalTime)}</span>
-            </div>
-          `,
         })}
 
         <!-- 재화 표시 -->
@@ -155,13 +147,6 @@ export class MetaShopView {
       .ms-header {
         margin-bottom: 0;
       }
-      .ms-best-row {
-        display: flex; justify-content: flex-end; gap: 8px;
-        flex-wrap: wrap; align-items: center;
-      }
-      .ms-best-item {
-        color: rgba(217,179,107,0.82);
-      }
       .ms-currency-bar {
         display: flex; justify-content: space-between; align-items: center;
         background: rgba(255,213,79,0.07);
@@ -230,8 +215,6 @@ export class MetaShopView {
         min-width: 170px;
       }
       @media (max-width: 640px) {
-        .ms-header { flex-direction: column; align-items: stretch; }
-        .ms-best-row { justify-content: flex-start; }
         .ms-currency-bar {
           margin: 18px 18px 20px;
         }
@@ -245,10 +228,4 @@ export class MetaShopView {
     `;
     document.head.appendChild(s);
   }
-}
-
-function _formatTime(secs) {
-  const m  = Math.floor(secs / 60);
-  const ss = String(Math.floor(secs % 60)).padStart(2, '0');
-  return `${m}:${ss}`;
 }

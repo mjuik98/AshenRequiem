@@ -13,6 +13,7 @@ import { createSceneNavigationGuard } from './sceneNavigation.js';
 export class MetaShopScene {
   constructor(game) {
     this.game  = game;
+    this.sceneId = 'MetaShopScene';
     this._view = null;
     this._nav  = createSceneNavigationGuard();
   }

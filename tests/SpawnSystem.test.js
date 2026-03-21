@@ -95,4 +95,21 @@ test('getDebugInfo suppressionRemaining은 억제 중일 때 양수', () => {
   assert.ok(info.suppressionRemaining > 0,  'suppressionRemaining이 양수여야 함');
 });
 
+test('보스 스폰 시 bossSpawned 이벤트를 발행한다', () => {
+  const sys = createSpawnSystem();
+  const queue = [];
+  const events = { bossSpawned: [] };
+
+  sys.update({
+    world: { elapsedTime: 1, player: testPlayer, spawnQueue: queue, deltaTime: 1, playMode: 'playing', events },
+    data:  {
+      waveData: testWave,
+      bossData: [{ at: 0, enemyId: 'boss_lich' }],
+      enemyData: [{ id: 'boss_lich', name: 'The Lich' }],
+    },
+  });
+
+  assert.deepEqual(events.bossSpawned, [{ enemyId: 'boss_lich', bossName: 'The Lich' }], 'bossSpawned 이벤트가 발행되지 않음');
+});
+
 summary();

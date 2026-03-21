@@ -180,6 +180,39 @@ test('saveSession()/loadSession()은 주입된 저장소로 round-trip 된다', 
   resetSessionStorage();
 });
 
+test('loadSession()은 기존 누적 기록으로 누락된 해금을 복구한다', () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  storage.setItem('ashenRequiem_session', JSON.stringify({
+    _version: 5,
+    best: { kills: 4000, survivalTime: 0, level: 1 },
+    meta: {
+      currency: 0,
+      permanentUpgrades: {},
+      enemyKills: { zombie: 4000 },
+      enemiesEncountered: ['zombie'],
+      killedBosses: [],
+      weaponsUsedAll: [],
+      evolvedWeapons: [],
+      totalRuns: 25,
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+      completedUnlocks: [],
+      selectedStartWeaponId: 'magic_bolt',
+    },
+    options: {},
+  }));
+
+  const loaded = loadSession();
+
+  assert.equal(loaded.meta.completedUnlocks.includes('unlock_crystal_shard'), true, '1300킬 해금이 기존 세이브에서 복구되지 않음');
+  assert.equal(loaded.meta.unlockedWeapons.includes('crystal_shard'), true, '1300킬 보상 무기가 기존 세이브에서 복구되지 않음');
+  assert.equal(loaded.meta.unlockedAccessories.includes('wind_crystal'), true, '누적 킬 보상 장신구가 기존 세이브에서 복구되지 않음');
+
+  resetSessionStorage();
+});
+
 test('저장소가 없어도 saveSession()은 경고 없이 안전하게 종료된다', () => {
   resetSessionStorage();
 

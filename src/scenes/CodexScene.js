@@ -30,7 +30,7 @@
 
 import { CodexView }    from '../ui/codex/CodexView.js';
 import { mountUI }      from '../ui/dom/mountUI.js';
-import { ensureCodexMeta } from '../state/sessionMeta.js';
+import { ensureCodexMeta, reconcileSessionUnlocks } from '../state/sessionMeta.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 
 export class CodexScene {
@@ -40,6 +40,7 @@ export class CodexScene {
    */
   constructor(game, from = 'title') {
     this.game  = game;
+    this.sceneId = 'CodexScene';
     this._from = from;
     this._view = null;
     this._nav  = createSceneNavigationGuard();
@@ -49,6 +50,7 @@ export class CodexScene {
     this._nav.reset();
 
     ensureCodexMeta(this.game.session);
+    reconcileSessionUnlocks(this.game.session);
 
     const gameData  = this.game.gameData;
     const container = mountUI();

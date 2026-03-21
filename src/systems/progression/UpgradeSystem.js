@@ -11,13 +11,32 @@ import { upgradeData }      from '../../data/upgradeData.js';
 import { shuffle }           from '../../utils/random.js';
 import { getWeaponDataById } from '../../data/weaponData.js';
 import { getAccessoryById }  from '../../data/accessoryData.js';
-import { getNextWeaponProgression } from '../../data/weaponProgressionData.js';
+import { getNextWeaponProgression, weaponProgressionData } from '../../data/weaponProgressionData.js';
 import { SynergySystem }     from './SynergySystem.js';
+
+function getActiveUpgradeData(data) {
+  return data?.upgradeData ?? upgradeData;
+}
+
+function getWeaponDef(id, data) {
+  return data?.weaponData?.find((weapon) => weapon.id === id) ?? getWeaponDataById(id);
+}
+
+function getAccessoryDef(id, data) {
+  return data?.accessoryData?.find((accessory) => accessory.id === id) ?? getAccessoryById(id);
+}
+
+function getNextProgression(weapon, data) {
+  const progressionMap = data?.weaponProgressionData ?? weaponProgressionData;
+  const nextLevel = (weapon?.level ?? 1) + 1;
+  return progressionMap?.[weapon?.id]?.find((step) => step.level === nextLevel)
+    ?? getNextWeaponProgression(weapon);
+}
 
 export const UpgradeSystem = {
 
-  generateChoices(player, options = {}) {
-    const picks = this._buildAvailablePool(player, options);
+  generateChoices(player, options = {}, data = {}) {
+    const picks = this._buildAvailablePool(player, options, data);
     let result  = shuffle(picks).slice(0, 3);
 
     // 폴백: 후보 풀이 바닥나면 회복/골드를 중복 없이 보충한다.
@@ -32,7 +51,7 @@ export const UpgradeSystem = {
    * 무기/장신구 관련 선택지만 수집한다.
    * stat/slot 타입은 완전히 제외된다.
    */
-  _buildAvailablePool(player, options = {}) {
+  _buildAvailablePool(player, options = {}, data = {}) {
     const picks = [];
 
     const maxWeaponSlots = player.maxWeaponSlots     ?? 3;
@@ -44,12 +63,12 @@ export const UpgradeSystem = {
     const banishedUpgradeIds = new Set(options.banishedUpgradeIds ?? []);
     const excludeChoiceIds = new Set(options.excludeChoiceIds ?? []);
 
-    for (const upgrade of upgradeData) {
+    for (const upgrade of getActiveUpgradeData(data)) {
       if (banishedUpgradeIds.has(upgrade.id) || excludeChoiceIds.has(upgrade.id)) continue;
 
       if (upgrade.type === 'weapon_new') {
         // 슬롯 여유 있고, 진화 무기가 아니고, 미보유 시
-        const def = getWeaponDataById(upgrade.weaponId);
+        const def = getWeaponDef(upgrade.weaponId, data);
         if (!def?.isEvolved
             && (!unlockedWeapons || unlockedWeapons.includes(upgrade.weaponId))
             && player.weapons.length < maxWeaponSlots
@@ -60,10 +79,10 @@ export const UpgradeSystem = {
       } else if (upgrade.type === 'weapon_upgrade') {
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
         if (!owned) continue;
-        const def      = getWeaponDataById(upgrade.weaponId);
+        const def      = getWeaponDef(upgrade.weaponId, data);
         const maxLevel = def?.maxLevel ?? Infinity;
         if (owned.level >= maxLevel) continue;
-        const nextProgression = getNextWeaponProgression(owned);
+        const nextProgression = getNextProgression(owned, data);
         if (!nextProgression) continue;
         picks.push({
           ...upgrade,
@@ -82,7 +101,7 @@ export const UpgradeSystem = {
         // 보유 장신구 중 maxLevel 미달인 것만 후보
         const owned = player.accessories?.find(a => a.id === upgrade.accessoryId);
         if (!owned) continue;
-        const def      = getAccessoryById(upgrade.accessoryId);
+        const def      = getAccessoryDef(upgrade.accessoryId, data);
         const maxLevel = def?.maxLevel ?? 5;
         if ((owned.level ?? 1) < maxLevel) picks.push(upgrade);
       }
@@ -93,7 +112,7 @@ export const UpgradeSystem = {
     return picks;
   },
 
-  replaceChoiceAtIndex(player, currentChoices, index, options = {}) {
+  replaceChoiceAtIndex(player, currentChoices, index, options = {}, data = {}) {
     const nextChoices = [...currentChoices];
     const excludeChoiceIds = currentChoices
       .filter((choice, choiceIndex) => choiceIndex !== index || choice?.id === currentChoices[index]?.id)
@@ -102,7 +121,7 @@ export const UpgradeSystem = {
     const pool = shuffle(this._buildAvailablePool(player, {
       ...options,
       excludeChoiceIds,
-    }));
+    }, data));
     const replacement = pool[0] ?? this._getFallbackChoice(excludeChoiceIds);
     if (replacement) {
       nextChoices[index] = replacement;
@@ -116,10 +135,10 @@ export const UpgradeSystem = {
    * @param {object[]|undefined} synergyData
    * @param {object|undefined}   synergyState
    */
-  applyUpgrade(player, upgrade, synergyData, synergyState) {
+  applyUpgrade(player, upgrade, synergyData, synergyState, data = {}) {
 
     if (upgrade.type === 'weapon_new') {
-      const def = getWeaponDataById(upgrade.weaponId);
+      const def = getWeaponDef(upgrade.weaponId, data);
       if (def) {
         const newWeapon = { ...def, currentCooldown: 0, level: 1 };
         if (player.globalDamageMult && player.globalDamageMult !== 1) {
@@ -131,7 +150,7 @@ export const UpgradeSystem = {
     } else if (upgrade.type === 'weapon_upgrade') {
       const owned = player.weapons.find(w => w.id === upgrade.weaponId);
       if (owned) {
-        const nextProgression = getNextWeaponProgression(owned);
+        const nextProgression = getNextProgression(owned, data);
         if (!nextProgression) return;
 
         owned.level = nextProgression.level;
@@ -193,7 +212,7 @@ export const UpgradeSystem = {
       }
 
     } else if (upgrade.type === 'accessory') {
-      const accDef = getAccessoryById(upgrade.accessoryId);
+      const accDef = getAccessoryDef(upgrade.accessoryId, data);
       if (accDef && (player.accessories?.length ?? 0) < (player.maxAccessorySlots ?? 3)) {
         player.accessories = player.accessories ?? [];
         // Lv.1로 장착, effects도 복사
@@ -206,7 +225,7 @@ export const UpgradeSystem = {
       // 보유 장신구 레벨업 — valuePerLevel 적용
       const owned = player.accessories?.find(a => a.id === upgrade.accessoryId);
       if (owned) {
-        const def = getAccessoryById(upgrade.accessoryId);
+        const def = getAccessoryDef(upgrade.accessoryId, data);
         const maxLevel = def?.maxLevel ?? 5;
         if ((owned.level ?? 1) < maxLevel) {
           owned.level = (owned.level ?? 1) + 1;

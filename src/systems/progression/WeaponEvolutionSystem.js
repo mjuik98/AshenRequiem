@@ -15,6 +15,10 @@
  */
 import { getWeaponDataById } from '../../data/weaponData.js';
 
+function getWeaponDef(id, runtimeWeaponData) {
+  return runtimeWeaponData?.find((weapon) => weapon.id === id) ?? getWeaponDataById(id);
+}
+
 export const WeaponEvolutionSystem = {
   update({ world, data }) {
     if (!world?.player || !data?.weaponEvolutionData) return;
@@ -33,7 +37,7 @@ export const WeaponEvolutionSystem = {
       if (!baseWeapon) continue;
 
       // 기반 무기가 maxLevel에 도달했는지 확인
-      const baseWeaponDef = getWeaponDataById(weaponId);
+      const baseWeaponDef = getWeaponDef(weaponId, data.weaponData);
       const maxLevel      = baseWeaponDef?.maxLevel ?? 5;
       if (baseWeapon.level < maxLevel) continue;
 
@@ -44,7 +48,7 @@ export const WeaponEvolutionSystem = {
       if (!hasAllAccessories) continue;
 
       // 진화 무기 정의 확인
-      const evolvedDef = getWeaponDataById(recipe.resultWeaponId);
+      const evolvedDef = getWeaponDef(recipe.resultWeaponId, data.weaponData);
       if (!evolvedDef) {
         console.warn(`[WeaponEvolutionSystem] 진화 무기 미정의: ${recipe.resultWeaponId}`);
         continue;

@@ -19,6 +19,7 @@ import { createSceneNavigationGuard } from './sceneNavigation.js';
 export class TitleScene {
   constructor(game) {
     this.game         = game;
+    this.sceneId      = 'TitleScene';
     this._el          = null;
     this._canvas      = null;
     this._ctx         = null;

@@ -33,6 +33,7 @@ import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
 export class PlayScene {
   constructor(game) {
     this.game               = game;
+    this.sceneId            = 'PlayScene';
     this.world              = null;
     this._ctx               = null;
     this._pipeline          = null;

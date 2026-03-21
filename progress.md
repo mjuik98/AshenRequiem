@@ -56,3 +56,4 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-21: Playwright로 Codex 무기 탭을 열어 신규 진화 무기 카드 ID 6종(`helios_lance`, `astral_pike`, `inferno_field`, `plague_marsh`, `prism_volley`, `seraph_disc`)이 DOM에 실제 존재함을 확인. 스크린샷은 `output/web-game/codex-shot/codex.png`, ID 목록은 `output/web-game/codex-shot/ids.json`.
 - 2026-03-21: `runtimeHooks`가 `scene.constructor.name`에 의존해 minify된 `"e"`를 노출하던 문제를 수정. 모든 scene 클래스에 안정적인 `sceneId`를 추가하고 `tests/RuntimeHooks.test.js`로 red-green 회귀를 고정.
 - 2026-03-21: `dist/`를 `127.0.0.1:43210`에서 다시 서빙해 `WEB_GAME_CLIENT` 및 Playwright smoke를 재실행. `output/web-game/runtimehooks-play-client2/state-0.json`에서 `scene: "PlayScene"` 복구를 확인했고, 스크린샷은 `output/web-game/runtimehooks-play-client2/shot-0.png`.
+- 2026-03-21: 다음 기능 작업으로 deterministic browser smoke coverage를 선정. 실행 계획은 `docs/superpowers/plans/2026-03-21-deterministic-browser-smoke-coverage.md`에 기록.

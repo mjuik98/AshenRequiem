@@ -40,6 +40,7 @@ test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {
 
 test('Codex 메타 초기화는 단일 헬퍼로 중앙화된다', () => {
   assert.equal(codexSceneSource.includes('ensureCodexMeta'), true, 'CodexScene이 공통 Codex 메타 헬퍼를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('reconcileSessionUnlocks'), true, 'CodexScene이 기존 누적 해금 보정 헬퍼를 사용하지 않음');
   assert.equal(codexHandlerSource.includes('ensureCodexMeta'), true, 'codexHandler가 공통 Codex 메타 헬퍼를 사용하지 않음');
 });
 

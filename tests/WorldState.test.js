@@ -12,4 +12,10 @@ test('createWorld()는 리롤/봉인 런 상태 기본값을 포함한다', () =
   assert.equal(world.levelUpActionMode, 'select', 'levelUpActionMode 기본값이 select가 아님');
 });
 
+test('createWorld()는 런타임 이벤트 큐 SSOT를 모두 초기화한다', () => {
+  const world = createWorld();
+  assert.ok(Array.isArray(world.events.weaponEvolved), 'weaponEvolved 큐가 초기화되지 않음');
+  assert.ok(Array.isArray(world.events.bossSpawned), 'bossSpawned 큐가 초기화되지 않음');
+});
+
 summary();

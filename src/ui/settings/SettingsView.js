@@ -83,7 +83,6 @@ export class SettingsView {
           rune: '⚙',
           title: 'Settings',
           subtitle: '오디오, 그래픽, 화면 옵션을 조정합니다.',
-          right: '<span class="sv-header-note ss-pill">저장 후 메인 화면으로 복귀</span>',
         })}
 
         <div class="sv-body">

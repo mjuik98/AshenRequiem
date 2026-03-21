@@ -17,6 +17,7 @@ export const UpgradeApplySystem = {
       pendingUpgrade,
       data?.synergyData,
       world.synergyState,
+      data,
     );
 
     if (pendingUpgrade.type === 'weapon_new') {

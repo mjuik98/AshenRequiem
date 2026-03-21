@@ -14,6 +14,7 @@ import { enemyData }           from './enemyData.js';
 import { synergyData }         from './synergyData.js';
 import { statusEffectData }    from './statusEffectData.js';
 import { weaponEvolutionData } from './weaponEvolutionData.js';
+import { weaponProgressionData } from './weaponProgressionData.js';
 import { accessoryData }       from './accessoryData.js';
 
 function deepCloneValue(value, seen = new WeakMap()) {
@@ -103,6 +104,7 @@ export const GameDataLoader = {
       synergyData,
       statusEffectData,
       weaponEvolutionData,
+      weaponProgressionData,
       accessoryData,
     };
 
