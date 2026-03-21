@@ -7,6 +7,13 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function normalizePauseTabName(activeTabName) {
+  if (activeTabName === 'weapons' || activeTabName === 'accessories') {
+    return 'loadout';
+  }
+  return activeTabName ?? 'loadout';
+}
+
 export function renderPauseTabNavigation({
   activeTabName,
   weaponCount,
@@ -14,18 +21,16 @@ export function renderPauseTabNavigation({
   accessoryCount,
   maxAccSlots,
 }) {
+  const normalizedTabName = normalizePauseTabName(activeTabName);
   return `
     <nav class="pv-tabs" role="tablist" aria-label="정보 탭">
-      <button class="pv-tab ${activeTabName === 'weapons' ? 'active' : ''}" type="button" role="tab" aria-selected="${activeTabName === 'weapons'}" data-tab-name="weapons">
-        무기 <span class="pv-tab-cnt">${weaponCount}/${maxWpnSlots}</span>
+      <button class="pv-tab ${normalizedTabName === 'loadout' ? 'active' : ''}" type="button" role="tab" aria-selected="${normalizedTabName === 'loadout'}" data-tab-name="loadout">
+        로드아웃
       </button>
-      <button class="pv-tab ${activeTabName === 'accessories' ? 'active' : ''}" type="button" role="tab" aria-selected="${activeTabName === 'accessories'}" data-tab-name="accessories">
-        장신구 <span class="pv-tab-cnt">${accessoryCount}/${maxAccSlots}</span>
-      </button>
-      <button class="pv-tab ${activeTabName === 'stats' ? 'active' : ''}" type="button" role="tab" aria-selected="${activeTabName === 'stats'}" data-tab-name="stats">
+      <button class="pv-tab ${normalizedTabName === 'stats' ? 'active' : ''}" type="button" role="tab" aria-selected="${normalizedTabName === 'stats'}" data-tab-name="stats">
         스탯
       </button>
-      <button class="pv-tab ${activeTabName === 'sound' ? 'active' : ''}" type="button" role="tab" aria-selected="${activeTabName === 'sound'}" data-tab-name="sound">
+      <button class="pv-tab ${normalizedTabName === 'sound' ? 'active' : ''}" type="button" role="tab" aria-selected="${normalizedTabName === 'sound'}" data-tab-name="sound">
         사운드
       </button>
     </nav>
@@ -34,32 +39,31 @@ export function renderPauseTabNavigation({
 
 export function renderPauseTabPanels({
   activeTabName,
-  weapons,
-  accessories,
-  maxAccSlots,
-  weaponCardsHtml,
-  accessoryGridHtml,
+  loadoutPanelHtml = null,
   statsHtml,
   soundControlsHtml,
 }) {
+  const normalizedTabName = normalizePauseTabName(activeTabName);
+  const fallbackLoadoutHtml = `
+    <section class="pv-loadout-panel" aria-label="로드아웃">
+      <div class="pv-loadout-list"></div>
+      <div class="pv-loadout-detail">
+        <div class="pv-loadout-detail-empty">선택한 로드아웃 항목의 상세 정보가 여기에 표시됩니다.</div>
+      </div>
+    </section>
+  `;
+  const hasCustomLoadoutPanel = loadoutPanelHtml !== null && loadoutPanelHtml !== undefined;
+  const loadoutHtml = hasCustomLoadoutPanel ? loadoutPanelHtml : fallbackLoadoutHtml;
   return `
-    <div class="pv-tab-content ${activeTabName === 'weapons' ? 'active' : ''}" id="pv-tab-weapons" role="tabpanel">
-      <div class="pv-weapon-list">
-        ${weapons.length > 0 ? weaponCardsHtml : '<div class="pv-empty-msg">보유 무기 없음</div>'}
-      </div>
+    <div class="pv-tab-content ${normalizedTabName === 'loadout' ? 'active' : ''}" id="pv-tab-loadout" role="tabpanel">
+      ${loadoutHtml}
     </div>
 
-    <div class="pv-tab-content ${activeTabName === 'accessories' ? 'active' : ''}" id="pv-tab-accessories" role="tabpanel">
-      <div class="pv-acc-grid">
-        ${accessoryGridHtml}
-      </div>
-    </div>
-
-    <div class="pv-tab-content ${activeTabName === 'stats' ? 'active' : ''}" id="pv-tab-stats" role="tabpanel">
+    <div class="pv-tab-content ${normalizedTabName === 'stats' ? 'active' : ''}" id="pv-tab-stats" role="tabpanel">
       ${statsHtml}
     </div>
 
-    <div class="pv-tab-content ${activeTabName === 'sound' ? 'active' : ''}" id="pv-tab-sound" role="tabpanel">
+    <div class="pv-tab-content ${normalizedTabName === 'sound' ? 'active' : ''}" id="pv-tab-sound" role="tabpanel">
       ${soundControlsHtml}
     </div>
   `;

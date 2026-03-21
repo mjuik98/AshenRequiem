@@ -83,9 +83,9 @@ test('helper module exposes the planned loadout API', () => {
 
 test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 포함한다', () => {
   const api = getPauseLoadoutContent();
-  const { player, data, indexes, weapon, accessory } = makeTestFixture();
+  const { player, weapon, accessory } = makeTestFixture();
 
-  const items = api.buildPauseLoadoutItems({ player, data, indexes });
+  const items = api.buildPauseLoadoutItems({ player });
 
   assert.ok(Array.isArray(items), 'buildPauseLoadoutItems가 배열을 반환하지 않음');
   const kinds = items.map((item) => item.kind);
@@ -111,6 +111,11 @@ test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 
   assert.equal(accessoryItem.id, accessory.id, '장신구 항목이 장신구 id를 보존하지 않음');
   assert.equal(accessoryItem.name, accessory.name, '장신구 항목이 장신구 name을 보존하지 않음');
   assert.equal(accessoryItem.slotIndex, 1, '장신구 항목의 slotIndex가 1이 아님');
+  assert.equal(typeof weaponItem.selectionKey, 'string', '무기 항목에 selectionKey가 없음');
+  assert.equal(typeof accessoryItem.selectionKey, 'string', '장신구 항목에 selectionKey가 없음');
+  assert.equal(typeof emptyItem.selectionKey, 'string', '빈 슬롯 항목에 selectionKey가 없음');
+  assert.equal(typeof lockedItem.selectionKey, 'string', '잠금 슬롯 항목에 selectionKey가 없음');
+  assert.notEqual(emptyItem.selectionKey, lockedItem.selectionKey, '빈 슬롯과 잠금 슬롯의 selectionKey가 같음');
   assert.equal(typeof emptyItem.label, 'string', '빈 슬롯 항목에 표시 레이블이 없음');
   assert.equal(typeof lockedItem.label, 'string', '잠금 슬롯 항목에 표시 레이블이 없음');
   assert.equal(emptyItem.id == null, true, '빈 슬롯 항목에 id가 남아 있음');
@@ -124,9 +129,9 @@ test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 
 
 test('getDefaultPauseSelection은 첫 무기를 우선하고 빈 로드아웃에서는 안정적이다', () => {
   const api = getPauseLoadoutContent();
-  const { player, data, indexes, weapon } = makeTestFixture();
+  const { player, weapon } = makeTestFixture();
 
-  const selection = api.getDefaultPauseSelection({ player, data, indexes });
+  const selection = api.getDefaultPauseSelection({ player });
   assert.ok(selection, '기본 선택이 반환되지 않음');
   assert.equal(selection.id, weapon.id, '기본 선택이 첫 무기를 우선하지 않음');
   assert.equal(selection.kind, 'weapon', '기본 선택의 kind가 무기가 아님');
@@ -137,21 +142,27 @@ test('getDefaultPauseSelection은 첫 무기를 우선하고 빈 로드아웃에
     maxWeaponSlots: 3,
     maxAccessorySlots: 3,
   });
-  const emptyFirst = api.getDefaultPauseSelection({ player: emptyPlayer, data, indexes });
-  const emptySecond = api.getDefaultPauseSelection({ player: emptyPlayer, data, indexes });
+  const emptyItems = api.buildPauseLoadoutItems({ player: emptyPlayer });
+  const lockedItem = emptyItems.find((item) => item.kind === 'locked');
+  const emptyFirst = api.getDefaultPauseSelection({ player: emptyPlayer });
+  const emptySecond = api.getDefaultPauseSelection({ player: emptyPlayer });
 
   assert.deepEqual(emptyFirst, emptySecond, '빈 로드아웃의 기본 선택이 안정적이지 않음');
+  assert.equal(emptyFirst.kind, 'empty', '빈 로드아웃의 기본 선택이 빈 슬롯이 아님');
+  assert.equal(typeof emptyFirst.selectionKey, 'string', '빈 로드아웃 기본 선택에 selectionKey가 없음');
+  assert.notEqual(emptyFirst.selectionKey, lockedItem.selectionKey, '빈 로드아웃 기본 선택이 잠금 슬롯과 구분되지 않음');
 });
 
 test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 포함한다', () => {
   const api = getPauseLoadoutContent();
-  const { player, data, indexes, weapon } = makeTestFixture();
-  const items = api.buildPauseLoadoutItems({ player, data, indexes });
-  const selectedItem = api.getDefaultPauseSelection({ player, data, indexes });
+  const { player, data, indexes, weapon, accessory } = makeTestFixture();
+  const items = api.buildPauseLoadoutItems({ player });
+  const selectedItem = api.getDefaultPauseSelection({ player });
+  const accessoryItem = items.find((item) => item.kind === 'accessory');
 
   const html = api.renderPauseLoadoutPanel({
     items,
-    selectedItemId: selectedItem?.id ?? weapon.id,
+    selectedItemKey: selectedItem?.selectionKey,
     player,
     data,
     indexes,
@@ -169,7 +180,7 @@ test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 
 
   const htmlWithAccessorySelected = api.renderPauseLoadoutPanel({
     items,
-    selectedItemId: accessory.id,
+    selectedItemKey: accessoryItem.selectionKey,
     player,
     data,
     indexes,
@@ -178,6 +189,32 @@ test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 
   assert.notEqual(html, htmlWithAccessorySelected, '선택 항목에 따라 패널 출력이 달라지지 않음');
   assert.ok(html.includes(weapon.name), '무기 선택 시 선택 항목 정보가 패널에 반영되지 않음');
   assert.ok(htmlWithAccessorySelected.includes(accessory.name), '장신구 선택 시 선택 항목 정보가 패널에 반영되지 않음');
+
+  const emptyPlayer = makePlayer({
+    weapons: [],
+    accessories: [],
+    maxWeaponSlots: 3,
+    maxAccessorySlots: 3,
+  });
+  const emptyItems = api.buildPauseLoadoutItems({ player: emptyPlayer });
+  const firstEmptyItem = emptyItems.find((item) => item.kind === 'empty');
+  const lockedItem = emptyItems.find((item) => item.kind === 'locked');
+  const emptyHtml = api.renderPauseLoadoutPanel({
+    items: emptyItems,
+    selectedItemKey: firstEmptyItem.selectionKey,
+    player: emptyPlayer,
+    data,
+    indexes,
+  });
+  const lockedHtml = api.renderPauseLoadoutPanel({
+    items: emptyItems,
+    selectedItemKey: lockedItem.selectionKey,
+    player: emptyPlayer,
+    data,
+    indexes,
+  });
+
+  assert.notEqual(emptyHtml, lockedHtml, '빈 슬롯과 잠금 슬롯의 선택이 구분되지 않음');
 });
 
 summary();
