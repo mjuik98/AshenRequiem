@@ -461,7 +461,7 @@ export class PauseView {
   }
 
   _bindLoadoutSelection() {
-    this.el.querySelectorAll('.pv-loadout-card[data-loadout-key]').forEach((card) => {
+    this.el.querySelectorAll('.pv-slot-card[data-loadout-key]').forEach((card) => {
       const key = card.dataset.loadoutKey;
       if (!key) return;
 
@@ -600,13 +600,13 @@ export class PauseView {
       });
     };
 
-    bind('.pv-loadout-card[data-loadout="weapon"]', (el) => buildPauseWeaponTooltipContent({
+    bind('.pv-slot-card[data-loadout="weapon"]', (el) => buildPauseWeaponTooltipContent({
       weaponId: el.dataset.loadoutId,
       player,
       data: this._data,
       indexes: this._indexes,
     }));
-    bind('.pv-loadout-card[data-loadout="accessory"]', (el) => buildPauseAccessoryTooltipContent({
+    bind('.pv-slot-card[data-loadout="accessory"]', (el) => buildPauseAccessoryTooltipContent({
       accessoryId: el.dataset.loadoutId,
       player,
       data: this._data,
@@ -768,6 +768,194 @@ export class PauseView {
         flex-direction: column;
         gap: 10px;
       }
+      .pv-slot-section {
+        padding: 12px 12px 10px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+      }
+      .pv-slot-section + .pv-slot-section,
+      .pv-slot-section--acc,
+      .pv-slot-section--locked {
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding-top: 10px;
+      }
+      .pv-slot-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding: 0 2px;
+      }
+      .pv-slot-section-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        color: rgba(244,237,224,0.38);
+      }
+      .pv-slot-section-icon {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+      }
+      .pv-slot-section-icon.weapon { background: rgba(212,175,106,0.18); color: #d4af6a; }
+      .pv-slot-section-icon.acc { background: rgba(126,205,232,0.14); color: #7ecde8; }
+      .pv-slot-section-icon.locked { background: rgba(255,255,255,0.12); color: rgba(244,237,224,0.7); }
+      .pv-slot-section-count {
+        font-size: 10px;
+        color: rgba(244,237,224,0.38);
+      }
+      .pv-slot-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .pv-slot-card {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(26,22,38,1);
+        cursor: pointer;
+        text-align: left;
+        color: rgba(244,237,224,0.88);
+        transition: border-color 0.12s ease, background 0.12s ease;
+      }
+      .pv-slot-card:hover:not(:disabled) {
+        border-color: rgba(212,175,106,0.3);
+        background: rgba(33,29,46,1);
+      }
+      .pv-slot-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(212,175,106,0.4);
+      }
+      .pv-slot-card.selected,
+      .pv-slot-card[aria-pressed="true"] {
+        border-color: rgba(212,175,106,0.6);
+        background: rgba(212,175,106,0.08);
+      }
+      .pv-slot-card.state-empty {
+        opacity: 0.5;
+        border-style: dashed;
+        cursor: default;
+      }
+      .pv-slot-card.state-locked {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .pv-slot-card.state-evolution-ready {
+        border-color: #d4af6a;
+      }
+      .pv-slot-card.state-synergy-active {
+        border-color: rgba(126,205,232,0.35);
+      }
+      .pv-slot-card.state-rare {
+        border-color: rgba(206,147,216,0.3);
+      }
+      .pv-slot-icon-box {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+      }
+      .pv-slot-icon-box.weapon { background: rgba(212,175,106,0.1); border-color: rgba(212,175,106,0.22); }
+      .pv-slot-icon-box.acc { background: rgba(126,205,232,0.1); border-color: rgba(126,205,232,0.2); }
+      .pv-slot-icon-box.rare-acc { background: rgba(206,147,216,0.1); border-color: rgba(206,147,216,0.22); }
+      .pv-slot-icon-glyph {
+        font-size: 14px;
+        line-height: 1;
+      }
+      .pv-slot-icon-glyph.muted {
+        opacity: 0.4;
+      }
+      .pv-slot-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .pv-slot-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(244,237,224,0.88);
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pv-slot-sub {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        font-size: 10px;
+        color: rgba(244,237,224,0.38);
+      }
+      .pv-slot-type-pill {
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        background: rgba(255,255,255,0.06);
+        color: rgba(244,237,224,0.38);
+      }
+      .pv-slot-lv {
+        font-size: 10px;
+        color: #d4af6a;
+      }
+      .pv-slot-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+      }
+      .pv-slot-dots {
+        display: flex;
+        gap: 2px;
+      }
+      .pv-slot-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.18);
+      }
+      .pv-slot-dot.filled {
+        background: #d4af6a;
+        border-color: #d4af6a;
+      }
+      .pv-slot-dot.filled.max {
+        background: #f0d898;
+      }
+      .pv-slot-syn-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #7ecde8;
+      }
+      .pv-slot-evo-chip {
+        font-size: 9px;
+        color: #d4af6a;
+        background: rgba(212,175,106,0.12);
+        border: 1px solid rgba(212,175,106,0.28);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-weight: 700;
+      }
       .pv-loadout-detail {
         display: flex;
         flex-direction: column;
@@ -778,97 +966,6 @@ export class PauseView {
         background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
         border: 1px solid rgba(212,175,106,0.18);
         box-shadow: 0 18px 40px rgba(0,0,0,0.28);
-      }
-      .pv-loadout-card {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        text-align: left;
-        padding: 14px 15px;
-        border-radius: 14px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-        border: 1px solid rgba(255,255,255,0.09);
-        color: rgba(255,255,255,0.86);
-        cursor: pointer;
-        transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
-      }
-      .pv-loadout-card:hover,
-      .pv-loadout-card:focus-visible {
-        border-color: rgba(212,175,106,0.26);
-        transform: translateY(-1px);
-        outline: none;
-      }
-      .pv-loadout-card.selected,
-      .pv-loadout-card[aria-pressed="true"] {
-        border-color: rgba(212,175,106,0.58);
-        background: linear-gradient(180deg, rgba(212,175,106,0.14), rgba(255,255,255,0.05));
-        box-shadow: 0 0 0 1px rgba(212,175,106,0.12) inset;
-      }
-      .pv-loadout-card.state-rare {
-        border-color: rgba(200,143,80,0.36);
-        box-shadow: inset 0 1px 0 rgba(231,183,124,0.16);
-      }
-      .pv-loadout-card.state-synergy-active {
-        border-color: rgba(127,201,204,0.36);
-        background: linear-gradient(180deg, rgba(96,171,175,0.12), rgba(255,255,255,0.03));
-      }
-      .pv-loadout-card.state-evolution-ready {
-        border-color: rgba(212,175,106,0.7);
-        background: linear-gradient(180deg, rgba(212,175,106,0.22), rgba(117,58,28,0.08));
-      }
-      .pv-loadout-card.state-empty {
-        border-style: dashed;
-        color: rgba(255,255,255,0.52);
-      }
-      .pv-loadout-card.state-locked {
-        opacity: 0.65;
-        color: rgba(255,255,255,0.46);
-        background: rgba(0,0,0,0.18);
-      }
-      .pv-loadout-card-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .pv-loadout-card-badge,
-      .pv-loadout-card-kind {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 1.4px;
-        text-transform: uppercase;
-      }
-      .pv-loadout-card-badge {
-        color: #e7c987;
-      }
-      .pv-loadout-card-kind {
-        color: rgba(255,255,255,0.42);
-      }
-      .pv-loadout-card-name {
-        font-size: 15px;
-        font-weight: 700;
-        color: rgba(255,255,255,0.9);
-      }
-      .pv-loadout-card-summary {
-        font-size: 12px;
-        color: rgba(255,255,255,0.56);
-        line-height: 1.5;
-      }
-      .pv-loadout-assist-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding-top: 2px;
-      }
-      .pv-loadout-assist-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 8px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.04);
-        font-size: 10px;
-        color: rgba(255,255,255,0.55);
       }
       .pv-loadout-detail-header,
       .pv-loadout-role-summary,
@@ -979,6 +1076,80 @@ export class PauseView {
       .pv-loadout-evolution-row.done {
         border-color: rgba(212,175,106,0.28);
         background: rgba(212,175,106,0.08);
+      }
+      .pv-loadout-stats-section {
+        margin-bottom: 14px;
+      }
+      .pv-stat-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+      .pv-stat-bar-key {
+        color: rgba(244,237,224,0.38);
+        width: 66px;
+        flex-shrink: 0;
+      }
+      .pv-stat-bar-track {
+        flex: 1;
+        height: 4px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 2px;
+      }
+      .pv-stat-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+      }
+      .pv-stat-bar-val {
+        color: rgba(244,237,224,0.88);
+        font-weight: 700;
+        width: 40px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .pv-stat-bar-status {
+        font-size: 11px;
+        color: #7ecde8;
+      }
+      .pv-loadout-level-line {
+        font-size: 11px;
+        color: rgba(244,237,224,0.55);
+        line-height: 1.6;
+      }
+      .pv-loadout-lv-block {
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.08);
+        margin-top: 4px;
+      }
+      .pv-loadout-lv-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(244,237,224,0.38);
+        margin-bottom: 7px;
+      }
+      .pv-loadout-lv-pct {
+        color: #d4af6a;
+        font-weight: 700;
+      }
+      .pv-loadout-lv-dots {
+        display: flex;
+        gap: 3px;
+      }
+      .pv-loadout-lv-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.18);
+      }
+      .pv-loadout-lv-dot.filled {
+        background: #d4af6a;
+        border-color: #d4af6a;
       }
 
       /* ── 스탯 ── */

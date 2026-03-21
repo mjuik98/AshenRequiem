@@ -26,7 +26,7 @@ function makeTestFixture() {
   const weapon = makeWeapon({
     id: 'magic_bolt',
     name: 'Magic Bolt',
-    level: 2,
+    level: 5,
     maxLevel: 5,
     cooldown: 1.2,
     damage: 14,
@@ -147,6 +147,7 @@ test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 
   assert.equal(typeof emptyItem.selectionKey, 'string', '빈 슬롯 항목에 selectionKey가 없음');
   assert.equal(typeof lockedItem.selectionKey, 'string', '잠금 슬롯 항목에 selectionKey가 없음');
   assert.notEqual(emptyItem.selectionKey, lockedItem.selectionKey, '빈 슬롯과 잠금 슬롯의 selectionKey가 같음');
+  assert.equal(new Set(items.map((item) => item.selectionKey)).size, items.length, '로드아웃 항목 selectionKey가 고유하지 않음');
   assert.equal(typeof emptyItem.label, 'string', '빈 슬롯 항목에 표시 레이블이 없음');
   assert.equal(typeof lockedItem.label, 'string', '잠금 슬롯 항목에 표시 레이블이 없음');
   assert.equal(emptyItem.id == null, true, '빈 슬롯 항목에 id가 남아 있음');
@@ -203,20 +204,29 @@ test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 
   assert.equal(typeof html, 'string', 'renderPauseLoadoutPanel이 문자열을 반환하지 않음');
   assert.ok(html.includes('pv-loadout-list'), '로드아웃 리스트 컨테이너가 없음');
   assert.ok(html.includes('pv-loadout-detail'), '로드아웃 상세 컨테이너가 없음');
+  assert.ok(html.includes('pv-slot-section'), '무기/장신구 슬롯 섹션이 없음');
+  assert.ok(html.includes('pv-slot-cards'), '슬롯 카드 그룹 컨테이너가 없음');
+  assert.ok(html.includes('pv-slot-card'), '슬롯 카드 마크업이 없음');
+  assert.ok(html.includes('pv-slot-section-count'), '슬롯 섹션 카운트가 없음');
+  assert.ok(html.includes('pv-slot-dots'), '슬롯 레벨 도트가 없음');
+  assert.ok(html.includes('pv-slot-evo-chip'), '진화 가능 슬롯 표시가 없음');
   assert.ok(html.includes('pv-loadout-linked-items'), '연결 아이템 블록이 없음');
   assert.ok(html.includes('pv-loadout-synergy'), '시너지 블록이 없음');
   assert.ok(html.includes('pv-loadout-evolution'), '진화 블록이 없음');
   assert.ok(html.includes('pv-loadout-role-summary'), '상세 패널 역할/효과 요약이 없음');
   assert.ok(html.includes('pv-loadout-progress-block'), '상세 패널 진행/현재 상태 블록이 없음');
-  assert.ok(html.includes('pv-loadout-assist-row'), '로드아웃 카드 하단 assist row가 없음');
   assert.match(html, /data-loadout/, '선택 가능한 로드아웃 카드 훅이 없음');
-  assert.ok(html.includes('빈 슬롯'), '빈 슬롯이 렌더된 로드아웃 출력에 없음');
+  assert.equal(
+    html.includes('빈 무기 슬롯') || html.includes('빈 장신구 슬롯'),
+    true,
+    '빈 슬롯이 렌더된 로드아웃 출력에 없음',
+  );
   assert.ok(html.includes('상점 해금'), '잠금 슬롯이 렌더된 로드아웃 출력에 없음');
+  assert.ok(html.includes('무기'), '무기 섹션 제목이 없음');
+  assert.ok(html.includes('장신구'), '장신구 섹션 제목이 없음');
+  assert.ok(html.includes('state-synergy-active'), '활성 시너지 슬롯 상태가 카드에 반영되지 않음');
   assert.ok(linkedItemsSection.includes(accessory.name), '실제 연결 장신구가 상세 패널에 표시되지 않음');
   assert.equal(linkedItemsSection.includes(extraAccessory.name), false, '연결되지 않은 장신구가 상세 패널 연결 목록에 표시됨');
-  assert.ok(html.includes('시너지 활성'), 'assist row에 시너지 신호가 없음');
-  assert.ok(html.includes('진화 경로'), 'assist row에 진화 신호가 없음');
-  assert.ok(html.includes('레벨 진행'), 'assist row에 진행 신호가 없음');
   assert.ok(html.includes('역할 / 효과'), '무기 상세 패널 역할/효과 제목이 없음');
   assert.ok(html.includes('현재 상태'), '무기 상세 패널 현재 상태 제목이 없음');
   assert.ok(html.includes('현재 효과:'), '무기 상세 패널 현재 효과 요약이 없음');

@@ -30,6 +30,15 @@ import {
 } from '../state/sessionOptions.js';
 import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
 
+function shouldEnablePipelineProfiling() {
+  const host = typeof globalThis !== 'undefined' ? globalThis : null;
+  if (!host) return false;
+  if (host.__ASHEN_PROFILE_PIPELINE__ === true) return true;
+
+  const search = host.location?.search ?? '';
+  return new URLSearchParams(search).has('profilePipeline');
+}
+
 export class PlayScene {
   constructor(game) {
     this.game               = game;
@@ -68,7 +77,7 @@ export class PlayScene {
       canvas:           this.game.canvas,
       renderer:         this.game.renderer,
       soundEnabled:     opts.soundEnabled ?? true,
-      profilingEnabled: true,
+      profilingEnabled: shouldEnablePipelineProfiling(),
       session:          this.game.session,
     });
 

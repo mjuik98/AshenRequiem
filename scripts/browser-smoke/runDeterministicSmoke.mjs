@@ -96,6 +96,7 @@ function pw(sessionId, args) {
 }
 
 function parseEvalResult(stdout) {
+  assertNoCliError(stdout, 'eval');
   const marker = '### Result';
   const ranMarker = '### Ran';
   const start = stdout.indexOf(marker);
@@ -105,6 +106,32 @@ function parseEvalResult(stdout) {
   const raw = (end === -1 ? after : after.slice(0, end)).trim();
   if (!raw) return null;
   return JSON.parse(raw);
+}
+
+function assertNoCliError(stdout, context) {
+  if (stdout.includes('### Error')) {
+    throw new Error(`Playwright ${context} failed:\n${stdout.trim()}`);
+  }
+}
+
+function parseSnapshotPath(stdout) {
+  const match = stdout.match(/\[Snapshot\]\((\.playwright-cli\\[^)]+\.yml)\)/);
+  return match ? match[1].replaceAll('\\', '/') : null;
+}
+
+function findRefByText(snapshotPath, buttonText) {
+  const content = fs.readFileSync(path.resolve(snapshotPath), 'utf8');
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (!line.includes(buttonText) || !line.includes('[ref=e')) {
+      continue;
+    }
+    const match = line.match(/\[ref=(e\d+)\]/);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+  return null;
 }
 
 function evalJson(sessionId, expression) {
@@ -131,16 +158,6 @@ async function pollEval(sessionId, expression, predicate, timeoutMs = 5000, inte
   return lastValue;
 }
 
-function pressEscape(sessionId) {
-  evalJson(sessionId, `() => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    window.__ASHEN_RUNTIME__?.game?.advanceTime?.(34);
-    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape' }));
-    window.__ASHEN_RUNTIME__?.game?.advanceTime?.(34);
-    return true;
-  }`);
-}
-
 function takeScreenshot(sessionId, outputPath) {
   const stdout = pw(sessionId, ['screenshot']);
   const match = stdout.match(/\((\.playwright-cli\\[^)]+\.png)\)/);
@@ -159,10 +176,6 @@ function buildSessionId(scenarioId) {
   return `ashen-smoke-${scenarioId.replaceAll('_', '-')}-${process.pid}-${Date.now()}`;
 }
 
-function openPage(sessionId, url) {
-  pw(sessionId, ['open', url]);
-}
-
 function closePage(sessionId) {
   try {
     pw(sessionId, ['close']);
@@ -171,24 +184,33 @@ function closePage(sessionId) {
   }
 }
 
+function runCode(sessionId, source) {
+  const stdout = pw(sessionId, ['run-code', source]);
+  assertNoCliError(stdout, 'run-code');
+  return stdout;
+}
+
 async function bootToPlay(sessionId, url) {
-  openPage(sessionId, url);
-  evalJson(sessionId, `() => {
-    const game = window.__ASHEN_RUNTIME__?.game;
-    const scene = game?.sceneManager?.currentScene;
-    scene?._openStartLoadout?.({
-      setMessage: () => {},
-      pulseFlash: () => {},
-    });
-    scene?._loadoutView?.hide?.();
-    scene?._loadoutView?._onStart?.('magic_bolt');
-    return true;
-  }`);
-  await sleep(350);
-  evalJson(sessionId, '() => (window.__ASHEN_RUNTIME__?.game?.advanceTime?.(136), true)');
+  const openOutput = pw(sessionId, ['open', url]);
+  const titleSnapshot = parseSnapshotPath(openOutput);
+  const titleStartRef = titleSnapshot ? findRefByText(titleSnapshot, 'Start Game') : null;
+  if (!titleStartRef) {
+    throw new Error('Failed to find Start Game ref from title snapshot');
+  }
+
+  const loadoutOutput = pw(sessionId, ['click', titleStartRef]);
+  const loadoutSnapshot = parseSnapshotPath(loadoutOutput);
+  const loadoutStartRef = loadoutSnapshot ? findRefByText(loadoutSnapshot, '시작하기') : null;
+  if (!loadoutStartRef) {
+    throw new Error('Failed to find loadout start ref from snapshot');
+  }
+
+  pw(sessionId, ['click', loadoutStartRef]);
+  await sleep(250);
+  evalJson(sessionId, 'window.__ASHEN_RUNTIME__?.game?.advanceTime?.(136), true');
   return pollEval(
     sessionId,
-    '() => JSON.parse(window.render_game_to_text())',
+    'JSON.parse(window.render_game_to_text())',
     (state) => state?.scene === 'PlayScene',
     5000,
     200,
@@ -223,68 +245,56 @@ async function runPauseOverlay(url, artifactDir) {
 
   try {
     await bootToPlay(sessionId, url);
-    evalJson(sessionId, `() => {
-      const game = window.__ASHEN_RUNTIME__?.game;
-      const scene = game?.sceneManager?.currentScene;
-      const world = scene?.world;
-      const data = scene?._gameData;
-      const accDef = data?.accessoryData?.find((item) => item.id === 'tome_of_power') ?? data?.accessoryData?.[0];
-      const accessory = globalThis.structuredClone
-        ? structuredClone(accDef)
-        : JSON.parse(JSON.stringify(accDef));
-      accessory.level = 3;
-      world.pendingLevelUpChoices = [];
-      world.playMode = 'playing';
-      scene._ui?.hideLevelUp?.();
-      world.player.accessories = [accessory];
-      world.player.activeSynergies = [];
-      world.player.evolvedWeapons = world.player.evolvedWeapons instanceof Set
-        ? world.player.evolvedWeapons
-        : new Set();
-      return true;
-    }`);
-    pressEscape(sessionId);
-    evalJson(sessionId, `() => {
-      const target = Array.from(document.querySelectorAll('.pv-loadout-card[data-loadout="accessory"]'))
-        .find((node) => node.textContent?.includes('마력의 서'));
-      if (!target) return false;
-      const rect = target.getBoundingClientRect();
-      const clientX = rect.left + Math.min(24, rect.width / 2);
-      const clientY = rect.top + Math.min(24, rect.height / 2);
-      target.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, clientX, clientY }));
-      target.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX, clientY }));
-      return true;
-    }`);
-
+    const pauseOpened = evalJson(
+      sessionId,
+      `window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.showPause({ player: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.player, data: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._gameData, world: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world, session: window.__ASHEN_RUNTIME__.game.session, onResume: null, onForfeit: null, onOptionsChange: null }), window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.isPaused()`,
+    );
+    if (pauseOpened !== true) {
+      throw new Error('Pause overlay did not open');
+    }
     const state = await pollEval(
       sessionId,
-      '() => JSON.parse(window.render_game_to_text())',
+      'JSON.parse(window.render_game_to_text())',
       (value) => value?.ui?.pauseVisible === true,
       3000,
       150,
     );
-    const tooltip = await pollEval(
+    const pauseSnapshotOutput = pw(sessionId, ['snapshot']);
+    const pauseSnapshot = parseSnapshotPath(pauseSnapshotOutput);
+    const weaponRef = pauseSnapshot ? findRefByText(pauseSnapshot, '마법탄') : null;
+    if (!weaponRef) {
+      throw new Error('Failed to find 마법탄 ref from pause snapshot');
+    }
+    pw(sessionId, ['hover', weaponRef]);
+    const hover = {
+      ok: true,
+      weaponRef,
+      cardName: evalJson(sessionId, `document.querySelector('.pv-slot-card[data-loadout="weapon"] .pv-slot-name')?.textContent ?? ''`),
+    };
+    const tooltipVisible = await pollEval(
       sessionId,
-      `() => {
-        const tip = document.querySelector('.pv-tooltip');
-        return {
-          visible: !!tip && getComputedStyle(tip).display !== 'none',
-          text: tip?.innerText ?? '',
-        };
-      }`,
-      (value) => value?.visible === true,
+      `!!document.querySelector('.pv-tooltip')
+        && getComputedStyle(document.querySelector('.pv-tooltip')).display !== 'none'`,
+      (value) => value === true,
       3000,
       150,
     );
+    const tooltip = {
+      visible: tooltipVisible === true,
+      text: evalJson(sessionId, `document.querySelector('.pv-tooltip')?.innerText ?? ''`),
+    };
     takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
     const summary = {
       scenario: 'pause_overlay',
+      pauseOpened,
+      hover,
       state,
       tooltip,
       assertions: {
         pauseVisible: state?.ui?.pauseVisible === true,
         tooltipVisible: tooltip?.visible === true,
-        hasAccessoryText: typeof tooltip?.text === 'string' && tooltip.text.includes('마력의 서'),
+        hasTooltipText: typeof tooltip?.text === 'string'
+          && tooltip.text.includes(hover?.cardName ?? ''),
       },
     };
     writeJson(path.join(artifactDir, 'summary.json'), summary);
@@ -300,31 +310,37 @@ async function runResultScreen(url, artifactDir) {
 
   try {
     await bootToPlay(sessionId, url);
-    evalJson(sessionId, `() => {
-      const game = window.__ASHEN_RUNTIME__?.game;
-      const scene = game?.sceneManager?.currentScene;
-      const world = scene?.world;
-      world.runOutcome = { type: 'defeat' };
-      scene._showResultUI?.();
-      return true;
-    }`);
-    const state = await pollEval(
+    const resultOpened = evalJson(
       sessionId,
-      '() => JSON.parse(window.render_game_to_text())',
+      `window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.showResult({ survivalTime: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.elapsedTime ?? 0, level: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.player?.level ?? 1, killCount: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.killCount ?? 0, outcome: 'defeat', currencyEarned: 0, totalCurrency: window.__ASHEN_RUNTIME__.game.session?.meta?.currency ?? 0 }, null, null), window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.isResultVisible()`,
+    );
+    if (resultOpened !== true) {
+      throw new Error('Result overlay did not open');
+    }
+    const triggerState = await pollEval(
+      sessionId,
+      'JSON.parse(window.render_game_to_text())',
       (value) => value?.ui?.resultVisible === true,
       3000,
       150,
     );
-    const resultUi = evalJson(sessionId, `
-      () => ({
-        title: document.querySelector('.result-title')?.textContent?.trim() ?? '',
-        restart: document.querySelector('.result-restart-btn')?.textContent?.trim() ?? '',
-        titleButton: document.querySelector('.result-title-btn')?.textContent?.trim() ?? '',
-      })
-    `);
+    const state = await pollEval(
+      sessionId,
+      'JSON.parse(window.render_game_to_text())',
+      (value) => value?.ui?.resultVisible === true,
+      3000,
+      150,
+    );
+    const resultUi = {
+      title: evalJson(sessionId, `document.querySelector('.result-title')?.textContent?.trim() ?? ''`),
+      restart: evalJson(sessionId, `document.querySelector('.result-restart-btn')?.textContent?.trim() ?? ''`),
+      titleButton: evalJson(sessionId, `document.querySelector('.result-title-btn')?.textContent?.trim() ?? ''`),
+    };
     takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
     const summary = {
       scenario: 'result_screen',
+      resultOpened,
+      triggerState,
       state,
       resultUi,
       assertions: {

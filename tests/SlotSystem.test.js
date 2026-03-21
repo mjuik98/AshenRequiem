@@ -28,8 +28,8 @@ test('기본 maxWeaponSlots=3, 슬롯 여유 있을 때 신규 무기 등장', (
       { id: 'magnet_stone', level: 1 },
     ],
   });
-  const choices = UpgradeSystem.generateChoices(player);
-  assert.ok(choices.some(c => c.type === 'weapon_new'), '무기 슬롯 여유가 있는데 신규 무기 미등장');
+  const pool = UpgradeSystem._buildAvailablePool(player);
+  assert.ok(pool.some(c => c.type === 'weapon_new'), '무기 슬롯 여유가 있는데 신규 무기 후보가 없음');
 });
 
 test('무기 슬롯이 꽉 차면 신규 무기 미등장', () => {
@@ -48,8 +48,8 @@ test('무기 슬롯이 꽉 차면 신규 무기 미등장', () => {
 
 test('기본 maxAccessorySlots=3, 슬롯 여유 있을 때 장신구 등장', () => {
   const player  = makePlayer({ maxAccessorySlots: 3, accessories: [] });
-  const choices = UpgradeSystem.generateChoices(player);
-  const hasAcc  = choices.some(c => c.type === 'accessory');
+  const pool = UpgradeSystem._buildAvailablePool(player);
+  const hasAcc  = pool.some(c => c.type === 'accessory');
   assert.equal(hasAcc, true, '장신구 슬롯 여유가 있는데 장신구 미등장');
 });
 

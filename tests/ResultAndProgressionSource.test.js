@@ -35,7 +35,7 @@ test('ESC 로드아웃 통합은 무기/장신구의 분리 렌더 경로를 제
 
 test('PauseView는 로드아웃 카드 선택으로 상세 패널을 갱신한다', () => {
   assert.equal(
-    pauseViewSource.includes('.pv-loadout-card'),
+    pauseViewSource.includes('.pv-slot-card'),
     true,
     'PauseView가 로드아웃 카드 선택자를 사용하지 않음',
   );
