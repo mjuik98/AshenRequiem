@@ -20,6 +20,7 @@ import { registerCurrencyHandler }    from '../systems/event/currencyHandler.js'
 import { registerBossAnnouncementHandler } from '../systems/event/bossAnnouncementHandler.js';
 import { registerWeaponEvolutionHandler }  from '../systems/event/weaponEvolutionHandler.js';
 import { getEventHandlers }           from '../systems/event/eventHandlerRegistry.js';
+import { registerCodexHandlers }      from '../systems/event/codexHandler.js';
 
 export class PipelineBuilder {
   /**
@@ -112,6 +113,7 @@ export class PipelineBuilder {
     registerCurrencyHandler(this._session, this._eventRegistry);
     registerBossAnnouncementHandler(this._services, this._eventRegistry);
     registerWeaponEvolutionHandler(this._services, this._eventRegistry);
+    registerCodexHandlers(this._session, this._eventRegistry);
 
     // P3: 레지스트리 기반 추가 핸들러 일괄 실행
     for (const register of getEventHandlers()) {

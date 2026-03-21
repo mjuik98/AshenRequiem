@@ -5,6 +5,8 @@
  * 구매 시 onPurchase(upgradeId) 콜백 → MetaShopScene이 처리.
  * refresh(session)으로 구매 후 UI 재렌더.
  * CHANGE: "게임 시작" 버튼 → "메인화면으로" 복귀 버튼
+ * FIX: .ms-root에 pointer-events: auto 추가 — #ui-container의 pointer-events:none 상속으로
+ *      스크롤 이벤트가 차단되던 문제 해결
  */
 import { permanentUpgradeData } from '../../data/permanentUpgradeData.js';
 
@@ -16,19 +18,29 @@ export class MetaShopView {
     this._onBack     = null;
     this._injectStyles();
     container.appendChild(this.el);
+
+    this._handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        this._onBack?.();
+      }
+    };
   }
 
   show(session, onPurchase, onBack) {
     this._onPurchase = onPurchase;
     this._onBack     = onBack;
     this._render(session);
+    window.addEventListener('keydown', this._handleKeyDown, true);
   }
 
   refresh(session) {
     this._render(session);
   }
 
-  destroy() { this.el.remove(); }
+  destroy() { 
+    window.removeEventListener('keydown', this._handleKeyDown, true);
+    this.el.remove(); 
+  }
 
   // ── 내부 렌더 ──────────────────────────────────────────────────────
 
@@ -124,6 +136,8 @@ export class MetaShopView {
         overflow-y: auto;
         z-index: 50; font-family: 'Segoe UI', sans-serif;
         color: #eee; padding: 24px 16px;
+        /* FIX: #ui-container의 pointer-events:none 상속 차단 — 스크롤 및 클릭 활성화 */
+        pointer-events: auto;
       }
       .ms-panel {
         width: min(680px, calc(100vw - 32px));

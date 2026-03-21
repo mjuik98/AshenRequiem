@@ -119,6 +119,14 @@ export class TitleScene {
               <span class="t-btn-badge">⚗</span>
             </button>
 
+            <button class="t-btn" data-action="codex" type="button">
+              <span class="t-btn-left">
+                <span class="t-btn-label">Codex</span>
+                <span class="t-btn-meta">적·무기·기록 열람</span>
+              </span>
+              <span class="t-btn-badge">📖</span>
+            </button>
+
             <button class="t-btn" data-action="settings" type="button">
               <span class="t-btn-left">
                 <span class="t-btn-label">Settings</span>
@@ -224,6 +232,12 @@ export class TitleScene {
         if (action === 'start') { startGame(); return; }
         if (action === 'shop') {
           this.game.sceneManager.changeScene(new MetaShopScene(this.game));
+          return;
+        }
+        if (action === 'codex') {
+          import('./CodexScene.js').then(({ CodexScene }) => {
+            this.game.sceneManager.changeScene(new CodexScene(this.game, 'title'));
+          });
           return;
         }
         if (action === 'settings') {

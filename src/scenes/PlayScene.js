@@ -20,6 +20,7 @@ import { PlayResultHandler }            from './play/PlayResultHandler.js';
 import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
 import { transitionPlayMode, PlayMode } from '../state/PlayMode.js';
 import { MetaShopScene }                from './MetaShopScene.js';
+import { recordWeaponAcquired }         from '../systems/event/codexHandler.js';
 
 export class PlayScene {
   constructor(game) {
@@ -87,6 +88,14 @@ export class PlayScene {
     });
 
     this._dpr             = this._getEffectiveDpr();
+
+    // Record initial starting weapons for Codex
+    if (this.world.player && this.world.player.weapons) {
+       this.world.player.weapons.forEach(w => {
+         recordWeaponAcquired(this.game.session, w.id);
+       });
+    }
+
     this._pauseWasDown    = false;
     this._isSceneChanging = false;
     this._sceneChangeToken += 1;

@@ -1,25 +1,8 @@
 /**
  * accessoryData.js — 장신구 정의
  *
- * CHANGE: 장신구 레벨업 시스템 추가
- *   - maxLevel: 5  (모든 장신구 공통)
- *   - effects[].valuePerLevel: 레벨당 효과 증가분 (Lv2~5 적용)
- *
- * 슬롯 제한: 플레이어당 최대 6개 (기본 3, 상점 확장)
- * rarity: 'common' | 'rare'
- * effects: 배열로 복합 효과 지원
- *
- * 지원 stat:
- *   moveSpeed          — 이동 속도 (flat 가산)
- *   maxHp              — 최대 HP (flat 가산)
- *   lifesteal          — 흡혈 (0~1, flat 가산)
- *   magnetRadius       — 픽업 흡수 범위 (flat 가산)
- *   invincibleDuration — 무적 시간 (flat 가산)
- *   damageMult         — 모든 무기 데미지 배율 (곱연산, 1.2 = +20%)
- *   cooldownMult       — 무기 쿨다운 배율 (flat 감산, -0.2 = 20% 단축)
- *   projectileSpeedMult — 투사체 속도 배율 (flat 가산, 0.3 = +30%)
- *   projectileSizeMult  — 투사체 크기 배율 (flat 가산, 0.25 = +25%)
- *   xpMult             — 경험치 획득 배율 (flat 가산, 0.3 = +30%)
+ * CHANGE: coin_pendant 추가 — 골드 획득량 +30% (rare)
+ *   currencyMult stat: 골드 획득 배율 (flat 가산, 0.30 = +30%)
  */
 export const accessoryData = [
   // ── 기존 장신구 ──────────────────────────────────────────────────────────────
@@ -139,7 +122,6 @@ export const accessoryData = [
     description: '모든 무기 투사체 수 +1',
     rarity:      'rare',
     maxLevel:    5,
-    // Lv1: 1.0, Lv2: 1.49, Lv3: 1.98... Math.floor 적용 시 1, 3, 5렙에서 증가
     effects:     [{ stat: 'bonusProjectileCount', value: 1.0, valuePerLevel: 0.49 }],
   },
 
@@ -172,6 +154,27 @@ export const accessoryData = [
     effects:     [
       { stat: 'critMultiplier', value: 0.50, valuePerLevel: 0.10 },
       { stat: 'maxHp', value: 15, valuePerLevel: 3 },
+    ],
+  },
+
+  // ── 골드 획득 장신구 (신규) ───────────────────────────────────────────────────
+  {
+    id:          'coin_pendant',
+    name:        '동전 목걸이',
+    description: '골드 획득량 +30%',
+    rarity:      'common',
+    maxLevel:    5,
+    effects:     [{ stat: 'currencyMult', value: 0.30, valuePerLevel: 0.08 }],
+  },
+  {
+    id:          'greed_amulet',
+    name:        '탐욕의 부적',
+    description: '골드 획득량 +50%, 픽업 범위 +20',
+    rarity:      'rare',
+    maxLevel:    5,
+    effects:     [
+      { stat: 'currencyMult', value: 0.50, valuePerLevel: 0.10 },
+      { stat: 'magnetRadius', value: 20,   valuePerLevel: 4    },
     ],
   },
 ];

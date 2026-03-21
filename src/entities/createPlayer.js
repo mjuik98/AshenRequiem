@@ -8,6 +8,7 @@
  *   - projectileSpeedMult : 투사체 속도 배율 (1.0 = 기본, 높을수록 빠름)
  *   - projectileSizeMult  : 투사체 크기 배율 (1.0 = 기본, 높을수록 큼)
  *   - xpMult              : 경험치 획득 배율 (1.0 = 기본, 높을수록 많이 획득)
+ *   - currencyMult        : 골드 획득 배율 (1.0 = 기본, 높을수록 많이 획득)
  */
 import { PLAYER_DEFAULTS }         from '../data/constants.js';
 import { getWeaponDataById }       from '../data/weaponData.js';
@@ -48,54 +49,55 @@ export function createPlayer(x = 0, y = 0, session = null) {
     stunned:       false,
 
     // ── 슬롯 시스템 ─────────────────────────────────────────────────────────────────
-    // 기본 3칸. 상점(MetaShop)에서 최대 6칸까지 확장 가능.
     maxWeaponSlots:       3,
     maxAccessorySlots:    3,
 
-    // ── Phase 2: 다중 투사체 (Patch) ────────────────────────────────────────────────
-    // scattered_shot 장신구 등으로 누산.
+    // ── Phase 2: 다중 투사체 ────────────────────────────────────────────────────────
     bonusProjectileCount: 0,
 
-    // ── Phase 2: 크리티컬 히트 (Patch) ─────────────────────────────────────────────
-    critChance:      0.05,  // 기본 5%
-    critMultiplier:  2.0,   // 기본 200%
+    // ── Phase 2: 크리티컬 히트 ─────────────────────────────────────────────────────
+    critChance:      0.05,
+    critMultiplier:  2.0,
 
     // ── Phase 2: 장신구 및 데미지 배율 ──────────────────────────────
     accessories:      [],
     globalDamageMult: 1,
 
-    // ── Phase 2: 무기 진화 추적 (Patch) ────────────────────────────────────────────
+    // ── Phase 2: 무기 진화 추적 ────────────────────────────────────────────────────
     evolvedWeapons:   new Set(),
 
-    // ── Phase 4: 신규 능력치 배율 (Existing) ──────────────────────────────────────
+    // ── Phase 4: 능력치 배율 ──────────────────────────────────────────────────────
     /** 무기 쿨다운 배율 — 1.0 기본, 값이 낮을수록 쿨다운 단축 (최솟값 0.1) */
     cooldownMult:        1.0,
-    /** 투사체 속도 배율 — 1.0 기본, 값이 높을수록 빠른 투사체 */
+    /** 투사체 속도 배율 — 1.0 기본 */
     projectileSpeedMult: 1.0,
-    /** 투사체 크기(범위) 배율 — 1.0 기본, 값이 높을수록 큰 투사체 */
+    /** 투사체 크기(범위) 배율 — 1.0 기본 */
     projectileSizeMult:  1.0,
-    /** 경험치 획득 배율 — 1.0 기본, 값이 높을수록 많은 XP 획득 */
+    /** 경험치 획득 배율 — 1.0 기본 */
     xpMult:              1.0,
+    /** 골드 획득 배율 — 1.0 기본, 높을수록 처치 시 더 많은 골드 획득 */
+    currencyMult:        1.0,
 
     isAlive:       true,
     pendingDestroy: false,
+
+    // ── acquiredUpgrades ────────────────────────────────────────────────────────────
+    acquiredUpgrades: new Set(),
+    activeSynergies:  [],
   };
 
   // ── Phase 3: 영구 업그레이드 반영 ──────────────────────────────────
   if (session?.meta?.permanentUpgrades) {
     applyPermanentUpgrades(player, session.meta.permanentUpgrades);
 
-    // globalDamageMult가 변경됐으면 시작 무기에도 반영
     if (player.globalDamageMult !== 1) {
       player.weapons.forEach(w => {
         w.damage = Math.max(1, Math.round(w.damage * player.globalDamageMult));
       });
     }
 
-    // maxHp 증가분을 hp에도 반영 (applyPermanentUpgrades에서 maxHp와 hp 함께 올림)
     player.hp = player.maxHp;
   }
 
   return player;
 }
-

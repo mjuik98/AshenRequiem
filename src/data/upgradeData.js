@@ -1,11 +1,11 @@
 /**
  * upgradeData.js — 업그레이드 선택지 정의
  *
- * CHANGE: 레벨업 보상 시스템 개편
- *   - 스탯 업그레이드(stat_speed, stat_maxhp 등) 제거
- *   - 슬롯 해금(slot_weapon, slot_accessory) 제거
- *   - 장신구 강화(accessory_upgrade) 추가 — 보유 장신구 Lv5까지 강화
- *   - stat_heal은 폴백 전용으로 유지 (UpgradeSystem에서 제어)
+ * CHANGE: 골드 획득 장신구 2종 추가
+ *   - acc_coin_pendant    : 동전 목걸이 획득
+ *   - acc_greed_amulet   : 탐욕의 부적 획득
+ *   - up_coin_pendant    : 동전 목걸이 강화
+ *   - up_greed_amulet    : 탐욕의 부적 강화
  */
 export const upgradeData = [
   // ── 신규 무기 ────────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ export const upgradeData = [
     damageDelta: 2, cooldownMult: 0.93,
   },
 
-  // ── 다중 투사체 강화 (Patch) ─────────────────────────────────────────────────
+  // ── 다중 투사체 강화 ─────────────────────────────────────────────────────────
   {
     id: 'up_magic_bolt_multishot', type: 'weapon_upgrade', weaponId: 'magic_bolt',
     name: '마법탄 다중 발사',
@@ -67,7 +67,7 @@ export const upgradeData = [
     maxCount: 1,
   },
 
-  // ── 진화 무기 강화 (Patch) ───────────────────────────────────────────────────
+  // ── 진화 무기 강화 ───────────────────────────────────────────────────────────
   {
     id: 'up_arcane_nova_plus', type: 'weapon_upgrade', weaponId: 'arcane_nova',
     name: '비전 폭발 +', description: 'Nova 데미지 +2, 발사 수 +2',
@@ -95,7 +95,7 @@ export const upgradeData = [
     damageDelta: 2, cooldownMult: 0.92, orbitRadiusDelta: 15,
   },
 
-  // ── HP 회복 (폴백 전용 — 무기/장신구 선택지가 없을 때만 등장) ─────────────────
+  // ── HP 회복 (폴백 전용) ──────────────────────────────────────────────────────
   { id: 'stat_heal', type: 'stat', name: 'HP 회복', description: '현재 HP +25 즉시 회복', effect: { stat: 'hp', value: 25 } },
 
   // ── 장신구 획득 ────────────────────────────────────────────────────────────────
@@ -108,19 +108,23 @@ export const upgradeData = [
   { id: 'acc_warrior_belt',    type: 'accessory', accessoryId: 'warrior_belt',    name: '전사의 허리띠', description: '최대 HP +25, 이동 속도 +10' },
   { id: 'acc_crystal_lens',    type: 'accessory', accessoryId: 'crystal_lens',    name: '수정 렌즈',     description: '픽업 흡수 범위 +30, 흡혈 +4%' },
 
-  // ── Phase 4 장신구 유지 ───────────────────────────────────────────────────────
+  // ── Phase 4 장신구 ───────────────────────────────────────────────────────────
   { id: 'acc_swift_hourglass', type: 'accessory', accessoryId: 'swift_hourglass', name: '쾌속 모래시계',  description: '무기 쿨다운 20% 단축' },
   { id: 'acc_wind_crystal',    type: 'accessory', accessoryId: 'wind_crystal',    name: '바람의 수정',    description: '투사체 속도 +30%' },
   { id: 'acc_arcane_prism',    type: 'accessory', accessoryId: 'arcane_prism',    name: '비전 프리즘',    description: '투사체 크기 +25%' },
   { id: 'acc_scholars_rune',   type: 'accessory', accessoryId: 'scholars_rune',   name: '학자의 룬',      description: '경험치 획득 +30%' },
   { id: 'acc_duplicator',      type: 'accessory', accessoryId: 'duplicator',      name: '복제기',        description: '모든 무기 투사체 수 +1' },
 
-  // ── Patch 장신구 추가 ─────────────────────────────────────────────────────────
+  // ── Patch 장신구 ─────────────────────────────────────────────────────────────
   { id: 'acc_scattered_shot',  type: 'accessory', accessoryId: 'scattered_shot',  name: '산탄 마법진',   description: '모든 직선 무기 투사체 +1발' },
   { id: 'acc_crit_gem',        type: 'accessory', accessoryId: 'crit_gem',        name: '크리티컬 보석', description: '크리티컬 확률 +10%, 크리티컬 피해 +30%' },
   { id: 'acc_executioner_ring',type: 'accessory', accessoryId: 'executioner_ring',name: '처형자의 반지', description: '크리티컬 피해 +50%, HP +15' },
 
-  // ── 장신구 강화 (보유 장신구 레벨업) ─────────────────────────────────────────
+  // ── 골드 획득 장신구 (신규) ───────────────────────────────────────────────────
+  { id: 'acc_coin_pendant',   type: 'accessory', accessoryId: 'coin_pendant',   name: '동전 목걸이',  description: '골드 획득량 +30%' },
+  { id: 'acc_greed_amulet',   type: 'accessory', accessoryId: 'greed_amulet',   name: '탐욕의 부적', description: '골드 획득량 +50%, 픽업 범위 +20' },
+
+  // ── 장신구 강화 ────────────────────────────────────────────────────────────────
   { id: 'up_ring_of_speed',    type: 'accessory_upgrade', accessoryId: 'ring_of_speed',    name: '속도의 반지 +',    description: '효과 강화' },
   { id: 'up_iron_heart',       type: 'accessory_upgrade', accessoryId: 'iron_heart',       name: '강철 심장 +',      description: '효과 강화' },
   { id: 'up_magnet_stone',     type: 'accessory_upgrade', accessoryId: 'magnet_stone',     name: '자석석 +',         description: '효과 강화' },
@@ -137,4 +141,7 @@ export const upgradeData = [
   { id: 'up_scattered_shot',   type: 'accessory_upgrade', accessoryId: 'scattered_shot',   name: '산탄 마법진 +',    description: '효과 강화' },
   { id: 'up_crit_gem',         type: 'accessory_upgrade', accessoryId: 'crit_gem',         name: '크리티컬 보석 +',  description: '효과 강화' },
   { id: 'up_executioner_ring', type: 'accessory_upgrade', accessoryId: 'executioner_ring', name: '처형자의 반지 +',  description: '효과 강화' },
+  // 골드 장신구 강화
+  { id: 'up_coin_pendant',     type: 'accessory_upgrade', accessoryId: 'coin_pendant',     name: '동전 목걸이 +',    description: '효과 강화' },
+  { id: 'up_greed_amulet',     type: 'accessory_upgrade', accessoryId: 'greed_amulet',     name: '탐욕의 부적 +',   description: '효과 강화' },
 ];

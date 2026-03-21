@@ -1,9 +1,11 @@
 /**
  * src/scenes/play/PlayUI.js — 플레이 씬 UI 뷰 통합 관리
  *
- * PATCH:
- * - showPause에서 전달받는 data를 그대로 PauseView에 전달
- * - onMainMenu는 nullable로 유지
+ * FIX(BUG-PAUSE-WORLD): showPause()에 world 파라미터 추가
+ *   Before: showPause(player, data, onResume, onMainMenu) — world 누락
+ *           PlayScene이 5번째 인수로 world를 전달했지만 PlayUI가 받지 않아
+ *           PauseView에 world가 전달되지 않음 → 생존 시간 · 킬 수 항상 '--:--' / '—' 표시
+ *   After:  showPause(player, data, onResume, onMainMenu, world) — world → PauseView 전달
  */
 import { HudView }                     from '../../ui/hud/HudView.js';
 import { LevelUpView }                 from '../../ui/levelup/LevelUpView.js';
@@ -52,13 +54,14 @@ export class PlayUI {
   // ── 일시정지 ──────────────────────────────────────────────────────────
 
   /**
-   * @param {object} player
-   * @param {object} data
-   * @param {Function} onResume
+   * @param {object}        player
+   * @param {object}        data
+   * @param {Function}      onResume
    * @param {Function|null} onMainMenu
+   * @param {object|null}   world   FIX: 생존 시간·킬 수 표시를 위해 추가
    */
-  showPause(player, data, onResume, onMainMenu = null) {
-    this._pause.show(player, data, onResume, onMainMenu);
+  showPause(player, data, onResume, onMainMenu = null, world = null) {
+    this._pause.show(player, data, onResume, onMainMenu, world);
   }
 
   hidePause() { this._pause.hide(); }

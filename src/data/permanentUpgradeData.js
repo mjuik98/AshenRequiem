@@ -1,30 +1,7 @@
 /**
  * permanentUpgradeData.js — 영구 업그레이드(메타 진행) 정의
  *
- * CHANGE: 신규 스탯 영구 강화 추가
- *   - perm_crit_chance    : 크리티컬 확률 +2%
- *   - perm_crit_multi     : 크리티컬 피해 배율 +15%
- *   - perm_cooldown       : 무기 쿨다운 -4%
- *   - perm_proj_speed     : 투사체 속도 +5%
- *   - perm_proj_size      : 투사체 크기 +5%
- *   - perm_xp             : 경험치 획득 +10%
- *
- * costPerLevel(currentLevel) — 다음 레벨 구매 비용
- * effect.stat               — 적용 대상 스탯
- * effect.valuePerLevel      — 레벨당 적용 수치
- *
- * 지원 stat:
- *   maxHp               — 최대 HP (flat 가산)
- *   moveSpeed           — 이동 속도 (flat 가산)
- *   magnetRadius        — 픽업 흡수 범위 (flat 가산)
- *   lifesteal           — 흡혈 (flat 가산)
- *   damageMult          — 무기 데미지 배율 (flat 가산, 0.05 = +5%)
- *   critChance          — 크리티컬 확률 (flat 가산, 0.02 = +2%)
- *   critMultiplier      — 크리티컬 피해 배율 (flat 가산, 0.15 = +15%)
- *   cooldownMult        — 쿨다운 배율 (flat 감산, -0.04 = 4% 단축)
- *   projectileSpeedMult — 투사체 속도 배율 (flat 가산, 0.05 = +5%)
- *   projectileSizeMult  — 투사체 크기 배율 (flat 가산, 0.05 = +5%)
- *   xpMult              — 경험치 획득 배율 (flat 가산, 0.10 = +10%)
+ * CHANGE: perm_currency 추가 — 골드 획득 배율 영구 강화
  */
 export const permanentUpgradeData = [
 
@@ -135,7 +112,18 @@ export const permanentUpgradeData = [
     effect:       { stat: 'xpMult', valuePerLevel: 0.10 },
   },
 
-  // ── 슬롯 확장 (기본 3 + 최대 3 = 총 6) ──────────────────────────────────────
+  // ── 골드 ─────────────────────────────────────────────────────────────────
+  {
+    id:           'perm_currency',
+    name:         '탐욕의 기운',
+    description:  '골드 획득량 +10%',
+    icon:         '💰',
+    maxLevel:     8,
+    costPerLevel: (level) => 18 + level * 9,
+    effect:       { stat: 'currencyMult', valuePerLevel: 0.10 },
+  },
+
+  // ── 슬롯 확장 ──────────────────────────────────────────────────────────────
   {
     id:           'perm_weapon_slot',
     name:         '무기 슬롯 확장',
@@ -172,18 +160,6 @@ export function getPermanentUpgradeById(id) {
 
 /**
  * 세션의 permanentUpgrades를 player 기본 스탯에 반영한다.
- * createPlayer() 내부에서 한 번 호출된다.
- *
- * 지원 스탯:
- *   maxHp, moveSpeed, magnetRadius, lifesteal → flat 가산
- *   damageMult                                 → player.globalDamageMult에 누산
- *   critChance, critMultiplier                 → flat 가산
- *   cooldownMult                               → flat 가산 (음수이므로 값 낮아짐, 최솟값 0.1 클램핑)
- *   projectileSpeedMult, projectileSizeMult     → flat 가산
- *   xpMult                                     → flat 가산
- *
- * @param {object} player              생성 중인 플레이어 객체
- * @param {Record<string,number>} perm  session.meta.permanentUpgrades
  */
 export function applyPermanentUpgrades(player, perm) {
   if (!perm) return;
@@ -198,7 +174,6 @@ export function applyPermanentUpgrades(player, perm) {
 
     switch (stat) {
       case 'damageMult':
-        // flat 가산으로 globalDamageMult 증가 (0.05 * 3 = +15% → mult = 1.15)
         player.globalDamageMult = (player.globalDamageMult ?? 1) + total;
         break;
 
@@ -216,7 +191,6 @@ export function applyPermanentUpgrades(player, perm) {
         break;
 
       case 'cooldownMult':
-        // total은 음수(예: -0.04 * 3 = -0.12) → 1.0 + (-0.12) = 0.88
         player.cooldownMult = Math.max(0.1,
           (player.cooldownMult ?? 1.0) + total
         );
@@ -234,6 +208,11 @@ export function applyPermanentUpgrades(player, perm) {
         player.xpMult = (player.xpMult ?? 1.0) + total;
         break;
 
+      // CHANGE: currencyMult 영구 업그레이드 반영
+      case 'currencyMult':
+        player.currencyMult = (player.currencyMult ?? 1.0) + total;
+        break;
+
       case 'maxWeaponSlots':
         player.maxWeaponSlots = (player.maxWeaponSlots ?? 3) + total;
         break;
@@ -247,7 +226,6 @@ export function applyPermanentUpgrades(player, perm) {
         break;
 
       default:
-        // moveSpeed, magnetRadius, lifesteal 등 flat 가산
         player[stat] = (player[stat] ?? 0) + total;
         break;
     }

@@ -12,7 +12,7 @@
  */
 
 const STORAGE_KEY      = 'ashenRequiem_session';
-const SESSION_VERSION  = 3;
+const SESSION_VERSION  = 4;
 
 function _createDefaultLast() {
   return {
@@ -33,8 +33,14 @@ function _createDefaultBest() {
 
 function _createDefaultMeta() {
   return {
-    currency:          0,
-    permanentUpgrades: {},
+    currency:             0,
+    permanentUpgrades:    {},
+    enemyKills:           {},
+    enemiesEncountered:   [],
+    killedBosses:         [],
+    weaponsUsedAll:       [],
+    evolvedWeapons:       [],
+    totalRuns:            0,
   };
 }
 
@@ -181,6 +187,24 @@ function _migrate(raw) {
             quality:             s.options?.quality             ?? 'medium',
             glowEnabled:         s.options?.glowEnabled         ?? true,
             useDevicePixelRatio: s.options?.useDevicePixelRatio ?? true,
+          },
+        };
+      },
+    },
+    {
+      from: 3,
+      migrate(s) {
+        return {
+          ...s,
+          _version: 4,
+          meta: {
+            ...s.meta,
+            enemyKills:         s.meta?.enemyKills         ?? {},
+            enemiesEncountered: s.meta?.enemiesEncountered ?? [],
+            killedBosses:       s.meta?.killedBosses       ?? [],
+            weaponsUsedAll:     s.meta?.weaponsUsedAll     ?? [],
+            evolvedWeapons:     s.meta?.evolvedWeapons     ?? [],
+            totalRuns:          s.meta?.totalRuns          ?? 0,
           },
         };
       },

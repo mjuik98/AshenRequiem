@@ -4,6 +4,15 @@
  * show(session, onSave, onBack) 호출로 초기화.
  * 사용자 조작은 내부 _opts에 즉시 반영되어 탭 전환 시에도 값이 유지된다.
  * 저장 버튼 클릭 시 onSave(newOptions) 콜백으로 최종값 전달.
+ *
+ * FIX: .sv-root에 pointer-events: auto 추가
+ *   Before: #ui-container의 pointer-events:none을 상속하여
+ *           div 기반 인터랙티브 요소(탭, 토글, 품질카드, input[range])가
+ *           모두 클릭/조작 불가 상태였음.
+ *           (button 요소는 index.html의 '#ui-container button' 셀렉터로
+ *            pointer-events:auto가 적용되어 예외적으로 동작했지만,
+ *            div/input 요소는 차단됨)
+ *   After:  .sv-root에 pointer-events:auto를 명시하여 모든 설정 컨트롤 정상화
  */
 
 /** 기본 설정값 — 초기화 및 누락 필드 보완에 사용 */
@@ -29,6 +38,12 @@ export class SettingsView {
     this._tab    = 'audio';
     this._injectStyles();
     container.appendChild(this.el);
+
+    this._handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        this._onBack?.();
+      }
+    };
   }
 
   /**
@@ -41,6 +56,7 @@ export class SettingsView {
     this._onBack = onBack;
     this._opts   = { ...OPTION_DEFAULTS, ...(session.options ?? {}) };
     this._render();
+    window.addEventListener('keydown', this._handleKeyDown, true);
   }
 
   refresh(session) {
@@ -48,7 +64,10 @@ export class SettingsView {
     this._render();
   }
 
-  destroy() { this.el.remove(); }
+  destroy() { 
+    window.removeEventListener('keydown', this._handleKeyDown, true);
+    this.el.remove(); 
+  }
 
   // ── 렌더링 ──────────────────────────────────────────────────────────────────
 
@@ -348,6 +367,10 @@ export class SettingsView {
         display: flex; align-items: center; justify-content: center;
         z-index: 50; font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
         color: rgba(244,237,224,0.9); padding: 16px; overflow-y: auto;
+        /* FIX: #ui-container의 pointer-events:none 상속 차단
+           Before: div/input 기반 컨트롤(탭, 토글, 슬라이더, 품질카드)이 모두 클릭 불가
+           After:  모든 설정 컨트롤 정상 동작 */
+        pointer-events: auto;
       }
       .sv-panel {
         width: min(720px, calc(100vw - 32px));

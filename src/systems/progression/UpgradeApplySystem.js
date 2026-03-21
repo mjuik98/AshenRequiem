@@ -23,6 +23,10 @@ export const UpgradeApplySystem = {
       world.synergyState, // CHANGE(P1): synergyState 전달
     );
 
+    if (world.pendingUpgrade.type === 'weapon_new') {
+      world.events.weaponAcquired?.push({ weaponId: world.pendingUpgrade.weaponId });
+    }
+
     world.pendingUpgrade = null;
     world.pendingLevelUpChoices = null;
   },
