@@ -13,16 +13,22 @@
 import { PlayContext }                  from '../core/PlayContext.js';
 import { createWorld }                  from '../state/createWorld.js';
 import { createPlayer }                 from '../entities/createPlayer.js';
+import { GameConfig }                   from '../core/GameConfig.js';
 import { GameDataLoader }               from '../data/GameDataLoader.js';
 import { mountUI }                      from '../ui/dom/mountUI.js';
 import { PlayUI }                       from './play/PlayUI.js';
 import { PlayResultHandler }            from './play/PlayResultHandler.js';
+import { createLevelUpController }      from './play/levelUpController.js';
 import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
 import { transitionPlayMode, PlayMode } from '../state/PlayMode.js';
 import { TitleScene }                   from './TitleScene.js';
 import { recordWeaponAcquired }         from '../systems/event/codexHandler.js';
-import { saveSession }                  from '../state/createSessionState.js';
-import { UpgradeSystem }                from '../systems/progression/UpgradeSystem.js';
+import {
+  applySessionOptionsToRuntime,
+  getEffectiveDevicePixelRatio,
+  normalizeSessionOptions,
+} from '../state/sessionOptions.js';
+import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
 
 export class PlayScene {
   constructor(game) {
@@ -38,6 +44,7 @@ export class PlayScene {
     this._resultHandler     = null;
     this._uiState           = null;
     this._gameData          = null;
+    this._levelUpController = null;
 
     this._pauseWasDown      = false;
     this._isSceneChanging   = false;
@@ -51,10 +58,10 @@ export class PlayScene {
     this.world.banishedUpgradeIds = [];
     this.world.levelUpActionMode = 'select';
 
-    this._gameData = GameDataLoader.loadDefault();
+    this._gameData = GameDataLoader.clone(this.game.gameData);
 
     // CHANGE(Settings): soundEnabled를 session.options에서 읽음
-    const opts = this.game.session?.options ?? {};
+    const opts = normalizeSessionOptions(this.game.session?.options);
 
     this._ctx = PlayContext.create({
       canvas:           this.game.canvas,
@@ -85,9 +92,14 @@ export class PlayScene {
     this._applySessionOptions();
 
     this._resultHandler = new PlayResultHandler(this.game.session);
+    this._levelUpController = createLevelUpController({
+      getWorld: () => this.world,
+      isBlocked: () => this._isSceneChanging,
+      showLevelUp: (config) => this._ui.showLevelUp(config),
+    });
 
     this._uiState = new PlayModeStateMachine({
-      onLevelUp: () => this._showLevelUpUI(),
+      onLevelUp: () => this._levelUpController?.show(),
       onDead:    () => this._showResultUI(),
       onResume:  () => {
         this._ui.hidePause();
@@ -116,38 +128,18 @@ export class PlayScene {
    * - 품질: CanvasRenderer.setQualityPreset(preset)
    */
   _applySessionOptions() {
-    const opts = this.game.session?.options ?? {};
-
-    if (typeof this._ctx.soundSystem?.setEnabled === 'function') {
-      this._ctx.soundSystem.setEnabled(opts.soundEnabled ?? true);
-    }
-
-    if (typeof this._ctx.soundSystem?.setMusicEnabled === 'function') {
-      this._ctx.soundSystem.setMusicEnabled(opts.musicEnabled ?? true);
-    }
-
-    // 볼륨 설정 적용
-    if (typeof this._ctx.soundSystem?.setVolume === 'function') {
-      this._ctx.soundSystem.setVolume(
-        (opts.masterVolume ?? 80)  / 100,
-        (opts.bgmVolume    ?? 60)  / 100,
-        (opts.sfxVolume    ?? 100) / 100,
-      );
-    }
-
-    if (typeof this.game.renderer?.setGlowEnabled === 'function') {
-      this.game.renderer.setGlowEnabled(opts.glowEnabled ?? true);
-    }
-
-    // 렌더링 품질 프리셋 적용
-    if (typeof this.game.renderer?.setQualityPreset === 'function') {
-      this.game.renderer.setQualityPreset(opts.quality ?? 'medium');
-    }
+    applySessionOptionsToRuntime(this.game.session?.options, {
+      soundSystem: this._ctx.soundSystem,
+      renderer: this.game.renderer,
+    });
   }
 
   _getEffectiveDpr() {
-    const useDpr = this.game.session?.options?.useDevicePixelRatio ?? true;
-    return useDpr ? (window.devicePixelRatio || 1) : 1;
+    return getEffectiveDevicePixelRatio(
+      this.game.session?.options,
+      window.devicePixelRatio || 1,
+      GameConfig.useDevicePixelRatio,
+    );
   }
 
   update(dt) {
@@ -194,6 +186,7 @@ export class PlayScene {
     this._pipelineCtx      = null;
     this._systems          = null;
     this._gameData         = null;
+    this._levelUpController = null;
     this.world             = null;
     this._pauseWasDown     = false;
     this._isSceneChanging  = false;
@@ -234,113 +227,8 @@ export class PlayScene {
 
   _updatePauseOptions(nextOptions) {
     if (!this.game.session) return;
-    this.game.session.options = {
-      ...this.game.session.options,
-      ...nextOptions,
-    };
-    saveSession(this.game.session);
+    updateSessionOptionsAndSave(this.game.session, nextOptions);
     this._applySessionOptions();
-  }
-
-  _showLevelUpUI() {
-    const choices = this.world.pendingLevelUpChoices || [];
-    if (choices.length === 0) {
-      this.world.levelUpActionMode = 'select';
-      transitionPlayMode(this.world, PlayMode.PLAYING);
-      return;
-    }
-
-    // ✦ NEW: 상자 보상 여부에 따라 타이틀 결정
-    const isChest = this.world.pendingLevelUpType === 'chest';
-    const title   = isChest ? '📦 상자 보상!' : '⬆ LEVEL UP';
-
-    this._ui.showLevelUp({
-      choices,
-      title,
-      rerollsRemaining: this.world.runRerollsRemaining ?? 0,
-      banishesRemaining: this.world.runBanishesRemaining ?? 0,
-      banishMode: this.world.levelUpActionMode === 'banish',
-      onSelect: (selectedUpgrade, index) => this._selectLevelUpChoice(selectedUpgrade, index),
-      onReroll: (index) => this._rerollLevelUpChoice(index),
-      onToggleBanishMode: () => this._toggleLevelUpBanishMode(),
-    });
-  }
-
-  _selectLevelUpChoice(selectedUpgrade, index) {
-    if (!this.world || this._isSceneChanging) return;
-    if (this.world.levelUpActionMode === 'banish') {
-      this._banishLevelUpChoice(index);
-      return;
-    }
-    this.world.levelUpActionMode = 'select';
-    this.world.pendingUpgrade = selectedUpgrade;
-    transitionPlayMode(this.world, PlayMode.PLAYING);
-  }
-
-  _rerollLevelUpChoice(index) {
-    if (!this.world || this._isSceneChanging) return;
-    if ((this.world.runRerollsRemaining ?? 0) <= 0) return;
-
-    const currentChoices = this.world.pendingLevelUpChoices || [];
-    const nextChoices = UpgradeSystem.replaceChoiceAtIndex(
-      this.world.player,
-      currentChoices,
-      index,
-      { banishedUpgradeIds: this.world.banishedUpgradeIds ?? [] },
-    );
-    if (!nextChoices[index] || nextChoices[index]?.id === currentChoices[index]?.id) {
-      this._showLevelUpUI();
-      return;
-    }
-
-    this.world.runRerollsRemaining = Math.max(0, (this.world.runRerollsRemaining ?? 0) - 1);
-    this.world.pendingLevelUpChoices = nextChoices.filter(Boolean);
-    this._showLevelUpUI();
-  }
-
-  _toggleLevelUpBanishMode() {
-    if (!this.world || this._isSceneChanging) return;
-    const canEnter = (this.world.runBanishesRemaining ?? 0) > 0;
-    if (this.world.levelUpActionMode === 'banish') {
-      this.world.levelUpActionMode = 'select';
-    } else if (canEnter) {
-      this.world.levelUpActionMode = 'banish';
-    }
-    this._showLevelUpUI();
-  }
-
-  _banishLevelUpChoice(index) {
-    if (!this.world || this._isSceneChanging) return;
-    if ((this.world.runBanishesRemaining ?? 0) <= 0) return;
-
-    const currentChoices = this.world.pendingLevelUpChoices || [];
-    const targetChoice = currentChoices[index];
-    if (!targetChoice) return;
-
-    const nextBanishedIds = [...new Set([...(this.world.banishedUpgradeIds ?? []), targetChoice.id])];
-    const replacedChoices = UpgradeSystem.replaceChoiceAtIndex(
-      this.world.player,
-      currentChoices,
-      index,
-      { banishedUpgradeIds: nextBanishedIds },
-    );
-    const nextChoices = [...replacedChoices];
-
-    if (!nextChoices[index] || nextChoices[index]?.id === targetChoice.id) {
-      nextChoices.splice(index, 1);
-    }
-
-    this.world.runBanishesRemaining = Math.max(0, (this.world.runBanishesRemaining ?? 0) - 1);
-    this.world.banishedUpgradeIds = nextBanishedIds;
-    this.world.levelUpActionMode = 'select';
-    this.world.pendingLevelUpChoices = nextChoices.filter((choice) => choice && !nextBanishedIds.includes(choice.id));
-
-    if ((this.world.pendingLevelUpChoices?.length ?? 0) === 0) {
-      transitionPlayMode(this.world, PlayMode.PLAYING);
-      return;
-    }
-
-    this._showLevelUpUI();
   }
 
   _showResultUI() {

@@ -6,16 +6,19 @@
  */
 import { MetaShopView }            from '../ui/metashop/MetaShopView.js';
 import { getPermanentUpgradeById } from '../data/permanentUpgradeData.js';
-import { purchasePermanentUpgrade, saveSession } from '../state/createSessionState.js';
 import { mountUI }                 from '../ui/dom/mountUI.js';
+import { purchasePermanentUpgradeAndSave } from '../state/sessionFacade.js';
+import { createSceneNavigationGuard } from './sceneNavigation.js';
 
 export class MetaShopScene {
   constructor(game) {
     this.game  = game;
     this._view = null;
+    this._nav  = createSceneNavigationGuard();
   }
 
   enter() {
+    this._nav.reset();
     const container = mountUI();
     this._view = new MetaShopView(container);
     this._view.show(
@@ -47,19 +50,20 @@ export class MetaShopScene {
     const currentLevel = this.game.session.meta.permanentUpgrades[upgradeId] ?? 0;
     if (currentLevel >= def.maxLevel) return;
 
-    const cost    = def.costPerLevel(currentLevel);
-    const success = purchasePermanentUpgrade(this.game.session, upgradeId, cost);
+    const cost = def.costPerLevel(currentLevel);
+    const success = purchasePermanentUpgradeAndSave(this.game.session, upgradeId, cost);
 
     if (success) {
-      saveSession(this.game.session);
       this._view.refresh(this.game.session);
     }
   }
 
   /** 메인화면(TitleScene)으로 복귀 */
-  _goToTitle() {
-    import('./TitleScene.js').then(({ TitleScene }) => {
+  async _goToTitle() {
+    await this._nav.load(() => import('./TitleScene.js'), ({ TitleScene }) => {
       this.game.sceneManager.changeScene(new TitleScene(this.game));
+    }, (e) => {
+      console.error('[MetaShopScene] TitleScene 로드 실패:', e);
     });
   }
 }

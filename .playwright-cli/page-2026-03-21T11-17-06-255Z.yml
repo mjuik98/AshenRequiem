@@ -1,0 +1,25 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic: ☠ GAME OVER
+        - generic: The hunt ends here.
+        - generic:
+          - generic:
+            - generic: 생존 시간
+            - generic: 0:00
+          - generic:
+            - generic: 최종 레벨
+            - generic: Lv.1
+          - generic:
+            - generic: 총 킬 수
+            - generic: "0"
+          - generic:
+            - generic: 획득 재화
+            - generic: 💰 0
+          - generic:
+            - generic: 누적 재화
+            - generic: 💰 0
+        - generic:
+          - button "⌂ 메인 화면으로" [ref=e215] [cursor=pointer]
+          - button "다시 시작" [ref=e216] [cursor=pointer]

@@ -4,6 +4,8 @@
  * CHANGE: 메인 화면 버튼 + 획득 재화 표시 추가
  * show(stats, onRestartCallback, onTitleCallback?)
  */
+import { ACTION_BUTTON_SHARED_CSS, renderActionButton } from '../shared/actionButtonTheme.js';
+
 export class ResultView {
   constructor(container) {
     this.el = document.createElement('div');
@@ -39,7 +41,11 @@ export class ResultView {
       : '';
 
     const titleBtn = onTitleCallback
-      ? `<button class="result-title-btn">⌂ 메인 화면으로</button>`
+      ? renderActionButton({
+          className: 'result-title-btn',
+          label: '⌂ 메인 화면으로',
+          tone: 'neutral',
+        })
       : '';
 
     this.el.innerHTML = `
@@ -55,7 +61,11 @@ export class ResultView {
         </div>
         <div class="result-btns">
           ${titleBtn}
-          <button class="result-restart-btn">다시 시작</button>
+          ${renderActionButton({
+            className: 'result-restart-btn',
+            label: '다시 시작',
+            tone: isVictory ? 'success' : 'danger',
+          })}
         </div>
       </div>
     `;
@@ -86,6 +96,7 @@ export class ResultView {
     const s = document.createElement('style');
     s.id = 'result-styles';
     s.textContent = `
+      ${ACTION_BUTTON_SHARED_CSS}
       .result-overlay {
         position: absolute; inset: 0;
         background: rgba(0,0,0,0.8);
@@ -139,35 +150,27 @@ export class ResultView {
         display: flex; flex-direction: column; gap: 10px;
       }
       .result-title-btn {
-        padding: 11px 40px; border: none; border-radius: 8px;
-        background: linear-gradient(90deg, #90a4ae, #607d8b);
-        color: #f5f7f9; font-size: 15px; font-weight: 700;
-        cursor: pointer; letter-spacing: 1px;
-        transition: transform 0.15s, box-shadow 0.15s;
+        width: 100%;
+        padding: 11px 40px;
+        letter-spacing: 1px;
         box-shadow: 0 4px 16px rgba(96,125,139,0.28);
       }
       .result-box.victory .result-title-btn {
-        background: linear-gradient(90deg, #78909c, #546e7a);
         box-shadow: 0 4px 16px rgba(84,110,122,0.3);
       }
       .result-title-btn:hover {
-        transform: translateY(-2px);
         box-shadow: 0 6px 22px rgba(96,125,139,0.45);
       }
       .result-restart-btn {
-        padding: 12px 40px; border: none; border-radius: 8px;
-        background: linear-gradient(90deg, #ef5350, #ff7043);
-        color: #fff; font-size: 15px; font-weight: 700;
-        cursor: pointer; letter-spacing: 1px;
-        transition: transform 0.15s, box-shadow 0.15s;
+        width: 100%;
+        padding: 12px 40px;
+        letter-spacing: 1px;
         box-shadow: 0 4px 16px rgba(239,83,80,0.3);
       }
       .result-box.victory .result-restart-btn {
-        background: linear-gradient(90deg, #66bb6a, #43a047);
         box-shadow: 0 4px 16px rgba(102,187,106,0.3);
       }
       .result-restart-btn:hover {
-        transform: translateY(-2px);
         box-shadow: 0 6px 22px rgba(239,83,80,0.5);
       }
     `;

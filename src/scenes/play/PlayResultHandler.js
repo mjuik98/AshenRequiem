@@ -4,9 +4,11 @@
  * CHANGE: 이번 런 획득 재화(currencyEarned) 추적 추가
  *   생성자에서 시작 재화를 기록 → process() 시 차액으로 획득량 계산
  */
-import { updateSessionBest, saveSession } from '../../state/createSessionState.js';
+import { updateSessionBest } from '../../state/createSessionState.js';
 import { unlockData } from '../../data/unlockData.js';
 import { evaluateUnlocks } from '../../systems/progression/unlockEvaluator.js';
+import { appendUnique } from '../../state/sessionMeta.js';
+import { persistSession } from '../../state/sessionFacade.js';
 
 export class PlayResultHandler {
   /**
@@ -43,19 +45,19 @@ export class PlayResultHandler {
       runResult,
       unlockData,
     });
-    this._session.meta.completedUnlocks = _appendUnique(
+    this._session.meta.completedUnlocks = appendUnique(
       this._session.meta.completedUnlocks,
       unlockResult.newlyCompletedUnlocks,
     );
-    this._session.meta.unlockedWeapons = _appendUnique(
+    this._session.meta.unlockedWeapons = appendUnique(
       this._session.meta.unlockedWeapons,
       unlockResult.newlyUnlockedWeapons,
     );
-    this._session.meta.unlockedAccessories = _appendUnique(
+    this._session.meta.unlockedAccessories = appendUnique(
       this._session.meta.unlockedAccessories,
       unlockResult.newlyUnlockedAccessories,
     );
-    saveSession(this._session);
+    persistSession(this._session);
 
     // CHANGE: 획득 재화 = 현재 재화 - 런 시작 재화
     const currencyEarned = Math.max(0, this._session.meta.currency - this._startCurrency);
@@ -69,8 +71,4 @@ export class PlayResultHandler {
       totalCurrency:  this._session.meta.currency,
     };
   }
-}
-
-function _appendUnique(base = [], additions = []) {
-  return [...new Set([...(base ?? []), ...(additions ?? [])])];
 }

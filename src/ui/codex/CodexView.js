@@ -24,11 +24,16 @@
  *   session.meta.weaponsUsedAll: string[]               — 획득한 무기 ID 목록
  */
 import { unlockData } from '../../data/unlockData.js';
+import {
+  SUBSCREEN_SHARED_CSS,
+  renderSubscreenFooter,
+  renderSubscreenHeader,
+} from '../shared/subscreenTheme.js';
 
 export class CodexView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.className = 'cx-root';
+    this.el.className = 'cx-root ss-root';
     this.el.style.display = 'none';
     this._injectStyles();
     container.appendChild(this.el);
@@ -83,16 +88,18 @@ export class CodexView {
     const totalWeapons = (this._gameData?.weaponData ?? []).length;
 
     this.el.innerHTML = `
-      <div class="cx-panel">
+      <div class="cx-panel ss-panel">
 
-        <!-- 헤더 -->
-        <header class="cx-header">
-          <div class="cx-header-left">
-            <div class="cx-rune" aria-hidden="true">📖</div>
-            <span class="cx-title">Codex</span>
-          </div>
-          <span class="cx-prog-pill">${discovered} / ${totalEnemies + totalWeapons} 발견됨</span>
-        </header>
+        ${renderSubscreenHeader({
+          headerClass: 'cx-header',
+          leftClass: 'cx-header-left',
+          runeClass: 'cx-rune',
+          titleClass: 'cx-title',
+          titleTag: 'h2',
+          rune: '📖',
+          title: 'Codex',
+          right: `<span class="cx-prog-pill ss-pill">${discovered} / ${totalEnemies + totalWeapons} 발견됨</span>`,
+        })}
 
         <!-- 탭 네비 -->
         <nav class="cx-tabs" role="tablist" aria-label="도감 탭">
@@ -108,16 +115,17 @@ export class CodexView {
         </nav>
 
         <!-- 콘텐츠 -->
-        <div class="cx-content">
+        <div class="cx-content ss-scroll">
           <div class="cx-tab-content active" id="cx-tab-enemy"  role="tabpanel"></div>
           <div class="cx-tab-content"        id="cx-tab-weapon" role="tabpanel"></div>
           <div class="cx-tab-content"        id="cx-tab-records"role="tabpanel"></div>
         </div>
 
-        <!-- 하단 버튼 -->
-        <footer class="cx-footer">
-          <button class="cx-back-btn" id="cx-back-btn" type="button">← 메인 화면으로</button>
-        </footer>
+        ${renderSubscreenFooter({
+          footerClass: 'cx-footer',
+          backButtonClass: 'cx-back-btn',
+          backButtonId: 'cx-back-btn',
+        })}
 
       </div>
     `;
@@ -578,30 +586,19 @@ export class CodexView {
     const s = document.createElement('style');
     s.id = 'codex-view-styles';
     s.textContent = `
+      ${SUBSCREEN_SHARED_CSS}
+
       /* ── 루트 ── */
       .cx-root {
-        position: absolute; inset: 0;
-        background: radial-gradient(circle at 50% 18%, #110d1a 0%, #060810 55%, #020104 100%);
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         overflow: hidden;
-        z-index: 50;
-        font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
-        color: rgba(244,237,224,0.9);
-        padding: 24px 16px;
-        box-sizing: border-box;
-        /* #ui-container의 pointer-events:none 상속 차단 — 휠 스크롤 및 카드 상호작용 활성화 */
-        pointer-events: auto;
       }
 
       /* ── 패널 ── */
       .cx-panel {
-        width: min(780px, 100%);
+        width: min(840px, 100%);
         max-height: 100%;
         display: flex; flex-direction: column;
-        margin: 0 auto;
-        border: 1px solid rgba(212,175,106,0.28);
-        border-radius: 20px;
-        background: rgba(10,7,18,0.96);
         overflow: hidden;
         box-sizing: border-box;
       }
@@ -609,23 +606,11 @@ export class CodexView {
       /* ── 헤더 ── */
       .cx-header {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 18px 24px 14px;
-        border-bottom: 1px solid rgba(212,175,106,0.14);
+        padding-bottom: 16px;
       }
       .cx-header-left { display: flex; align-items: center; gap: 10px; }
-      .cx-rune {
-        width: 30px; height: 30px; border-radius: 8px;
-        background: rgba(212,175,106,0.14); border: 1px solid rgba(212,175,106,0.3);
-        display: flex; align-items: center; justify-content: center; font-size: 14px;
-      }
-      .cx-title {
-        font-size: 15px; font-weight: 600; letter-spacing: 3px;
-        color: #d4af6a; text-transform: uppercase;
-      }
       .cx-prog-pill {
-        font-size: 11px; padding: 4px 12px; border-radius: 20px;
-        background: rgba(212,175,106,0.1); border: 1px solid rgba(212,175,106,0.22);
-        color: rgba(212,175,106,0.7); letter-spacing: 0.5px;
+        letter-spacing: 0.5px;
       }
 
       /* ── 탭 ── */
@@ -652,15 +637,11 @@ export class CodexView {
 
       /* ── 탭 콘텐츠 ── */
       .cx-content { 
-        padding: 20px 24px; 
+        padding: 22px 26px; 
         flex: 1; 
         min-height: 0;
         overflow-y: auto; 
       }
-      .cx-content::-webkit-scrollbar { width: 6px; }
-      .cx-content::-webkit-scrollbar-track { background: transparent; }
-      .cx-content::-webkit-scrollbar-thumb { background: rgba(212,175,106,0.3); border-radius: 3px; }
-      .cx-content::-webkit-scrollbar-thumb:hover { background: rgba(212,175,106,0.5); }
       
       .cx-tab-content { display: none; }
       .cx-tab-content.active { display: block; }
@@ -874,16 +855,9 @@ export class CodexView {
 
       /* ── 하단 버튼 ── */
       .cx-footer {
-        padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 18px 26px 24px; border-top: 1px solid rgba(255,255,255,0.06);
         text-align: center;
       }
-      .cx-back-btn {
-        padding: 12px 48px; border: none; border-radius: 10px;
-        background: rgba(212,175,106,0.12); border: 1px solid rgba(212,175,106,0.32);
-        color: #d4af6a; font-size: 13px; font-weight: 600; letter-spacing: 1px;
-        cursor: pointer; transition: background 0.15s, border-color 0.15s;
-      }
-      .cx-back-btn:hover { background: rgba(212,175,106,0.2); border-color: rgba(212,175,106,0.5); }
 
       /* ── 반응형 ── */
       @media (max-width: 540px) {

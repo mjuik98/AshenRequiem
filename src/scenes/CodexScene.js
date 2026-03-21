@@ -29,8 +29,9 @@
  */
 
 import { CodexView }    from '../ui/codex/CodexView.js';
-import { GameDataLoader } from '../data/GameDataLoader.js';
 import { mountUI }      from '../ui/dom/mountUI.js';
+import { ensureCodexMeta } from '../state/sessionMeta.js';
+import { createSceneNavigationGuard } from './sceneNavigation.js';
 
 export class CodexScene {
   /**
@@ -41,17 +42,15 @@ export class CodexScene {
     this.game  = game;
     this._from = from;
     this._view = null;
-    this._isNavigating = false;
-    this._sceneChangeToken = 0;
+    this._nav  = createSceneNavigationGuard();
   }
 
   enter() {
-    this._isNavigating     = false;
-    this._sceneChangeToken += 1;
+    this._nav.reset();
 
-    this._initSessionMeta();
+    ensureCodexMeta(this.game.session);
 
-    const gameData  = GameDataLoader.loadDefault();
+    const gameData  = this.game.gameData;
     const container = mountUI();
 
     this._view = new CodexView(container);
@@ -78,40 +77,19 @@ export class CodexScene {
 
   // ── 내부 처리 ──────────────────────────────────────────────────────────────
 
-  /**
-   * session.meta에 도감 관련 필드가 없으면 기본값으로 초기화한다.
-   * 기존 session 데이터는 건드리지 않는다.
-   */
-  _initSessionMeta() {
-    const meta = this.game.session.meta ??= {};
-    meta.enemyKills         ??= {};
-    meta.enemiesEncountered ??= [];
-    meta.killedBosses       ??= [];
-    meta.weaponsUsedAll     ??= [];
-    meta.evolvedWeapons     ??= [];
-    meta.totalRuns          ??= 0;
-  }
-
   /** 진입 출처에 따라 적절한 씬으로 복귀한다. */
   async _goBack() {
-    if (this._isNavigating) return;
-    this._isNavigating     = true;
-    const token = this._sceneChangeToken;
-
-    try {
-      let SceneClass;
+    await this._nav.load(async () => {
       if (this._from === 'metashop') {
-        const mod = await import('./MetaShopScene.js');
-        SceneClass = mod.MetaShopScene;
+        return import('./MetaShopScene.js');
       } else {
-        const mod = await import('./TitleScene.js');
-        SceneClass = mod.TitleScene;
+        return import('./TitleScene.js');
       }
-      if (token !== this._sceneChangeToken) return;
+    }, (mod) => {
+      const SceneClass = this._from === 'metashop' ? mod.MetaShopScene : mod.TitleScene;
       this.game.sceneManager.changeScene(new SceneClass(this.game));
-    } catch (e) {
+    }, (e) => {
       console.error('[CodexScene] 씬 전환 실패:', e);
-      this._isNavigating = false;
-    }
+    });
   }
 }

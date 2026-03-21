@@ -9,11 +9,16 @@
  *      스크롤 이벤트가 차단되던 문제 해결
  */
 import { permanentUpgradeData } from '../../data/permanentUpgradeData.js';
+import {
+  SUBSCREEN_SHARED_CSS,
+  renderSubscreenFooter,
+  renderSubscreenHeader,
+} from '../shared/subscreenTheme.js';
 
 export class MetaShopView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.className = 'ms-root';
+    this.el.className = 'ms-root ss-root';
     this._onPurchase = null;
     this._onBack     = null;
     this._injectStyles();
@@ -50,23 +55,26 @@ export class MetaShopView {
     const best     = session.best;
 
     this.el.innerHTML = `
-      <div class="ms-panel">
+      <div class="ms-panel ss-panel">
 
-        <!-- 헤더 -->
-        <header class="ms-header">
-          <div class="ms-header-left">
-            <div class="ms-rune" aria-hidden="true">⚗</div>
-            <div class="ms-heading">
-              <h1 class="ms-title">Meta Shop</h1>
-              <p class="ms-subtitle">영구 강화를 구매해 다음 런을 준비합니다.</p>
+        ${renderSubscreenHeader({
+          headerClass: 'ms-header',
+          leftClass: 'ms-header-left',
+          headingClass: 'ms-heading',
+          runeClass: 'ms-rune',
+          titleClass: 'ms-title',
+          subtitleClass: 'ms-subtitle',
+          rune: '⚗',
+          title: 'Meta Shop',
+          subtitle: '영구 강화를 구매해 다음 런을 준비합니다.',
+          right: `
+            <div class="ms-best-row">
+              <span class="ms-best-item ss-pill">🏆 Lv.${best.level}</span>
+              <span class="ms-best-item ss-pill">☠ ${best.kills}</span>
+              <span class="ms-best-item ss-pill">⏱ ${_formatTime(best.survivalTime)}</span>
             </div>
-          </div>
-          <div class="ms-best-row">
-            <span class="ms-best-item">🏆 Lv.${best.level}</span>
-            <span class="ms-best-item">☠ ${best.kills}</span>
-            <span class="ms-best-item">⏱ ${_formatTime(best.survivalTime)}</span>
-          </div>
-        </header>
+          `,
+        })}
 
         <!-- 재화 표시 -->
         <div class="ms-currency-bar">
@@ -109,10 +117,10 @@ export class MetaShopView {
           }).join('')}
         </div>
 
-        <!-- 하단 버튼 -->
-        <div class="ms-footer">
-          <button class="ms-back-btn">← 메인 화면으로</button>
-        </div>
+        ${renderSubscreenFooter({
+          footerClass: 'ms-footer',
+          backButtonClass: 'ms-back-btn',
+        })}
 
       </div>
     `;
@@ -135,90 +143,54 @@ export class MetaShopView {
     const s = document.createElement('style');
     s.id = 'metashop-styles';
     s.textContent = `
+      ${SUBSCREEN_SHARED_CSS}
+
       .ms-root {
-        position: absolute; inset: 0;
-        background: radial-gradient(circle at 50% 18%, #110d1a 0%, #060810 55%, #020104 100%);
-        display: flex;
-        justify-content: center;
         align-items: flex-start;
-        overflow-y: auto;
-        z-index: 50; font-family: 'Segoe UI', sans-serif;
-        color: #eee; padding: 24px 16px;
-        /* FIX: #ui-container의 pointer-events:none 상속 차단 — 스크롤 및 클릭 활성화 */
-        pointer-events: auto;
+        font-family: 'Noto Serif KR', 'Segoe UI', sans-serif;
       }
       .ms-panel {
-        width: min(780px, 100%);
-        margin: 0 auto;
-        background: rgba(10,7,18,0.96);
-        border: 1px solid rgba(212,175,106,0.28);
-        border-radius: 20px; padding: 28px 32px;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.55),
-                    inset 0 1px 0 rgba(255,255,255,0.03);
+        width: min(820px, 100%);
       }
       .ms-header {
-        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
-        padding-bottom: 18px; margin-bottom: 20px;
-        border-bottom: 1px solid rgba(212,175,106,0.14);
-      }
-      .ms-header-left { display: flex; align-items: center; gap: 12px; }
-      .ms-rune {
-        width: 34px; height: 34px; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        background: rgba(212,175,106,0.14);
-        border: 1px solid rgba(212,175,106,0.3);
-        font-size: 17px;
-        flex-shrink: 0;
-      }
-      .ms-heading { min-width: 0; }
-      .ms-title {
-        margin: 0;
-        font-size: 15px; font-weight: 600;
-        color: #d4af6a;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-      }
-      .ms-subtitle {
-        margin: 6px 0 0;
-        font-size: 12px;
-        color: rgba(244,237,224,0.5);
+        margin-bottom: 0;
       }
       .ms-best-row {
         display: flex; justify-content: flex-end; gap: 8px;
         flex-wrap: wrap; align-items: center;
       }
       .ms-best-item {
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(212,175,106,0.1);
-        border: 1px solid rgba(212,175,106,0.22);
-        color: rgba(212,175,106,0.74);
+        color: rgba(217,179,107,0.82);
       }
       .ms-currency-bar {
         display: flex; justify-content: space-between; align-items: center;
         background: rgba(255,213,79,0.07);
         border: 1px solid rgba(255,213,79,0.25);
-        border-radius: 10px; padding: 10px 16px;
-        margin-bottom: 24px;
+        border-radius: 14px; padding: 12px 18px;
+        margin: 20px 26px 24px;
       }
       .ms-currency-label { font-size: 13px; color: #aaa; }
       .ms-currency-value { font-size: 18px; font-weight: 700; color: #ffd54f; }
       .ms-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 12px; margin-bottom: 28px;
+        gap: 14px;
+        padding: 0 26px 0;
+        margin-bottom: 28px;
       }
       .ms-card {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.09);
-        border-radius: 14px; padding: 16px 14px;
+        background: rgba(255,255,255,0.045);
+        border: 1px solid rgba(217,179,107,0.1);
+        border-radius: 16px; padding: 16px 14px;
         display: flex; flex-direction: column; gap: 10px;
-        transition: border-color 0.2s, background 0.2s;
+        transition: border-color 0.2s, background 0.2s, transform 0.2s;
       }
       .ms-card.can-afford {
         border-color: rgba(255,213,79,0.35);
         background: rgba(255,213,79,0.04);
+      }
+      .ms-card:hover {
+        transform: translateY(-1px);
       }
       .ms-card.is-maxed { opacity: 0.55; }
       .ms-card-icon { font-size: 26px; text-align: center; }
@@ -250,31 +222,25 @@ export class MetaShopView {
         color: #555; cursor: default;
       }
       .ms-footer {
-        padding-top: 16px;
-        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 18px 26px 24px;
+        border-top: 1px solid rgba(217,179,107,0.12);
         text-align: center;
       }
       .ms-back-btn {
-        padding: 12px 48px;
-        border-radius: 10px;
-        background: rgba(212,175,106,0.12);
-        border: 1px solid rgba(212,175,106,0.32);
-        color: #d4af6a;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 1px;
-        cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, transform 0.15s;
-      }
-      .ms-back-btn:hover {
-        transform: translateY(-1px);
-        background: rgba(212,175,106,0.2);
-        border-color: rgba(212,175,106,0.5);
+        min-width: 170px;
       }
       @media (max-width: 640px) {
-        .ms-panel { padding: 24px 20px; }
         .ms-header { flex-direction: column; align-items: stretch; }
         .ms-best-row { justify-content: flex-start; }
+        .ms-currency-bar {
+          margin: 18px 18px 20px;
+        }
+        .ms-grid {
+          padding: 0 18px 0;
+        }
+        .ms-footer {
+          padding: 18px 18px 22px;
+        }
       }
     `;
     document.head.appendChild(s);

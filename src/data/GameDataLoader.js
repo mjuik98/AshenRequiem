@@ -72,6 +72,10 @@ function cloneGameData(originals) {
 }
 
 export const GameDataLoader = {
+  clone(data = {}) {
+    return deepCloneValue(data);
+  },
+
   loadDefault() {
     return this.loadWithOverrides({});
   },

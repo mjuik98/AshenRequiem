@@ -25,6 +25,7 @@
 import { getStatusEffectData }  from '../../data/statusEffectData.js';
 import { statusEffectRegistry }  from '../../data/statusEffectRegistry.js';
 import { generateId }            from '../../utils/ids.js';
+import { isLive }                from '../../utils/entityUtils.js';
 
 export const StatusEffectSystem = {
   update({ world: { enemies, player, deltaTime, events } }) {
@@ -50,7 +51,7 @@ export const StatusEffectSystem = {
       if (Math.random() > (proj.statusEffectChance ?? 1.0)) continue;
 
       const target = hit.target;
-      if (!target?.isAlive || target.pendingDestroy || !target.statusEffects) continue;
+      if (!isLive(target) || !target.statusEffects) continue;
 
       this._applyEffect(target, proj.statusEffectId, events);
     }
@@ -65,10 +66,10 @@ export const StatusEffectSystem = {
   tick({ enemies, player, deltaTime, events }) {
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
-      if (!e.isAlive || e.pendingDestroy) continue;
+      if (!isLive(e)) continue;
       this._tickEntity(e, deltaTime, events);
     }
-    if (player?.isAlive && !player.pendingDestroy) {
+    if (isLive(player)) {
       this._tickEntity(player, deltaTime, events);
     }
   },

@@ -25,8 +25,18 @@
  * FIX: destroy() 시 tooltip DOM 반드시 정리 (TOOLTIP-LEAK)
  */
 
-import { getAccessoryById, buildAccessoryLevelDesc, buildAccessoryCurrentDesc }
-  from '../../data/accessoryData.js';
+import { buildAccessoryCurrentDesc } from '../../data/accessoryData.js';
+import { SESSION_OPTION_DEFAULTS } from '../../state/sessionOptions.js';
+import { ACTION_BUTTON_SHARED_CSS, renderActionButton } from '../shared/actionButtonTheme.js';
+import {
+  renderPauseHeader,
+  renderPauseTabNavigation,
+  renderPauseTabPanels,
+} from './pauseViewSections.js';
+import {
+  buildPauseAccessoryTooltipContent,
+  buildPauseWeaponTooltipContent,
+} from './pauseTooltipContent.js';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 const GOLD          = '#d4af6a';
@@ -59,11 +69,11 @@ const BASE_STATS = {
 };
 
 const PAUSE_AUDIO_DEFAULTS = {
-  soundEnabled: true,
-  musicEnabled: true,
-  masterVolume: 80,
-  bgmVolume: 60,
-  sfxVolume: 100,
+  soundEnabled: SESSION_OPTION_DEFAULTS.soundEnabled,
+  musicEnabled: SESSION_OPTION_DEFAULTS.musicEnabled,
+  masterVolume: SESSION_OPTION_DEFAULTS.masterVolume,
+  bgmVolume: SESSION_OPTION_DEFAULTS.bgmVolume,
+  sfxVolume: SESSION_OPTION_DEFAULTS.sfxVolume,
 };
 
 export class PauseView {
@@ -189,97 +199,65 @@ export class PauseView {
     const level     = player.level ?? 1;
     const timeStr   = elapsed != null ? _formatTime(elapsed) : '--:--';
     const killStr   = killCount != null ? killCount : '—';
+    const weaponCardsHtml = weapons.map(w => this._renderWeaponCard(w, bonusProjs, player)).join('');
+    const accessoryGridHtml = this._renderAccessoryGrid(accessories, maxAccSlots);
+    const statsHtml = this._renderStats(player, activeSynergies);
+    const soundControlsHtml = this._renderSoundControls();
+    const forfeitButton = this._onForfeit
+      ? renderActionButton({
+          className: 'pv-btn-forfeit',
+          id: 'pv-forfeit-btn',
+          label: '전투 포기',
+          tone: 'danger',
+          ariaLabel: '전투 포기',
+        })
+      : '';
+    const resumeButton = renderActionButton({
+      className: 'pv-btn-resume',
+      id: 'pv-resume-btn',
+      label: '재개',
+      tone: 'accent',
+      ariaLabel: '게임 재개 (ESC)',
+      leading: '<span class="pv-btn-arrow" aria-hidden="true"></span>',
+      trailing: '<kbd class="pv-kbd">ESC</kbd>',
+      stretch: true,
+    });
 
     this.el.innerHTML = `
       <div class="pv-backdrop"></div>
       <div class="pv-panel" role="dialog" aria-label="일시정지 메뉴">
-
-        <!-- ── 헤더 ── -->
-        <header class="pv-header">
-          <div class="pv-pause-badge">
-            <div class="pv-pause-icon" aria-hidden="true">
-              <div class="pv-pbar"></div><div class="pv-pbar"></div>
-            </div>
-            <span class="pv-pause-title">Paused</span>
-          </div>
-          <div class="pv-run-stats" aria-label="현재 런 정보">
-            <div class="pv-run-stat"><span class="pv-run-val">${_escapeHtml(timeStr)}</span><span class="pv-run-key">생존</span></div>
-            <div class="pv-run-div"></div>
-            <div class="pv-run-stat"><span class="pv-run-val">${_escapeHtml(String(killStr))}</span><span class="pv-run-key">킬</span></div>
-            <div class="pv-run-div"></div>
-            <div class="pv-run-stat"><span class="pv-run-val">Lv.${level}</span><span class="pv-run-key">레벨</span></div>
-          </div>
-        </header>
-
-        <!-- ── HP 바 ── -->
-        <section class="pv-hp-section" aria-label="체력">
-          <span class="pv-hp-label">HP</span>
-          <div class="pv-hp-track">
-            <div class="pv-hp-fill ${hpFillClass}" style="width:${hpPct}%;background:${hpFillColor}"></div>
-          </div>
-          <div class="pv-hp-meta">
-            <span class="pv-hp-frac">${hp} / ${maxHp}</span>
-            <span class="pv-hp-pct" style="color:${hpPctColor}">${Math.round(hpPct)}%</span>
-            ${hpPct <= 30 ? '<span class="pv-hp-warn" aria-live="assertive">위험</span>' : ''}
-          </div>
-        </section>
-
-        <!-- ── 탭 네비 ── -->
-        <nav class="pv-tabs" role="tablist" aria-label="정보 탭">
-          <button class="pv-tab ${this._activeTabName === 'weapons' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'weapons'}" data-tab-name="weapons">
-            무기 <span class="pv-tab-cnt">${weapons.length}/${maxWpnSlots}</span>
-          </button>
-          <button class="pv-tab ${this._activeTabName === 'accessories' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'accessories'}" data-tab-name="accessories">
-            장신구 <span class="pv-tab-cnt">${accessories.length}/${maxAccSlots}</span>
-          </button>
-          <button class="pv-tab ${this._activeTabName === 'stats' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'stats'}" data-tab-name="stats">
-            스탯
-          </button>
-          <button class="pv-tab ${this._activeTabName === 'sound' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'sound'}" data-tab-name="sound">
-            사운드
-          </button>
-        </nav>
-
-        <!-- ── 무기 탭 ── -->
-        <div class="pv-tab-content ${this._activeTabName === 'weapons' ? 'active' : ''}" id="pv-tab-weapons" role="tabpanel">
-          <div class="pv-weapon-list">
-            ${weapons.length > 0
-              ? weapons.map(w => this._renderWeaponCard(w, bonusProjs, player)).join('')
-              : '<div class="pv-empty-msg">보유 무기 없음</div>'}
-          </div>
-        </div>
-
-        <!-- ── 장신구 탭 ── -->
-        <div class="pv-tab-content ${this._activeTabName === 'accessories' ? 'active' : ''}" id="pv-tab-accessories" role="tabpanel">
-          <div class="pv-acc-grid">
-            ${this._renderAccessoryGrid(accessories, maxAccSlots)}
-          </div>
-        </div>
-
-        <!-- ── 스탯 탭 ── -->
-        <div class="pv-tab-content ${this._activeTabName === 'stats' ? 'active' : ''}" id="pv-tab-stats" role="tabpanel">
-          ${this._renderStats(player, activeSynergies)}
-        </div>
-
-        <!-- ── 사운드 탭 ── -->
-        <div class="pv-tab-content ${this._activeTabName === 'sound' ? 'active' : ''}" id="pv-tab-sound" role="tabpanel">
-          ${this._renderSoundControls()}
-        </div>
-
-        <!-- ── 푸터 ── -->
+        ${renderPauseHeader({
+          timeStr,
+          killStr,
+          level,
+          hp,
+          maxHp,
+          hpPct,
+          hpFillClass,
+          hpFillColor,
+          hpPctColor,
+        })}
+        ${renderPauseTabNavigation({
+          activeTabName: this._activeTabName,
+          weaponCount: weapons.length,
+          maxWpnSlots,
+          accessoryCount: accessories.length,
+          maxAccSlots,
+        })}
+        ${renderPauseTabPanels({
+          activeTabName: this._activeTabName,
+          weapons,
+          accessories,
+          maxAccSlots,
+          weaponCardsHtml,
+          accessoryGridHtml,
+          statsHtml,
+          soundControlsHtml,
+        })}
         <footer class="pv-footer">
-          ${this._onForfeit
-            ? `<button class="pv-btn-forfeit" id="pv-forfeit-btn" type="button" aria-label="전투 포기">
-                전투 포기
-               </button>`
-            : ''}
-          <button class="pv-btn-resume" id="pv-resume-btn" type="button" aria-label="게임 재개 (ESC)">
-            <span class="pv-btn-arrow" aria-hidden="true"></span>
-            재개
-            <kbd class="pv-kbd">ESC</kbd>
-          </button>
+          ${forfeitButton}
+          ${resumeButton}
         </footer>
-
       </div>
     `;
 
@@ -673,8 +651,18 @@ export class PauseView {
       });
     };
 
-    bind('[data-tip-weapon]', (el) => this._buildWeaponTip(el.dataset.tipWeapon, player));
-    bind('[data-tip-acc]',    (el) => this._buildAccTip(el.dataset.tipAcc, player));
+    bind('[data-tip-weapon]', (el) => buildPauseWeaponTooltipContent({
+      weaponId: el.dataset.tipWeapon,
+      player,
+      data: this._data,
+      indexes: this._indexes,
+    }));
+    bind('[data-tip-acc]', (el) => buildPauseAccessoryTooltipContent({
+      accessoryId: el.dataset.tipAcc,
+      player,
+      data: this._data,
+      indexes: this._indexes,
+    }));
   }
 
   _hideTooltip() {
@@ -701,105 +689,6 @@ export class PauseView {
     this._tt.style.top  = `${y}px`;
   }
 
-  _buildWeaponTip(weaponId, player) {
-    const weapon = player.weapons?.find(w => w.id === weaponId);
-    if (!weapon) return '';
-
-    const evoData           = this._data?.weaponEvolutionData ?? [];
-    const accessoryById     = this._indexes?.accessoryById ?? new Map();
-    const relatedSynergies  = this._indexes?.synergiesByWeaponId?.get(weaponId) ?? [];
-    const activeSynergyIds  = new Set(player.activeSynergies ?? []);
-    const bonusProjs        = player.bonusProjectileCount ?? 0;
-    const totalProj         = (weapon.projectileCount ?? 1) + Math.floor(bonusProjs);
-
-    const stats = [
-      ['데미지',    weapon.damage],
-      ['쿨다운',    _formatSeconds(weapon.cooldown, 2)],
-      ['관통',      weapon.pierce != null && !['orbit','areaBurst'].includes(weapon.behaviorId) ? weapon.pierce : null],
-      ['투사체',    totalProj > 1 ? totalProj : null],
-      ['사거리',    weapon.range  != null ? `${Math.round(weapon.range)}px`       : null],
-      ['오라 반경', weapon.orbitRadius != null ? `${Math.round(weapon.orbitRadius)}px` : null],
-    ].filter(([, v]) => v != null && v !== '');
-
-    const statsHtml = stats.map(([k, v]) =>
-      `<div class="pvt-row"><span class="pvt-key">${_escapeHtml(k)}</span><span class="pvt-val">${_escapeHtml(String(v))}</span></div>`
-    ).join('');
-
-    const statusHtml = weapon.statusEffectId
-      ? (() => {
-          const label = { slow:'슬로우', poison:'독', stun:'스턴' }[weapon.statusEffectId] ?? weapon.statusEffectId;
-          const pct   = Math.round((weapon.statusEffectChance ?? 1) * 100);
-          return `<div class="pvt-row"><span class="pvt-key">상태이상</span><span class="pvt-val pvt-status">${_escapeHtml(label)} ${pct}%</span></div>`;
-        })()
-      : '';
-
-    const synHtml = relatedSynergies.map(s => {
-      const active = activeSynergyIds.has(s.id);
-      return `<div class="pvt-synergy${active ? ' pvt-synergy-active' : ''}">
-        <span class="pvt-syn-icon">${active ? '✦' : '◇'}</span>
-        <div><div class="pvt-syn-name">${_escapeHtml(s.name ?? s.id)}</div><div class="pvt-syn-desc">${_escapeHtml(s.description ?? '')}</div></div>
-      </div>`;
-    }).join('');
-
-    const evoRecipe = evoData.find(r => r.requires?.weaponId === weaponId);
-    const evoHtml   = evoRecipe
-      ? (() => {
-          const done  = player.evolvedWeapons?.has(evoRecipe.id);
-          const names = (evoRecipe.requires?.accessoryIds ?? []).map(id => accessoryById.get(id)?.name ?? id).join(', ');
-          return `<div class="pvt-divider"></div>
-            <div class="pvt-evo${done ? ' pvt-evo-done' : ''}">
-              <span class="pvt-evo-icon">${done ? '✓' : '✨'}</span>
-              <div>
-                <div class="pvt-evo-name">${done ? '진화 완료' : '진화 조건'}</div>
-                <div class="pvt-evo-desc">Lv.MAX${names ? ` + ${_escapeHtml(names)}` : ''} 보유 시 진화</div>
-              </div>
-            </div>`;
-        })()
-      : '';
-
-    return `
-      <div class="pvt-header">${_escapeHtml(weapon.name ?? weapon.id ?? '무기')} <span class="pvt-lv">Lv.${weapon.level ?? 1}</span></div>
-      ${statsHtml}${statusHtml}
-      ${relatedSynergies.length > 0 ? '<div class="pvt-divider"></div>' + synHtml : ''}
-      ${evoHtml}
-    `;
-  }
-
-  _buildAccTip(accessoryId, player) {
-    const acc = player.accessories?.find(a => a.id === accessoryId);
-    if (!acc) return '';
-
-    const evoData    = this._data?.weaponEvolutionData ?? [];
-    const weaponById = this._indexes?.weaponById ?? new Map();
-
-    const def = this._indexes?.accessoryById?.get(accessoryId);
-    const levelLines = def ? buildAccessoryLevelDesc(def) : [];
-    const effHtml = levelLines
-      .map(line => `<div class="pvt-level-row">${_escapeHtml(line)}</div>`)
-      .join('');
-
-    const evoRecipes = evoData.filter(r => r.requires?.accessoryIds?.includes(accessoryId));
-    const evoHtml    = evoRecipes.map(r => {
-      const done = player.evolvedWeapons?.has(r.id);
-      const wName = weaponById.get(r.requires?.weaponId)?.name ?? r.requires?.weaponId ?? '무기';
-      return `<div class="pvt-evo${done ? ' pvt-evo-done' : ''}">
-        <span class="pvt-evo-icon">${done ? '✓' : '✨'}</span>
-        <div>
-          <div class="pvt-evo-name">${done ? '진화 완료' : '진화 조건'}</div>
-          <div class="pvt-evo-desc">${_escapeHtml(wName)} Lv.MAX 달성 시 진화 가능</div>
-        </div>
-      </div>`;
-    }).join('');
-
-    const rarityLabel = acc.rarity === 'rare' ? '희귀' : '일반';
-
-    return `
-      <div class="pvt-header">${_escapeHtml(acc.name ?? acc.id ?? '장신구')} <span class="pvt-rarity pvt-rarity-${_escapeAttr(acc.rarity ?? 'common')}">${rarityLabel}</span></div>
-      ${effHtml}
-      ${evoRecipes.length > 0 ? '<div class="pvt-divider"></div>' + evoHtml : ''}
-    `;
-  }
-
   // ── 키보드 단축키 ─────────────────────────────────────────────────────────
 
   _bindKeyboard() {
@@ -824,6 +713,7 @@ export class PauseView {
     const s = document.createElement('style');
     s.id = 'pauseview-v3-styles';
     s.textContent = `
+      ${ACTION_BUTTON_SHARED_CSS}
       /* ── 레이아웃 ── */
       .pv-overlay {
         position: absolute; inset: 0;
@@ -1110,31 +1000,16 @@ export class PauseView {
         border-top: 1px solid rgba(255,255,255,0.06);
       }
       .pv-btn-forfeit {
-        padding: 12px 16px;
-        background: rgba(180,60,60,0.12);
-        border: 1px solid rgba(180,60,60,0.28);
-        color: rgba(255,160,160,0.82);
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: 700;
-        cursor: pointer;
+        min-width: 132px;
       }
       .pv-btn-forfeit:hover {
-        background: rgba(180,60,60,0.2);
-        border-color: rgba(220,90,90,0.42);
+        box-shadow: 0 8px 22px rgba(120, 34, 34, 0.24);
       }
       .pv-btn-resume {
-        flex: 1; padding: 12px;
-        background: rgba(212,175,106,0.12);         /* ← 하드코딩 */
-        border: 1px solid rgba(212,175,106,0.32);    /* ← 하드코딩 */
-        color: #d4af6a;                             /* ← 하드코딩 */
-        border-radius: 10px; font-size: 12px; font-weight: 700;
-        letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
-        transition: background 0.15s, border-color 0.15s;
-        display: flex; align-items: center; justify-content: center; gap: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
       }
-      .pv-btn-resume:hover { background: rgba(212,175,106,0.2); border-color: rgba(212,175,106,0.5); }
-      .pv-btn-resume:disabled { opacity: 0.5; cursor: wait; }
+      .pv-btn-resume:hover { box-shadow: 0 8px 24px rgba(212,175,106,0.18); }
       .pv-btn-arrow { width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 7px; border-color: transparent transparent transparent #d4af6a; }
 
       .pv-kbd {
@@ -1196,21 +1071,6 @@ function _formatTime(secs) {
   const m  = Math.floor(secs / 60);
   const ss = String(Math.floor(secs % 60)).padStart(2, '0');
   return `${m}:${ss}`;
-}
-
-function _formatSeconds(val, digits = 1) {
-  return Number.isFinite(val) ? `${val.toFixed(digits)}s` : '—';
-}
-
-function _formatSynergyBonus(bonus) {
-  if (!bonus) return '';
-  if (bonus.speedMult)       return `속도 ×${bonus.speedMult}`;
-  if (bonus.lifestealDelta)  return `흡혈 +${Math.round(bonus.lifestealDelta * 100)}%`;
-  if (bonus.damageDelta)     return `데미지 +${bonus.damageDelta}`;
-  if (bonus.pierceDelta)     return `관통 +${bonus.pierceDelta}`;
-  if (bonus.cooldownMult)    return `CD ×${bonus.cooldownMult}`;
-  if (bonus.orbitRadiusDelta)return `궤도 +${bonus.orbitRadiusDelta}px`;
-  return '';
 }
 
 function _weaponEmoji(behaviorId) {

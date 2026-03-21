@@ -26,5 +26,14 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-21: `enemyData`에 보스 6종(`boss_lich`, `boss_warden`, `boss_broodmother`, `boss_titan`, `boss_seraph`, `boss_abyss_eye`) 추가, `bossData`를 5분 간격 6종 순차 등장 구조로 교체. `waveData`는 12개 구간으로 세분화해 후반 `spawnPerSecond`와 `eliteChance`를 크게 증가시킴.
 - 2026-03-21: `unlockData`를 8개 보상으로 확장. `chain_lightning`, `coin_pendant`, `wind_crystal`, `greed_amulet` 해금 조건 추가. `PlayResultHandler`/`UnlockEvaluator` 회귀 테스트도 함께 갱신.
 - 2026-03-21: 신규 테스트 `tests/ResultAndProgressionSource.test.js` 추가. `node scripts/validateData.js`, `node scripts/runTests.js`, `npm run build` 모두 통과.
-- TODO: 브라우저에서 ESC 모달의 사운드 탭, 툴팁, 스크롤, 전투 포기 흐름을 실제 입력으로 확인하고 필요 시 후속 보정.
-- TODO: 브라우저에서 실제 레벨업 상황을 만들어 카드별 리롤/봉인 모드 UX와 잔여 횟수 소모가 기대대로 보이는지 수동 또는 자동 확인.
+- 2026-03-21: `subscreenTheme`에 공통 `renderSubscreenHeader()` / `renderSubscreenFooter()` helper를 추가하고 `CodexView`/`SettingsView`/`MetaShopView`가 공통 서브스크린 셸 마크업을 직접 재사용하도록 정리. `sceneNavigation`에는 `change()` / `load()`를 추가해 `TitleScene`의 shop 포함 모든 서브화면 전환을 같은 가드 경계로 통일.
+- 2026-03-21: Playwright로 `http://127.0.0.1:4177/`에서 `Meta Shop`/`Codex`/`Settings` 진입과 `Escape` 복귀를 smoke 확인. 모바일 뷰포트(390x844)에서 `Meta Shop`의 `.ms-root` 스크롤 높이 `2407px`, wheel 입력 후 `scrollTop`이 `0 -> 500`으로 변해 실제 스크롤 동작도 확인. 콘솔 에러/경고 없음.
+- 2026-03-21: 신규 helper/source 회귀 테스트(`tests/SubscreenTheme.test.js`, `tests/SceneNavigation.test.js`, `tests/SceneInfrastructureSource.test.js`, `tests/TitleAndCodexSource.test.js`) 갱신 후 `node scripts/runTests.js`, `npm run build` 재검증 통과.
+- 2026-03-21: Playwright로 실제 전투 중 레벨업 오버레이를 재현해 `남은 리롤 2`, `남은 봉인 1` 노출을 확인. 가운데 카드 리롤 후 `마법탄 + -> 골드 획득`으로 교체되고 `남은 리롤 2 -> 1` 감소 확인, 봉인 모드에서 `골드 획득` 카드 클릭 후 `남은 봉인 1 -> 0` 감소와 카드 교체도 확인.
+- 2026-03-21: Playwright 실제 입력으로 레벨업 종료 후 전투 중 `Escape` 장입 상태(`keyboard.down`)를 유지해 ESC 일시정지 모달 표시를 확인. `.pv-overlay` DOM 상태가 `display:flex`, `aria-hidden=false`로 바뀌고 무기/장신구/스탯/사운드 탭, `전투 포기`, `재개` 버튼 렌더도 함께 확인. 짧은 `press Escape`만으로는 poll 기반 입력 프레임과 어긋나 검증이 흔들릴 수 있음.
+- 2026-03-21: Playwright로 ESC 모달 추가 실검증 완료. 무기 카드 hover 시 `.pv-tooltip`이 `display:block`으로 열리고 상세 스탯/시너지/진화 조건 텍스트가 렌더됨. `사운드` 탭에서 `masterVolume 80 -> 72`, `soundEnabled ON -> OFF`를 변경했고 `ashenRequiem_session.options`에도 같은 값이 저장되는 것을 확인. 모바일 축소(390x600)에서는 `.pv-panel`의 `scrollHeight 739`, `clientHeight 558`, wheel 입력 후 `scrollTop 0 -> 181`로 실제 내부 스크롤 확인. `전투 포기` 클릭 후 결과 화면 `☠ GAME OVER`와 `⌂ 메인 화면으로`/`다시 시작` 버튼 노출도 확인.
+- 2026-03-21: 장신구 툴팁은 별도 런에서 리롤 10회를 주고 장신구 선택지를 재현하려 했지만 이번 시도한 첫 레벨업 풀에서는 장신구 카드가 뜨지 않아 브라우저 hover 검증까지는 미도달.
+- 2026-03-21: 구조 정리 추가 반영. `PauseView`는 `src/ui/pause/pauseViewSections.js`, `src/ui/pause/pauseTooltipContent.js`로 렌더/tooltip 빌더를 분리했고, `ResultView`/`PauseView` 액션 버튼은 `src/ui/shared/actionButtonTheme.js` 공통 토큰을 사용하도록 변경. `PlayScene`의 레벨업 선택/리롤/봉인 로직은 `src/scenes/play/levelUpController.js`로 이동.
+- 2026-03-21: `src/core/runtimeHooks.js`를 추가하고 `Game`에서 `window.advanceTime(ms)` / `window.render_game_to_text()`를 등록하도록 변경. Playwright로 `http://127.0.0.1:4177/`에서 훅 존재를 확인했고, 실제 플레이 진입 후 `elapsedTime`이 `1.8474 -> 2.8474`로 증가해 `advanceTime(1000)` 반영도 확인.
+- 2026-03-21: 새 source 테스트 `tests/UiStructureSource.test.js` 추가, `tests/LevelUpSource.test.js`를 controller 위임 구조에 맞게 갱신. `node scripts/runTests.js` 39개 PASS, `npm run build` 통과.
+- TODO: 브라우저에서 실제 장신구 획득 런을 만든 뒤 `PauseView` 장신구 카드 hover tooltip까지 최종 확인하고 필요 시 후속 보정.

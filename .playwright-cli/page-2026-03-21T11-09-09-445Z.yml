@@ -1,0 +1,36 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic: Lv.2
+          - generic:
+            - generic: 0:25
+            - generic: "킬: 12"
+    - generic:
+      - generic:
+        - generic: ⬆ LEVEL UP
+        - generic:
+          - generic:
+            - text: 남은 리롤
+            - strong: "1"
+          - generic:
+            - text: 남은 봉인
+            - strong: "0"
+          - button "봉인 모드" [disabled] [ref=e103]
+      - generic:
+        - generic [ref=e104] [cursor=pointer]:
+          - generic [ref=e105]: UP
+          - generic [ref=e106]: 마법탄 다중 발사
+          - generic [ref=e107]: 마법탄 동시 발사 수 +1 (최대 3발)
+          - button "리롤" [ref=e109]
+        - generic [ref=e110] [cursor=pointer]:
+          - generic [ref=e111]: UP
+          - generic [ref=e112]: 마법탄 +
+          - generic [ref=e113]: 마법탄 데미지 +1, 쿨다운 감소
+          - button "리롤" [ref=e115]
+        - generic [ref=e116] [cursor=pointer]:
+          - generic [ref=e117]: STAT
+          - generic [ref=e118]: HP 회복
+          - generic [ref=e119]: 현재 HP +25 즉시 회복
+          - button "리롤" [ref=e121]

@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import { makeSessionState } from './fixtures/index.js';
 import { test, summary }    from './helpers/testRunner.js';
 
-let createSessionState, updateSessionBest, earnCurrency, purchasePermanentUpgrade, loadSession, saveSession;
+let createSessionState, updateSessionBest, earnCurrency, purchasePermanentUpgrade, loadSession, saveSession, setSessionStorage, resetSessionStorage;
 
 try {
   ({
@@ -29,6 +29,8 @@ try {
     purchasePermanentUpgrade,
     loadSession,
     saveSession,
+    setSessionStorage,
+    resetSessionStorage,
   } = await import('../src/state/createSessionState.js'));
 } catch (e) {
   console.warn('[테스트] createSessionState import 실패 — 스킵:', e.message);
@@ -36,6 +38,21 @@ try {
 }
 
 console.log('\n[SessionState 테스트 시작]');
+
+function makeMemoryStorage() {
+  const store = new Map();
+  return {
+    getItem(key) {
+      return store.has(key) ? store.get(key) : null;
+    },
+    setItem(key, value) {
+      store.set(key, String(value));
+    },
+    removeItem(key) {
+      store.delete(key);
+    },
+  };
+}
 
 // ── 기본값 구조 ───────────────────────────────────────────────────────────
 
@@ -139,6 +156,44 @@ test('loadSession(): localStorage에 없을 때 기본값을 반환한다 (Node 
   const s = loadSession();
   assert.equal(s._version, 5);
   assert.equal(s.best.kills, 0);
+});
+
+test('saveSession()/loadSession()은 주입된 저장소로 round-trip 된다', () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState({
+    best: { kills: 99, survivalTime: 123, level: 8 },
+    meta: { currency: 777, unlockedWeapons: ['magic_bolt', 'holy_aura'] },
+    options: { quality: 'high', glowEnabled: false },
+  });
+
+  saveSession(session);
+  const loaded = loadSession();
+
+  assert.equal(loaded.best.kills, 99);
+  assert.equal(loaded.meta.currency, 777);
+  assert.deepEqual(loaded.meta.unlockedWeapons, ['magic_bolt', 'holy_aura']);
+  assert.equal(loaded.options.quality, 'high');
+  assert.equal(loaded.options.glowEnabled, false);
+
+  resetSessionStorage();
+});
+
+test('저장소가 없어도 saveSession()은 경고 없이 안전하게 종료된다', () => {
+  resetSessionStorage();
+
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (...args) => warnings.push(args.join(' '));
+
+  try {
+    saveSession(makeSessionState());
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(warnings.length, 0, '저장소 없음 경로에서 불필요한 경고가 발생함');
 });
 
 summary();

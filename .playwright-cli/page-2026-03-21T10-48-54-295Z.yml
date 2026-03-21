@@ -1,0 +1,46 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - main:
+        - region "Ashen Requiem":
+          - paragraph: Dark Fantasy Survival Action
+          - heading "Ashen Requiem" [level=1]:
+            - generic: Ashen
+            - generic: Requiem
+          - paragraph: 생존하거나, 잿더미가 되거나
+          - navigation "메인 메뉴":
+            - button "Start Game 새로운 모험을 시작합니다 ▶" [ref=e313] [cursor=pointer]:
+              - generic [ref=e314]:
+                - generic [ref=e315]: Start Game
+                - generic [ref=e316]: 새로운 모험을 시작합니다
+              - generic [ref=e317]: ▶
+            - button "Meta Shop 영구 강화를 구매합니다 ⚗" [ref=e318] [cursor=pointer]:
+              - generic [ref=e319]:
+                - generic [ref=e320]: Meta Shop
+                - generic [ref=e321]: 영구 강화를 구매합니다
+              - generic [ref=e322]: ⚗
+            - button "Codex 적·무기·기록 열람 📖" [ref=e323] [cursor=pointer]:
+              - generic [ref=e324]:
+                - generic [ref=e325]: Codex
+                - generic [ref=e326]: 적·무기·기록 열람
+              - generic [ref=e327]: 📖
+            - button "Settings 음향·그래픽·화면 설정 ⚙" [ref=e328] [cursor=pointer]:
+              - generic [ref=e329]:
+                - generic [ref=e330]: Settings
+                - generic [ref=e331]: 음향·그래픽·화면 설정
+              - generic [ref=e332]: ⚙
+            - button "Quit 브라우저 MVP 제외 —" [disabled] [ref=e333]:
+              - generic [ref=e334]:
+                - generic [ref=e335]: Quit
+                - generic [ref=e336]: 브라우저 MVP 제외
+              - generic [ref=e337]: —
+          - generic:
+            - generic:
+              - generic: Enter
+              - text: 또는
+              - generic: Space
+              - text: 시작
+            - generic:
+              - text: "이동:"
+              - generic: WASD
+          - paragraph: 게임 시작 입력을 기다리는 중입니다.

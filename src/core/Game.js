@@ -10,6 +10,8 @@ import { validateGameData } from '../utils/validateGameData.js';
 import { GameDataLoader }   from '../data/GameDataLoader.js';
 import { AssetManager }     from '../managers/AssetManager.js';
 import { loadSession } from '../state/createSessionState.js';
+import { getEffectiveDevicePixelRatio } from '../state/sessionOptions.js';
+import { registerRuntimeHooks, unregisterRuntimeHooks } from './runtimeHooks.js';
 
 /** Game — 게임 최상위 진입점 */
 export class Game {
@@ -35,6 +37,7 @@ export class Game {
     this.sceneManager = new SceneManager();
     this.renderer     = new CanvasRenderer(this.canvas, this.ctx);
     this._loop        = new GameLoop((dt) => this._tick(dt));
+    registerRuntimeHooks(this);
   }
 
   async start() {
@@ -55,6 +58,15 @@ export class Game {
     this.input.destroy();
     this.inputState = null;
     window.removeEventListener('resize', this._onResize);
+    unregisterRuntimeHooks();
+  }
+
+  advanceTime(ms) {
+    const frameMs = 1000 / 60;
+    const steps = Math.max(1, Math.round((ms ?? frameMs) / frameMs));
+    for (let i = 0; i < steps; i += 1) {
+      this._tick(frameMs / 1000);
+    }
   }
 
   _tick(dt) {
@@ -71,9 +83,11 @@ export class Game {
    *   SettingsScene._handleSave()에서 저장 직후 호출되어 즉시 반영된다.
    */
   _resizeCanvas() {
-    const useDpr = this.session?.options?.useDevicePixelRatio
-      ?? GameConfig.useDevicePixelRatio;
-    const dpr = useDpr ? (window.devicePixelRatio || 1) : 1;
+    const dpr = getEffectiveDevicePixelRatio(
+      this.session?.options,
+      window.devicePixelRatio || 1,
+      GameConfig.useDevicePixelRatio,
+    );
 
     const w = window.innerWidth, h = window.innerHeight;
     this.canvas.width  = w * dpr;

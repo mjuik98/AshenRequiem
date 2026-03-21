@@ -5,6 +5,7 @@ import { test, summary } from './helpers/testRunner.js';
 const levelUpViewSource = readFileSync(new URL('../src/ui/levelup/LevelUpView.js', import.meta.url), 'utf8');
 const playUiSource = readFileSync(new URL('../src/scenes/play/PlayUI.js', import.meta.url), 'utf8');
 const playSceneSource = readFileSync(new URL('../src/scenes/PlayScene.js', import.meta.url), 'utf8');
+const levelUpControllerSource = readFileSync(new URL('../src/scenes/play/levelUpController.js', import.meta.url), 'utf8');
 
 console.log('\n[LevelUp Source]');
 
@@ -29,12 +30,12 @@ test('PlayUI는 레벨업 설정 객체를 LevelUpView로 그대로 전달한다
   );
 });
 
-test('PlayScene는 카드별 리롤과 봉인 모드 상태를 처리한다', () => {
-  assert.equal(playSceneSource.includes('_rerollLevelUpChoice'), true, 'PlayScene에 카드별 리롤 핸들러가 없음');
-  assert.equal(playSceneSource.includes('_toggleLevelUpBanishMode'), true, 'PlayScene에 봉인 모드 토글 핸들러가 없음');
-  assert.equal(playSceneSource.includes('_selectLevelUpChoice'), true, 'PlayScene에 레벨업 카드 선택 핸들러가 없음');
-  assert.equal(playSceneSource.includes('UpgradeSystem.replaceChoiceAtIndex'), true, 'PlayScene이 카드별 리롤 헬퍼를 사용하지 않음');
-  assert.equal(playSceneSource.includes('banishedUpgradeIds'), true, 'PlayScene이 런 봉인 목록을 다루지 않음');
+test('PlayScene는 level-up 액션을 controller로 위임한다', () => {
+  assert.equal(playSceneSource.includes('createLevelUpController'), true, 'PlayScene이 levelUpController를 사용하지 않음');
+  assert.equal(playSceneSource.includes('_rerollLevelUpChoice'), false, 'PlayScene에 카드별 리롤 구현이 여전히 남아 있음');
+  assert.equal(levelUpControllerSource.includes('UpgradeSystem.replaceChoiceAtIndex'), true, 'levelUpController가 카드별 리롤 헬퍼를 사용하지 않음');
+  assert.equal(levelUpControllerSource.includes('banishedUpgradeIds'), true, 'levelUpController가 런 봉인 목록을 다루지 않음');
+  assert.equal(levelUpControllerSource.includes('onToggleBanishMode'), true, 'levelUpController가 봉인 토글 콜백을 노출하지 않음');
 });
 
 summary();

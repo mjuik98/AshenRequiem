@@ -1,3 +1,10 @@
+import { SESSION_OPTION_DEFAULTS } from '../../state/sessionOptions.js';
+import {
+  SUBSCREEN_SHARED_CSS,
+  renderSubscreenFooter,
+  renderSubscreenHeader,
+} from '../shared/subscreenTheme.js';
+
 /**
  * SettingsView — 설정 화면 DOM UI
  *
@@ -16,22 +23,12 @@
  */
 
 /** 기본 설정값 — 초기화 및 누락 필드 보완에 사용 */
-const OPTION_DEFAULTS = {
-  soundEnabled:        true,
-  musicEnabled:        true,
-  showFps:             false,
-  masterVolume:        80,
-  bgmVolume:           60,
-  sfxVolume:           100,
-  quality:             'medium',
-  glowEnabled:         true,
-  useDevicePixelRatio: true,
-};
+const OPTION_DEFAULTS = { ...SESSION_OPTION_DEFAULTS };
 
 export class SettingsView {
   constructor(container) {
     this.el = document.createElement('div');
-    this.el.className = 'sv-root';
+    this.el.className = 'sv-root ss-root';
     this._onSave = null;
     this._onBack = null;
     this._opts   = { ...OPTION_DEFAULTS };
@@ -73,18 +70,21 @@ export class SettingsView {
 
   _render() {
     this.el.innerHTML = `
-      <div class="sv-panel">
+      <div class="sv-panel ss-panel">
 
-        <header class="sv-header">
-          <div class="sv-header-left">
-            <div class="sv-rune" aria-hidden="true">⚙</div>
-            <div class="sv-heading">
-              <h2 class="sv-title">Settings</h2>
-              <p class="sv-subtitle">오디오, 그래픽, 화면 옵션을 조정합니다.</p>
-            </div>
-          </div>
-          <span class="sv-header-note">저장 후 메인 화면으로 복귀</span>
-        </header>
+        ${renderSubscreenHeader({
+          headerClass: 'sv-header',
+          leftClass: 'sv-header-left',
+          headingClass: 'sv-heading',
+          runeClass: 'sv-rune',
+          titleClass: 'sv-title',
+          subtitleClass: 'sv-subtitle',
+          titleTag: 'h2',
+          rune: '⚙',
+          title: 'Settings',
+          subtitle: '오디오, 그래픽, 화면 옵션을 조정합니다.',
+          right: '<span class="sv-header-note ss-pill">저장 후 메인 화면으로 복귀</span>',
+        })}
 
         <div class="sv-body">
 
@@ -95,7 +95,7 @@ export class SettingsView {
             ${this._navItem('controls', '조작',   _svgControls())}
           </nav>
 
-          <div class="sv-content" role="tabpanel">
+          <div class="sv-content ss-scroll" role="tabpanel">
             ${this._tab === 'audio'    ? this._renderAudio()    : ''}
             ${this._tab === 'graphics' ? this._renderGraphics() : ''}
             ${this._tab === 'display'  ? this._renderDisplay()  : ''}
@@ -104,13 +104,18 @@ export class SettingsView {
 
         </div>
 
-        <footer class="sv-footer">
-          <button class="sv-btn sv-btn-reset" type="button">기본값 초기화</button>
-          <div class="sv-footer-right">
-            <button class="sv-btn sv-btn-back" type="button">← 메인 화면으로</button>
-            <button class="sv-btn sv-btn-primary" type="button">저장하고 닫기</button>
-          </div>
-        </footer>
+        ${renderSubscreenFooter({
+          footerClass: 'sv-footer',
+          backButtonClass: 'sv-btn sv-btn-back',
+          beforeBack: `
+            <button class="sv-btn sv-btn-reset" type="button">기본값 초기화</button>
+            <div class="sv-footer-right">
+          `,
+          afterBack: `
+              <button class="sv-btn sv-btn-primary" type="button">저장하고 닫기</button>
+            </div>
+          `,
+        })}
 
       </div>
     `;
@@ -366,24 +371,16 @@ export class SettingsView {
     const s = document.createElement('style');
     s.id = 'sv-styles';
     s.textContent = `
+      ${SUBSCREEN_SHARED_CSS}
+
       .sv-root {
-        position: absolute; inset: 0;
-        background: radial-gradient(circle at 50% 18%, #110d1a 0%, #060810 55%, #020104 100%);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 50; font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
-        color: rgba(244,237,224,0.9); padding: 16px; overflow-y: auto;
-        /* FIX: #ui-container의 pointer-events:none 상속 차단
-           Before: div/input 기반 컨트롤(탭, 토글, 슬라이더, 품질카드)이 모두 클릭 불가
-           After:  모든 설정 컨트롤 정상 동작 */
-        pointer-events: auto;
+        align-items: flex-start;
+        padding-top: 28px;
+        padding-bottom: 28px;
+        font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
       }
       .sv-panel {
-        width: min(720px, calc(100vw - 32px));
-        background: rgba(10,7,18,0.96);
-        border: 1px solid rgba(212,175,106,0.28);
-        border-radius: 20px; padding: 28px 32px;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.55),
-                    inset 0 1px 0 rgba(255,255,255,0.03);
+        width: min(780px, calc(100vw - 32px));
         animation: sv-enter 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
       }
       @keyframes sv-enter {
@@ -393,56 +390,40 @@ export class SettingsView {
 
       /* 헤더 */
       .sv-header {
-        display: flex; align-items: center; justify-content: space-between; gap: 16px;
-        padding-bottom: 18px; margin-bottom: 20px;
-        border-bottom: 1px solid rgba(212,175,106,0.14);
-      }
-      .sv-header-left { display: flex; align-items: center; gap: 12px; }
-      .sv-rune {
-        width: 34px; height: 34px; border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        background: rgba(212,175,106,0.14);
-        border: 1px solid rgba(212,175,106,0.3);
-        font-size: 16px;
-        flex-shrink: 0;
-      }
-      .sv-heading { min-width: 0; }
-      .sv-title {
-        margin: 0; font-size: 15px; font-weight: 600;
-        letter-spacing: 3px; color: #d4af6a; text-transform: uppercase;
-      }
-      .sv-subtitle {
-        margin: 6px 0 0;
-        font-size: 12px;
-        color: rgba(244,237,224,0.5);
+        align-items: flex-start;
+        margin-bottom: 0;
       }
       .sv-header-note {
-        font-size: 11px; padding: 4px 10px; border-radius: 999px;
-        background: rgba(212,175,106,0.1); border: 1px solid rgba(212,175,106,0.22);
-        color: rgba(212,175,106,0.74); white-space: nowrap;
+        align-self: flex-start;
       }
 
       /* 바디 레이아웃 */
       .sv-body {
-        display: grid; grid-template-columns: 124px 1fr; gap: 0;
+        display: grid; grid-template-columns: 152px 1fr; gap: 0;
         min-height: 280px;
+        padding: 20px 26px 10px;
       }
 
       /* 사이드 네비게이션 */
       .sv-sidenav {
-        padding-right: 16px;
-        border-right: 1px solid rgba(255,255,255,0.06);
-        display: flex; flex-direction: column; gap: 3px;
+        padding-right: 18px;
+        border-right: 1px solid rgba(217,179,107,0.12);
+        display: flex; flex-direction: column; gap: 6px;
       }
       .sv-nav-item {
         display: flex; align-items: center; gap: 9px;
-        padding: 9px 11px; border-radius: 8px; cursor: pointer;
-        font-size: 12px; color: rgba(244,237,224,0.4);
+        padding: 10px 12px; border-radius: 12px; cursor: pointer;
+        font-size: 12px; color: rgba(244,237,224,0.52);
         border: 1px solid transparent;
-        transition: color 0.15s, background 0.15s, border-color 0.15s;
+        background: rgba(255,255,255,0.02);
+        transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.15s;
         outline: none;
       }
-      .sv-nav-item:hover { color: rgba(244,237,224,0.7); background: rgba(255,255,255,0.04); }
+      .sv-nav-item:hover {
+        color: rgba(244,237,224,0.78);
+        background: rgba(217,179,107,0.07);
+        transform: translateX(1px);
+      }
       .sv-nav-item:focus-visible { box-shadow: 0 0 0 2px rgba(199,163,93,0.45); }
       .sv-nav-active {
         color: #c9a86c !important;
@@ -452,7 +433,10 @@ export class SettingsView {
       .sv-nav-icon { display: flex; align-items: center; flex-shrink: 0; }
 
       /* 콘텐츠 영역 */
-      .sv-content { padding-left: 22px; }
+      .sv-content {
+        padding-left: 24px;
+        max-height: min(62vh, 560px);
+      }
       .sv-section-label {
         font-size: 10px; font-weight: 500; letter-spacing: 2.5px;
         color: rgba(199,163,93,0.55); text-transform: uppercase;
@@ -485,9 +469,9 @@ export class SettingsView {
       .sv-toggle-row {
         display: flex; align-items: center; justify-content: space-between;
         padding: 10px 13px; margin-bottom: 8px;
-        background: rgba(255,255,255,0.025);
-        border: 0.5px solid rgba(255,255,255,0.08);
-        border-radius: 8px; gap: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 0.5px solid rgba(217,179,107,0.09);
+        border-radius: 12px; gap: 12px;
       }
       .sv-toggle-info { flex: 1; min-width: 0; }
       .sv-toggle-label { margin: 0; font-size: 13px; color: rgba(244,237,224,0.8); }
@@ -520,8 +504,8 @@ export class SettingsView {
         display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px;
       }
       .sv-quality-card {
-        padding: 11px 9px; border-radius: 8px; text-align: center; cursor: pointer;
-        border: 0.5px solid rgba(255,255,255,0.1);
+        padding: 11px 9px; border-radius: 12px; text-align: center; cursor: pointer;
+        border: 0.5px solid rgba(217,179,107,0.12);
         background: rgba(255,255,255,0.025);
         transition: all 0.15s; outline: none;
       }
@@ -551,8 +535,8 @@ export class SettingsView {
         display: flex; align-items: center; justify-content: space-between;
         padding: 8px 13px;
         background: rgba(255,255,255,0.025);
-        border: 0.5px solid rgba(255,255,255,0.07);
-        border-radius: 7px;
+        border: 0.5px solid rgba(217,179,107,0.09);
+        border-radius: 12px;
       }
       .sv-keybind-action { font-size: 13px; color: rgba(244,237,224,0.5); }
       .sv-keybind-right  { display: flex; align-items: center; gap: 7px; }
@@ -576,8 +560,8 @@ export class SettingsView {
       /* 하단 푸터 */
       .sv-footer {
         display: flex; align-items: center; justify-content: space-between;
-        padding-top: 18px; margin-top: 18px;
-        border-top: 1px solid rgba(255,255,255,0.05);
+        padding: 18px 26px 24px; margin-top: 6px;
+        border-top: 1px solid rgba(217,179,107,0.12);
       }
       .sv-footer-right { display: flex; gap: 10px; }
       .sv-btn {
@@ -593,9 +577,7 @@ export class SettingsView {
         color: rgba(244,237,224,0.38);
       }
       .sv-btn-back {
-        background: transparent;
-        border: 0.5px solid rgba(199,163,93,0.28);
-        color: rgba(244,237,224,0.6);
+        min-width: 154px;
       }
       .sv-btn-primary {
         background: linear-gradient(135deg, rgba(199,163,93,0.18), rgba(199,163,93,0.07));
@@ -605,19 +587,25 @@ export class SettingsView {
 
       /* 반응형 */
       @media (max-width: 560px) {
-        .sv-panel { padding: 22px 18px; }
         .sv-header { flex-direction: column; align-items: stretch; }
         .sv-header-note { align-self: flex-start; }
         .sv-body { grid-template-columns: 1fr; }
         .sv-sidenav {
           flex-direction: row; flex-wrap: wrap;
           padding-right: 0; border-right: none;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
+          border-bottom: 1px solid rgba(217,179,107,0.12);
           padding-bottom: 12px; margin-bottom: 14px; gap: 4px;
         }
-        .sv-content { padding-left: 0; }
-        .sv-footer  { flex-direction: column; gap: 10px; }
-        .sv-footer-right { justify-content: stretch; }
+        .sv-content { padding-left: 0; max-height: none; }
+        .sv-footer  {
+          flex-direction: column;
+          gap: 10px;
+          padding: 18px 18px 22px;
+        }
+        .sv-footer-right {
+          justify-content: stretch;
+          width: 100%;
+        }
         .sv-btn-back, .sv-btn-primary { flex: 1; text-align: center; }
       }
       @media (prefers-reduced-motion: reduce) {

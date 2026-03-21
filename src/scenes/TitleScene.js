@@ -1,8 +1,9 @@
 import { PlayScene } from './PlayScene.js';
 import { MetaShopScene } from './MetaShopScene.js';
-import { saveSession } from '../state/createSessionState.js';
 import { weaponData } from '../data/weaponData.js';
 import { StartLoadoutView } from '../ui/title/StartLoadoutView.js';
+import { setSelectedStartWeaponAndSave } from '../state/sessionFacade.js';
+import { createSceneNavigationGuard } from './sceneNavigation.js';
 
 /**
  * TitleScene — 타이틀 화면
@@ -24,6 +25,7 @@ export class TitleScene {
     this._frameId     = 0;
     this._state       = null;
     this._loadoutView = null;
+    this._nav         = createSceneNavigationGuard();
 
     // exit() 에서 제거하기 위해 바인딩된 핸들러를 보관
     this._onMouseMove = null;
@@ -33,6 +35,7 @@ export class TitleScene {
 
   // ────────────────────────────────────────────────────────────
   enter() {
+    this._nav.reset();
     this._ensureFonts();
     this._buildDOM();
     this._initCanvas();
@@ -234,19 +237,21 @@ export class TitleScene {
         const action = btn.dataset.action;
         if (action === 'start') { startGame(); return; }
         if (action === 'shop') {
-          this.game.sceneManager.changeScene(new MetaShopScene(this.game));
+          this._nav.change(() => {
+            this.game.sceneManager.changeScene(new MetaShopScene(this.game));
+          });
           return;
         }
         if (action === 'codex') {
-          import('./CodexScene.js').then(({ CodexScene }) => {
+          this._nav.load(() => import('./CodexScene.js'), ({ CodexScene }) => {
             this.game.sceneManager.changeScene(new CodexScene(this.game, 'title'));
-          });
+          }, (e) => console.error('[TitleScene] CodexScene 로드 실패:', e));
           return;
         }
         if (action === 'settings') {
-          import('./SettingsScene.js').then(({ SettingsScene }) => {
+          this._nav.load(() => import('./SettingsScene.js'), ({ SettingsScene }) => {
             this.game.sceneManager.changeScene(new SettingsScene(this.game));
-          });
+          }, (e) => console.error('[TitleScene] SettingsScene 로드 실패:', e));
           return;
         }
         handleDisabled(action);
@@ -288,8 +293,7 @@ export class TitleScene {
         setMessage('게임 시작 입력을 기다리는 중입니다.');
       },
       onStart: (weaponId) => {
-        this.game.session.meta.selectedStartWeaponId = weaponId;
-        saveSession(this.game.session);
+        setSelectedStartWeaponAndSave(this.game.session, weaponId);
         pulseFlash();
         setMessage('씬 전환 중…');
         setTimeout(() => {

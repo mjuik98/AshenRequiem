@@ -22,6 +22,7 @@ import { distanceSq }                   from '../../math/Vector2.js';
 import { getCullBounds, isInsideBounds } from '../../utils/cameraCull.js';
 import { SpatialGrid }                   from '../../managers/SpatialGrid.js';
 import { COLLISION_CULL_MARGIN }         from '../../data/constants.js';
+import { isLive }                        from '../../utils/entityUtils.js';
 
 const GRID_CELL_SIZE = 120;
 
@@ -37,14 +38,14 @@ export function createCollisionSystem() {
   return {
     update({ world }) {
       const { player, enemies, projectiles, pickups, events, camera } = world;
-      if (!player?.isAlive) return;
+      if (!isLive(player)) return;
 
       const bounds = getCullBounds(camera, COLLISION_CULL_MARGIN);
 
       _grid.clear();
       for (let j = 0; j < enemies.length; j++) {
         const e = enemies[j];
-        if (e.isAlive && !e.pendingDestroy && isInsideBounds(e, bounds)) {
+        if (isLive(e) && isInsideBounds(e, bounds)) {
           _grid.insert(e);
         }
       }
@@ -52,11 +53,11 @@ export function createCollisionSystem() {
       // ── 플레이어 투사체 vs 적 ─────────────────────────────────────────
       for (let i = 0; i < projectiles.length; i++) {
         const p = projectiles[i];
-        if (!p.isAlive || p.pendingDestroy || p.ownerId !== player.id) continue;
+        if (!isLive(p) || p.ownerId !== player.id) continue;
 
         const candidates = _grid.queryUnique(p);
         for (const e of candidates) {
-          if (!e.isAlive || e.pendingDestroy) continue;
+          if (!isLive(e)) continue;
           if (p.hitTargets.has(e.id)) continue;
 
           const rSum = p.radius + e.radius;
@@ -85,7 +86,7 @@ export function createCollisionSystem() {
         // (p.ownerId === player.id: 플레이어 소유 투사체는 건너뜀, 의도된 방향)
         for (let i = 0; i < projectiles.length; i++) {
           const p = projectiles[i];
-          if (!p.isAlive || p.pendingDestroy || p.ownerId === player.id) continue;
+          if (!isLive(p) || p.ownerId === player.id) continue;
           const rSum = p.radius + player.radius;
           if (distanceSq(p, player) <= rSum * rSum) {
             events.hits.push({
@@ -102,7 +103,7 @@ export function createCollisionSystem() {
         // FIX(BUG-I): break 제거 — 겹친 모든 적이 동시에 타격
         for (let i = 0; i < enemies.length; i++) {
           const e = enemies[i];
-          if (!e.isAlive || e.pendingDestroy) continue;
+          if (!isLive(e)) continue;
           const rSum = player.radius + e.radius;
           if (distanceSq(player, e) <= rSum * rSum) {
             events.hits.push({
@@ -118,7 +119,7 @@ export function createCollisionSystem() {
       // ── 픽업 수집 ────────────────────────────────────────────────────
       for (let i = 0; i < pickups.length; i++) {
         const pk = pickups[i];
-        if (pk.isAlive && !pk.pendingDestroy &&
+        if (isLive(pk) &&
             distanceSq(player, pk) <= (player.radius + pk.radius) ** 2) {
           events.pickupCollected.push({
             pickupId: pk.id,

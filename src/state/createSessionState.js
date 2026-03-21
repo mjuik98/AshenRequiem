@@ -11,8 +11,25 @@
  *   - v2 → v3 마이그레이션 추가 (기존 저장값 보존)
  */
 
+import { createDefaultSessionMeta } from './sessionMeta.js';
+import {
+  SESSION_OPTION_DEFAULTS,
+  normalizeSessionOptions,
+} from './sessionOptions.js';
+
 const STORAGE_KEY      = 'ashenRequiem_session';
 const SESSION_VERSION  = 5;
+let _sessionStorageOverride;
+
+function _getSessionStorage() {
+  if (_sessionStorageOverride !== undefined) {
+    return _sessionStorageOverride;
+  }
+
+  return typeof globalThis.localStorage !== 'undefined'
+    ? globalThis.localStorage
+    : null;
+}
 
 function _createDefaultLast() {
   return {
@@ -31,43 +48,12 @@ function _createDefaultBest() {
   };
 }
 
-function _createDefaultMeta() {
-  return {
-    currency:             0,
-    permanentUpgrades:    {},
-    enemyKills:           {},
-    enemiesEncountered:   [],
-    killedBosses:         [],
-    weaponsUsedAll:       [],
-    evolvedWeapons:       [],
-    totalRuns:            0,
-    unlockedWeapons:      ['magic_bolt'],
-    unlockedAccessories:  [],
-    completedUnlocks:     [],
-    selectedStartWeaponId:'magic_bolt',
-  };
-}
-
 function _createDefaultOptions() {
-  return {
-    soundEnabled:        true,
-    musicEnabled:        true,
-    masterVolume:        80,
-    bgmVolume:           60,
-    sfxVolume:           100,
-    quality:             'medium',
-    glowEnabled:         true,
-    showFps:             false,
-    useDevicePixelRatio: true,
-  };
+  return { ...SESSION_OPTION_DEFAULTS };
 }
 
 function _normalizeSessionState(state) {
   const defaults = createSessionState();
-  const quality = state?.options?.quality;
-  const normalizedQuality = quality === 'low' || quality === 'medium' || quality === 'high'
-    ? quality
-    : defaults.options.quality;
 
   return {
     _version: SESSION_VERSION,
@@ -99,9 +85,10 @@ function _normalizeSessionState(state) {
         : defaults.meta.selectedStartWeaponId,
     },
     options: {
-      ...defaults.options,
-      ...(state?.options ?? {}),
-      quality: normalizedQuality,
+      ...normalizeSessionOptions({
+        ...defaults.options,
+        ...(state?.options ?? {}),
+      }),
     },
   };
 }
@@ -123,7 +110,7 @@ export function createSessionState() {
     best: _createDefaultBest(),
 
     /** Meta-Progression */
-    meta: _createDefaultMeta(),
+    meta: createDefaultSessionMeta(),
 
     /** UI / 설정 */
     options: _createDefaultOptions(),
@@ -162,9 +149,10 @@ function _migrate(raw) {
             permanentUpgrades: s.meta?.permanentUpgrades ?? {},
           },
           options: {
-            soundEnabled: s.options?.soundEnabled ?? s.options?.soundOn ?? true,
-            musicEnabled: s.options?.musicEnabled ?? true,
-            showFps:      s.options?.showFps      ?? false,
+            ...SESSION_OPTION_DEFAULTS,
+            soundEnabled: s.options?.soundEnabled ?? s.options?.soundOn ?? SESSION_OPTION_DEFAULTS.soundEnabled,
+            musicEnabled: s.options?.musicEnabled ?? SESSION_OPTION_DEFAULTS.musicEnabled,
+            showFps:      s.options?.showFps      ?? SESSION_OPTION_DEFAULTS.showFps,
           },
         };
       },
@@ -193,17 +181,8 @@ function _migrate(raw) {
           ...s,
           _version: 3,
           options: {
-            // 기존 필드 보존
-            soundEnabled: s.options?.soundEnabled ?? true,
-            musicEnabled: s.options?.musicEnabled ?? true,
-            showFps:      s.options?.showFps      ?? false,
-            // 신규 필드 — 기본값으로 초기화
-            masterVolume:        s.options?.masterVolume        ?? 80,
-            bgmVolume:           s.options?.bgmVolume           ?? 60,
-            sfxVolume:           s.options?.sfxVolume           ?? 100,
-            quality:             s.options?.quality             ?? 'medium',
-            glowEnabled:         s.options?.glowEnabled         ?? true,
-            useDevicePixelRatio: s.options?.useDevicePixelRatio ?? true,
+            ...SESSION_OPTION_DEFAULTS,
+            ...s.options,
           },
         };
       },
@@ -319,6 +298,9 @@ export function purchasePermanentUpgrade(session, upgradeId, cost) {
  * @param {SessionState} session
  */
 export function saveSession(session) {
+  const storage = _getSessionStorage();
+  if (!storage?.setItem) return;
+
   try {
     const normalized = _normalizeSessionState(session);
     const toSave = {
@@ -327,7 +309,7 @@ export function saveSession(session) {
       meta:     normalized.meta,
       options:  normalized.options,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    storage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
     console.warn('[SessionState] 저장 실패:', e);
   }
@@ -340,14 +322,25 @@ export function saveSession(session) {
  * @returns {SessionState}
  */
 export function loadSession() {
+  const storage = _getSessionStorage();
+  if (!storage?.getItem) return createSessionState();
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return createSessionState();
     return _migrate(JSON.parse(raw));
   } catch (e) {
     console.warn('[SessionState] 불러오기 실패, 기본값 사용:', e);
     return createSessionState();
   }
+}
+
+export function setSessionStorage(storage) {
+  _sessionStorageOverride = storage ?? null;
+}
+
+export function resetSessionStorage() {
+  _sessionStorageOverride = undefined;
 }
 
 // ── JSDoc 타입 정의 ───────────────────────────────────────────────────────

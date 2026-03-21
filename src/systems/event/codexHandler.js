@@ -1,3 +1,5 @@
+import { ensureCodexMeta } from '../../state/sessionMeta.js';
+
 /**
  * src/systems/event/codexHandler.js — 도감 데이터 추적 이벤트 핸들러
  *
@@ -26,7 +28,7 @@ export function registerCodexHandlers(session, registry) {
     if (!entity) return;
 
     if (entity.type === 'enemy') {
-      _ensureCodexMeta(session);
+      ensureCodexMeta(session);
 
       const id = entity.enemyDataId ?? entity.id;
 
@@ -47,7 +49,7 @@ export function registerCodexHandlers(session, registry) {
 
     if (entity.type === 'player') {
       // 런 종료(사망) 시 totalRuns 증가
-      _ensureCodexMeta(session);
+      ensureCodexMeta(session);
       session.meta.totalRuns = (session.meta.totalRuns ?? 0) + 1;
     }
   });
@@ -55,15 +57,15 @@ export function registerCodexHandlers(session, registry) {
   // 무기 진화 이벤트 추적
   registry.register('weaponEvolved', (event) => {
     if (!event.recipeId) return;
-    _ensureCodexMeta(session);
+    ensureCodexMeta(session);
     if (!session.meta.evolvedWeapons.includes(event.evolvedWeaponId)) {
       session.meta.evolvedWeapons.push(event.evolvedWeaponId);
     }
   });
 
   registry.register('weaponAcquired', (event) => {
-    if (!event.weaponId) return;
-    recordWeaponAcquired(session, event.weaponId);
+      if (!event.weaponId) return;
+      recordWeaponAcquired(session, event.weaponId);
   });
 }
 
@@ -80,7 +82,7 @@ export function registerCodexHandlers(session, registry) {
  */
 export function recordWeaponAcquired(session, weaponId) {
   if (!session || !weaponId) return;
-  _ensureCodexMeta(session);
+  ensureCodexMeta(session);
   if (!session.meta.weaponsUsedAll.includes(weaponId)) {
     session.meta.weaponsUsedAll.push(weaponId);
   }
@@ -99,19 +101,8 @@ export function recordWeaponAcquired(session, weaponId) {
  */
 export function recordEnemyEncounter(session, enemyDataId) {
   if (!session || !enemyDataId) return;
-  _ensureCodexMeta(session);
+  ensureCodexMeta(session);
   if (!session.meta.enemiesEncountered.includes(enemyDataId)) {
     session.meta.enemiesEncountered.push(enemyDataId);
   }
-}
-
-/** @private */
-function _ensureCodexMeta(session) {
-  const m = session.meta ??= {};
-  m.enemyKills         ??= {};
-  m.enemiesEncountered ??= [];
-  m.killedBosses       ??= [];
-  m.weaponsUsedAll     ??= [];
-  m.evolvedWeapons     ??= [];
-  m.totalRuns          ??= 0;
 }

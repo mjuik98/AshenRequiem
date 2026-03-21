@@ -8,20 +8,22 @@
  *   3. 오디오/품질 설정은 다음 PlayScene.enter() 시 반영
  */
 import { SettingsView }    from '../ui/settings/SettingsView.js';
-import { saveSession }     from '../state/createSessionState.js';
 import { mountUI }         from '../ui/dom/mountUI.js';
+import {
+  applySessionOptionsToRuntime,
+} from '../state/sessionOptions.js';
+import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
+import { createSceneNavigationGuard } from './sceneNavigation.js';
 
 export class SettingsScene {
   constructor(game) {
     this.game  = game;
     this._view = null;
-    this._isNavigating = false;
-    this._sceneChangeToken = 0;
+    this._nav  = createSceneNavigationGuard();
   }
 
   enter() {
-    this._isNavigating = false;
-    this._sceneChangeToken += 1;
+    this._nav.reset();
     const container = mountUI();
     this._view = new SettingsView(container);
     this._view.show(
@@ -55,43 +57,27 @@ export class SettingsScene {
    * @param {object} newOpts  SettingsView에서 수집된 최신 옵션 객체
    */
   _handleSave(newOpts) {
-    if (this._isNavigating) return;
-
-    this.game.session.options = {
-      ...this.game.session.options,
-      ...newOpts,
-    };
-
-    saveSession(this.game.session);
+    if (this._nav.isNavigating()) return;
+    updateSessionOptionsAndSave(this.game.session, newOpts);
 
     // DPR 변경 즉시 적용
     if (typeof this.game._resizeCanvas === 'function') {
       this.game._resizeCanvas();
     }
 
-    if (typeof this.game.renderer?.setGlowEnabled === 'function') {
-      this.game.renderer.setGlowEnabled(this.game.session.options.glowEnabled);
-    }
-    if (typeof this.game.renderer?.setQualityPreset === 'function') {
-      this.game.renderer.setQualityPreset(this.game.session.options.quality);
-    }
+    applySessionOptionsToRuntime(this.game.session.options, {
+      renderer: this.game.renderer,
+    });
 
     this._goToTitle();
   }
 
   /** TitleScene으로 복귀 */
   async _goToTitle() {
-    if (this._isNavigating) return;
-    this._isNavigating = true;
-    const sceneToken = this._sceneChangeToken;
-
-    try {
-      const { TitleScene } = await import('./TitleScene.js');
-      if (sceneToken !== this._sceneChangeToken) return;
+    await this._nav.load(() => import('./TitleScene.js'), ({ TitleScene }) => {
       this.game.sceneManager.changeScene(new TitleScene(this.game));
-    } catch (e) {
+    }, (e) => {
       console.error('[SettingsScene] TitleScene 로드 실패:', e);
-      this._isNavigating = false;
-    }
+    });
   }
 }

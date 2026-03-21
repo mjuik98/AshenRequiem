@@ -1,3 +1,5 @@
+import { isLive } from '../../utils/entityUtils.js';
+
 /**
  * BossHudView — 보스 HP 바 (DOM UI)
  *
@@ -19,7 +21,7 @@ export class BossHudView {
   }
 
   update(enemies) {
-    const boss = enemies.find(e => e.isBoss && e.isAlive && !e.pendingDestroy);
+    const boss = enemies.find(e => e.isBoss && isLive(e));
     if (!boss) {
       if (this.el.style.display !== 'none') this.el.style.display = 'none';
       this._currentBossId = null;
