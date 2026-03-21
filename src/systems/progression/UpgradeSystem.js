@@ -157,10 +157,12 @@ export const UpgradeSystem = {
         if ((owned.level ?? 1) < maxLevel) {
           owned.level = (owned.level ?? 1) + 1;
           // valuePerLevel 만큼 효과 추가 적용
-          const levelUpEffects = (def?.effects ?? []).map(e => ({
-            stat:  e.stat,
-            value: e.valuePerLevel ?? 0,
-          })).filter(e => e.value !== 0);
+          const levelUpEffects = (def?.effects ?? []).map(e => {
+            if (e.stat === 'damageMult') {
+              return { stat: e.stat, value: 1 + (e.valuePerLevel ?? 0) };
+            }
+            return { stat: e.stat, value: e.valuePerLevel ?? 0 };
+          }).filter(e => e.value !== 0 && e.value !== 1);
           _applyAccessoryEffects(player, levelUpEffects);
         }
       }

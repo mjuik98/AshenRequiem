@@ -120,12 +120,14 @@ export class MetaShopView {
       .ms-root {
         position: absolute; inset: 0;
         background: radial-gradient(circle at top, #0e1220 0%, #060810 60%);
-        display: flex; align-items: center; justify-content: center;
+        display: block;
+        overflow-y: auto;
         z-index: 50; font-family: 'Segoe UI', sans-serif;
-        color: #eee; overflow-y: auto; padding: 16px;
+        color: #eee; padding: 24px 16px;
       }
       .ms-panel {
         width: min(680px, calc(100vw - 32px));
+        margin: 0 auto;
         background: rgba(255,255,255,0.025);
         border: 1px solid rgba(255,255,255,0.1);
         border-radius: 20px; padding: 32px 36px;

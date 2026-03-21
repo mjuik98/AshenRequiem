@@ -426,6 +426,7 @@ export class PauseView {
     const xpm  = (player.xpMult      ?? 1.0) * 100;
     const dmg  = (player.globalDamageMult ?? 1.0) * 100;
     const cd   = player.cooldownMult ?? 1.0;
+    const cdBonus = Math.round((1.0 - cd) * 100);
     const bp   = player.bonusProjectileCount ?? 0;
 
     // 보너스 계산 (base 대비)
@@ -487,7 +488,7 @@ export class PauseView {
           ${st('×', '크리티컬 데미지',Math.round(BASE_STATS.critMultiplier*100), cmBonus, '%', `크리티컬 데미지 ${cm.toFixed(0)}%`)}
           ${st('⚔', '데미지 증가',    Math.round(BASE_STATS.globalDamageMult*100), dmgBonus, '%', `데미지 증가 ${dmg.toFixed(0)}%`)}
           ${st('★', '경험치 획득',    100, xpmBonus, '%', `경험치 획득 ${xpm.toFixed(0)}%`)}
-          ${st('⟳', '쿨다운 배율',    `×${cd.toFixed(2)}`, 0, '', `쿨다운 배율 ×${cd.toFixed(2)}`)}
+          ${st('⟳', '쿨다운 배율',    `×${cd.toFixed(2)}`, cdBonus, cdBonus > 0 ? '% 단축' : '', `쿨다운 배율 ×${cd.toFixed(2)}`)}
           ${bp > 0 ? st('+', '추가 투사체', 0, bp, '발', `추가 투사체 +${bp}발`) : ''}
         </div>
       </div>
@@ -743,7 +744,7 @@ export class PauseView {
   _bindKeyboard() {
     this._onKeyDown = (e) => {
       if (!this.isVisible()) return;
-      if (e.key === 'Escape') { e.preventDefault(); this._onResume?.(); }
+      // ESC는 PlayScene._handlePauseToggle()이 단독 처리 (중복 방지)
       if (e.key === 'm' || e.key === 'M') {
         if (this._onMainMenu && !this._isClosingToMenu) {
           e.preventDefault();

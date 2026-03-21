@@ -119,7 +119,13 @@ export class TitleScene {
               <span class="t-btn-badge">⚗</span>
             </button>
 
-            <button class="t-btn is-disabled" data-action="settings" type="button" aria-disabled="true">
+            <button class="t-btn" data-action="settings" type="button">
+              <span class="t-btn-left">
+                <span class="t-btn-label">Settings</span>
+                <span class="t-btn-meta">음향·그래픽·화면 설정</span>
+              </span>
+              <span class="t-btn-badge">⚙</span>
+            </button>
 
             <button class="t-btn is-disabled" data-action="quit" type="button" aria-disabled="true">
               <span class="t-btn-left">
@@ -218,6 +224,12 @@ export class TitleScene {
         if (action === 'start') { startGame(); return; }
         if (action === 'shop') {
           this.game.sceneManager.changeScene(new MetaShopScene(this.game));
+          return;
+        }
+        if (action === 'settings') {
+          import('./SettingsScene.js').then(({ SettingsScene }) => {
+            this.game.sceneManager.changeScene(new SettingsScene(this.game));
+          });
           return;
         }
         handleDisabled(action);
