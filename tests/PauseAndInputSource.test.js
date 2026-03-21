@@ -39,6 +39,39 @@ test('ESC 모달의 기본 탭은 로드아웃이며 무기/장신구 탭은 제
   assert.equal(navHtml.includes('data-tab-name="accessories"'), false, '장신구 탭이 아직 렌더됨');
 });
 
+test('PauseView는 로드아웃 helper와 선택 상태를 통합한다', () => {
+  assert.equal(
+    pauseViewSource.includes('buildPauseLoadoutItems'),
+    true,
+    'PauseView가 통합 로드아웃 항목 helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('getDefaultPauseSelection'),
+    true,
+    'PauseView가 기본 선택 helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('renderPauseLoadoutPanel'),
+    true,
+    'PauseView가 통합 로드아웃 패널 helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('normalizePauseSynergyRequirementId'),
+    true,
+    'PauseView가 공유 시너지 requirement 정규화 helper를 사용하지 않음',
+  );
+  assert.match(
+    pauseViewSource,
+    /_activeTabName\s*=\s*'loadout'/,
+    'PauseView 기본 탭 상태가 여전히 로드아웃이 아님',
+  );
+  assert.equal(
+    pauseViewSource.includes('_selectedLoadoutKey'),
+    true,
+    'PauseView에 선택된 로드아웃 상태가 없음',
+  );
+});
+
 test('ESC 모달은 로드아웃 리스트와 상세 패널 셸을 노출한다', () => {
   const panelsHtml = renderPauseTabPanels({
     activeTabName: 'loadout',
@@ -53,6 +86,42 @@ test('ESC 모달은 로드아웃 리스트와 상세 패널 셸을 노출한다'
   assert.equal(panelsHtml.includes('pv-loadout-panel'), true, '로드아웃 패널 셸이 없음');
   assert.equal(panelsHtml.includes('pv-loadout-list'), true, '로드아웃 리스트 컨테이너가 없음');
   assert.equal(panelsHtml.includes('pv-loadout-detail'), true, '로드아웃 상세 컨테이너가 없음');
+});
+
+test('PauseView 스타일은 통합 로드아웃 카드와 반응형 마스터-디테일 레이아웃을 포함한다', () => {
+  assert.match(
+    pauseViewSource,
+    /\.pv-loadout-panel\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:/,
+    'PauseView 스타일에 로드아웃 마스터-디테일 레이아웃이 없음',
+  );
+  assert.match(
+    pauseViewSource,
+    /\.pv-loadout-card(?:\.selected|\[aria-pressed="true"\])[\s\S]*border-color:/,
+    'PauseView 스타일에 선택된 로드아웃 카드 상태가 없음',
+  );
+  ['state-rare', 'state-synergy-active', 'state-evolution-ready', 'state-empty', 'state-locked']
+    .forEach((stateClass) => {
+      assert.equal(
+        pauseViewSource.includes(`.pv-loadout-card.${stateClass}`),
+        true,
+        `PauseView 스타일에 ${stateClass} 상태가 없음`,
+      );
+    });
+  assert.match(
+    pauseViewSource,
+    /@media\s*\(max-width:\s*\d+px\)\s*\{[\s\S]*\.pv-loadout-panel\s*\{[\s\S]*grid-template-columns:\s*1fr/s,
+    'PauseView 스타일에 좁은 화면용 로드아웃 스택 레이아웃이 없음',
+  );
+});
+
+test('PauseView는 레거시 무기/장신구 렌더 경로와 전용 스타일을 제거한다', () => {
+  assert.equal(pauseViewSource.includes('_renderWeaponCard('), false, 'PauseView에 죽은 _renderWeaponCard 경로가 남아 있음');
+  assert.equal(pauseViewSource.includes('_renderAccessoryGrid('), false, 'PauseView에 죽은 _renderAccessoryGrid 경로가 남아 있음');
+  assert.equal(pauseViewSource.includes('.pv-wcard'), false, 'PauseView에 레거시 무기 카드 스타일이 남아 있음');
+  assert.equal(pauseViewSource.includes('.pv-acard'), false, 'PauseView에 레거시 장신구 카드 스타일이 남아 있음');
+  assert.equal(pauseViewSource.includes('WEAPON_TYPE_TAG'), false, 'PauseView에 레거시 무기 타입 태그 상수가 남아 있음');
+  assert.equal(pauseViewSource.includes("req.startsWith('up_')"), false, 'PauseView에 중복된 requirement 정규화 로직이 남아 있음');
+  assert.equal(pauseViewSource.includes("req.startsWith('get_')"), false, 'PauseView에 중복된 requirement 정규화 로직이 남아 있음');
 });
 
 test('ESC 모달은 사운드 탭과 키보드 바인딩을 유지한다', () => {

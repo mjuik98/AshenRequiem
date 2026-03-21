@@ -17,6 +17,11 @@ function getPauseLoadoutContent() {
   return pauseLoadoutContent;
 }
 
+function extractSection(html, className) {
+  const match = html.match(new RegExp(`<section class="${className}"[\\s\\S]*?<\\/section>`));
+  return match?.[0] ?? '';
+}
+
 function makeTestFixture() {
   const weapon = makeWeapon({
     id: 'magic_bolt',
@@ -32,10 +37,27 @@ function makeTestFixture() {
     level: 1,
     maxLevel: 5,
     rarity: 'rare',
+    description: 'Keeps the caster alive longer.',
+  };
+  const extraWeapon = makeWeapon({
+    id: 'boomerang',
+    name: 'Boomerang',
+    level: 1,
+    maxLevel: 5,
+    cooldown: 1.8,
+    damage: 8,
+  });
+  const extraAccessory = {
+    id: 'coin_pendant',
+    name: 'Coin Pendant',
+    level: 1,
+    maxLevel: 5,
+    rarity: 'common',
+    description: 'Extra coins.',
   };
   const player = makePlayer({
-    weapons: [weapon],
-    accessories: [accessory],
+    weapons: [weapon, extraWeapon],
+    accessories: [accessory, extraAccessory],
     maxWeaponSlots: 3,
     maxAccessorySlots: 3,
     activeSynergies: ['arcane_resonance'],
@@ -56,19 +78,19 @@ function makeTestFixture() {
     resultWeaponId: 'arcane_bolt',
   };
   const data = {
-    weaponData: [weapon],
-    accessoryData: [accessory],
+    weaponData: [weapon, extraWeapon],
+    accessoryData: [accessory, extraAccessory],
     synergyData: [synergy],
     weaponEvolutionData: [evolutionRecipe],
   };
   const indexes = {
-    weaponById: new Map([[weapon.id, weapon]]),
-    accessoryById: new Map([[accessory.id, accessory]]),
+    weaponById: new Map([[weapon.id, weapon], [extraWeapon.id, extraWeapon]]),
+    accessoryById: new Map([[accessory.id, accessory], [extraAccessory.id, extraAccessory]]),
     synergiesByWeaponId: new Map([[weapon.id, [synergy]]]),
-    synergiesByAccessoryId: new Map(),
+    synergiesByAccessoryId: new Map([[accessory.id, [synergy]]]),
   };
 
-  return { weapon, accessory, player, data, indexes, synergy, evolutionRecipe };
+  return { weapon, accessory, extraWeapon, extraAccessory, player, data, indexes, synergy, evolutionRecipe };
 }
 
 console.log('\n[Pause Loadout Content]');
@@ -79,6 +101,16 @@ test('helper module exposes the planned loadout API', () => {
   assert.equal(typeof api.buildPauseLoadoutItems, 'function', 'buildPauseLoadoutItems가 없음');
   assert.equal(typeof api.getDefaultPauseSelection, 'function', 'getDefaultPauseSelection이 없음');
   assert.equal(typeof api.renderPauseLoadoutPanel, 'function', 'renderPauseLoadoutPanel이 없음');
+  assert.equal(typeof api.normalizePauseSynergyRequirementId, 'function', '공유 시너지 requirement 정규화 helper가 없음');
+});
+
+test('normalizePauseSynergyRequirementId는 PauseView와 loadout helper가 공유할 정규화 규칙을 제공한다', () => {
+  const api = getPauseLoadoutContent();
+
+  assert.equal(api.normalizePauseSynergyRequirementId('up_magic_bolt'), 'magic_bolt', 'up_ 접두사 정규화가 잘못됨');
+  assert.equal(api.normalizePauseSynergyRequirementId('get_iron_heart'), 'iron_heart', 'get_ 접두사 정규화가 잘못됨');
+  assert.equal(api.normalizePauseSynergyRequirementId('coin_pendant'), 'coin_pendant', '일반 id 정규화가 잘못됨');
+  assert.equal(api.normalizePauseSynergyRequirementId(null), null, '비문자 requirement 처리 규칙이 잘못됨');
 });
 
 test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 포함한다', () => {
@@ -101,7 +133,6 @@ test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 
   assert.ok(emptyItem, '빈 슬롯 항목이 누락됨');
   assert.ok(lockedItem, '잠금 슬롯 항목이 누락됨');
   assert.equal(kinds[0], 'weapon', '첫 번째 로드아웃 항목이 무기가 아님');
-  assert.equal(kinds[1], 'accessory', '두 번째 로드아웃 항목이 장신구가 아님');
   assert.ok(firstEmptyIndex > 1, '빈 슬롯이 장착 항목 뒤에 오지 않음');
   assert.ok(firstLockedIndex > firstEmptyIndex, '잠금 슬롯이 빈 슬롯 뒤에 오지 않음');
   assert.ok(items.every((item, index) => item.slotIndex === index), '로드아웃 항목의 slotIndex가 출력 순서를 따르지 않음');
@@ -110,7 +141,7 @@ test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 
   assert.equal(weaponItem.slotIndex, 0, '무기 항목의 slotIndex가 0이 아님');
   assert.equal(accessoryItem.id, accessory.id, '장신구 항목이 장신구 id를 보존하지 않음');
   assert.equal(accessoryItem.name, accessory.name, '장신구 항목이 장신구 name을 보존하지 않음');
-  assert.equal(accessoryItem.slotIndex, 1, '장신구 항목의 slotIndex가 1이 아님');
+  assert.ok(accessoryItem.slotIndex > 0, '장신구 항목이 장착 로드아웃 뒤에 오지 않음');
   assert.equal(typeof weaponItem.selectionKey, 'string', '무기 항목에 selectionKey가 없음');
   assert.equal(typeof accessoryItem.selectionKey, 'string', '장신구 항목에 selectionKey가 없음');
   assert.equal(typeof emptyItem.selectionKey, 'string', '빈 슬롯 항목에 selectionKey가 없음');
@@ -122,7 +153,7 @@ test('buildPauseLoadoutItems는 무기, 장신구, 빈 슬롯, 잠금 슬롯을 
   assert.equal(lockedItem.id == null, true, '잠금 슬롯 항목에 id가 남아 있음');
   assert.deepEqual(
     items.filter((item) => item.kind === 'weapon' || item.kind === 'accessory').map((item) => item.id),
-    [weapon.id, accessory.id],
+    [weapon.id, 'boomerang', accessory.id, 'coin_pendant'],
     '장착 항목의 순서가 입력 로드아웃과 일치하지 않음',
   );
 });
@@ -155,7 +186,7 @@ test('getDefaultPauseSelection은 첫 무기를 우선하고 빈 로드아웃에
 
 test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 포함한다', () => {
   const api = getPauseLoadoutContent();
-  const { player, data, indexes, weapon, accessory } = makeTestFixture();
+  const { player, data, indexes, weapon, accessory, extraWeapon, extraAccessory } = makeTestFixture();
   const items = api.buildPauseLoadoutItems({ player });
   const selectedItem = api.getDefaultPauseSelection({ player });
   const accessoryItem = items.find((item) => item.kind === 'accessory');
@@ -167,6 +198,7 @@ test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 
     data,
     indexes,
   });
+  const linkedItemsSection = extractSection(html, 'pv-loadout-linked-items');
 
   assert.equal(typeof html, 'string', 'renderPauseLoadoutPanel이 문자열을 반환하지 않음');
   assert.ok(html.includes('pv-loadout-list'), '로드아웃 리스트 컨테이너가 없음');
@@ -174,9 +206,20 @@ test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 
   assert.ok(html.includes('pv-loadout-linked-items'), '연결 아이템 블록이 없음');
   assert.ok(html.includes('pv-loadout-synergy'), '시너지 블록이 없음');
   assert.ok(html.includes('pv-loadout-evolution'), '진화 블록이 없음');
+  assert.ok(html.includes('pv-loadout-role-summary'), '상세 패널 역할/효과 요약이 없음');
+  assert.ok(html.includes('pv-loadout-progress-block'), '상세 패널 진행/현재 상태 블록이 없음');
+  assert.ok(html.includes('pv-loadout-assist-row'), '로드아웃 카드 하단 assist row가 없음');
   assert.match(html, /data-loadout/, '선택 가능한 로드아웃 카드 훅이 없음');
   assert.ok(html.includes('빈 슬롯'), '빈 슬롯이 렌더된 로드아웃 출력에 없음');
   assert.ok(html.includes('상점 해금'), '잠금 슬롯이 렌더된 로드아웃 출력에 없음');
+  assert.ok(linkedItemsSection.includes(accessory.name), '실제 연결 장신구가 상세 패널에 표시되지 않음');
+  assert.equal(linkedItemsSection.includes(extraAccessory.name), false, '연결되지 않은 장신구가 상세 패널 연결 목록에 표시됨');
+  assert.ok(html.includes('시너지 활성'), 'assist row에 시너지 신호가 없음');
+  assert.ok(html.includes('진화 경로'), 'assist row에 진화 신호가 없음');
+  assert.ok(html.includes('레벨 진행'), 'assist row에 진행 신호가 없음');
+  assert.ok(html.includes('역할 / 효과'), '무기 상세 패널 역할/효과 제목이 없음');
+  assert.ok(html.includes('현재 상태'), '무기 상세 패널 현재 상태 제목이 없음');
+  assert.ok(html.includes('현재 효과:'), '무기 상세 패널 현재 효과 요약이 없음');
 
   const htmlWithAccessorySelected = api.renderPauseLoadoutPanel({
     items,
@@ -185,10 +228,16 @@ test('renderPauseLoadoutPanel은 상세 패널 컨테이너와 연결 블록을 
     data,
     indexes,
   });
+  const accessoryLinkedSection = extractSection(htmlWithAccessorySelected, 'pv-loadout-linked-items');
 
   assert.notEqual(html, htmlWithAccessorySelected, '선택 항목에 따라 패널 출력이 달라지지 않음');
   assert.ok(html.includes(weapon.name), '무기 선택 시 선택 항목 정보가 패널에 반영되지 않음');
   assert.ok(htmlWithAccessorySelected.includes(accessory.name), '장신구 선택 시 선택 항목 정보가 패널에 반영되지 않음');
+  assert.ok(accessoryLinkedSection.includes(weapon.name), '연결된 무기가 장신구 상세 패널에 표시되지 않음');
+  assert.equal(accessoryLinkedSection.includes(extraWeapon.name), false, '연결되지 않은 무기가 장신구 상세 패널 연결 목록에 표시됨');
+  assert.ok(htmlWithAccessorySelected.includes('현재 효과'), '장신구 상세 패널이 현재 효과 설명을 담지 않음');
+  assert.ok(htmlWithAccessorySelected.includes('현재 상태'), '장신구 상세 패널 현재 상태 제목이 없음');
+  assert.ok(htmlWithAccessorySelected.includes('무기/시너지와 맞물리는지 먼저 확인하세요.'), '장신구 상세 패널 안내 문구가 없음');
 
   const emptyPlayer = makePlayer({
     weapons: [],

@@ -8,6 +8,7 @@ import { unlockData } from '../src/data/unlockData.js';
 import { renderPauseTabPanels } from '../src/ui/pause/pauseViewSections.js';
 
 const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
+const pauseTooltipSource = readFileSync(new URL('../src/ui/pause/pauseTooltipContent.js', import.meta.url), 'utf8');
 const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
 const playSceneSource = readFileSync(new URL('../src/scenes/PlayScene.js', import.meta.url), 'utf8');
 
@@ -30,6 +31,57 @@ test('ESC 로드아웃 통합은 무기/장신구의 분리 렌더 경로를 제
   assert.equal(panelsHtml.includes('pv-loadout-detail'), true, '로드아웃 상세 패널이 없음');
   assert.equal(panelsHtml.includes('pv-tab-weapons'), false, '무기 전용 패널이 아직 남아 있음');
   assert.equal(panelsHtml.includes('pv-tab-accessories'), false, '장신구 전용 패널이 아직 남아 있음');
+});
+
+test('PauseView는 로드아웃 카드 선택으로 상세 패널을 갱신한다', () => {
+  assert.equal(
+    pauseViewSource.includes('.pv-loadout-card'),
+    true,
+    'PauseView가 로드아웃 카드 선택자를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('loadoutKey'),
+    true,
+    'PauseView가 로드아웃 selection key를 읽지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('_bindLoadoutSelection'),
+    true,
+    'PauseView에 로드아웃 선택 바인딩 메서드가 없음',
+  );
+  assert.match(
+    pauseViewSource,
+    /addEventListener\('click',[\s\S]*_selectLoadoutItem\(/,
+    'PauseView가 클릭으로 로드아웃 선택을 갱신하지 않음',
+  );
+  assert.match(
+    pauseViewSource,
+    /addEventListener\('(focus|focusin)',[\s\S]*_selectLoadoutItem\(/,
+    'PauseView가 포커스로 로드아웃 선택을 갱신하지 않음',
+  );
+});
+
+test('Pause tooltip은 보조 안내만 담당하고 핵심 설명은 상세 패널로 넘긴다', () => {
+  assert.equal(
+    pauseTooltipSource.includes('pvt-note'),
+    true,
+    'pauseTooltipContent가 보조 안내 note를 제공하지 않음',
+  );
+  assert.equal(
+    pauseTooltipSource.includes('pvt-row'),
+    false,
+    'pauseTooltipContent가 여전히 핵심 수치 행을 길게 렌더함',
+  );
+  assert.equal(
+    pauseTooltipSource.includes('pvt-synergy'),
+    false,
+    'pauseTooltipContent가 여전히 시너지 상세 블록을 렌더함',
+  );
+  assert.equal(
+    pauseTooltipSource.includes('pvt-evo'),
+    false,
+    'pauseTooltipContent가 여전히 진화 상세 블록을 렌더함',
+  );
 });
 
 test('결과 화면은 강화 상점 대신 메인 화면 버튼을 사용한다', () => {

@@ -25,7 +25,6 @@
  * FIX: destroy() 시 tooltip DOM 반드시 정리 (TOOLTIP-LEAK)
  */
 
-import { buildAccessoryCurrentDesc } from '../../data/accessoryData.js';
 import { SESSION_OPTION_DEFAULTS } from '../../state/sessionOptions.js';
 import { ACTION_BUTTON_SHARED_CSS, renderActionButton } from '../shared/actionButtonTheme.js';
 import {
@@ -34,26 +33,16 @@ import {
   renderPauseTabPanels,
 } from './pauseViewSections.js';
 import {
+  buildPauseLoadoutItems,
+  getDefaultPauseSelection,
+  normalizePauseSynergyRequirementId,
+  renderPauseLoadoutPanel,
+} from './pauseLoadoutContent.js';
+import {
   buildPauseAccessoryTooltipContent,
   buildPauseWeaponTooltipContent,
   formatWeaponSynergyBonus,
 } from './pauseTooltipContent.js';
-
-// ── 상수 ─────────────────────────────────────────────────────────────────────
-const GOLD          = '#d4af6a';
-const GOLD_DIM      = 'rgba(212,175,106,0.55)';
-const GOLD_BG       = 'rgba(212,175,106,0.1)';
-const GOLD_BORDER   = 'rgba(212,175,106,0.28)';
-
-/** behaviorId → 타입 태그 매핑 */
-const WEAPON_TYPE_TAG = {
-  targetProjectile: { label: '투사체', cls: 't-proj'  },
-  orbit:            { label: '궤도',   cls: 't-orbit' },
-  areaBurst:        { label: '폭발',   cls: 't-burst' },
-  boomerang:        { label: '투사체', cls: 't-proj'  },
-  chainLightning:   { label: '연쇄',   cls: 't-chain' },
-  omnidirectional:  { label: '투사체', cls: 't-proj'  },
-};
 
 /** 플레이어 기본 스탯 (보너스 산출용) */
 const BASE_STATS = {
@@ -94,8 +83,10 @@ export class PauseView {
     this._player          = null;
     this._world           = null;
     this._session         = null;
+    this._loadoutItems    = [];
+    this._selectedLoadoutKey = null;
     this._pauseOptions    = { ...PAUSE_AUDIO_DEFAULTS };
-    this._activeTabName   = 'weapons';
+    this._activeTabName   = 'loadout';
     this._isClosingToMenu = false;
 
     this._injectStyles();
@@ -123,11 +114,13 @@ export class PauseView {
     this._player     = player;
     this._world      = world;
     this._session    = session;
+    this._loadoutItems = buildPauseLoadoutItems({ player });
+    this._selectedLoadoutKey = getDefaultPauseSelection({ player })?.selectionKey ?? null;
     this._pauseOptions = {
       ...PAUSE_AUDIO_DEFAULTS,
       ...(session?.options ?? {}),
     };
-    this._activeTabName = 'weapons';
+    this._activeTabName = 'loadout';
 
     this._render(player, world);
     this._bindTooltips(player);
@@ -150,8 +143,10 @@ export class PauseView {
     this._player          = null;
     this._world           = null;
     this._session         = null;
+    this._loadoutItems    = [];
+    this._selectedLoadoutKey = null;
     this._pauseOptions    = { ...PAUSE_AUDIO_DEFAULTS };
-    this._activeTabName   = 'weapons';
+    this._activeTabName   = 'loadout';
     this._isClosingToMenu = false;
   }
 
@@ -169,6 +164,8 @@ export class PauseView {
     this._player = null;
     this._world = null;
     this._session = null;
+    this._loadoutItems = [];
+    this._selectedLoadoutKey = null;
     this._pauseOptions = { ...PAUSE_AUDIO_DEFAULTS };
     this._isClosingToMenu = false;
     this.el.remove();
@@ -178,13 +175,9 @@ export class PauseView {
 
   _render(player, world) {
     const weapons          = player.weapons        ?? [];
-    const accessories      = player.accessories    ?? [];
-    const maxWpnSlots      = player.maxWeaponSlots ?? 3;
-    const maxAccSlots      = player.maxAccessorySlots ?? 3;
     const activeSynergyIds = new Set(player.activeSynergies ?? []);
     const synergyData      = this._data?.synergyData ?? [];
     const activeSynergies  = synergyData.filter(s => activeSynergyIds.has(s.id));
-    const bonusProjs       = player.bonusProjectileCount ?? 0;
 
     // HP
     const hp    = Math.ceil(player.hp    ?? 0);
@@ -200,8 +193,13 @@ export class PauseView {
     const level     = player.level ?? 1;
     const timeStr   = elapsed != null ? _formatTime(elapsed) : '--:--';
     const killStr   = killCount != null ? killCount : '—';
-    const weaponCardsHtml = weapons.map(w => this._renderWeaponCard(w, bonusProjs, player)).join('');
-    const accessoryGridHtml = this._renderAccessoryGrid(accessories, maxAccSlots);
+    const loadoutPanelHtml = renderPauseLoadoutPanel({
+      items: this._loadoutItems,
+      selectedItemKey: this._selectedLoadoutKey,
+      player,
+      data: this._data,
+      indexes: this._indexes,
+    });
     const statsHtml = this._renderStats(player, activeSynergies);
     const soundControlsHtml = this._renderSoundControls();
     const forfeitButton = this._onForfeit
@@ -241,17 +239,13 @@ export class PauseView {
         ${renderPauseTabNavigation({
           activeTabName: this._activeTabName,
           weaponCount: weapons.length,
-          maxWpnSlots,
-          accessoryCount: accessories.length,
-          maxAccSlots,
+          maxWpnSlots: player.maxWeaponSlots ?? 3,
+          accessoryCount: player.accessories?.length ?? 0,
+          maxAccSlots: player.maxAccessorySlots ?? 3,
         })}
         ${renderPauseTabPanels({
           activeTabName: this._activeTabName,
-          weapons,
-          accessories,
-          maxAccSlots,
-          weaponCardsHtml,
-          accessoryGridHtml,
+          loadoutPanelHtml,
           statsHtml,
           soundControlsHtml,
         })}
@@ -276,98 +270,7 @@ export class PauseView {
     });
 
     this._bindTabs();
-  }
-
-  // ── 무기 카드 ─────────────────────────────────────────────────────────────
-
-  _renderWeaponCard(weapon, bonusProjs, player) {
-    const isEvolved   = !!weapon.isEvolved;
-    const behaviorId  = weapon.behaviorId ?? 'targetProjectile';
-    const typeInfo    = isEvolved
-      ? { label: '진화', cls: 't-evo' }
-      : (WEAPON_TYPE_TAG[behaviorId] ?? { label: '투사체', cls: 't-proj' });
-
-    const maxLevel  = weapon.maxLevel ?? 5;
-    const level     = weapon.level    ?? 1;
-    const pips = Array.from({ length: maxLevel }, (_, i) =>
-      `<div class="pv-pip${i < level ? ' filled' : ''}"></div>`
-    ).join('');
-
-    return `
-      <div class="pv-wcard${isEvolved ? ' evolved' : ''}" data-tip-weapon="${_escapeAttr(weapon.id ?? '')}" tabindex="0" role="group" aria-label="${_escapeAttr(weapon.name ?? '무기')} 상세 정보">
-        <div class="pv-wcard-top">
-          <div class="pv-wicon" aria-hidden="true">
-            ${_weaponEmoji(behaviorId)}
-            ${isEvolved ? '<div class="pv-evo-crown" aria-label="진화 무기">★</div>' : ''}
-          </div>
-          <div class="pv-winfo">
-            <div class="pv-wname">
-              ${_escapeHtml(weapon.name ?? weapon.id ?? '무기')}
-              <span class="pv-wtag ${typeInfo.cls}" aria-label="무기 타입">${typeInfo.label}</span>
-            </div>
-          </div>
-          <div class="pv-wright" aria-label="레벨 ${level}/${maxLevel}">
-            <div class="pv-level-pips">${pips}</div>
-            <span class="pv-wlv-label">Lv.${level}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // ── 장신구 그리드 ─────────────────────────────────────────────────────────
-
-  _renderAccessoryGrid(accessories, maxAccSlots) {
-    const items = [];
-
-    for (let i = 0; i < maxAccSlots; i++) {
-      const acc = accessories[i];
-      if (acc) {
-        const isRare = acc.rarity === 'rare';
-        const lvPips = Array.from({ length: acc.maxLevel ?? 5 }, (_, j) =>
-          `<div class="pv-pip${j < (acc.level ?? 1) ? ' filled' : ''}"></div>`
-        ).join('');
-
-        items.push(`
-          <div class="pv-acard${isRare ? ' rare' : ''}" data-tip-acc="${_escapeAttr(acc.id ?? '')}" tabindex="0" role="group" aria-label="${_escapeAttr(acc.name ?? '장신구')} 상세">
-            <div class="pv-acard-head">
-              <div class="pv-aicon-wrap" aria-hidden="true">💎</div>
-              <span class="pv-rarity-badge ${isRare ? 'rb-rare' : 'rb-common'}">${isRare ? '희귀' : '일반'}</span>
-            </div>
-            <div class="pv-aname">${_escapeHtml(acc.name ?? acc.id ?? '장신구')}</div>
-            <div class="pv-adesc">${_escapeHtml(_buildCompactAccessorySummary(acc, this._indexes?.accessoryById))}</div>
-            <div class="pv-alevel-row">
-              <div class="pv-level-pips">${lvPips}</div>
-              <span class="pv-alv-label">Lv.${acc.level ?? 1}</span>
-            </div>
-          </div>
-        `);
-      } else {
-        // 빈 슬롯 (해금됨 — 점선 테두리)
-        items.push(`
-          <div class="pv-slot-empty" aria-label="빈 장신구 슬롯">
-            <div class="pv-slot-ring" aria-hidden="true"></div>
-            <span class="pv-slot-text">빈 슬롯</span>
-          </div>
-        `);
-      }
-    }
-
-    // 잠금 슬롯: maxAccSlots 이상은 상점 해금 필요
-    const totalSlotDisplay = Math.min(maxAccSlots + 1, 6);
-    for (let i = maxAccSlots; i < totalSlotDisplay; i++) {
-      items.push(`
-        <div class="pv-slot-locked" aria-label="잠긴 장신구 슬롯 — 상점에서 해금">
-          <div class="pv-lock-wrap" aria-hidden="true">
-            <div class="pv-lock-arc"></div>
-            <div class="pv-lock-body"></div>
-          </div>
-          <span class="pv-slot-text">상점 해금</span>
-        </div>
-      `);
-    }
-
-    return items.join('');
+    this._bindLoadoutSelection();
   }
 
   // ── 스탯 탭 ──────────────────────────────────────────────────────────────
@@ -557,6 +460,43 @@ export class PauseView {
     });
   }
 
+  _bindLoadoutSelection() {
+    this.el.querySelectorAll('.pv-loadout-card[data-loadout-key]').forEach((card) => {
+      const key = card.dataset.loadoutKey;
+      if (!key) return;
+
+      card.addEventListener('click', () => this._selectLoadoutItem(key));
+      card.addEventListener('focus', () => this._selectLoadoutItem(key));
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          this._selectLoadoutItem(key);
+        }
+      });
+    });
+  }
+
+  _selectLoadoutItem(selectedLoadoutKey) {
+    if (!selectedLoadoutKey || this._selectedLoadoutKey === selectedLoadoutKey) return;
+    this._selectedLoadoutKey = selectedLoadoutKey;
+    this._renderLoadoutPanel();
+  }
+
+  _renderLoadoutPanel() {
+    const panel = this.el.querySelector('#pv-tab-loadout');
+    if (!panel || !this._player) return;
+
+    panel.innerHTML = renderPauseLoadoutPanel({
+      items: this._loadoutItems,
+      selectedItemKey: this._selectedLoadoutKey,
+      player: this._player,
+      data: this._data,
+      indexes: this._indexes,
+    });
+    this._bindLoadoutSelection();
+    this._bindTooltips(this._player);
+  }
+
   _activateTab(name) {
     if (!name) return;
     this._activeTabName = name;
@@ -606,20 +546,28 @@ export class PauseView {
     const weaponById    = new Map((data?.weaponData    ?? []).map(w => [w?.id, w]));
     const accessoryById = new Map((data?.accessoryData ?? []).map(a => [a?.id, a]));
     const synergiesByWeaponId = new Map();
+    const synergiesByAccessoryId = new Map();
 
     for (const synergy of data?.synergyData ?? []) {
       for (const req of synergy?.requires ?? []) {
-        const id = typeof req === 'string'
-          ? (req.startsWith('up_') ? req.slice(3) : req.startsWith('get_') ? req.slice(4) : req)
-          : null;
+        const id = normalizePauseSynergyRequirementId(req);
         if (!id) continue;
-        const list = synergiesByWeaponId.get(id) ?? [];
-        list.push(synergy);
-        synergiesByWeaponId.set(id, list);
+
+        if (weaponById.has(id)) {
+          const list = synergiesByWeaponId.get(id) ?? [];
+          list.push(synergy);
+          synergiesByWeaponId.set(id, list);
+        }
+
+        if (accessoryById.has(id)) {
+          const list = synergiesByAccessoryId.get(id) ?? [];
+          list.push(synergy);
+          synergiesByAccessoryId.set(id, list);
+        }
       }
     }
 
-    return { weaponById, accessoryById, synergiesByWeaponId };
+    return { weaponById, accessoryById, synergiesByWeaponId, synergiesByAccessoryId };
   }
 
   _bindTooltips(player) {
@@ -652,14 +600,14 @@ export class PauseView {
       });
     };
 
-    bind('[data-tip-weapon]', (el) => buildPauseWeaponTooltipContent({
-      weaponId: el.dataset.tipWeapon,
+    bind('.pv-loadout-card[data-loadout="weapon"]', (el) => buildPauseWeaponTooltipContent({
+      weaponId: el.dataset.loadoutId,
       player,
       data: this._data,
       indexes: this._indexes,
     }));
-    bind('[data-tip-acc]', (el) => buildPauseAccessoryTooltipContent({
-      accessoryId: el.dataset.tipAcc,
+    bind('.pv-loadout-card[data-loadout="accessory"]', (el) => buildPauseAccessoryTooltipContent({
+      accessoryId: el.dataset.loadoutId,
       player,
       data: this._data,
       indexes: this._indexes,
@@ -808,96 +756,230 @@ export class PauseView {
       .pv-tab-content.active { display: block; }
       @keyframes pv-fade-up { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
 
-      /* ── 무기 카드 ── */
-      .pv-weapon-list { display: flex; flex-direction: column; gap: 9px; }
-      .pv-wcard {
-        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px; padding: 12px 14px; cursor: default;
-        transition: border-color 0.15s, background 0.15s; outline: none;
+      /* ── 로드아웃 ── */
+      .pv-loadout-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(300px, 1.08fr);
+        gap: 16px;
+        align-items: start;
       }
-      .pv-wcard:hover, .pv-wcard:focus-visible { background: rgba(255,255,255,0.055); border-color: rgba(212,175,106,0.3); }
-      .pv-wcard.evolved { border-color: rgba(212,175,106,0.28); background: rgba(212,175,106,0.04); }
-      .pv-wcard.evolved:hover, .pv-wcard.evolved:focus-visible { border-color: rgba(212,175,106,0.48); }
-
-      .pv-wcard-top { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; }
-      .pv-wicon {
-        width: 48px; height: 48px; border-radius: 10px;
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-        display: flex; align-items: center; justify-content: center; font-size: 20px;
-        position: relative; flex-shrink: 0;
+      .pv-loadout-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
-      .pv-evo-crown {
-        position: absolute; top: -6px; right: -6px; width: 14px; height: 14px;
-        border-radius: 50%; background: rgba(212,175,106,0.2); border: 1px solid rgba(212,175,106,0.35);
-        font-size: 8px; display: flex; align-items: center; justify-content: center; color: #d4af6a;
+      .pv-loadout-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 100%;
+        padding: 16px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+        border: 1px solid rgba(212,175,106,0.18);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.28);
       }
-      .pv-winfo { min-width: 0; }
-      .pv-wname { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.88); margin-bottom: 4px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-      .pv-wtag { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
-      .t-evo    { background: rgba(212,175,106,0.18); color: #d4af6a;   border: 1px solid rgba(212,175,106,0.3); }
-      .t-orbit  { background: rgba(100,195,230,0.12); color: #7ecde8;  border: 1px solid rgba(100,195,230,0.22); }
-      .t-proj   { background: rgba(220,200,100,0.12); color: #d4c85a;  border: 1px solid rgba(220,200,100,0.22); }
-      .t-chain  { background: rgba(170,140,220,0.12); color: #b89fd4;  border: 1px solid rgba(170,140,220,0.22); }
-      .t-burst  { background: rgba(220,160,80,0.14);  color: #d4965a;  border: 1px solid rgba(220,160,80,0.25); }
-      .pv-wright { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
-      .pv-wlv-label  { font-size: 10px; font-weight: 700; color: rgba(212,175,106,0.5); }
-      .pv-level-pips { display: flex; gap: 3px; }
-      .pv-pip { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); }
-      .pv-pip.filled { background: #d4af6a; border-color: #d4af6a; }
-
-      /* ── 장신구 ── */
-      .pv-acc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-      .pv-acard {
-        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px; padding: 13px; cursor: default; outline: none;
-        transition: border-color 0.15s;
+      .pv-loadout-card {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        text-align: left;
+        padding: 14px 15px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid rgba(255,255,255,0.09);
+        color: rgba(255,255,255,0.86);
+        cursor: pointer;
+        transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
       }
-      .pv-acard:hover, .pv-acard:focus-visible { border-color: rgba(212,175,106,0.28); }
-      .pv-acard.rare { border-color: rgba(212,175,106,0.2); }
-      .pv-acard-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-      .pv-aicon-wrap {
-        width: 30px; height: 30px; border-radius: 7px;
-        background: rgba(212,175,106,0.1); border: 1px solid rgba(212,175,106,0.2);
-        display: flex; align-items: center; justify-content: center; font-size: 14px;
+      .pv-loadout-card:hover,
+      .pv-loadout-card:focus-visible {
+        border-color: rgba(212,175,106,0.26);
+        transform: translateY(-1px);
+        outline: none;
       }
-      .pv-rarity-badge { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
-      .rb-rare   { color: rgba(212,175,106,0.7); }
-      .rb-common { color: rgba(200,190,160,0.45); }
-      .pv-aname   { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.82); margin-bottom: 4px; }
-      .pv-adesc {
-        font-size: 11px;
-        color: rgba(255,255,255,0.36);
-        margin-bottom: 10px;
+      .pv-loadout-card.selected,
+      .pv-loadout-card[aria-pressed="true"] {
+        border-color: rgba(212,175,106,0.58);
+        background: linear-gradient(180deg, rgba(212,175,106,0.14), rgba(255,255,255,0.05));
+        box-shadow: 0 0 0 1px rgba(212,175,106,0.12) inset;
+      }
+      .pv-loadout-card.state-rare {
+        border-color: rgba(200,143,80,0.36);
+        box-shadow: inset 0 1px 0 rgba(231,183,124,0.16);
+      }
+      .pv-loadout-card.state-synergy-active {
+        border-color: rgba(127,201,204,0.36);
+        background: linear-gradient(180deg, rgba(96,171,175,0.12), rgba(255,255,255,0.03));
+      }
+      .pv-loadout-card.state-evolution-ready {
+        border-color: rgba(212,175,106,0.7);
+        background: linear-gradient(180deg, rgba(212,175,106,0.22), rgba(117,58,28,0.08));
+      }
+      .pv-loadout-card.state-empty {
+        border-style: dashed;
+        color: rgba(255,255,255,0.52);
+      }
+      .pv-loadout-card.state-locked {
+        opacity: 0.65;
+        color: rgba(255,255,255,0.46);
+        background: rgba(0,0,0,0.18);
+      }
+      .pv-loadout-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .pv-loadout-card-badge,
+      .pv-loadout-card-kind {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+      }
+      .pv-loadout-card-badge {
+        color: #e7c987;
+      }
+      .pv-loadout-card-kind {
+        color: rgba(255,255,255,0.42);
+      }
+      .pv-loadout-card-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: rgba(255,255,255,0.9);
+      }
+      .pv-loadout-card-summary {
+        font-size: 12px;
+        color: rgba(255,255,255,0.56);
         line-height: 1.5;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
-      .pvt-level-row {
-        font-size: 10px; color: rgba(255,255,255,0.6);
-        line-height: 1.7; letter-spacing: 0.01em;
+      .pv-loadout-assist-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 2px;
       }
-      .pv-alevel-row { display: flex; align-items: center; justify-content: space-between; }
-      .pv-alv-label  { font-size: 10px; font-weight: 700; color: rgba(212,175,106,0.5); }
-
-      /* 빈/잠금 슬롯 */
-      .pv-slot-empty {
-        border: 1px dashed rgba(255,255,255,0.13); background: rgba(255,255,255,0.015);
-        border-radius: 12px; padding: 13px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 7px; min-height: 100px;
+      .pv-loadout-assist-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.04);
+        font-size: 10px;
+        color: rgba(255,255,255,0.55);
       }
-      .pv-slot-locked {
-        border: 1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.2);
-        border-radius: 12px; padding: 13px; opacity: 0.4;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 6px; min-height: 100px;
+      .pv-loadout-detail-header,
+      .pv-loadout-role-summary,
+      .pv-loadout-power,
+      .pv-loadout-linked-items,
+      .pv-loadout-synergy,
+      .pv-loadout-evolution,
+      .pv-loadout-guidance {
+        padding: 0 0 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
       }
-      .pv-slot-ring { width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed rgba(255,255,255,0.2); }
-      .pv-lock-wrap { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-      .pv-lock-arc  { width: 12px; height: 7px; border: 2px solid rgba(255,255,255,0.3); border-bottom: none; border-radius: 6px 6px 0 0; }
-      .pv-lock-body { width: 14px; height: 10px; background: rgba(255,255,255,0.2); border-radius: 2px; }
-      .pv-slot-text { font-size: 10px; letter-spacing: 1.5px; color: rgba(255,255,255,0.2); text-transform: uppercase; }
+      .pv-loadout-guidance {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .pv-loadout-detail-kind {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(212,175,106,0.65);
+        margin-bottom: 6px;
+      }
+      .pv-loadout-detail-name {
+        margin: 0 0 6px;
+        font-size: 22px;
+        line-height: 1.1;
+        color: rgba(255,255,255,0.92);
+      }
+      .pv-loadout-detail-summary,
+      .pv-loadout-role-copy,
+      .pv-loadout-empty-msg,
+      .pv-loadout-evolution-desc,
+      .pv-loadout-synergy-desc {
+        font-size: 12px;
+        line-height: 1.5;
+        color: rgba(255,255,255,0.58);
+      }
+      .pv-loadout-role-copy.muted {
+        color: rgba(255,255,255,0.42);
+        margin-top: 6px;
+      }
+      .pv-loadout-section-title {
+        margin: 0 0 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.8px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.42);
+      }
+      .pv-loadout-power-lines,
+      .pv-loadout-progress-block,
+      .pv-loadout-link-list,
+      .pv-loadout-synergy-list,
+      .pv-loadout-evolution-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .pv-loadout-progress-block {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.025);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+      .pv-loadout-power-row,
+      .pv-loadout-link-row,
+      .pv-loadout-synergy-head,
+      .pv-loadout-evolution-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .pv-loadout-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .pv-loadout-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(127,201,204,0.12);
+        border: 1px solid rgba(127,201,204,0.2);
+        color: #b7e7ea;
+        font-size: 11px;
+      }
+      .pv-loadout-chip.equipped {
+        border-color: rgba(212,175,106,0.28);
+        background: rgba(212,175,106,0.12);
+        color: #f0d9a1;
+      }
+      .pv-loadout-chip-meta {
+        color: rgba(255,255,255,0.45);
+        font-size: 10px;
+      }
+      .pv-loadout-synergy-row,
+      .pv-loadout-evolution-row {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+      }
+      .pv-loadout-synergy-row.active,
+      .pv-loadout-evolution-row.done {
+        border-color: rgba(212,175,106,0.28);
+        background: rgba(212,175,106,0.08);
+      }
 
       /* ── 스탯 ── */
       .pv-stats-section { margin-bottom: 20px; }
@@ -1050,7 +1132,20 @@ export class PauseView {
       .pvt-evo-name { font-size: 11px; font-weight: 700; color: #d4af6a; margin-bottom: 1px; }
       .pvt-evo-done .pvt-evo-name { color: #81c784; }
       .pvt-evo-desc { font-size: 10px; color: rgba(255,255,255,0.42); line-height: 1.4; }
+      .pvt-meta { font-size: 11px; color: rgba(255,255,255,0.62); margin-bottom: 5px; line-height: 1.45; }
+      .pvt-note {
+        margin-top: 7px;
+        padding-top: 7px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 10px;
+        color: rgba(212,175,106,0.74);
+      }
 
+      @media (max-width: 780px) {
+        .pv-loadout-panel {
+          grid-template-columns: 1fr;
+        }
+      }
       @media (max-width: 540px) {
         .pv-stats-grid { grid-template-columns: 1fr 1fr; }
         .pv-sound-toggles { grid-template-columns: 1fr; }
@@ -1072,21 +1167,6 @@ function _formatTime(secs) {
   const m  = Math.floor(secs / 60);
   const ss = String(Math.floor(secs % 60)).padStart(2, '0');
   return `${m}:${ss}`;
-}
-
-function _weaponEmoji(behaviorId) {
-  const MAP = {
-    targetProjectile: '🔵', orbit: '⚡', areaBurst: '✨',
-    boomerang: '🪃', chainLightning: '⚡', omnidirectional: '🌀',
-  };
-  return MAP[behaviorId] ?? '⚔';
-}
-
-function _buildCompactAccessorySummary(acc, accessoryById) {
-  const def = accessoryById?.get(acc.id);
-  if (!def?.effects?.length) return acc.description ?? '';
-  const lines = buildAccessoryCurrentDesc(def, acc.level ?? 1);
-  return lines.join(' · ');
 }
 
 function _escapeHtml(v) {

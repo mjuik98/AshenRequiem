@@ -1,3 +1,5 @@
+import { buildAccessoryLevelDesc } from '../../data/accessoryData.js';
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -86,63 +88,156 @@ function summarizeAccessory(accessory) {
   return parts.join(' · ');
 }
 
+function getAccessoryEffectSummary(accessory, indexes) {
+  const definition = indexes?.accessoryById?.get(accessory?.id);
+  const lines = definition ? buildAccessoryLevelDesc(definition) : [];
+  return lines[0] ?? accessory?.description ?? '현재 효과 정보를 준비 중입니다.';
+}
+
+export function normalizePauseSynergyRequirementId(requirement) {
+  if (typeof requirement !== 'string') return null;
+  if (requirement.startsWith('up_')) return requirement.slice(3);
+  if (requirement.startsWith('get_')) return requirement.slice(4);
+  return requirement;
+}
+
+function getEquippedIds(player, kind) {
+  const source = kind === 'weapon' ? toArray(player?.weapons) : toArray(player?.accessories);
+  return new Set(source.map((item) => item?.id).filter(Boolean));
+}
+
+function getRelatedItems(selectedItem, player, data, indexes) {
+  if (selectedItem?.kind !== 'weapon' && selectedItem?.kind !== 'accessory') {
+    return [];
+  }
+
+  const isWeapon = selectedItem.kind === 'weapon';
+  const sourceKind = isWeapon ? 'accessory' : 'weapon';
+  const sourceMap = isWeapon ? indexes?.accessoryById ?? new Map() : indexes?.weaponById ?? new Map();
+  const synergyMap = isWeapon ? indexes?.synergiesByWeaponId : indexes?.synergiesByAccessoryId;
+  const equippedIds = getEquippedIds(player, sourceKind);
+  const relationships = new Map();
+
+  const addRelationship = (kind, id, reason) => {
+    if (!id || !sourceMap.has(id)) return;
+    const key = `${kind}:${id}`;
+    const current = relationships.get(key) ?? {
+      kind,
+      id,
+      name: sourceMap.get(id)?.name ?? id,
+      equipped: equippedIds.has(id),
+      reasons: new Set(),
+    };
+    current.reasons.add(reason);
+    relationships.set(key, current);
+  };
+
+  for (const recipe of data?.weaponEvolutionData ?? []) {
+    if (isWeapon && recipe?.requires?.weaponId === selectedItem.id) {
+      for (const accessoryId of toArray(recipe?.requires?.accessoryIds)) {
+        addRelationship('accessory', accessoryId, '진화 경로');
+      }
+    }
+    if (!isWeapon && toArray(recipe?.requires?.accessoryIds).includes(selectedItem.id)) {
+      addRelationship('weapon', recipe?.requires?.weaponId, '진화 경로');
+    }
+  }
+
+  for (const synergy of synergyMap?.get(selectedItem.id) ?? []) {
+    for (const requirement of synergy?.requires ?? []) {
+      const requirementId = normalizePauseSynergyRequirementId(requirement);
+      if (!requirementId || requirementId === selectedItem.id) continue;
+      addRelationship(sourceKind, requirementId, '시너지 연결');
+    }
+  }
+
+  return [...relationships.values()].sort((left, right) => {
+    if (left.equipped !== right.equipped) return left.equipped ? -1 : 1;
+    return left.name.localeCompare(right.name);
+  });
+}
+
+function getAssistSignals(item, player, data, indexes) {
+  if (item?.kind === 'empty') return ['빈 슬롯', '장비 대기'];
+  if (item?.kind === 'locked') return ['상점 해금'];
+
+  const signals = [];
+  const relatedItems = getRelatedItems(item, player, data, indexes);
+  const synergyMap = item?.kind === 'weapon' ? indexes?.synergiesByWeaponId : indexes?.synergiesByAccessoryId;
+  const itemSynergies = synergyMap?.get(item?.id) ?? [];
+  const activeSynergyIds = new Set(player?.activeSynergies ?? []);
+  const hasActiveSynergy = itemSynergies.some((synergy) => activeSynergyIds.has(synergy?.id));
+  if (itemSynergies.length > 0) {
+    signals.push(hasActiveSynergy ? '시너지 활성' : '시너지 연결');
+  }
+
+  const evolutionRecipes = toArray(data?.weaponEvolutionData).filter((recipe) => (
+    item?.kind === 'weapon'
+      ? recipe?.requires?.weaponId === item.id
+      : toArray(recipe?.requires?.accessoryIds).includes(item.id)
+  ));
+  if (evolutionRecipes.length > 0) {
+    const isReady = item?.kind === 'weapon'
+      && (item?.source?.level ?? 0) >= (item?.source?.maxLevel ?? Infinity)
+      && relatedItems.some((relatedItem) => relatedItem.reasons.has('진화 경로') && relatedItem.equipped);
+    signals.push(isReady ? '진화 가능' : '진화 경로');
+  }
+
+  if (item?.source?.level != null) {
+    signals.push(`레벨 진행 ${item.source.level}/${item.source.maxLevel ?? 5}`);
+  }
+
+  return signals.slice(0, 3);
+}
+
+function getLoadoutCardStateClasses(item, player, data, indexes) {
+  const stateClasses = [];
+  if (item?.kind === 'empty') stateClasses.push('state-empty');
+  if (item?.kind === 'locked') stateClasses.push('state-locked');
+  if (item?.source?.rarity === 'rare') stateClasses.push('state-rare');
+
+  const activeSynergyIds = new Set(player?.activeSynergies ?? []);
+  const synergyMap = item?.kind === 'weapon'
+    ? indexes?.synergiesByWeaponId
+    : item?.kind === 'accessory'
+      ? indexes?.synergiesByAccessoryId
+      : null;
+  const itemSynergies = synergyMap?.get(item?.id) ?? [];
+  if (itemSynergies.some((synergy) => activeSynergyIds.has(synergy?.id))) {
+    stateClasses.push('state-synergy-active');
+  }
+
+  if (item?.kind === 'weapon') {
+    const recipes = toArray(data?.weaponEvolutionData);
+    const recipe = recipes.find((candidate) => candidate?.requires?.weaponId === item.id);
+    const ownedAccessoryIds = new Set(toArray(player?.accessories).map((accessory) => accessory?.id));
+    const isMaxLevel = (item?.source?.level ?? 0) >= (item?.source?.maxLevel ?? Infinity);
+    const hasAccessories = toArray(recipe?.requires?.accessoryIds).every((accessoryId) => ownedAccessoryIds.has(accessoryId));
+    if (recipe && isMaxLevel && hasAccessories) {
+      stateClasses.push('state-evolution-ready');
+    }
+  }
+
+  return stateClasses;
+}
+
 function renderLinkedItems(selectedItem, player, data, indexes) {
-  const weaponById = indexes?.weaponById ?? new Map();
-  const accessoryById = indexes?.accessoryById ?? new Map();
+  const relatedItems = getRelatedItems(selectedItem, player, data, indexes);
+  const linkedItemsHtml = relatedItems.length > 0
+    ? relatedItems.map((item) => `
+        <span class="pv-loadout-chip${item.equipped ? ' equipped' : ''}">
+          ${escapeHtml(item.name)}
+          <span class="pv-loadout-chip-meta">${escapeHtml(item.equipped ? '보유' : '미보유')}</span>
+        </span>
+      `).join('')
+    : `<div class="pv-loadout-empty-msg">${escapeHtml(selectedItem?.kind === 'locked' ? '상점 해금 후 표시' : '실제 연결 아이템이 없습니다.')}</div>`;
 
-  let label = '연결 정보 없음';
-  let items = [];
-
-  if (selectedItem?.kind === 'weapon') {
-    items = toArray(player?.accessories).map((accessory) => accessory?.name ?? accessory?.id).filter(Boolean);
-    if (items.length === 0) {
-      label = '장신구 연결 없음';
-    } else {
-      label = '현재 장신구';
-    }
-  } else if (selectedItem?.kind === 'accessory') {
-    items = toArray(player?.weapons).map((weapon) => weapon?.name ?? weapon?.id).filter(Boolean);
-    if (items.length === 0) {
-      label = '무기 연결 없음';
-    } else {
-      label = '현재 무기';
-    }
-  } else if (selectedItem?.kind === 'locked') {
-    label = '상점 해금 후 표시';
-  }
-
-  const linkedItemsHtml = items.length > 0
-    ? items.map((itemName) => `<span class="pv-loadout-chip">${escapeHtml(itemName)}</span>`).join('')
-    : `<div class="pv-loadout-empty-msg">${escapeHtml(label)}</div>`;
-
-  const idHints = [];
-  if (selectedItem?.kind === 'weapon') {
-    for (const recipe of data?.weaponEvolutionData ?? []) {
-      if (recipe?.requires?.weaponId === selectedItem.id) {
-        const accessoryNames = toArray(recipe.requires.accessoryIds)
-          .map((accessoryId) => accessoryById.get(accessoryId)?.name ?? accessoryId)
-          .filter(Boolean)
-          .join(', ');
-        idHints.push({
-          title: '진화 조건',
-          text: accessoryNames ? `${accessoryNames} 필요` : '조건 확인 필요',
-        });
-      }
-    }
-  } else if (selectedItem?.kind === 'accessory') {
-    for (const recipe of data?.weaponEvolutionData ?? []) {
-      if (toArray(recipe?.requires?.accessoryIds).includes(selectedItem.id)) {
-        const weaponName = weaponById.get(recipe?.requires?.weaponId)?.name ?? recipe?.requires?.weaponId ?? '무기';
-        idHints.push({
-          title: '연결 진화',
-          text: `${weaponName} 관련`,
-        });
-      }
-    }
-  }
-
-  const hintsHtml = idHints.length > 0
-    ? idHints.map((hint) => `
+  const hints = relatedItems.map((item) => ({
+    title: item.name,
+    text: [...item.reasons].join(' · '),
+  }));
+  const hintsHtml = hints.length > 0
+    ? hints.map((hint) => `
         <div class="pv-loadout-link-row">
           <span class="pv-loadout-link-key">${escapeHtml(hint.title)}</span>
           <span class="pv-loadout-link-val">${escapeHtml(hint.text)}</span>
@@ -296,12 +391,30 @@ function renderItemDetail(selectedItem, player, data, indexes) {
   const kindLabel = getKindLabel(selectedItem?.kind);
   const title = selectedItem?.name ?? kindLabel;
   const summary = selectedItem?.kind === 'weapon'
-    ? summarizeWeapon(selectedItem.source)
+    ? `현재 효과: ${summarizeWeapon(selectedItem.source) || '기본 공격을 강화합니다.'}`
     : selectedItem?.kind === 'accessory'
-      ? summarizeAccessory(selectedItem.source)
+      ? `현재 효과: ${getAccessoryEffectSummary(selectedItem.source, indexes)}`
       : selectedItem?.kind === 'empty'
         ? '새로운 장비를 찾을 수 있는 빈 슬롯입니다.'
         : '추가 슬롯은 상점에서 해금합니다.';
+  const relationCount = getRelatedItems(selectedItem, player, data, indexes).length;
+  const progressRows = selectedItem?.kind === 'weapon'
+    ? `
+        <div class="pv-loadout-power-row"><span>레벨 진행</span><span>${escapeHtml(String(selectedItem.source?.level ?? 1))}/${escapeHtml(String(selectedItem.source?.maxLevel ?? 5))}</span></div>
+        <div class="pv-loadout-power-row"><span>현재 위력</span><span>${escapeHtml(String(selectedItem.source?.damage ?? '—'))}</span></div>
+        <div class="pv-loadout-power-row"><span>현재 쿨다운</span><span>${escapeHtml(String(selectedItem.source?.cooldown ?? '—'))}</span></div>
+        <div class="pv-loadout-power-row"><span>연결 수</span><span>${escapeHtml(String(relationCount))}</span></div>
+      `
+    : selectedItem?.kind === 'accessory'
+      ? `
+          <div class="pv-loadout-power-row"><span>레벨 진행</span><span>${escapeHtml(String(selectedItem.source?.level ?? 1))}/${escapeHtml(String(selectedItem.source?.maxLevel ?? 5))}</span></div>
+          <div class="pv-loadout-power-row"><span>희귀도</span><span>${escapeHtml(selectedItem.source?.rarity ?? 'common')}</span></div>
+          <div class="pv-loadout-power-row"><span>현재 효과</span><span>${escapeHtml(getAccessoryEffectSummary(selectedItem.source, indexes))}</span></div>
+          <div class="pv-loadout-power-row"><span>연결 수</span><span>${escapeHtml(String(relationCount))}</span></div>
+        `
+      : `
+          <div class="pv-loadout-power-row"><span>상태</span><span>${escapeHtml(kindLabel)}</span></div>
+        `;
 
   return `
     <div class="pv-loadout-detail-header">
@@ -309,24 +422,25 @@ function renderItemDetail(selectedItem, player, data, indexes) {
       <h3 class="pv-loadout-detail-name">${escapeHtml(title)}</h3>
       <div class="pv-loadout-detail-summary">${escapeHtml(summary || '선택된 항목 정보')}</div>
     </div>
+    <div class="pv-loadout-role-summary">
+      <h4 class="pv-loadout-section-title">역할 / 효과</h4>
+      <div class="pv-loadout-role-copy">${escapeHtml(summary || '선택된 항목 정보')}</div>
+      <div class="pv-loadout-role-copy muted">
+        ${escapeHtml(
+          selectedItem?.kind === 'weapon'
+            ? '선택한 무기의 현재 역할과 연결 조건을 우선 확인하세요.'
+            : selectedItem?.kind === 'accessory'
+              ? '선택한 장신구가 어떤 무기/시너지와 맞물리는지 먼저 확인하세요.'
+              : '선택 가능한 슬롯 상태를 확인하세요.',
+        )}
+      </div>
+    </div>
     <div class="pv-loadout-power">
-      <h4 class="pv-loadout-section-title">현재 정보</h4>
-      <div class="pv-loadout-power-lines">
-        ${selectedItem?.kind === 'weapon'
-          ? `
-            <div class="pv-loadout-power-row"><span>레벨</span><span>Lv.${escapeHtml(String(selectedItem.source?.level ?? 1))}</span></div>
-            <div class="pv-loadout-power-row"><span>데미지</span><span>${escapeHtml(String(selectedItem.source?.damage ?? '—'))}</span></div>
-            <div class="pv-loadout-power-row"><span>쿨다운</span><span>${escapeHtml(String(selectedItem.source?.cooldown ?? '—'))}</span></div>
-          `
-          : selectedItem?.kind === 'accessory'
-            ? `
-              <div class="pv-loadout-power-row"><span>레벨</span><span>Lv.${escapeHtml(String(selectedItem.source?.level ?? 1))}</span></div>
-              <div class="pv-loadout-power-row"><span>희귀도</span><span>${escapeHtml(selectedItem.source?.rarity ?? 'common')}</span></div>
-            `
-            : `
-              <div class="pv-loadout-power-row"><span>상태</span><span>${escapeHtml(kindLabel)}</span></div>
-            `
-        }
+      <h4 class="pv-loadout-section-title">현재 상태</h4>
+      <div class="pv-loadout-progress-block">
+        <div class="pv-loadout-power-lines">
+          ${progressRows}
+        </div>
       </div>
     </div>
     ${renderLinkedItems(selectedItem, player, data, indexes)}
@@ -349,9 +463,10 @@ function renderItemDetail(selectedItem, player, data, indexes) {
   `;
 }
 
-function renderLoadoutCard(item, selectedItemKey) {
+function renderLoadoutCard(item, selectedItemKey, player, data, indexes) {
   const isSelected = selectedItemKey != null && item?.selectionKey === selectedItemKey;
   const kindLabel = getKindLabel(item?.kind);
+  const stateClasses = getLoadoutCardStateClasses(item, player, data, indexes);
   const badge = item?.kind === 'weapon'
     ? (item?.level != null ? `Lv.${item.level}` : '무기')
     : item?.kind === 'accessory'
@@ -364,10 +479,11 @@ function renderLoadoutCard(item, selectedItemKey) {
       : item?.kind === 'empty'
         ? '비어 있는 장비 슬롯'
         : '상점 해금 필요';
+  const assistSignals = getAssistSignals(item, player, data, indexes);
 
   return `
     <button
-      class="pv-loadout-card kind-${escapeHtml(item?.kind ?? 'unknown')}${isSelected ? ' selected' : ''}"
+      class="pv-loadout-card kind-${escapeHtml(item?.kind ?? 'unknown')}${stateClasses.length > 0 ? ` ${stateClasses.join(' ')}` : ''}${isSelected ? ' selected' : ''}"
       type="button"
       data-loadout="${escapeHtml(item?.kind ?? 'unknown')}"
       data-loadout-id="${escapeHtml(item?.id ?? '')}"
@@ -380,6 +496,9 @@ function renderLoadoutCard(item, selectedItemKey) {
       </div>
       <div class="pv-loadout-card-name">${escapeHtml(item?.name ?? kindLabel)}</div>
       <div class="pv-loadout-card-summary">${escapeHtml(summary)}</div>
+      <div class="pv-loadout-assist-row">
+        ${assistSignals.map((signal) => `<span class="pv-loadout-assist-pill">${escapeHtml(signal)}</span>`).join('')}
+      </div>
     </button>
   `;
 }
@@ -433,7 +552,7 @@ export function renderPauseLoadoutPanel({
     : buildPauseLoadoutItems({ player });
   const selectedItem = findSelectedItem(loadoutItems, selectedItemKey);
   const selectedKey = selectedItem?.selectionKey ?? null;
-  const renderedItems = loadoutItems.map((item) => renderLoadoutCard(item, selectedKey)).join('');
+  const renderedItems = loadoutItems.map((item) => renderLoadoutCard(item, selectedKey, player, data, indexes)).join('');
 
   return `
     <section class="pv-loadout-panel" aria-label="로드아웃">
