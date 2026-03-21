@@ -44,10 +44,6 @@ export class KeyboardAdapter {
     state.moveX = Math.max(-1, Math.min(1, state.moveX));
     state.moveY = Math.max(-1, Math.min(1, state.moveY));
 
-    if (this._isDown('`')) {
-      state.actions.add('debug');
-    }
-
     // CHANGE: ESC 키 → 'pause' 액션
     if (this._isDown('escape')) {
       state.actions.add('pause');

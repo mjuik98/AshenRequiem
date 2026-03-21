@@ -12,6 +12,8 @@
  * weaponData.js 항목: { id: 'boomerang', behaviorId: 'boomerang', ... }
  */
 import { getLiveEnemies, findClosestEnemy } from './weaponBehaviorUtils.js';
+import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
+import { spawnProjectile } from '../../state/spawnRequest.js';
 
 /**
  * boomerang — 가장 가까운 적 방향으로 부메랑 투사체 발사
@@ -36,6 +38,8 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
   const bonus = player?.bonusProjectileCount ?? 0;
   const count = 1 + Math.floor(bonus);
   const spread = 0.2; // 약 11.5도
+  const lifetimeMult = getProjectileLifetimeMult(player);
+  const maxRange = (weapon.maxRange ?? 600) * lifetimeMult;
 
   for (let i = 0; i < count; i++) {
     const offset = (i - (count - 1) / 2) * spread;
@@ -46,8 +50,9 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
     const rx = (dx / len) * cos - (dy / len) * sin;
     const ry = (dx / len) * sin + (dy / len) * cos;
 
-    spawnQueue.push({
-      type: 'projectile',
+    spawnQueue.push(spawnProjectile({
+      x: player.x,
+      y: player.y,
       config: {
         x:                player.x,
         y:                player.y,
@@ -58,13 +63,13 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
         radius:           weapon.radius          ?? 10,
         color:            weapon.projectileColor ?? weapon.color ?? '#ffd54f',
         pierce:           weapon.pierce          ?? 3,
-        maxRange:         weapon.maxRange        ?? 600,
+        maxRange,
         behaviorId:       'boomerang',
         ownerId:          player.id,
         _reversed:        false,
         distanceTraveled: 0,
       },
-    });
+    }));
   }
 
   return true;

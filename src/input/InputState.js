@@ -21,7 +21,6 @@ export class InputState {
     if (k === 'd' || k === 'arrowright') return this.moveX > 0.1;
     if (k === 'w' || k === 'arrowup')    return this.moveY < -0.1;
     if (k === 's' || k === 'arrowdown')  return this.moveY > 0.1;
-    if (k === '`')                       return this.actions.has('debug');
     return false;
   }
 

@@ -1,5 +1,8 @@
 import { PlayScene } from './PlayScene.js';
 import { MetaShopScene } from './MetaShopScene.js';
+import { saveSession } from '../state/createSessionState.js';
+import { weaponData } from '../data/weaponData.js';
+import { StartLoadoutView } from '../ui/title/StartLoadoutView.js';
 
 /**
  * TitleScene — 타이틀 화면
@@ -20,6 +23,7 @@ export class TitleScene {
     this._ctx         = null;
     this._frameId     = 0;
     this._state       = null;
+    this._loadoutView = null;
 
     // exit() 에서 제거하기 위해 바인딩된 핸들러를 보관
     this._onMouseMove = null;
@@ -49,6 +53,8 @@ export class TitleScene {
     window.removeEventListener('keydown',   this._onKeyDown);
 
     if (this._el) { this._el.remove(); this._el = null; }
+    this._loadoutView?.destroy();
+    this._loadoutView = null;
 
     this._canvas = null;
     this._ctx    = null;
@@ -147,7 +153,6 @@ export class TitleScene {
           <div class="t-hints" aria-hidden="true">
             <span><kbd>Enter</kbd> 또는 <kbd>Space</kbd> 시작</span>
             <span>이동: <kbd>WASD</kbd></span>
-            <span>디버그: <kbd>\`</kbd></span>
           </div>
 
           <p class="t-live" id="title-live" aria-live="polite">게임 시작 입력을 기다리는 중입니다.</p>
@@ -156,6 +161,7 @@ export class TitleScene {
     `;
 
     document.getElementById('ui-container').appendChild(this._el);
+    this._loadoutView = new StartLoadoutView(this._el);
   }
 
   _initCanvas() {
@@ -209,11 +215,8 @@ export class TitleScene {
 
     const startGame = () => {
       pulseFlash();
-      setMessage('씬 전환 중…');
-      // 짧은 딜레이로 flash 연출 후 씬 전환
-      setTimeout(() => {
-        this.game.sceneManager.changeScene(new PlayScene(this.game));
-      }, 120);
+      setMessage('시작 무기 선택 중…');
+      this._openStartLoadout({ setMessage, pulseFlash });
     };
 
     const handleDisabled = (action) => {
@@ -271,6 +274,29 @@ export class TitleScene {
     // 리사이즈
     this._onResize = () => { if (this._state) this._resize(); };
     window.addEventListener('resize', this._onResize);
+  }
+
+  _openStartLoadout({ setMessage, pulseFlash }) {
+    const unlockedWeapons = new Set(this.game.session?.meta?.unlockedWeapons ?? ['magic_bolt']);
+    const candidates = weaponData.filter((weapon) => !weapon.isEvolved && unlockedWeapons.has(weapon.id));
+    const selectedStartWeaponId = this.game.session?.meta?.selectedStartWeaponId ?? 'magic_bolt';
+
+    this._loadoutView?.show({
+      weapons: candidates,
+      selectedWeaponId: unlockedWeapons.has(selectedStartWeaponId) ? selectedStartWeaponId : 'magic_bolt',
+      onCancel: () => {
+        setMessage('게임 시작 입력을 기다리는 중입니다.');
+      },
+      onStart: (weaponId) => {
+        this.game.session.meta.selectedStartWeaponId = weaponId;
+        saveSession(this.game.session);
+        pulseFlash();
+        setMessage('씬 전환 중…');
+        setTimeout(() => {
+          this.game.sceneManager.changeScene(new PlayScene(this.game));
+        }, 120);
+      },
+    });
   }
 
   // ────────────────────────────────────────────────────────────

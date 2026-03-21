@@ -56,6 +56,62 @@ test('Phase 4: cooldownMult 적용 — 발사 후 리셋 시 배율 반영', () 
   assert.equal(weapon.currentCooldown, 0.5, `cooldownMult 미적용 (실제: ${weapon.currentCooldown})`);
 });
 
+test('projectileLifetimeMult 적용 — 직선 투사체의 비행 지속 거리가 증가한다', () => {
+  if (!WeaponSystem) return;
+  const weapon = makeWeapon({
+    id: 'magic_bolt',
+    cooldown: 1.0,
+    currentCooldown: 0,
+    behaviorId: 'targetProjectile',
+    range: 400,
+    projectileSpeed: 200,
+  });
+  const player = makePlayer({
+    weapons: [weapon],
+    projectileLifetimeMult: 1.5,
+  });
+  const world  = makeWorld({ player, enemies: [makeEnemy({ x: 10, y: 0 })] });
+
+  WeaponSystem.update({ world });
+
+  assert.equal(world.spawnQueue.length > 0, true, '투사체가 생성되지 않음');
+  assert.equal(
+    world.spawnQueue[0].config.maxRange,
+    600,
+    `직선 투사체 maxRange가 지속시간 배율만큼 증가하지 않음 (실제: ${world.spawnQueue[0].config.maxRange})`,
+  );
+});
+
+test('projectileLifetimeMult 적용 — orbit 무기의 maxLifetime이 증가한다', () => {
+  if (!WeaponSystem) return;
+  const weapon = makeWeapon({
+    id: 'lightning_ring',
+    cooldown: 2.0,
+    currentCooldown: 0,
+    behaviorId: 'orbit',
+    orbitCount: 1,
+    orbitRadius: 72,
+    orbitSpeed: 2.8,
+    radius: 9,
+    damage: 3,
+    pierce: 999,
+  });
+  const player = makePlayer({
+    weapons: [weapon],
+    projectileLifetimeMult: 1.5,
+  });
+  const world = makeWorld({ player, enemies: [makeEnemy({ x: 10, y: 0 })] });
+
+  WeaponSystem.update({ world });
+
+  assert.equal(world.spawnQueue.length > 0, true, 'orbit 투사체가 생성되지 않음');
+  assert.equal(
+    Number(world.spawnQueue[0].config.maxLifetime.toFixed(2)),
+    3.06,
+    `orbit 투사체 maxLifetime 증가 불일치 (실제: ${world.spawnQueue[0].config.maxLifetime})`,
+  );
+});
+
 
 test('isAlive=false 플레이어는 무기 발사 없음', () => {
   if (!WeaponSystem) return;

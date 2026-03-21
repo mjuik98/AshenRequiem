@@ -11,8 +11,9 @@ import { transitionPlayMode, PlayMode }          from '../../state/PlayMode.js';
 import { spawnPickup, spawnEffect, spawnEnemy }  from '../../state/spawnRequest.js';
 
 export const DeathSystem = {
-  update({ world }) {
+  update({ world, data = {} }) {
     const { events, spawnQueue } = world;
+    const totalBosses = Array.isArray(data?.bossData) ? data.bossData.length : Infinity;
 
     for (let i = 0; i < events.deaths.length; i++) {
       const { entity } = events.deaths[i];
@@ -23,6 +24,10 @@ export const DeathSystem = {
         if (world.events.currencyEarned) {
           const reward = _calcCurrencyReward(entity, world.player);
           world.events.currencyEarned.push({ amount: reward });
+        }
+
+        if (entity.isBoss) {
+          world.bossKillCount = (world.bossKillCount ?? 0) + 1;
         }
 
         // deathSpawn (슬라임 분열 등)
@@ -91,14 +96,35 @@ export const DeathSystem = {
             duration: EFFECT_DEFAULTS.burstDuration,
           }
         }));
+
+        if (entity.isBoss && world.bossKillCount >= totalBosses) {
+          _setRunOutcome(world, 'victory');
+          if (world.playMode !== PlayMode.DEAD) {
+            transitionPlayMode(world, PlayMode.DEAD);
+          }
+        }
       }
 
       if (entity.type === 'player') {
-        transitionPlayMode(world, PlayMode.DEAD);
+        _setRunOutcome(world, 'defeat');
+        if (world.playMode !== PlayMode.DEAD) {
+          transitionPlayMode(world, PlayMode.DEAD);
+        }
       }
     }
   },
 };
+
+function _setRunOutcome(world, type) {
+  if (type === 'defeat') {
+    world.runOutcome = { type };
+    return;
+  }
+
+  if (!world.runOutcome) {
+    world.runOutcome = { type };
+  }
+}
 
 function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
   const BIG_GEM_XP = 12;

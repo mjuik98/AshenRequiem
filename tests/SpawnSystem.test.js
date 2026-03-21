@@ -8,12 +8,22 @@
  */
 import assert from 'node:assert/strict';
 import { createSpawnSystem } from '../src/systems/spawn/SpawnSystem.js';
+import { bossData }          from '../src/data/bossData.js';
 import { test, summary }     from './helpers/testRunner.js';
 
 const testWave   = [{ from: 0, to: 999, spawnPerSecond: 2, enemyIds: ['zombie'], eliteChance: 0, eliteIds: [] }];
 const testPlayer = { isAlive: true, x: 0, y: 0 };
 
 console.log('\n[SpawnSystem]');
+
+test('보스 스폰 시점은 300초 단위로 정확히 6회다', () => {
+  assert.deepEqual(
+    bossData.map(boss => boss.at),
+    [300, 600, 900, 1200, 1500, 1800],
+    'bossData의 at 값이 정확한 5분 간격이 아님',
+  );
+  assert.equal(bossData.length, 6, 'bossData 보스 수가 6개가 아님');
+});
 
 test('새 인스턴스는 깨끗한 상태로 시작', () => {
   const sys  = createSpawnSystem();

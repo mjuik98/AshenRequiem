@@ -4,7 +4,7 @@
  * show(session, onPurchase, onBack) 호출로 초기화.
  * 구매 시 onPurchase(upgradeId) 콜백 → MetaShopScene이 처리.
  * refresh(session)으로 구매 후 UI 재렌더.
- * CHANGE: "게임 시작" 버튼 → "메인화면으로" 복귀 버튼
+ * CHANGE: "게임 시작" 버튼 → "메인 화면으로" 복귀 버튼
  * FIX: .ms-root에 pointer-events: auto 추가 — #ui-container의 pointer-events:none 상속으로
  *      스크롤 이벤트가 차단되던 문제 해결
  */
@@ -53,14 +53,20 @@ export class MetaShopView {
       <div class="ms-panel">
 
         <!-- 헤더 -->
-        <div class="ms-header">
-          <h1 class="ms-title">⚗ 영구 강화</h1>
-          <div class="ms-best-row">
-            <span class="ms-best-item">🏆 최고 레벨 <b>Lv.${best.level}</b></span>
-            <span class="ms-best-item">☠ 최다 킬 <b>${best.kills}</b></span>
-            <span class="ms-best-item">⏱ 최장 생존 <b>${_formatTime(best.survivalTime)}</b></span>
+        <header class="ms-header">
+          <div class="ms-header-left">
+            <div class="ms-rune" aria-hidden="true">⚗</div>
+            <div class="ms-heading">
+              <h1 class="ms-title">Meta Shop</h1>
+              <p class="ms-subtitle">영구 강화를 구매해 다음 런을 준비합니다.</p>
+            </div>
           </div>
-        </div>
+          <div class="ms-best-row">
+            <span class="ms-best-item">🏆 Lv.${best.level}</span>
+            <span class="ms-best-item">☠ ${best.kills}</span>
+            <span class="ms-best-item">⏱ ${_formatTime(best.survivalTime)}</span>
+          </div>
+        </header>
 
         <!-- 재화 표시 -->
         <div class="ms-currency-bar">
@@ -105,7 +111,7 @@ export class MetaShopView {
 
         <!-- 하단 버튼 -->
         <div class="ms-footer">
-          <button class="ms-back-btn">← 메인화면으로</button>
+          <button class="ms-back-btn">← 메인 화면으로</button>
         </div>
 
       </div>
@@ -131,8 +137,10 @@ export class MetaShopView {
     s.textContent = `
       .ms-root {
         position: absolute; inset: 0;
-        background: radial-gradient(circle at top, #0e1220 0%, #060810 60%);
-        display: block;
+        background: radial-gradient(circle at 50% 18%, #110d1a 0%, #060810 55%, #020104 100%);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
         overflow-y: auto;
         z-index: 50; font-family: 'Segoe UI', sans-serif;
         color: #eee; padding: 24px 16px;
@@ -140,25 +148,53 @@ export class MetaShopView {
         pointer-events: auto;
       }
       .ms-panel {
-        width: min(680px, calc(100vw - 32px));
+        width: min(780px, 100%);
         margin: 0 auto;
-        background: rgba(255,255,255,0.025);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 20px; padding: 32px 36px;
-        box-shadow: 0 20px 64px rgba(0,0,0,0.55);
+        background: rgba(10,7,18,0.96);
+        border: 1px solid rgba(212,175,106,0.28);
+        border-radius: 20px; padding: 28px 32px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.55),
+                    inset 0 1px 0 rgba(255,255,255,0.03);
       }
-      .ms-header { text-align: center; margin-bottom: 20px; }
+      .ms-header {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+        padding-bottom: 18px; margin-bottom: 20px;
+        border-bottom: 1px solid rgba(212,175,106,0.14);
+      }
+      .ms-header-left { display: flex; align-items: center; gap: 12px; }
+      .ms-rune {
+        width: 34px; height: 34px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(212,175,106,0.14);
+        border: 1px solid rgba(212,175,106,0.3);
+        font-size: 17px;
+        flex-shrink: 0;
+      }
+      .ms-heading { min-width: 0; }
       .ms-title {
-        font-size: 24px; font-weight: 800; color: #ffd54f;
-        letter-spacing: 3px; margin-bottom: 12px;
-        text-shadow: 0 0 20px rgba(255,213,79,0.3);
+        margin: 0;
+        font-size: 15px; font-weight: 600;
+        color: #d4af6a;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+      }
+      .ms-subtitle {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: rgba(244,237,224,0.5);
       }
       .ms-best-row {
-        display: flex; justify-content: center; gap: 20px;
-        flex-wrap: wrap;
+        display: flex; justify-content: flex-end; gap: 8px;
+        flex-wrap: wrap; align-items: center;
       }
-      .ms-best-item { font-size: 12px; color: #888; }
-      .ms-best-item b { color: #ccc; }
+      .ms-best-item {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(212,175,106,0.1);
+        border: 1px solid rgba(212,175,106,0.22);
+        color: rgba(212,175,106,0.74);
+      }
       .ms-currency-bar {
         display: flex; justify-content: space-between; align-items: center;
         background: rgba(255,213,79,0.07);
@@ -213,20 +249,32 @@ export class MetaShopView {
         background: rgba(255,255,255,0.07);
         color: #555; cursor: default;
       }
-      .ms-footer { text-align: center; }
+      .ms-footer {
+        padding-top: 16px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        text-align: center;
+      }
       .ms-back-btn {
-        padding: 14px 60px; border: none; border-radius: 10px;
-        background: linear-gradient(90deg, #546e7a, #37474f);
-        color: #cfd8dc; font-size: 16px; font-weight: 700;
-        cursor: pointer; letter-spacing: 1px;
-        transition: transform 0.15s, box-shadow 0.15s;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        padding: 12px 48px;
+        border-radius: 10px;
+        background: rgba(212,175,106,0.12);
+        border: 1px solid rgba(212,175,106,0.32);
+        color: #d4af6a;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, transform 0.15s;
       }
       .ms-back-btn:hover {
-        transform: translateY(-2px);
-        background: linear-gradient(90deg, #607d8b, #455a64);
-        box-shadow: 0 6px 28px rgba(0,0,0,0.4);
-        color: #fff;
+        transform: translateY(-1px);
+        background: rgba(212,175,106,0.2);
+        border-color: rgba(212,175,106,0.5);
+      }
+      @media (max-width: 640px) {
+        .ms-panel { padding: 24px 20px; }
+        .ms-header { flex-direction: column; align-items: stretch; }
+        .ms-best-row { justify-content: flex-start; }
       }
     `;
     document.head.appendChild(s);

@@ -9,34 +9,43 @@
  * player.bonusProjectileCount 도 합산된다.
  */
 
+import { spawnProjectile } from '../../state/spawnRequest.js';
+import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
+
 /**
  * @param {{ weapon: object, player: object, enemies: object[], spawnQueue: object[] }} ctx
  * @returns {true}
  */
 export function omnidirectional({ weapon, player, spawnQueue }) {
   const count = (weapon.projectileCount ?? 8) + (player?.bonusProjectileCount ?? 0);
+  const lifetimeMult = getProjectileLifetimeMult(player);
+  const speed = weapon.projectileSpeed ?? 340;
+  const maxRange = (weapon.range ?? 460) * lifetimeMult;
+  const maxLifetime = speed > 0 && maxRange > 0 ? maxRange / speed : undefined;
 
   for (let i = 0; i < count; i++) {
     const angle = (i / count) * Math.PI * 2;
-    spawnQueue.push({
-      type: 'projectile',
+    spawnQueue.push(spawnProjectile({
+      x: player.x,
+      y: player.y,
       config: {
         x:    player.x,
         y:    player.y,
         dirX: Math.cos(angle),
         dirY: Math.sin(angle),
-        speed:              weapon.projectileSpeed ?? 340,
+        speed,
         damage:             weapon.damage,
         radius:             weapon.radius ?? 7,
         color:              weapon.projectileColor,
         pierce:             weapon.pierce ?? 2,
-        maxRange:           weapon.range ?? 460,
+        maxRange,
+        maxLifetime,
         behaviorId:         'targetProjectile',
         ownerId:            player.id,
         statusEffectId:     weapon.statusEffectId     ?? null,
         statusEffectChance: weapon.statusEffectChance ?? 1.0,
       },
-    });
+    }));
   }
 
   return true;

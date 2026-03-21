@@ -37,11 +37,17 @@ export function createWorld() {
     // ── 게임 진행 메타 ────────────────────────────────────────────────
     elapsedTime: 0,
     killCount:   0,
+    bossKillCount: 0,
     playMode:    'playing',
+    runOutcome:  null,
 
     // ── 업그레이드 대기열 ─────────────────────────────────────────────
     pendingUpgrade:        null,
     pendingLevelUpChoices: null,
+    runRerollsRemaining:   0,
+    runBanishesRemaining:  0,
+    banishedUpgradeIds:    [],
+    levelUpActionMode:     'select',
 
     /**
      * 현재 레벨업 UI의 원인.

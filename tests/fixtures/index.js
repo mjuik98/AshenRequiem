@@ -116,7 +116,9 @@ export function makeWorld(overrides = {}) {
     elapsedTime: 0,
     deltaTime:   0.016,
     killCount:   0,
+    bossKillCount: 0,
     playMode:    'playing',
+    runOutcome:  null,
     chestRewardQueue: 0,
     pendingLevelUpType: null,
     pendingLevelUpChoices: null,
@@ -171,10 +173,24 @@ export function makeBossData(overrides = {}) {
 
 export function makeSessionState(overrides = {}) {
   return {
-    _version: 2,
+    _version: 5,
     last: { kills: 0, survivalTime: 0, level: 1, weaponsUsed: [] },
     best: { kills: 0, survivalTime: 0, level: 1, ...(overrides.best ?? {}) },
-    meta: { currency: 0, permanentUpgrades: {}, ...(overrides.meta ?? {}) },
+    meta: {
+      currency: 0,
+      permanentUpgrades: {},
+      enemyKills: {},
+      enemiesEncountered: [],
+      killedBosses: [],
+      weaponsUsedAll: [],
+      evolvedWeapons: [],
+      totalRuns: 0,
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+      completedUnlocks: [],
+      selectedStartWeaponId: 'magic_bolt',
+      ...(overrides.meta ?? {}),
+    },
     options: { soundEnabled: true, musicEnabled: true, showFps: false, ...(overrides.options ?? {}) },
   };
 }

@@ -19,8 +19,10 @@ import { PlayUI }                       from './play/PlayUI.js';
 import { PlayResultHandler }            from './play/PlayResultHandler.js';
 import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
 import { transitionPlayMode, PlayMode } from '../state/PlayMode.js';
-import { MetaShopScene }                from './MetaShopScene.js';
+import { TitleScene }                   from './TitleScene.js';
 import { recordWeaponAcquired }         from '../systems/event/codexHandler.js';
+import { saveSession }                  from '../state/createSessionState.js';
+import { UpgradeSystem }                from '../systems/progression/UpgradeSystem.js';
 
 export class PlayScene {
   constructor(game) {
@@ -39,12 +41,15 @@ export class PlayScene {
 
     this._pauseWasDown      = false;
     this._isSceneChanging   = false;
-    this._sceneChangeToken  = 0;
   }
 
   enter() {
     this.world        = createWorld();
     this.world.player = createPlayer(0, 0, this.game.session);
+    this.world.runRerollsRemaining = this.game.session?.meta?.permanentUpgrades?.reroll_charge ?? 0;
+    this.world.runBanishesRemaining = this.game.session?.meta?.permanentUpgrades?.banish_charge ?? 0;
+    this.world.banishedUpgradeIds = [];
+    this.world.levelUpActionMode = 'select';
 
     this._gameData = GameDataLoader.loadDefault();
 
@@ -84,7 +89,10 @@ export class PlayScene {
     this._uiState = new PlayModeStateMachine({
       onLevelUp: () => this._showLevelUpUI(),
       onDead:    () => this._showResultUI(),
-      onResume:  () => this._ui.hidePause(),
+      onResume:  () => {
+        this._ui.hidePause();
+        this._ui.hideLevelUp();
+      },
     });
 
     this._dpr             = this._getEffectiveDpr();
@@ -98,7 +106,6 @@ export class PlayScene {
 
     this._pauseWasDown    = false;
     this._isSceneChanging = false;
-    this._sceneChangeToken += 1;
   }
 
   /**
@@ -153,15 +160,6 @@ export class PlayScene {
 
     const inputState = this.game.inputState ?? this.game.input.poll();
 
-    this._ui.handleInput(inputState);
-    this._ui.updateDebug(
-      this.world,
-      this._ctx,
-      dt,
-      this._gameData.waveData,
-      this._systems?.spawnSystem?.getDebugInfo(this.world.elapsedTime),
-    );
-
     const pauseDown = inputState.isAction('pause');
     if (pauseDown && !this._pauseWasDown) {
       this._handlePauseToggle();
@@ -199,7 +197,6 @@ export class PlayScene {
     this.world             = null;
     this._pauseWasDown     = false;
     this._isSceneChanging  = false;
-    this._sceneChangeToken += 1;
   }
 
   // ── 내부 핸들러 ───────────────────────────────────────────────────────
@@ -210,42 +207,45 @@ export class PlayScene {
     const mode = this.world.playMode;
     if (mode === PlayMode.PLAYING) {
       transitionPlayMode(this.world, PlayMode.PAUSED);
-      const sceneToken = this._sceneChangeToken;
 
-      this._ui.showPause(
-        this.world.player,
-        this._gameData,
-        () => {
+      this._ui.showPause({
+        player: this.world.player,
+        data: this._gameData,
+        world: this.world,
+        session: this.game.session,
+        onResume: () => {
           if (!this.world || this._isSceneChanging) return;
           transitionPlayMode(this.world, PlayMode.PLAYING);
           this._ui.hidePause();
         },
-        async () => {
-          if (this._isSceneChanging) return;
-          this._isSceneChanging = true;
+        onForfeit: () => {
+          if (!this.world || this._isSceneChanging) return;
+          this.world.runOutcome = { type: 'defeat' };
           this._ui.hidePause();
-
-          try {
-            const { TitleScene } = await import('./TitleScene.js');
-            if (!this.world || this._sceneChangeToken !== sceneToken) return;
-            this.game.sceneManager.changeScene(new TitleScene(this.game));
-          } finally {
-            if (this.world && this.world.playMode === PlayMode.PAUSED) {
-              transitionPlayMode(this.world, PlayMode.PLAYING);
-            }
-          }
+          transitionPlayMode(this.world, PlayMode.DEAD);
         },
-        this.world,
-      );
+        onOptionsChange: (nextOptions) => this._updatePauseOptions(nextOptions),
+      });
     } else if (mode === PlayMode.PAUSED) {
       transitionPlayMode(this.world, PlayMode.PLAYING);
       this._ui.hidePause();
     }
   }
 
+  _updatePauseOptions(nextOptions) {
+    if (!this.game.session) return;
+    this.game.session.options = {
+      ...this.game.session.options,
+      ...nextOptions,
+    };
+    saveSession(this.game.session);
+    this._applySessionOptions();
+  }
+
   _showLevelUpUI() {
     const choices = this.world.pendingLevelUpChoices || [];
     if (choices.length === 0) {
+      this.world.levelUpActionMode = 'select';
       transitionPlayMode(this.world, PlayMode.PLAYING);
       return;
     }
@@ -254,11 +254,93 @@ export class PlayScene {
     const isChest = this.world.pendingLevelUpType === 'chest';
     const title   = isChest ? '📦 상자 보상!' : '⬆ LEVEL UP';
 
-    this._ui.showLevelUp(choices, selectedUpgrade => {
-      if (!this.world || this._isSceneChanging) return;
-      this.world.pendingUpgrade = selectedUpgrade;
+    this._ui.showLevelUp({
+      choices,
+      title,
+      rerollsRemaining: this.world.runRerollsRemaining ?? 0,
+      banishesRemaining: this.world.runBanishesRemaining ?? 0,
+      banishMode: this.world.levelUpActionMode === 'banish',
+      onSelect: (selectedUpgrade, index) => this._selectLevelUpChoice(selectedUpgrade, index),
+      onReroll: (index) => this._rerollLevelUpChoice(index),
+      onToggleBanishMode: () => this._toggleLevelUpBanishMode(),
+    });
+  }
+
+  _selectLevelUpChoice(selectedUpgrade, index) {
+    if (!this.world || this._isSceneChanging) return;
+    if (this.world.levelUpActionMode === 'banish') {
+      this._banishLevelUpChoice(index);
+      return;
+    }
+    this.world.levelUpActionMode = 'select';
+    this.world.pendingUpgrade = selectedUpgrade;
+    transitionPlayMode(this.world, PlayMode.PLAYING);
+  }
+
+  _rerollLevelUpChoice(index) {
+    if (!this.world || this._isSceneChanging) return;
+    if ((this.world.runRerollsRemaining ?? 0) <= 0) return;
+
+    const currentChoices = this.world.pendingLevelUpChoices || [];
+    const nextChoices = UpgradeSystem.replaceChoiceAtIndex(
+      this.world.player,
+      currentChoices,
+      index,
+      { banishedUpgradeIds: this.world.banishedUpgradeIds ?? [] },
+    );
+    if (!nextChoices[index] || nextChoices[index]?.id === currentChoices[index]?.id) {
+      this._showLevelUpUI();
+      return;
+    }
+
+    this.world.runRerollsRemaining = Math.max(0, (this.world.runRerollsRemaining ?? 0) - 1);
+    this.world.pendingLevelUpChoices = nextChoices.filter(Boolean);
+    this._showLevelUpUI();
+  }
+
+  _toggleLevelUpBanishMode() {
+    if (!this.world || this._isSceneChanging) return;
+    const canEnter = (this.world.runBanishesRemaining ?? 0) > 0;
+    if (this.world.levelUpActionMode === 'banish') {
+      this.world.levelUpActionMode = 'select';
+    } else if (canEnter) {
+      this.world.levelUpActionMode = 'banish';
+    }
+    this._showLevelUpUI();
+  }
+
+  _banishLevelUpChoice(index) {
+    if (!this.world || this._isSceneChanging) return;
+    if ((this.world.runBanishesRemaining ?? 0) <= 0) return;
+
+    const currentChoices = this.world.pendingLevelUpChoices || [];
+    const targetChoice = currentChoices[index];
+    if (!targetChoice) return;
+
+    const nextBanishedIds = [...new Set([...(this.world.banishedUpgradeIds ?? []), targetChoice.id])];
+    const replacedChoices = UpgradeSystem.replaceChoiceAtIndex(
+      this.world.player,
+      currentChoices,
+      index,
+      { banishedUpgradeIds: nextBanishedIds },
+    );
+    const nextChoices = [...replacedChoices];
+
+    if (!nextChoices[index] || nextChoices[index]?.id === targetChoice.id) {
+      nextChoices.splice(index, 1);
+    }
+
+    this.world.runBanishesRemaining = Math.max(0, (this.world.runBanishesRemaining ?? 0) - 1);
+    this.world.banishedUpgradeIds = nextBanishedIds;
+    this.world.levelUpActionMode = 'select';
+    this.world.pendingLevelUpChoices = nextChoices.filter((choice) => choice && !nextBanishedIds.includes(choice.id));
+
+    if ((this.world.pendingLevelUpChoices?.length ?? 0) === 0) {
       transitionPlayMode(this.world, PlayMode.PLAYING);
-    }, title);
+      return;
+    }
+
+    this._showLevelUpUI();
   }
 
   _showResultUI() {
@@ -274,7 +356,7 @@ export class PlayScene {
       () => {
         if (this._isSceneChanging) return;
         this._isSceneChanging = true;
-        this.game.sceneManager.changeScene(new MetaShopScene(this.game));
+        this.game.sceneManager.changeScene(new TitleScene(this.game));
       },
     );
   }

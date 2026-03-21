@@ -12,7 +12,7 @@
  */
 
 const STORAGE_KEY      = 'ashenRequiem_session';
-const SESSION_VERSION  = 4;
+const SESSION_VERSION  = 5;
 
 function _createDefaultLast() {
   return {
@@ -41,6 +41,10 @@ function _createDefaultMeta() {
     weaponsUsedAll:       [],
     evolvedWeapons:       [],
     totalRuns:            0,
+    unlockedWeapons:      ['magic_bolt'],
+    unlockedAccessories:  [],
+    completedUnlocks:     [],
+    selectedStartWeaponId:'magic_bolt',
   };
 }
 
@@ -80,6 +84,19 @@ function _normalizeSessionState(state) {
       ...defaults.meta,
       ...(state?.meta ?? {}),
       permanentUpgrades: { ...(state?.meta?.permanentUpgrades ?? {}) },
+      enemyKills: { ...(state?.meta?.enemyKills ?? {}) },
+      unlockedWeapons: Array.isArray(state?.meta?.unlockedWeapons)
+        ? [...state.meta.unlockedWeapons]
+        : [...defaults.meta.unlockedWeapons],
+      unlockedAccessories: Array.isArray(state?.meta?.unlockedAccessories)
+        ? [...state.meta.unlockedAccessories]
+        : [...defaults.meta.unlockedAccessories],
+      completedUnlocks: Array.isArray(state?.meta?.completedUnlocks)
+        ? [...state.meta.completedUnlocks]
+        : [...defaults.meta.completedUnlocks],
+      selectedStartWeaponId: typeof state?.meta?.selectedStartWeaponId === 'string'
+        ? state.meta.selectedStartWeaponId
+        : defaults.meta.selectedStartWeaponId,
     },
     options: {
       ...defaults.options,
@@ -209,6 +226,24 @@ function _migrate(raw) {
         };
       },
     },
+    {
+      from: 4,
+      migrate(s) {
+        return {
+          ...s,
+          _version: 5,
+          meta: {
+            ...s.meta,
+            unlockedWeapons: Array.isArray(s.meta?.unlockedWeapons) ? s.meta.unlockedWeapons : ['magic_bolt'],
+            unlockedAccessories: Array.isArray(s.meta?.unlockedAccessories) ? s.meta.unlockedAccessories : [],
+            completedUnlocks: Array.isArray(s.meta?.completedUnlocks) ? s.meta.completedUnlocks : [],
+            selectedStartWeaponId: typeof s.meta?.selectedStartWeaponId === 'string'
+              ? s.meta.selectedStartWeaponId
+              : 'magic_bolt',
+          },
+        };
+      },
+    },
   ];
 
   for (const m of migrations) {
@@ -322,7 +357,20 @@ export function loadSession() {
  * @property {number}  _version
  * @property {{ kills: number, survivalTime: number, level: number, weaponsUsed: string[] }} last
  * @property {{ kills: number, survivalTime: number, level: number }} best
- * @property {{ currency: number, permanentUpgrades: Record<string, number> }} meta
+ * @property {{
+ *   currency: number,
+ *   permanentUpgrades: Record<string, number>,
+ *   enemyKills: Record<string, number>,
+ *   enemiesEncountered: string[],
+ *   killedBosses: string[],
+ *   weaponsUsedAll: string[],
+ *   evolvedWeapons: string[],
+ *   totalRuns: number,
+ *   unlockedWeapons: string[],
+ *   unlockedAccessories: string[],
+ *   completedUnlocks: string[],
+ *   selectedStartWeaponId: string
+ * }} meta
  * @property {{
  *   soundEnabled: boolean,
  *   musicEnabled: boolean,

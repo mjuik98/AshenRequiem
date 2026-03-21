@@ -10,7 +10,6 @@
 import { HudView }                     from '../../ui/hud/HudView.js';
 import { LevelUpView }                 from '../../ui/levelup/LevelUpView.js';
 import { ResultView }                  from '../../ui/result/ResultView.js';
-import { DebugView }                   from '../../ui/debug/DebugView.js';
 import { BossHudView }                 from '../../ui/boss/BossHudView.js';
 import { PauseView }                   from '../../ui/pause/PauseView.js';
 import { BossAnnouncementView }        from '../../ui/boss/BossAnnouncementView.js';
@@ -21,7 +20,6 @@ export class PlayUI {
     this._hud          = new HudView(container);
     this._levelUp      = new LevelUpView(container);
     this._result       = new ResultView(container);
-    this._debug        = new DebugView(container);
     this._bossHud      = new BossHudView(container);
     this._pause        = new PauseView(container);
     this._bossAnnounce = new BossAnnouncementView(container);
@@ -38,14 +36,6 @@ export class PlayUI {
     this._bossHud.update(world.enemies);
   }
 
-  // ── 디버그 ────────────────────────────────────────────────────────────
-
-  handleInput(input) { this._debug.handleInput(input); }
-
-  updateDebug(world, ctx, dt, waveData, spawnDebug) {
-    this._debug.update(world, ctx, dt, waveData, spawnDebug);
-  }
-
   // ── 보스 등장 / 진화 연출 ─────────────────────────────────────────────
 
   getBossAnnouncementView() { return this._bossAnnounce; }
@@ -53,15 +43,8 @@ export class PlayUI {
 
   // ── 일시정지 ──────────────────────────────────────────────────────────
 
-  /**
-   * @param {object}        player
-   * @param {object}        data
-   * @param {Function}      onResume
-   * @param {Function|null} onMainMenu
-   * @param {object|null}   world   FIX: 생존 시간·킬 수 표시를 위해 추가
-   */
-  showPause(player, data, onResume, onMainMenu = null, world = null) {
-    this._pause.show(player, data, onResume, onMainMenu, world);
+  showPause(config) {
+    this._pause.show(config);
   }
 
   hidePause() { this._pause.hide(); }
@@ -70,9 +53,11 @@ export class PlayUI {
 
   // ── 레벨업 오버레이 ───────────────────────────────────────────────────
 
-  showLevelUp(choices, onSelect, title) {
-    this._levelUp.show(choices, onSelect, title);
+  showLevelUp(config) {
+    this._levelUp.show(config);
   }
+
+  hideLevelUp() { this._levelUp.hide(); }
 
   // ── 결과 화면 ─────────────────────────────────────────────────────────
 
@@ -88,7 +73,6 @@ export class PlayUI {
       this._hud,
       this._levelUp,
       this._result,
-      this._debug,
       this._bossHud,
       this._pause,
       this._bossAnnounce,

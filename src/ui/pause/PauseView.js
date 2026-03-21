@@ -13,12 +13,11 @@
  *   NEW  HP 바: 30% 이하 pulse 경고, 색상 3단계 전환
  *   NEW  장신구: 빈 슬롯(점선) vs 잠금 슬롯(자물쇠) 구분
  *   NEW  탭 전환 fade-up 애니메이션
- *   NEW  푸터 버튼: ESC / M 단축키 배지
+ *   NEW  푸터 버튼: ESC 단축키 배지
  *   NEW  show()에 world 파라미터 추가 (생존 시간·킬 수 표시용, optional)
  *
  * API 변경:
- *   show(player, data, onResume, onMainMenu?, world?) — world 추가(선택)
- *   PlayUI.showPause() / PlayScene._handlePauseToggle() 에서 world 전달 권장
+ *   show({ player, data, onResume, onForfeit?, world?, session? })
  *
  * FIX: synergyData / weaponEvolutionData 직접 import 제거 (R-18 준수)
  *   data 파라미터로 DI 수신
@@ -26,7 +25,7 @@
  * FIX: destroy() 시 tooltip DOM 반드시 정리 (TOOLTIP-LEAK)
  */
 
-import { getAccessoryById, buildAccessoryLevelDesc, buildAccessoryShortDesc }
+import { getAccessoryById, buildAccessoryLevelDesc, buildAccessoryCurrentDesc }
   from '../../data/accessoryData.js';
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -54,6 +53,17 @@ const BASE_STATS = {
   critMultiplier:  2.0,
   xpMult:          1.0,
   globalDamageMult:1.0,
+  currencyMult:    1.0,
+  projectileSizeMult: 1.0,
+  projectileLifetimeMult: 1.0,
+};
+
+const PAUSE_AUDIO_DEFAULTS = {
+  soundEnabled: true,
+  musicEnabled: true,
+  masterVolume: 80,
+  bgmVolume: 60,
+  sfxVolume: 100,
 };
 
 export class PauseView {
@@ -64,11 +74,17 @@ export class PauseView {
     this.el.setAttribute('aria-hidden', 'true');
 
     this._onResume        = null;
-    this._onMainMenu      = null;
+    this._onForfeit       = null;
+    this._onOptionsChange = null;
     this._tt              = null;
     this._ttHideTimer     = null;
     this._data            = null;
     this._indexes         = null;
+    this._player          = null;
+    this._world           = null;
+    this._session         = null;
+    this._pauseOptions    = { ...PAUSE_AUDIO_DEFAULTS };
+    this._activeTabName   = 'weapons';
     this._isClosingToMenu = false;
 
     this._injectStyles();
@@ -77,23 +93,34 @@ export class PauseView {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  /**
-   * @param {object}        player
-   * @param {object}        data          GameDataLoader 반환값
-   * @param {Function}      onResume
-   * @param {Function|null} onMainMenu
-   * @param {object|null}   world         선택 — 생존시간·킬수 표시용
-   */
-  show(player, data, onResume, onMainMenu = null, world = null) {
+  show({
+    player,
+    data,
+    onResume,
+    onForfeit = null,
+    onOptionsChange = null,
+    world = null,
+    session = null,
+  }) {
     clearTimeout(this._ttHideTimer);
     this._isClosingToMenu = false;
     this._onResume   = onResume;
-    this._onMainMenu = onMainMenu;
+    this._onForfeit = onForfeit;
+    this._onOptionsChange = onOptionsChange;
     this._data       = data;
     this._indexes    = this._buildIndexes(data);
+    this._player     = player;
+    this._world      = world;
+    this._session    = session;
+    this._pauseOptions = {
+      ...PAUSE_AUDIO_DEFAULTS,
+      ...(session?.options ?? {}),
+    };
+    this._activeTabName = 'weapons';
 
     this._render(player, world);
     this._bindTooltips(player);
+    this._bindAudioControls();
     this._bindKeyboard();
 
     this.el.setAttribute('aria-hidden', 'false');
@@ -107,7 +134,13 @@ export class PauseView {
     this.el.setAttribute('aria-hidden', 'true');
     this.el.style.display = 'none';
     this._onResume        = null;
-    this._onMainMenu      = null;
+    this._onForfeit       = null;
+    this._onOptionsChange = null;
+    this._player          = null;
+    this._world           = null;
+    this._session         = null;
+    this._pauseOptions    = { ...PAUSE_AUDIO_DEFAULTS };
+    this._activeTabName   = 'weapons';
     this._isClosingToMenu = false;
   }
 
@@ -122,6 +155,10 @@ export class PauseView {
     this._tt     = null;
     this._data   = null;
     this._indexes = null;
+    this._player = null;
+    this._world = null;
+    this._session = null;
+    this._pauseOptions = { ...PAUSE_AUDIO_DEFAULTS };
     this._isClosingToMenu = false;
     this.el.remove();
   }
@@ -189,19 +226,22 @@ export class PauseView {
 
         <!-- ── 탭 네비 ── -->
         <nav class="pv-tabs" role="tablist" aria-label="정보 탭">
-          <button class="pv-tab active" type="button" role="tab" aria-selected="true" data-tab-name="weapons">
+          <button class="pv-tab ${this._activeTabName === 'weapons' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'weapons'}" data-tab-name="weapons">
             무기 <span class="pv-tab-cnt">${weapons.length}/${maxWpnSlots}</span>
           </button>
-          <button class="pv-tab" type="button" role="tab" aria-selected="false" data-tab-name="accessories">
+          <button class="pv-tab ${this._activeTabName === 'accessories' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'accessories'}" data-tab-name="accessories">
             장신구 <span class="pv-tab-cnt">${accessories.length}/${maxAccSlots}</span>
           </button>
-          <button class="pv-tab" type="button" role="tab" aria-selected="false" data-tab-name="stats">
+          <button class="pv-tab ${this._activeTabName === 'stats' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'stats'}" data-tab-name="stats">
             스탯
+          </button>
+          <button class="pv-tab ${this._activeTabName === 'sound' ? 'active' : ''}" type="button" role="tab" aria-selected="${this._activeTabName === 'sound'}" data-tab-name="sound">
+            사운드
           </button>
         </nav>
 
         <!-- ── 무기 탭 ── -->
-        <div class="pv-tab-content active" id="pv-tab-weapons" role="tabpanel">
+        <div class="pv-tab-content ${this._activeTabName === 'weapons' ? 'active' : ''}" id="pv-tab-weapons" role="tabpanel">
           <div class="pv-weapon-list">
             ${weapons.length > 0
               ? weapons.map(w => this._renderWeaponCard(w, bonusProjs, player)).join('')
@@ -210,29 +250,34 @@ export class PauseView {
         </div>
 
         <!-- ── 장신구 탭 ── -->
-        <div class="pv-tab-content" id="pv-tab-accessories" role="tabpanel">
+        <div class="pv-tab-content ${this._activeTabName === 'accessories' ? 'active' : ''}" id="pv-tab-accessories" role="tabpanel">
           <div class="pv-acc-grid">
             ${this._renderAccessoryGrid(accessories, maxAccSlots)}
           </div>
         </div>
 
         <!-- ── 스탯 탭 ── -->
-        <div class="pv-tab-content" id="pv-tab-stats" role="tabpanel">
+        <div class="pv-tab-content ${this._activeTabName === 'stats' ? 'active' : ''}" id="pv-tab-stats" role="tabpanel">
           ${this._renderStats(player, activeSynergies)}
+        </div>
+
+        <!-- ── 사운드 탭 ── -->
+        <div class="pv-tab-content ${this._activeTabName === 'sound' ? 'active' : ''}" id="pv-tab-sound" role="tabpanel">
+          ${this._renderSoundControls()}
         </div>
 
         <!-- ── 푸터 ── -->
         <footer class="pv-footer">
+          ${this._onForfeit
+            ? `<button class="pv-btn-forfeit" id="pv-forfeit-btn" type="button" aria-label="전투 포기">
+                전투 포기
+               </button>`
+            : ''}
           <button class="pv-btn-resume" id="pv-resume-btn" type="button" aria-label="게임 재개 (ESC)">
             <span class="pv-btn-arrow" aria-hidden="true"></span>
             재개
             <kbd class="pv-kbd">ESC</kbd>
           </button>
-          ${this._onMainMenu != null
-            ? `<button class="pv-btn-menu" id="pv-menu-btn" type="button" aria-label="메인메뉴로 (M)">
-                메인메뉴 <kbd class="pv-kbd pv-kbd-dim">M</kbd>
-               </button>`
-            : ''}
         </footer>
 
       </div>
@@ -245,13 +290,10 @@ export class PauseView {
       this._onResume?.();
     });
 
-    const menuBtn = this.el.querySelector('#pv-menu-btn');
-    menuBtn?.addEventListener('click', () => {
-      if (this._isClosingToMenu || !this._onMainMenu) return;
-      this._isClosingToMenu = true;
-      resumeBtn?.setAttribute('disabled', 'disabled');
-      menuBtn.setAttribute('disabled', 'disabled');
-      this._onMainMenu();
+    const forfeitBtn = this.el.querySelector('#pv-forfeit-btn');
+    forfeitBtn?.addEventListener('click', () => {
+      if (this._isClosingToMenu) return;
+      this._onForfeit?.();
     });
 
     this._bindTabs();
@@ -268,31 +310,9 @@ export class PauseView {
 
     const maxLevel  = weapon.maxLevel ?? 5;
     const level     = weapon.level    ?? 1;
-    const cooldown  = weapon.cooldown ?? 1;
-    const currentCd = weapon.currentCooldown ?? 0;
-    const cdRatio   = Math.max(0, Math.min(1, (cooldown - currentCd) / cooldown));
-    const isReady   = currentCd <= 0.05;
-    const cdText    = isReady ? 'Ready' : `${Math.max(0, currentCd).toFixed(1)}s`;
-
-    const totalProj = (weapon.projectileCount ?? 1) + Math.floor(bonusProjs);
-
     const pips = Array.from({ length: maxLevel }, (_, i) =>
       `<div class="pv-pip${i < level ? ' filled' : ''}"></div>`
     ).join('');
-
-    // 진화 힌트
-    const evoHint = this._buildEvoHintForWeapon(weapon.id, player);
-
-    // 부가 스탯
-    const extraStats = [];
-    if (weapon.pierce != null && !['orbit','areaBurst'].includes(behaviorId)) {
-      extraStats.push(`관통 <b>×${weapon.pierce}</b>`);
-    }
-    if (totalProj > 1) extraStats.push(`${totalProj}발`);
-    if (weapon.range  != null && behaviorId === 'areaBurst') {
-      extraStats.push(`범위 <b>${Math.round(weapon.range ?? weapon.radius ?? 80)}px</b>`);
-    }
-    if (weapon.orbitCount) extraStats.push(`구체 <b>×${weapon.orbitCount + Math.floor(bonusProjs)}</b>`);
 
     return `
       <div class="pv-wcard${isEvolved ? ' evolved' : ''}" data-tip-weapon="${_escapeAttr(weapon.id ?? '')}" tabindex="0" role="group" aria-label="${_escapeAttr(weapon.name ?? '무기')} 상세 정보">
@@ -306,59 +326,12 @@ export class PauseView {
               ${_escapeHtml(weapon.name ?? weapon.id ?? '무기')}
               <span class="pv-wtag ${typeInfo.cls}" aria-label="무기 타입">${typeInfo.label}</span>
             </div>
-            <div class="pv-wstats">
-              <span class="pv-wst">DMG <b>${weapon.damage ?? '—'}</b></span>
-              <span class="pv-wst">CD <b>${cooldown.toFixed(1)}s</b></span>
-              ${extraStats.map(s => `<span class="pv-wst">${s}</span>`).join('')}
-            </div>
           </div>
           <div class="pv-wright" aria-label="레벨 ${level}/${maxLevel}">
             <div class="pv-level-pips">${pips}</div>
+            <span class="pv-wlv-label">Lv.${level}</span>
           </div>
         </div>
-
-        <!-- 쿨다운 프로그레스 바 -->
-        <div class="pv-cd-row" aria-label="쿨다운 ${cdText}">
-          <div class="pv-cd-dot ${isReady ? 'ready' : 'cooling'}" aria-hidden="true"></div>
-          <div class="pv-cd-track">
-            <div class="pv-cd-fill ${isReady ? 'ready' : 'cooling'}" style="width:${Math.round(cdRatio * 100)}%"></div>
-          </div>
-          <span class="pv-cd-text${isReady ? ' ready' : ''}">${cdText}</span>
-        </div>
-
-        ${evoHint}
-      </div>
-    `;
-  }
-
-  _buildEvoHintForWeapon(weaponId, player) {
-    const evoData = this._data?.weaponEvolutionData ?? [];
-    const recipe  = evoData.find(r => r.requires?.weaponId === weaponId);
-    if (!recipe) return '';
-
-    const alreadyEvolved = player.evolvedWeapons?.has(recipe.id);
-    if (alreadyEvolved) return '';
-
-    const accessoryById = this._indexes?.accessoryById ?? new Map();
-    const accNames = (recipe.requires?.accessoryIds ?? [])
-      .map(id => accessoryById.get(id)?.name ?? id)
-      .join(', ');
-
-    const weapon   = player.weapons?.find(w => w.id === weaponId);
-    const maxLevel = (this._data?.weaponData ?? []).find(w => w.id === weaponId)?.maxLevel ?? 5;
-    const curLevel = weapon?.level ?? 0;
-
-    const pips = Array.from({ length: maxLevel }, (_, i) =>
-      `<div class="pv-evo-pip${i < curLevel ? ' done' : ''}"></div>`
-    ).join('');
-
-    return `
-      <div class="pv-evo-hint" aria-label="진화 조건">
-        <span class="pv-evo-hint-icon" aria-hidden="true">✦</span>
-        <span class="pv-evo-hint-text">
-          Lv.MAX${accNames ? ` + <strong>${_escapeHtml(accNames)}</strong>` : ''} 보유 시 진화
-        </span>
-        <div class="pv-evo-pips" aria-label="레벨 진행도">${pips}</div>
       </div>
     `;
   }
@@ -383,7 +356,7 @@ export class PauseView {
               <span class="pv-rarity-badge ${isRare ? 'rb-rare' : 'rb-common'}">${isRare ? '희귀' : '일반'}</span>
             </div>
             <div class="pv-aname">${_escapeHtml(acc.name ?? acc.id ?? '장신구')}</div>
-            <div class="pv-aeffect">${_buildShortEffectHtml(acc, this._indexes?.accessoryById)}</div>
+            <div class="pv-adesc">${_escapeHtml(_buildCompactAccessorySummary(acc, this._indexes?.accessoryById))}</div>
             <div class="pv-alevel-row">
               <div class="pv-level-pips">${lvPips}</div>
               <span class="pv-alv-label">Lv.${acc.level ?? 1}</span>
@@ -428,9 +401,13 @@ export class PauseView {
     const cm   = (player.critMultiplier ?? 2.0) * 100;
     const xpm  = (player.xpMult      ?? 1.0) * 100;
     const dmg  = (player.globalDamageMult ?? 1.0) * 100;
+    const gold = (player.currencyMult ?? 1.0) * 100;
+    const projSize = (player.projectileSizeMult ?? 1.0) * 100;
+    const projLifetime = (player.projectileLifetimeMult ?? 1.0) * 100;
     const cd   = player.cooldownMult ?? 1.0;
     const cdBonus = Math.round((1.0 - cd) * 100);
     const bp   = player.bonusProjectileCount ?? 0;
+    const wallet = this._session?.meta?.currency ?? 0;
 
     // 보너스 계산 (base 대비)
     const msBonus  = ms  - BASE_STATS.moveSpeed;
@@ -440,6 +417,9 @@ export class PauseView {
     const cmBonus  = cm  - (BASE_STATS.critMultiplier * 100);
     const xpmBonus = xpm - (BASE_STATS.xpMult * 100);
     const dmgBonus = dmg - (BASE_STATS.globalDamageMult * 100);
+    const goldBonus = gold - (BASE_STATS.currencyMult * 100);
+    const projSizeBonus = projSize - (BASE_STATS.projectileSizeMult * 100);
+    const projLifetimeBonus = projLifetime - (BASE_STATS.projectileLifetimeMult * 100);
 
     const st = (icon, key, base, bonus, unit, ariaLabel) => {
       const bonusHtml = bonus > 0.05
@@ -491,11 +471,71 @@ export class PauseView {
           ${st('×', '크리티컬 데미지',Math.round(BASE_STATS.critMultiplier*100), cmBonus, '%', `크리티컬 데미지 ${cm.toFixed(0)}%`)}
           ${st('⚔', '데미지 증가',    Math.round(BASE_STATS.globalDamageMult*100), dmgBonus, '%', `데미지 증가 ${dmg.toFixed(0)}%`)}
           ${st('★', '경험치 획득',    100, xpmBonus, '%', `경험치 획득 ${xpm.toFixed(0)}%`)}
+          ${st('💰', '골드 획득',     100, goldBonus, '%', `골드 획득 ${gold.toFixed(0)}%`)}
+          ${st('◌', '투사체 크기/범위', 100, projSizeBonus, '%', `투사체 크기/범위 ${projSize.toFixed(0)}%`)}
+          ${st('⌛', '투사체 지속시간', 100, projLifetimeBonus, '%', `투사체 지속시간 ${projLifetime.toFixed(0)}%`)}
           ${st('⟳', '쿨다운 배율',    `×${cd.toFixed(2)}`, cdBonus, cdBonus > 0 ? '% 단축' : '', `쿨다운 배율 ×${cd.toFixed(2)}`)}
           ${bp > 0 ? st('+', '추가 투사체', 0, bp, '발', `추가 투사체 +${bp}발`) : ''}
+          ${st('¤', '보유 재화', wallet.toLocaleString(), 0, '', `보유 재화 ${wallet}`)}
         </div>
       </div>
       ${synHtml}
+    `;
+  }
+
+  _renderSoundControls() {
+    const opts = this._pauseOptions;
+    return `
+      <div class="pv-sound-panel">
+        <div class="pv-sec-label">Quick Audio</div>
+        ${this._renderSoundSlider('masterVolume', '마스터 볼륨', opts.masterVolume)}
+        ${this._renderSoundSlider('bgmVolume', '배경음악 (BGM)', opts.bgmVolume)}
+        ${this._renderSoundSlider('sfxVolume', '효과음 (SFX)', opts.sfxVolume)}
+
+        <div class="pv-sound-toggles">
+          ${this._renderSoundToggle('musicEnabled', '배경음악', opts.musicEnabled)}
+          ${this._renderSoundToggle('soundEnabled', '효과음', opts.soundEnabled)}
+        </div>
+
+        <div class="pv-sound-note">
+          변경 즉시 적용됩니다.
+        </div>
+      </div>
+    `;
+  }
+
+  _renderSoundSlider(key, label, value) {
+    return `
+      <label class="pv-sound-row">
+        <div class="pv-sound-row-head">
+          <span>${_escapeHtml(label)}</span>
+          <span id="pv-sound-value-${_escapeAttr(key)}">${value}</span>
+        </div>
+        <input
+          class="pv-audio-slider"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value="${value}"
+          data-sound-key="${_escapeAttr(key)}"
+          aria-label="${_escapeAttr(label)}"
+        />
+      </label>
+    `;
+  }
+
+  _renderSoundToggle(key, label, enabled) {
+    return `
+      <button
+        class="pv-sound-toggle${enabled ? ' active' : ''}"
+        type="button"
+        data-toggle-key="${_escapeAttr(key)}"
+        aria-pressed="${enabled}"
+      >
+        <span>${_escapeHtml(label)}</span>
+        <span class="pv-sound-toggle-pill">${enabled ? 'ON' : 'OFF'}</span>
+      </button>
     `;
   }
 
@@ -540,6 +580,7 @@ export class PauseView {
 
   _activateTab(name) {
     if (!name) return;
+    this._activeTabName = name;
 
     this.el.querySelectorAll('.pv-tab').forEach(tab => {
       const active = tab.dataset.tabName === name;
@@ -551,6 +592,35 @@ export class PauseView {
     this.el.querySelectorAll('.pv-tab-content').forEach(panel => {
       panel.classList.toggle('active', panel.id === `pv-tab-${name}`);
     });
+  }
+
+  _bindAudioControls() {
+    this.el.querySelectorAll('.pv-audio-slider').forEach(input => {
+      input.addEventListener('input', (event) => {
+        const key = event.currentTarget.dataset.soundKey;
+        const value = Number(event.currentTarget.value);
+        this._pauseOptions[key] = value;
+        const valueEl = this.el.querySelector(`#pv-sound-value-${key}`);
+        if (valueEl) valueEl.textContent = String(value);
+        this._emitOptionsChange();
+      });
+    });
+
+    this.el.querySelectorAll('.pv-sound-toggle').forEach(button => {
+      button.addEventListener('click', (event) => {
+        const key = event.currentTarget.dataset.toggleKey;
+        this._pauseOptions[key] = !this._pauseOptions[key];
+        event.currentTarget.classList.toggle('active', this._pauseOptions[key]);
+        event.currentTarget.setAttribute('aria-pressed', String(this._pauseOptions[key]));
+        const pill = event.currentTarget.querySelector('.pv-sound-toggle-pill');
+        if (pill) pill.textContent = this._pauseOptions[key] ? 'ON' : 'OFF';
+        this._emitOptionsChange();
+      });
+    });
+  }
+
+  _emitOptionsChange() {
+    this._onOptionsChange?.({ ...this._pauseOptions });
   }
 
   _buildIndexes(data) {
@@ -736,13 +806,6 @@ export class PauseView {
     this._onKeyDown = (e) => {
       if (!this.isVisible()) return;
       // ESC는 PlayScene._handlePauseToggle()이 단독 처리 (중복 방지)
-      if (e.key === 'm' || e.key === 'M') {
-        if (this._onMainMenu && !this._isClosingToMenu) {
-          e.preventDefault();
-          this._isClosingToMenu = true;
-          this._onMainMenu();
-        }
-      }
     };
     window.addEventListener('keydown', this._onKeyDown);
   }
@@ -767,6 +830,10 @@ export class PauseView {
         display: flex; align-items: center; justify-content: center;
         z-index: 35;
         font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+        pointer-events: auto;
+      }
+      .pv-overlay * {
+        pointer-events: auto;
       }
       .pv-backdrop {
         position: absolute; inset: 0;
@@ -775,9 +842,10 @@ export class PauseView {
       }
       .pv-panel {
         position: relative; z-index: 1;
-        width: min(700px, calc(100vw - 24px));
+        width: min(960px, calc(100vw - 24px));
         max-height: calc(100vh - 40px);
         overflow-y: auto;
+        overscroll-behavior: contain;
         background: linear-gradient(160deg, rgba(24,18,36,0.98), rgba(10,8,18,0.99));
         border: 1px solid rgba(212,175,106,0.25);
         border-radius: 20px;
@@ -860,7 +928,7 @@ export class PauseView {
       .pv-wcard.evolved { border-color: rgba(212,175,106,0.28); background: rgba(212,175,106,0.04); }
       .pv-wcard.evolved:hover, .pv-wcard.evolved:focus-visible { border-color: rgba(212,175,106,0.48); }
 
-      .pv-wcard-top { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; margin-bottom: 10px; }
+      .pv-wcard-top { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; }
       .pv-wicon {
         width: 48px; height: 48px; border-radius: 10px;
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
@@ -880,39 +948,11 @@ export class PauseView {
       .t-proj   { background: rgba(220,200,100,0.12); color: #d4c85a;  border: 1px solid rgba(220,200,100,0.22); }
       .t-chain  { background: rgba(170,140,220,0.12); color: #b89fd4;  border: 1px solid rgba(170,140,220,0.22); }
       .t-burst  { background: rgba(220,160,80,0.14);  color: #d4965a;  border: 1px solid rgba(220,160,80,0.25); }
-      .pv-wstats { display: flex; gap: 12px; flex-wrap: wrap; }
-      .pv-wst    { font-size: 11px; color: rgba(255,255,255,0.3); }
-      .pv-wst b  { color: rgba(255,255,255,0.6); font-weight: 600; }
-
       .pv-wright { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+      .pv-wlv-label  { font-size: 10px; font-weight: 700; color: rgba(212,175,106,0.5); }
       .pv-level-pips { display: flex; gap: 3px; }
       .pv-pip { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); }
       .pv-pip.filled { background: #d4af6a; border-color: #d4af6a; }
-
-      /* 쿨다운 바 */
-      .pv-cd-row  { display: flex; align-items: center; gap: 9px; }
-      .pv-cd-dot  { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-      .pv-cd-dot.ready   { background: #66bb6a; }
-      .pv-cd-dot.cooling { background: #ffa726; }
-      .pv-cd-track { flex: 1; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-      .pv-cd-fill  { height: 100%; border-radius: 2px; }
-      .pv-cd-fill.ready   { background: #66bb6a; }
-      .pv-cd-fill.cooling { background: #ffa726; }
-      .pv-cd-text { font-size: 10px; color: rgba(255,255,255,0.28); width: 30px; text-align: right; flex-shrink: 0; }
-      .pv-cd-text.ready { color: #66bb6a; }
-
-      /* 진화 힌트 */
-      .pv-evo-hint {
-        display: flex; align-items: center; gap: 8px;
-        background: rgba(212,175,106,0.07); border: 1px solid rgba(212,175,106,0.2);
-        border-radius: 8px; padding: 7px 10px; margin-top: 8px;
-      }
-      .pv-evo-hint-icon { font-size: 11px; color: #d4af6a; flex-shrink: 0; }
-      .pv-evo-hint-text { font-size: 11px; color: rgba(212,175,106,0.6); flex: 1; }
-      .pv-evo-hint-text strong { color: #d4af6a; font-weight: 600; }
-      .pv-evo-pips { display: flex; gap: 3px; flex-shrink: 0; }
-      .pv-evo-pip { width: 7px; height: 7px; border-radius: 50%; background: rgba(212,175,106,0.15); border: 1px solid rgba(212,175,106,0.28); }
-      .pv-evo-pip.done { background: #d4af6a; border-color: #d4af6a; }
 
       /* ── 장신구 ── */
       .pv-acc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
@@ -933,8 +973,15 @@ export class PauseView {
       .rb-rare   { color: rgba(212,175,106,0.7); }
       .rb-common { color: rgba(200,190,160,0.45); }
       .pv-aname   { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.82); margin-bottom: 4px; }
-      .pv-aeffect { font-size: 11px; color: rgba(255,255,255,0.36); margin-bottom: 10px; line-height: 1.5; }
-      .pv-aeffect-line { display: block; }
+      .pv-adesc {
+        font-size: 11px;
+        color: rgba(255,255,255,0.36);
+        margin-bottom: 10px;
+        line-height: 1.5;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       .pvt-level-row {
         font-size: 10px; color: rgba(255,255,255,0.6);
         line-height: 1.7; letter-spacing: 0.01em;
@@ -997,10 +1044,84 @@ export class PauseView {
 
       .pv-empty-msg { font-size: 12px; color: rgba(255,255,255,0.25); padding: 20px 0; text-align: center; }
 
+      /* ── 사운드 ── */
+      .pv-sound-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .pv-sound-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+      .pv-sound-row-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(255,255,255,0.78);
+      }
+      .pv-audio-slider {
+        width: 100%;
+        accent-color: #d4af6a;
+      }
+      .pv-sound-toggles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .pv-sound-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.72);
+        cursor: pointer;
+      }
+      .pv-sound-toggle.active {
+        border-color: rgba(212,175,106,0.28);
+        background: rgba(212,175,106,0.08);
+        color: #e5cc90;
+      }
+      .pv-sound-toggle-pill {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+      }
+      .pv-sound-note {
+        font-size: 11px;
+        color: rgba(255,255,255,0.35);
+      }
+
       /* ── 푸터 ── BUG FIX: 하드코딩 rgba, hover 전에도 항상 표시 */
       .pv-footer {
         display: flex; gap: 10px; padding: 16px 24px;
         border-top: 1px solid rgba(255,255,255,0.06);
+      }
+      .pv-btn-forfeit {
+        padding: 12px 16px;
+        background: rgba(180,60,60,0.12);
+        border: 1px solid rgba(180,60,60,0.28);
+        color: rgba(255,160,160,0.82);
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .pv-btn-forfeit:hover {
+        background: rgba(180,60,60,0.2);
+        border-color: rgba(220,90,90,0.42);
       }
       .pv-btn-resume {
         flex: 1; padding: 12px;
@@ -1016,24 +1137,11 @@ export class PauseView {
       .pv-btn-resume:disabled { opacity: 0.5; cursor: wait; }
       .pv-btn-arrow { width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 7px; border-color: transparent transparent transparent #d4af6a; }
 
-      .pv-btn-menu {
-        padding: 12px 18px;
-        background: rgba(255,255,255,0.07);          /* ← 하드코딩 */
-        border: 1px solid rgba(255,255,255,0.18);    /* ← 하드코딩 */
-        color: rgba(255,255,255,0.6);               /* ← 하드코딩 */
-        border-radius: 10px; font-size: 12px; font-weight: 600;
-        cursor: pointer; transition: all 0.15s;
-        display: flex; align-items: center; gap: 8px;
-      }
-      .pv-btn-menu:hover { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.28); }
-      .pv-btn-menu:disabled { opacity: 0.5; cursor: wait; }
-
       .pv-kbd {
         font-size: 10px; font-weight: 700;
         background: rgba(212,175,106,0.1); border: 1px solid rgba(212,175,106,0.25);
         border-radius: 5px; padding: 2px 7px; color: rgba(212,175,106,0.55); letter-spacing: 0;
       }
-      .pv-kbd-dim { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.3); }
 
       /* ── JS 툴팁 ── */
       .pv-tooltip {
@@ -1069,11 +1177,12 @@ export class PauseView {
 
       @media (max-width: 540px) {
         .pv-stats-grid { grid-template-columns: 1fr 1fr; }
+        .pv-sound-toggles { grid-template-columns: 1fr; }
         .pv-footer      { flex-direction: column-reverse; }
-        .pv-btn-resume, .pv-btn-menu { justify-content: center; }
+        .pv-btn-resume, .pv-btn-forfeit { justify-content: center; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .pv-panel, .pv-btn-resume, .pv-btn-menu, .pv-tab-content { animation: none !important; transition: none !important; }
+        .pv-panel, .pv-btn-resume, .pv-btn-forfeit, .pv-tab-content { animation: none !important; transition: none !important; }
         .pv-hp-fill.low, .pv-hp-warn { animation: none !important; }
       }
     `;
@@ -1112,11 +1221,11 @@ function _weaponEmoji(behaviorId) {
   return MAP[behaviorId] ?? '⚔';
 }
 
-function _buildShortEffectHtml(acc, accessoryById) {
+function _buildCompactAccessorySummary(acc, accessoryById) {
   const def = accessoryById?.get(acc.id);
-  if (!def?.effects?.length) return _escapeHtml(acc.description ?? '');
-  const lines = buildAccessoryShortDesc(def, acc.level ?? 1);
-  return lines.map(l => `<span class="pv-aeffect-line">${_escapeHtml(l)}</span>`).join('');
+  if (!def?.effects?.length) return acc.description ?? '';
+  const lines = buildAccessoryCurrentDesc(def, acc.level ?? 1);
+  return lines.join(' · ');
 }
 
 function _escapeHtml(v) {

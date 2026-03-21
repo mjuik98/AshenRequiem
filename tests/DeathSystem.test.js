@@ -19,10 +19,11 @@
 
 import assert from 'node:assert/strict';
 import {
-  makePlayer, makeEnemy, makeWorld, makeEvents,
+  makePlayer, makeEnemy, makeBoss, makeWorld, makeEvents,
   makePoolStub, makeServices,
 } from './fixtures/index.js';
 import { test, summary } from './helpers/testRunner.js';
+import { bossData } from '../src/data/bossData.js';
 
 let DeathSystem;
 try {
@@ -33,7 +34,7 @@ try {
 }
 
 function run(world, services) {
-  DeathSystem?.update({ world, data: {}, services: services ?? makeServices() });
+  DeathSystem?.update({ world, data: { bossData }, services: services ?? makeServices() });
 }
 
 // ── killCount ─────────────────────────────────────────────────────────
@@ -84,6 +85,42 @@ test('플레이어 사망 시 playMode = "dead"', () => {
   const world  = makeWorld({ player, events, playMode: 'playing' });
   run(world);
   assert.equal(world.playMode, 'dead', `playMode가 "dead"가 아님 (실제: ${world.playMode})`);
+  assert.deepEqual(world.runOutcome, { type: 'defeat' }, '패배 outcome이 기록되지 않음');
+});
+
+test('보스 6회 처치 시 runOutcome = victory', () => {
+  if (!DeathSystem) return;
+  const boss   = makeBoss({ isBoss: true, xpValue: 50 });
+  const events = makeEvents({ deaths: [{ entity: boss }] });
+  const world  = makeWorld({
+    enemies: [boss],
+    events,
+    bossKillCount: 5,
+    killCount: 5,
+    playMode: 'playing',
+  });
+  run(world);
+  assert.equal(world.bossKillCount, 6, `bossKillCount가 6이 아님 (실제: ${world.bossKillCount})`);
+  assert.deepEqual(world.runOutcome, { type: 'victory' }, '승리 outcome이 기록되지 않음');
+  assert.equal(world.playMode, 'dead', `victory 종료 후 playMode가 dead가 아님 (실제: ${world.playMode})`);
+});
+
+test('플레이어 사망과 6번째 보스 처치가 같은 프레임에 오면 패배가 우선한다', () => {
+  if (!DeathSystem) return;
+  const boss = makeBoss({ isBoss: true, xpValue: 50 });
+  const player = makePlayer({ isAlive: false, pendingDestroy: true });
+  const events = makeEvents({ deaths: [{ entity: player }, { entity: boss }] });
+  const world = makeWorld({
+    player,
+    enemies: [boss],
+    events,
+    bossKillCount: 5,
+    playMode: 'playing',
+  });
+
+  run(world);
+
+  assert.deepEqual(world.runOutcome, { type: 'defeat' }, '동시 사망 프레임에서 패배가 우선되지 않음');
 });
 
 // ── currency ──────────────────────────────────────────────────────────

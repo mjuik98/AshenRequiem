@@ -50,6 +50,40 @@ export const enemyData = [
     behaviorState: () => ({ phase: 'idle', timer: 2.0, orbitAngle: 0, dashDirX: 0, dashDirY: 0 }),
     projectileConfig: { damage: 12, speed: 240, radius: 8, color: '#b39ddb', pierce: 2 },
   },
+  {
+    id: 'boss_warden', name: 'Iron Warden',
+    hp: 420, moveSpeed: 48, damage: 24, xpValue: 72, radius: 34, color: '#ffb74d',
+    isBoss: true, knockbackResist: 1.0,
+    behaviorId: 'dash',
+    behaviorState: () => ({ phase: 'idle', timer: 1.6, dashDirX: 0, dashDirY: 0 }),
+    projectileConfig: { damage: 14, speed: 220, radius: 10, color: '#ffb74d', pierce: 2 },
+  },
+  {
+    id: 'boss_broodmother', name: 'Broodmother',
+    hp: 360, moveSpeed: 72, damage: 18, xpValue: 76, radius: 30, color: '#ab47bc',
+    isBoss: true, knockbackResist: 0.95,
+    behaviorId: 'swarm',
+  },
+  {
+    id: 'boss_titan', name: 'Grave Titan',
+    hp: 560, moveSpeed: 30, damage: 30, xpValue: 84, radius: 42, color: '#8d6e63',
+    isBoss: true, knockbackResist: 1.0,
+    behaviorId: 'charge',
+  },
+  {
+    id: 'boss_seraph', name: 'Fallen Seraph',
+    hp: 390, moveSpeed: 64, damage: 22, xpValue: 88, radius: 31, color: '#fff176',
+    isBoss: true, knockbackResist: 1.0,
+    behaviorId: 'keepDistance',
+    projectileConfig: { damage: 15, speed: 250, radius: 9, color: '#fff176', pierce: 2 },
+  },
+  {
+    id: 'boss_abyss_eye', name: 'Abyss Eye',
+    hp: 460, moveSpeed: 58, damage: 26, xpValue: 92, radius: 36, color: '#4dd0e1',
+    isBoss: true, knockbackResist: 1.0,
+    behaviorId: 'circle',
+    projectileConfig: { damage: 16, speed: 230, radius: 10, color: '#4dd0e1', pierce: 3 },
+  },
 ];
 
 /** id로 적 데이터 조회 */

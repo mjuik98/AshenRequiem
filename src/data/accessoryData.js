@@ -16,13 +16,14 @@ const _STAT_LABELS = {
   damageMult:           '데미지',
   cooldownMult:         '쿨다운 단축',
   projectileSpeedMult:  '투사체 속도',
-  projectileSizeMult:   '투사체 크기',
+  projectileSizeMult:   '투사체 크기/범위',
   xpMult:               '경험치 획득',
   critChance:           '크리티컬 확률',
   critMultiplier:       '크리티컬 피해',
   bonusProjectileCount: '추가 투사체',
   invincibleDuration:   '무적 시간',
   currencyMult:         '골드 획득',
+  projectileLifetimeMult:'투사체 지속시간',
 };
 
 function _formatStatVal(stat, value) {
@@ -38,6 +39,7 @@ function _formatStatVal(stat, value) {
     case 'projectileSizeMult':
     case 'xpMult':
     case 'currencyMult':
+    case 'projectileLifetimeMult':
       return `+${Math.round(value * 100)}%`;
     case 'bonusProjectileCount':
       return `+${value}발`;
@@ -83,6 +85,40 @@ export function buildAccessoryLevelDesc(accDef) {
 }
 
 /**
+ * 장신구 획득 시 표시할 Lv1 기준 설명.
+ *
+ * @param {object} accDef
+ * @returns {string}
+ */
+export function buildAccessoryPickupDesc(accDef) {
+  if (!accDef?.effects?.length) return accDef?.description ?? '';
+  return accDef.effects.map(effect => {
+    const label = _STAT_LABELS[effect.stat] ?? effect.stat;
+    const value = _calcEffectAtLevel(effect, 1);
+    return `${label} ${_formatStatVal(effect.stat, value)}`;
+  }).join(', ');
+}
+
+/**
+ * 장신구 레벨업 시 다음 단계 증가량을 설명한다.
+ *
+ * @param {object} accDef
+ * @returns {string}
+ */
+export function buildAccessoryUpgradeDesc(accDef) {
+  if (!accDef?.effects?.length) return accDef?.description ?? '';
+  return accDef.effects.map(effect => {
+    const label = _STAT_LABELS[effect.stat] ?? effect.stat;
+    const delta = effect.stat === 'damageMult'
+      ? (effect.valuePerLevel ?? 0)
+      : effect.stat === 'cooldownMult'
+      ? -(Math.abs(effect.valuePerLevel ?? 0))
+      : (effect.valuePerLevel ?? 0);
+    return `${label} ${_formatStatVal(effect.stat, delta)}`;
+  }).join(', ');
+}
+
+/**
  * 현재 레벨 기준 "현재 → 다음 레벨" 간단 설명 반환.
  * PauseView 카드의 한 줄 설명에 사용.
  *
@@ -111,6 +147,25 @@ export function buildAccessoryShortDesc(accDef, currentLevel = 1) {
   });
 }
 
+/**
+ * 현재 레벨 기준 효과만 간단히 보여준다.
+ *
+ * 예시: "이동 속도 +30", "데미지 +20%"
+ *
+ * @param {object} accDef
+ * @param {number} currentLevel
+ * @returns {string[]}
+ */
+export function buildAccessoryCurrentDesc(accDef, currentLevel = 1) {
+  if (!accDef?.effects?.length) return [accDef?.description ?? ''];
+
+  return accDef.effects.map(effect => {
+    const label = _STAT_LABELS[effect.stat] ?? effect.stat;
+    const curVal = _calcEffectAtLevel(effect, currentLevel);
+    return `${label} ${_formatStatVal(effect.stat, curVal)}`;
+  });
+}
+
 // ── 장신구 데이터 ─────────────────────────────────────────────────────────────
 
 export const accessoryData = [
@@ -118,77 +173,77 @@ export const accessoryData = [
   {
     id:          'ring_of_speed',
     name:        '속도의 반지',
-    description: '이동 속도 +30',
+    description: '이동 속도 +10',
     rarity:      'common',
     maxLevel:    5,
-    effects:     [{ stat: 'moveSpeed', value: 30, valuePerLevel: 6 }],
+    effects:     [{ stat: 'moveSpeed', value: 10, valuePerLevel: 10 }],
   },
   {
     id:          'iron_heart',
     name:        '강철 심장',
-    description: '최대 HP +40',
+    description: '최대 HP +20',
     rarity:      'common',
     maxLevel:    5,
-    effects:     [{ stat: 'maxHp', value: 40, valuePerLevel: 8 }],
+    effects:     [{ stat: 'maxHp', value: 20, valuePerLevel: 20 }],
   },
   {
     id:          'magnet_stone',
     name:        '자석석',
-    description: '픽업 흡수 범위 +50',
+    description: '픽업 흡수 범위 +20',
     rarity:      'common',
     maxLevel:    5,
-    effects:     [{ stat: 'magnetRadius', value: 50, valuePerLevel: 10 }],
+    effects:     [{ stat: 'magnetRadius', value: 20, valuePerLevel: 20 }],
   },
   {
     id:          'vampiric_amulet',
     name:        '흡혈 부적',
-    description: '흡혈 +8%, 최대 HP +20',
+    description: '흡혈 +4%, 최대 HP +10',
     rarity:      'rare',
     maxLevel:    5,
     effects:     [
-      { stat: 'lifesteal', value: 0.08, valuePerLevel: 0.02 },
-      { stat: 'maxHp', value: 20, valuePerLevel: 5 },
+      { stat: 'lifesteal', value: 0.04, valuePerLevel: 0.04 },
+      { stat: 'maxHp', value: 10, valuePerLevel: 10 },
     ],
   },
   {
     id:          'tome_of_power',
     name:        '마력의 서',
-    description: '모든 무기 데미지 +20%',
+    description: '모든 무기 데미지 +10%',
     rarity:      'rare',
     maxLevel:    5,
-    effects:     [{ stat: 'damageMult', value: 1.20, valuePerLevel: 0.05 }],
+    effects:     [{ stat: 'damageMult', value: 1.10, valuePerLevel: 0.10 }],
   },
   {
     id:          'shadow_cloak',
     name:        '그림자 망토',
-    description: '이동 속도 +20, 무적 시간 +0.3초',
+    description: '이동 속도 +10, 무적 시간 +0.1초',
     rarity:      'rare',
     maxLevel:    5,
     effects:     [
-      { stat: 'moveSpeed', value: 20, valuePerLevel: 4 },
-      { stat: 'invincibleDuration', value: 0.3, valuePerLevel: 0.05 },
+      { stat: 'moveSpeed', value: 10, valuePerLevel: 10 },
+      { stat: 'invincibleDuration', value: 0.1, valuePerLevel: 0.1 },
     ],
   },
   {
     id:          'warrior_belt',
     name:        '전사의 허리띠',
-    description: '최대 HP +25, 이동 속도 +10',
+    description: '최대 HP +10, 이동 속도 +5',
     rarity:      'common',
     maxLevel:    5,
     effects:     [
-      { stat: 'maxHp', value: 25, valuePerLevel: 5 },
-      { stat: 'moveSpeed', value: 10, valuePerLevel: 2 },
+      { stat: 'maxHp', value: 10, valuePerLevel: 10 },
+      { stat: 'moveSpeed', value: 5, valuePerLevel: 5 },
     ],
   },
   {
     id:          'crystal_lens',
     name:        '수정 렌즈',
-    description: '픽업 흡수 범위 +30, 흡혈 +4%',
+    description: '픽업 흡수 범위 +10, 흡혈 +2%',
     rarity:      'rare',
     maxLevel:    5,
     effects:     [
-      { stat: 'magnetRadius', value: 30, valuePerLevel: 6 },
-      { stat: 'lifesteal', value: 0.04, valuePerLevel: 0.01 },
+      { stat: 'magnetRadius', value: 10, valuePerLevel: 10 },
+      { stat: 'lifesteal', value: 0.02, valuePerLevel: 0.02 },
     ],
   },
 
@@ -196,34 +251,34 @@ export const accessoryData = [
   {
     id:          'swift_hourglass',
     name:        '쾌속 모래시계',
-    description: '무기 쿨다운 20% 단축',
+    description: '무기 쿨다운 8% 단축',
     rarity:      'rare',
     maxLevel:    5,
-    effects:     [{ stat: 'cooldownMult', value: -0.20, valuePerLevel: -0.04 }],
+    effects:     [{ stat: 'cooldownMult', value: -0.08, valuePerLevel: -0.08 }],
   },
   {
     id:          'wind_crystal',
     name:        '바람의 수정',
-    description: '투사체 속도 +30%',
+    description: '투사체 속도 +10%',
     rarity:      'common',
     maxLevel:    5,
-    effects:     [{ stat: 'projectileSpeedMult', value: 0.30, valuePerLevel: 0.06 }],
+    effects:     [{ stat: 'projectileSpeedMult', value: 0.10, valuePerLevel: 0.10 }],
   },
   {
     id:          'arcane_prism',
     name:        '비전 프리즘',
-    description: '투사체 크기 +25%',
+    description: '투사체 크기/범위 +10%',
     rarity:      'rare',
     maxLevel:    5,
-    effects:     [{ stat: 'projectileSizeMult', value: 0.25, valuePerLevel: 0.05 }],
+    effects:     [{ stat: 'projectileSizeMult', value: 0.10, valuePerLevel: 0.10 }],
   },
   {
     id:          'scholars_rune',
     name:        '학자의 룬',
-    description: '경험치 획득 +30%',
+    description: '경험치 획득 +10%',
     rarity:      'common',
     maxLevel:    5,
-    effects:     [{ stat: 'xpMult', value: 0.30, valuePerLevel: 0.06 }],
+    effects:     [{ stat: 'xpMult', value: 0.10, valuePerLevel: 0.10 }],
   },
   {
     id:          'duplicator',
@@ -231,7 +286,7 @@ export const accessoryData = [
     description: '모든 무기 투사체 수 +1',
     rarity:      'rare',
     maxLevel:    5,
-    effects:     [{ stat: 'bonusProjectileCount', value: 1.0, valuePerLevel: 0.49 }],
+    effects:     [{ stat: 'bonusProjectileCount', value: 1, valuePerLevel: 1 }],
   },
 
   // ── Patch 장신구 ──────────────────────────────────────────────────────────────
@@ -241,28 +296,28 @@ export const accessoryData = [
     description: '모든 직선 무기 투사체 +1발',
     rarity:      'rare',
     maxLevel:    5,
-    effects:     [{ stat: 'bonusProjectileCount', value: 1, valuePerLevel: 0 }],
+    effects:     [{ stat: 'bonusProjectileCount', value: 1, valuePerLevel: 1 }],
   },
   {
     id:          'crit_gem',
     name:        '크리티컬 보석',
-    description: '크리티컬 확률 +10%, 크리티컬 피해 +30%',
+    description: '크리티컬 확률 +5%, 크리티컬 피해 +10%',
     rarity:      'rare',
     maxLevel:    5,
     effects:     [
-      { stat: 'critChance', value: 0.10, valuePerLevel: 0.02 },
-      { stat: 'critMultiplier', value: 0.30, valuePerLevel: 0.06 },
+      { stat: 'critChance', value: 0.05, valuePerLevel: 0.05 },
+      { stat: 'critMultiplier', value: 0.10, valuePerLevel: 0.10 },
     ],
   },
   {
     id:          'executioner_ring',
     name:        '처형자의 반지',
-    description: '크리티컬 피해 +50%, HP +15',
+    description: '크리티컬 피해 +10%, HP +10',
     rarity:      'rare',
     maxLevel:    5,
     effects:     [
-      { stat: 'critMultiplier', value: 0.50, valuePerLevel: 0.10 },
-      { stat: 'maxHp', value: 15, valuePerLevel: 3 },
+      { stat: 'critMultiplier', value: 0.10, valuePerLevel: 0.10 },
+      { stat: 'maxHp', value: 10, valuePerLevel: 10 },
     ],
   },
 
@@ -270,21 +325,29 @@ export const accessoryData = [
   {
     id:          'coin_pendant',
     name:        '동전 목걸이',
-    description: '골드 획득량 +30%',
+    description: '골드 획득량 +10%',
     rarity:      'common',
     maxLevel:    5,
-    effects:     [{ stat: 'currencyMult', value: 0.30, valuePerLevel: 0.08 }],
+    effects:     [{ stat: 'currencyMult', value: 0.10, valuePerLevel: 0.10 }],
   },
   {
     id:          'greed_amulet',
     name:        '탐욕의 부적',
-    description: '골드 획득량 +50%, 픽업 범위 +20',
+    description: '골드 획득량 +10%, 픽업 범위 +10',
     rarity:      'rare',
     maxLevel:    5,
     effects:     [
-      { stat: 'currencyMult', value: 0.50, valuePerLevel: 0.10 },
-      { stat: 'magnetRadius', value: 20,   valuePerLevel: 4    },
+      { stat: 'currencyMult', value: 0.10, valuePerLevel: 0.10 },
+      { stat: 'magnetRadius', value: 10,   valuePerLevel: 10   },
     ],
+  },
+  {
+    id:          'persistence_charm',
+    name:        '지속의 부적',
+    description: '투사체 지속시간 +10%',
+    rarity:      'rare',
+    maxLevel:    5,
+    effects:     [{ stat: 'projectileLifetimeMult', value: 0.10, valuePerLevel: 0.10 }],
   },
 ];
 

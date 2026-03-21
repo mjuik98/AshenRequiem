@@ -25,9 +25,17 @@
  */
 export function registerSoundEventHandlers(soundSystem, registry) {
   if (!soundSystem || !registry) return;
+  let lastDeathSfxAt = -Infinity;
+  const deathSfxCooldown = 0.08;
 
   // 적 사망 사운드 (deaths 배열의 각 항목마다 호출됨)
-  registry.register('deaths', () => {
+  registry.register('deaths', (event, world) => {
+    if (event.entity?.type !== 'enemy') return;
+
+    const now = world?.elapsedTime ?? 0;
+    if ((now - lastDeathSfxAt) < deathSfxCooldown && !event.entity?.isBoss) return;
+
+    lastDeathSfxAt = now;
     soundSystem.play('death');
   });
 

@@ -14,51 +14,97 @@ export class LevelUpView {
     this._injectStyles();
     container.appendChild(this.el);
     this._onSelect = null;
+    this._onReroll = null;
+    this._onToggleBanishMode = null;
   }
 
   /**
-   * @param {object[]} choices
-   * @param {Function} onSelectCallback
-   * @param {string}   [title='⬆ LEVEL UP']  UI 상단 타이틀
+   * @param {object} config
    */
-  show(choices, onSelectCallback, title = '⬆ LEVEL UP') {
-    this._onSelect = onSelectCallback;
+  show(config = {}) {
+    const {
+      choices = [],
+      onSelect = null,
+      onReroll = null,
+      onToggleBanishMode = null,
+      title = '⬆ LEVEL UP',
+      rerollsRemaining = 0,
+      banishesRemaining = 0,
+      banishMode = false,
+    } = config;
+
+    this._onSelect = onSelect;
+    this._onReroll = onReroll;
+    this._onToggleBanishMode = onToggleBanishMode;
 
     // 상자 보상 여부에 따라 타이틀 색상 클래스 변경
     const isChest    = title.includes('상자');
     const titleClass = isChest ? 'levelup-title chest-title' : 'levelup-title';
 
     this.el.innerHTML = `
-      <div class="${titleClass}">${title}</div>
+      <div class="levelup-header">
+        <div class="${titleClass}">${title}</div>
+        <div class="levelup-actions">
+          <div class="levelup-uses">남은 리롤 <strong>${rerollsRemaining}</strong></div>
+          <div class="levelup-uses">남은 봉인 <strong>${banishesRemaining}</strong></div>
+          <button
+            class="levelup-mode-btn ${banishMode ? 'is-active' : ''}"
+            type="button"
+            ${banishesRemaining <= 0 && !banishMode ? 'disabled' : ''}
+          >
+            ${banishMode ? '봉인 모드 해제' : '봉인 모드'}
+          </button>
+        </div>
+      </div>
       <div class="levelup-cards"></div>
     `;
     const cardsEl = this.el.querySelector('.levelup-cards');
+    const toggleButton = this.el.querySelector('.levelup-mode-btn');
 
-    choices.forEach(upgrade => {
+    toggleButton?.addEventListener('click', () => {
+      this._onToggleBanishMode?.();
+    });
+
+    choices.forEach((upgrade, index) => {
       const card = document.createElement('div');
       const typeClass = _getTypeClass(upgrade.type);
-      card.className = `levelup-card ${typeClass}`;
+      card.className = `levelup-card ${typeClass}${banishMode ? ' is-banish-mode' : ''}`;
 
       const badge = _getBadge(upgrade.type);
+      const rerollDisabled = rerollsRemaining <= 0 || banishMode;
 
       card.innerHTML = `
         ${badge ? `<div class="card-badge">${badge}</div>` : ''}
         <div class="card-name">${upgrade.name}</div>
         <div class="card-desc">${upgrade.description}</div>
         ${upgrade.type === 'slot' ? `<div class="card-slot-hint">슬롯 확장</div>` : ''}
+        <div class="card-actions">
+          <button class="card-reroll-btn" type="button" ${rerollDisabled ? 'disabled' : ''}>리롤</button>
+        </div>
       `;
-      card.addEventListener('click', () => this._pick(upgrade));
+      card.addEventListener('click', () => this._pick(upgrade, index));
+      card.querySelector('.card-reroll-btn')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this._onReroll?.(index);
+      });
       cardsEl.appendChild(card);
     });
 
     this.el.style.display = 'flex';
   }
 
-  _pick(upgrade) {
+  hide() {
     this.el.style.display = 'none';
     this.el.innerHTML = '';
-    if (this._onSelect) this._onSelect(upgrade);
     this._onSelect = null;
+    this._onReroll = null;
+    this._onToggleBanishMode = null;
+  }
+
+  _pick(upgrade, index) {
+    const onSelect = this._onSelect;
+    this.hide();
+    if (onSelect) onSelect(upgrade, index);
   }
 
   destroy() { this.el.remove(); }
@@ -75,11 +121,51 @@ export class LevelUpView {
         align-items: center; justify-content: center; gap: 24px;
         z-index: 30;
       }
+      .levelup-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
       .levelup-title {
         font-size: 28px; font-weight: 700;
         color: #ffd54f; text-shadow: 0 0 20px #ffd54f;
         letter-spacing: 4px;
         animation: levelup-pulse 0.6s ease-out;
+      }
+      .levelup-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .levelup-uses {
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(12, 18, 28, 0.82);
+        font-size: 12px;
+        color: #cfd8dc;
+      }
+      .levelup-mode-btn {
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: linear-gradient(180deg, #233044, #141d2b);
+        color: #f3e5f5;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .levelup-mode-btn.is-active {
+        border-color: rgba(255, 138, 128, 0.8);
+        background: linear-gradient(180deg, #4a2020, #2a1414);
+        color: #ffccbc;
+      }
+      .levelup-mode-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       /* 상자 보상 타이틀 — 금색 계열로 차별화 */
       .chest-title {
@@ -107,6 +193,10 @@ export class LevelUpView {
       .levelup-card:hover {
         transform: translateY(-6px) scale(1.04);
         box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+      }
+      .levelup-card.is-banish-mode {
+        border-color: rgba(255, 138, 128, 0.6);
+        box-shadow: inset 0 0 0 1px rgba(255, 138, 128, 0.22);
       }
 
       .levelup-card.type-weapon:hover   { border-color: #ffd54f; box-shadow: 0 6px 24px rgba(255,213,79,0.3); }
@@ -147,6 +237,26 @@ export class LevelUpView {
       .card-slot-hint {
         margin-top: 8px; font-size: 10px; color: #64b5f6;
         letter-spacing: 0.12em; text-transform: uppercase;
+      }
+      .card-actions {
+        margin-top: 12px;
+        display: flex;
+        justify-content: center;
+      }
+      .card-reroll-btn {
+        min-width: 84px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.05);
+        color: #eceff1;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .card-reroll-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
     `;
     document.head.appendChild(s);

@@ -15,18 +15,13 @@ import { SynergySystem }     from './SynergySystem.js';
 
 export const UpgradeSystem = {
 
-  generateChoices(player) {
-    const picks = this._buildAvailablePool(player);
+  generateChoices(player, options = {}) {
+    const picks = this._buildAvailablePool(player, options);
     let result  = shuffle(picks).slice(0, 3);
 
-    // 폴백: 무기/장신구 후보가 3개 미만이면 stat_heal로 채움
+    // 폴백: 후보 풀이 바닥나면 회복/골드를 중복 없이 보충한다.
     if (result.length < 3) {
-      const healUpgrade = upgradeData.find(u => u.id === 'stat_heal');
-      if (healUpgrade) {
-        while (result.length < 3) {
-          result.push({ ...healUpgrade });
-        }
-      }
+      result = this._fillWithFallbackChoices(result, options.excludeChoiceIds ?? []);
     }
 
     return result;
@@ -36,18 +31,27 @@ export const UpgradeSystem = {
    * 무기/장신구 관련 선택지만 수집한다.
    * stat/slot 타입은 완전히 제외된다.
    */
-  _buildAvailablePool(player) {
+  _buildAvailablePool(player, options = {}) {
     const picks = [];
 
     const maxWeaponSlots = player.maxWeaponSlots     ?? 3;
     const maxAccSlots    = player.maxAccessorySlots   ?? 3;
+    const unlockedWeapons = Array.isArray(player.unlockedWeapons) ? player.unlockedWeapons : null;
+    const unlockedAccessories = Array.isArray(player.unlockedAccessories)
+      ? player.unlockedAccessories
+      : null;
+    const banishedUpgradeIds = new Set(options.banishedUpgradeIds ?? []);
+    const excludeChoiceIds = new Set(options.excludeChoiceIds ?? []);
 
     for (const upgrade of upgradeData) {
+      if (banishedUpgradeIds.has(upgrade.id) || excludeChoiceIds.has(upgrade.id)) continue;
 
       if (upgrade.type === 'weapon_new') {
         // 슬롯 여유 있고, 진화 무기가 아니고, 미보유 시
         const def = getWeaponDataById(upgrade.weaponId);
-        if (!def?.isEvolved && player.weapons.length < maxWeaponSlots
+        if (!def?.isEvolved
+            && (!unlockedWeapons || unlockedWeapons.includes(upgrade.weaponId))
+            && player.weapons.length < maxWeaponSlots
             && !player.weapons.find(w => w.id === upgrade.weaponId)) {
           picks.push(upgrade);
         }
@@ -55,6 +59,9 @@ export const UpgradeSystem = {
       } else if (upgrade.type === 'weapon_upgrade') {
         const owned = player.weapons.find(w => w.id === upgrade.weaponId);
         if (!owned) continue;
+        const def      = getWeaponDataById(upgrade.weaponId);
+        const maxLevel = def?.maxLevel ?? Infinity;
+        if (owned.level >= maxLevel) continue;
 
         if (upgrade.maxCount !== undefined) {
           // maxCount 기반 — skipLevelUp 업그레이드(다중 발사 등)
@@ -62,14 +69,13 @@ export const UpgradeSystem = {
           if (taken < upgrade.maxCount) picks.push(upgrade);
         } else {
           // 무기 레벨 기반 일반 강화
-          const def      = getWeaponDataById(upgrade.weaponId);
-          const maxLevel = def?.maxLevel ?? Infinity;
           if (owned.level < maxLevel) picks.push(upgrade);
         }
 
       } else if (upgrade.type === 'accessory') {
         // 장신구 슬롯 여유 있고, 미보유 시
-        if ((player.accessories?.length ?? 0) < maxAccSlots) {
+        if ((!unlockedAccessories || unlockedAccessories.includes(upgrade.accessoryId))
+            && (player.accessories?.length ?? 0) < maxAccSlots) {
           const alreadyHas = player.accessories?.some(a => a.id === upgrade.accessoryId);
           if (!alreadyHas) picks.push(upgrade);
         }
@@ -87,6 +93,23 @@ export const UpgradeSystem = {
     }
 
     return picks;
+  },
+
+  replaceChoiceAtIndex(player, currentChoices, index, options = {}) {
+    const nextChoices = [...currentChoices];
+    const excludeChoiceIds = currentChoices
+      .filter((choice, choiceIndex) => choiceIndex !== index || choice?.id === currentChoices[index]?.id)
+      .map((choice) => choice?.id)
+      .filter(Boolean);
+    const pool = shuffle(this._buildAvailablePool(player, {
+      ...options,
+      excludeChoiceIds,
+    }));
+    const replacement = pool[0] ?? this._getFallbackChoice(excludeChoiceIds);
+    if (replacement) {
+      nextChoices[index] = replacement;
+    }
+    return nextChoices;
   },
 
   /**
@@ -193,6 +216,28 @@ export const UpgradeSystem = {
   },
 };
 
+// ── fallback 선택지 ─────────────────────────────────────────────────────────
+
+UpgradeSystem._fillWithFallbackChoices = function _fillWithFallbackChoices(result, seedExcludeIds = []) {
+  const next = [...result];
+  while (next.length < 3) {
+    const fallback = this._getFallbackChoice([...seedExcludeIds, ...next.map(choice => choice.id)]);
+    if (!fallback) break;
+    next.push(fallback);
+  }
+  return next;
+};
+
+UpgradeSystem._getFallbackChoice = function _getFallbackChoice(excludeIds = []) {
+  const excluded = new Set(excludeIds);
+  const fallbackPool = ['stat_heal', 'stat_gold']
+    .filter((id) => !excluded.has(id))
+    .map((id) => upgradeData.find((upgrade) => upgrade.id === id))
+    .filter(Boolean);
+  if (fallbackPool.length === 0) return null;
+  return { ...fallbackPool[0] };
+};
+
 // ── 장신구 효과 적용 ──────────────────────────────────────────────────────────
 
 function _applyAccessoryEffects(player, effects) {
@@ -233,6 +278,9 @@ function _applyAccessoryEffects(player, effects) {
         break;
       case 'xpMult':
         player.xpMult = (player.xpMult ?? 1.0) + eff.value;
+        break;
+      case 'projectileLifetimeMult':
+        player.projectileLifetimeMult = (player.projectileLifetimeMult ?? 1.0) + eff.value;
         break;
 
       // 특수 효과

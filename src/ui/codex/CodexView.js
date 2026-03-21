@@ -23,6 +23,7 @@
  *   session.meta.killedBosses: string[]                 — 처치한 보스 ID 목록
  *   session.meta.weaponsUsedAll: string[]               — 획득한 무기 ID 목록
  */
+import { unlockData } from '../../data/unlockData.js';
 
 export class CodexView {
   constructor(container) {
@@ -115,7 +116,7 @@ export class CodexView {
 
         <!-- 하단 버튼 -->
         <footer class="cx-footer">
-          <button class="cx-back-btn" id="cx-back-btn" type="button">← 돌아가기</button>
+          <button class="cx-back-btn" id="cx-back-btn" type="button">← 메인 화면으로</button>
         </footer>
 
       </div>
@@ -321,6 +322,7 @@ export class CodexView {
     const panel   = this.el.querySelector('#cx-tab-weapon');
     const weapons = this._gameData?.weaponData ?? [];
     const owned   = new Set(this._session?.meta?.weaponsUsedAll ?? []);
+    const evolvedOwned = new Set(this._session?.meta?.evolvedWeapons ?? []);
 
     const base = weapons.filter(w => !w.isEvolved);
     const evo  = weapons.filter(w =>  w.isEvolved);
@@ -351,7 +353,7 @@ export class CodexView {
     };
 
     const renderCard = (w) => {
-      const unlocked   = owned.has(w.id);
+      const unlocked   = w.isEvolved ? evolvedOwned.has(w.id) : owned.has(w.id);
       const recipe     = evoData.find(r => r.resultWeaponId === w.id);
       const dmgPct     = Math.min(100, w.damage * 5);
       const cdPct      = Math.round((1 - (w.cooldown - 0.5) / 3.5) * 100);
@@ -421,6 +423,7 @@ export class CodexView {
     const ss  = String(Math.floor(survivalSec % 60)).padStart(2, '0');
 
     const ACHIEVEMENTS = this._buildAchievements(session);
+    const UNLOCKS = this._buildUnlockEntries(session);
 
     panel.innerHTML = `
       <p class="cx-section-label">런 기록</p>
@@ -449,6 +452,25 @@ export class CodexView {
                  </div>`}
           </div>`).join('')}
       </div>
+      <p class="cx-section-label" style="margin-top:18px">해금 보상</p>
+      <div class="cx-ach-list">
+        ${UNLOCKS.map((unlock) => `
+          <div class="cx-ach ${unlock.done ? 'done' : ''}">
+            <div class="cx-ach-icon">${unlock.icon}</div>
+            <div class="cx-ach-body">
+              <div class="cx-ach-name">${unlock.title}</div>
+              <div class="cx-ach-desc">${unlock.description}</div>
+              <div class="cx-ach-reward">${unlock.rewardText}</div>
+            </div>
+            ${unlock.done
+              ? `<div class="cx-ach-check">해금 완료</div>`
+              : `<div class="cx-ach-prog">
+                   <div class="cx-prog-bar"><div class="cx-prog-fill" style="width:${Math.min(100, unlock.pct)}%"></div></div>
+                   <div class="cx-prog-text">${unlock.progressText}</div>
+                 </div>`}
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -462,9 +484,12 @@ export class CodexView {
 
   _countDiscovered() {
     const kills = this._session?.meta?.enemyKills ?? {};
-    const owned = this._session?.meta?.weaponsUsedAll ?? [];
+    const owned = new Set([
+      ...(this._session?.meta?.weaponsUsedAll ?? []),
+      ...(this._session?.meta?.evolvedWeapons ?? []),
+    ]);
     const killedCount = Object.values(kills).filter(v => v > 0).length;
-    return killedCount + owned.length;
+    return killedCount + owned.size;
   }
 
   _buildAchievements(session) {
@@ -491,6 +516,61 @@ export class CodexView {
     ];
   }
 
+  _buildUnlockEntries(session) {
+    const meta = session?.meta ?? {};
+    const best = session?.best ?? {};
+    const completedUnlocks = new Set(meta.completedUnlocks ?? []);
+    const totalKills = Object.values(meta.enemyKills ?? {}).reduce((sum, value) => sum + value, 0);
+    const bossKills = (meta.killedBosses ?? []).length;
+    const weaponsUsed = new Set(meta.weaponsUsedAll ?? []);
+    const evolvedWeapons = new Set(meta.evolvedWeapons ?? []);
+
+    return unlockData.map((unlock) => {
+      const done = completedUnlocks.has(unlock.id);
+      let pct = 0;
+      let progressText = '';
+
+      switch (unlock.conditionType) {
+        case 'total_kills_gte':
+          pct = Math.min(100, totalKills / unlock.conditionValue * 100);
+          progressText = `${totalKills} / ${unlock.conditionValue}`;
+          break;
+        case 'survival_time_gte': {
+          const bestTime = best.survivalTime ?? 0;
+          pct = Math.min(100, bestTime / unlock.conditionValue * 100);
+          progressText = `${Math.floor(bestTime)} / ${unlock.conditionValue}초`;
+          break;
+        }
+        case 'boss_kills_gte':
+          pct = Math.min(100, bossKills / unlock.conditionValue * 100);
+          progressText = `${bossKills} / ${unlock.conditionValue}`;
+          break;
+        case 'weapon_owned_once': {
+          const owned = weaponsUsed.has(unlock.conditionValue);
+          pct = owned ? 100 : 0;
+          progressText = owned ? '달성' : unlock.conditionValue;
+          break;
+        }
+        case 'weapon_evolved_once': {
+          const evolved = evolvedWeapons.has(unlock.conditionValue);
+          pct = evolved ? 100 : 0;
+          progressText = evolved ? '달성' : unlock.conditionValue;
+          break;
+        }
+        default:
+          progressText = '-';
+      }
+
+      return {
+        ...unlock,
+        done,
+        pct: done ? 100 : pct,
+        progressText: done ? '완료' : progressText,
+        icon: unlock.targetType === 'weapon' ? '🗡' : '🜂',
+      };
+    });
+  }
+
   // ── 스타일 ────────────────────────────────────────────────────────────────
 
   _injectStyles() {
@@ -509,6 +589,8 @@ export class CodexView {
         color: rgba(244,237,224,0.9);
         padding: 24px 16px;
         box-sizing: border-box;
+        /* #ui-container의 pointer-events:none 상속 차단 — 휠 스크롤 및 카드 상호작용 활성화 */
+        pointer-events: auto;
       }
 
       /* ── 패널 ── */

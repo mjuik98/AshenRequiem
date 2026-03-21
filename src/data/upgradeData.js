@@ -7,6 +7,12 @@
  *   - up_coin_pendant    : 동전 목걸이 강화
  *   - up_greed_amulet    : 탐욕의 부적 강화
  */
+import {
+  accessoryData,
+  buildAccessoryPickupDesc,
+  buildAccessoryUpgradeDesc,
+} from './accessoryData.js';
+
 export const upgradeData = [
   // ── 신규 무기 ────────────────────────────────────────────────────────────────
   { id: 'get_holy_aura',      type: 'weapon_new',     weaponId: 'holy_aura',      name: '성스러운 오라',      description: '주변에 신성한 오라 발동' },
@@ -97,51 +103,19 @@ export const upgradeData = [
 
   // ── HP 회복 (폴백 전용) ──────────────────────────────────────────────────────
   { id: 'stat_heal', type: 'stat', name: 'HP 회복', description: '현재 HP +25 즉시 회복', effect: { stat: 'hp', value: 25 } },
-
-  // ── 장신구 획득 ────────────────────────────────────────────────────────────────
-  { id: 'acc_ring_of_speed',   type: 'accessory', accessoryId: 'ring_of_speed',   name: '속도의 반지',   description: '이동 속도 +30' },
-  { id: 'acc_iron_heart',      type: 'accessory', accessoryId: 'iron_heart',      name: '강철 심장',     description: '최대 HP +40' },
-  { id: 'acc_magnet_stone',    type: 'accessory', accessoryId: 'magnet_stone',    name: '자석석',        description: '픽업 흡수 범위 +50' },
-  { id: 'acc_vampiric_amulet', type: 'accessory', accessoryId: 'vampiric_amulet', name: '흡혈 부적',     description: '흡혈 +8%, 최대 HP +20' },
-  { id: 'acc_tome_of_power',   type: 'accessory', accessoryId: 'tome_of_power',   name: '마력의 서',     description: '모든 무기 데미지 +20%' },
-  { id: 'acc_shadow_cloak',    type: 'accessory', accessoryId: 'shadow_cloak',    name: '그림자 망토',   description: '이동 속도 +20, 무적 시간 +0.3초' },
-  { id: 'acc_warrior_belt',    type: 'accessory', accessoryId: 'warrior_belt',    name: '전사의 허리띠', description: '최대 HP +25, 이동 속도 +10' },
-  { id: 'acc_crystal_lens',    type: 'accessory', accessoryId: 'crystal_lens',    name: '수정 렌즈',     description: '픽업 흡수 범위 +30, 흡혈 +4%' },
-
-  // ── Phase 4 장신구 ───────────────────────────────────────────────────────────
-  { id: 'acc_swift_hourglass', type: 'accessory', accessoryId: 'swift_hourglass', name: '쾌속 모래시계',  description: '무기 쿨다운 20% 단축' },
-  { id: 'acc_wind_crystal',    type: 'accessory', accessoryId: 'wind_crystal',    name: '바람의 수정',    description: '투사체 속도 +30%' },
-  { id: 'acc_arcane_prism',    type: 'accessory', accessoryId: 'arcane_prism',    name: '비전 프리즘',    description: '투사체 크기 +25%' },
-  { id: 'acc_scholars_rune',   type: 'accessory', accessoryId: 'scholars_rune',   name: '학자의 룬',      description: '경험치 획득 +30%' },
-  { id: 'acc_duplicator',      type: 'accessory', accessoryId: 'duplicator',      name: '복제기',        description: '모든 무기 투사체 수 +1' },
-
-  // ── Patch 장신구 ─────────────────────────────────────────────────────────────
-  { id: 'acc_scattered_shot',  type: 'accessory', accessoryId: 'scattered_shot',  name: '산탄 마법진',   description: '모든 직선 무기 투사체 +1발' },
-  { id: 'acc_crit_gem',        type: 'accessory', accessoryId: 'crit_gem',        name: '크리티컬 보석', description: '크리티컬 확률 +10%, 크리티컬 피해 +30%' },
-  { id: 'acc_executioner_ring',type: 'accessory', accessoryId: 'executioner_ring',name: '처형자의 반지', description: '크리티컬 피해 +50%, HP +15' },
-
-  // ── 골드 획득 장신구 (신규) ───────────────────────────────────────────────────
-  { id: 'acc_coin_pendant',   type: 'accessory', accessoryId: 'coin_pendant',   name: '동전 목걸이',  description: '골드 획득량 +30%' },
-  { id: 'acc_greed_amulet',   type: 'accessory', accessoryId: 'greed_amulet',   name: '탐욕의 부적', description: '골드 획득량 +50%, 픽업 범위 +20' },
-
-  // ── 장신구 강화 ────────────────────────────────────────────────────────────────
-  { id: 'up_ring_of_speed',    type: 'accessory_upgrade', accessoryId: 'ring_of_speed',    name: '속도의 반지 +',    description: '효과 강화' },
-  { id: 'up_iron_heart',       type: 'accessory_upgrade', accessoryId: 'iron_heart',       name: '강철 심장 +',      description: '효과 강화' },
-  { id: 'up_magnet_stone',     type: 'accessory_upgrade', accessoryId: 'magnet_stone',     name: '자석석 +',         description: '효과 강화' },
-  { id: 'up_vampiric_amulet',  type: 'accessory_upgrade', accessoryId: 'vampiric_amulet',  name: '흡혈 부적 +',      description: '효과 강화' },
-  { id: 'up_tome_of_power',    type: 'accessory_upgrade', accessoryId: 'tome_of_power',    name: '마력의 서 +',      description: '효과 강화' },
-  { id: 'up_shadow_cloak',     type: 'accessory_upgrade', accessoryId: 'shadow_cloak',     name: '그림자 망토 +',    description: '효과 강화' },
-  { id: 'up_warrior_belt',     type: 'accessory_upgrade', accessoryId: 'warrior_belt',     name: '전사의 허리띠 +',  description: '효과 강화' },
-  { id: 'up_crystal_lens',     type: 'accessory_upgrade', accessoryId: 'crystal_lens',     name: '수정 렌즈 +',      description: '효과 강화' },
-  { id: 'up_swift_hourglass',  type: 'accessory_upgrade', accessoryId: 'swift_hourglass',  name: '쾌속 모래시계 +',  description: '효과 강화' },
-  { id: 'up_wind_crystal',     type: 'accessory_upgrade', accessoryId: 'wind_crystal',     name: '바람의 수정 +',    description: '효과 강화' },
-  { id: 'up_arcane_prism',     type: 'accessory_upgrade', accessoryId: 'arcane_prism',     name: '비전 프리즘 +',    description: '효과 강화' },
-  { id: 'up_scholars_rune',    type: 'accessory_upgrade', accessoryId: 'scholars_rune',    name: '학자의 룬 +',      description: '효과 강화' },
-  { id: 'up_duplicator',       type: 'accessory_upgrade', accessoryId: 'duplicator',       name: '복제기 +',        description: '효과 강화' },
-  { id: 'up_scattered_shot',   type: 'accessory_upgrade', accessoryId: 'scattered_shot',   name: '산탄 마법진 +',    description: '효과 강화' },
-  { id: 'up_crit_gem',         type: 'accessory_upgrade', accessoryId: 'crit_gem',         name: '크리티컬 보석 +',  description: '효과 강화' },
-  { id: 'up_executioner_ring', type: 'accessory_upgrade', accessoryId: 'executioner_ring', name: '처형자의 반지 +',  description: '효과 강화' },
-  // 골드 장신구 강화
-  { id: 'up_coin_pendant',     type: 'accessory_upgrade', accessoryId: 'coin_pendant',     name: '동전 목걸이 +',    description: '효과 강화' },
-  { id: 'up_greed_amulet',     type: 'accessory_upgrade', accessoryId: 'greed_amulet',     name: '탐욕의 부적 +',   description: '효과 강화' },
+  { id: 'stat_gold', type: 'stat', name: '골드 획득', description: '골드 +25 즉시 획득', effect: { stat: 'currency', value: 25 } },
+  ...accessoryData.map(acc => ({
+    id: `acc_${acc.id}`,
+    type: 'accessory',
+    accessoryId: acc.id,
+    name: acc.name,
+    description: buildAccessoryPickupDesc(acc),
+  })),
+  ...accessoryData.map(acc => ({
+    id: `up_${acc.id}`,
+    type: 'accessory_upgrade',
+    accessoryId: acc.id,
+    name: `${acc.name} +`,
+    description: buildAccessoryUpgradeDesc(acc),
+  })),
 ];

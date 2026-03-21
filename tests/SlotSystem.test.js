@@ -18,7 +18,16 @@ try {
 console.log('\n[SlotSystem 테스트]');
 
 test('기본 maxWeaponSlots=3, 슬롯 여유 있을 때 신규 무기 등장', () => {
-  const player  = makePlayer({ maxWeaponSlots: 3, weapons: [] });
+  const player  = makePlayer({
+    maxWeaponSlots: 3,
+    weapons: [],
+    maxAccessorySlots: 3,
+    accessories: [
+      { id: 'ring_of_speed', level: 1 },
+      { id: 'iron_heart', level: 1 },
+      { id: 'magnet_stone', level: 1 },
+    ],
+  });
   const choices = UpgradeSystem.generateChoices(player);
   assert.ok(choices.some(c => c.type === 'weapon_new'), '무기 슬롯 여유가 있는데 신규 무기 미등장');
 });

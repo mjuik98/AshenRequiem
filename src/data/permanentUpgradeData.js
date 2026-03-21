@@ -85,7 +85,7 @@ export const permanentUpgradeData = [
   {
     id:           'perm_proj_size',
     name:         '확장의 룬',
-    description:  '투사체 크기 및 범위 +5%',
+    description:  '투사체 크기/범위 +5%',
     icon:         '🌊',
     maxLevel:     6,
     costPerLevel: (level) => 18 + level * 9,
@@ -122,6 +122,15 @@ export const permanentUpgradeData = [
     costPerLevel: (level) => 18 + level * 9,
     effect:       { stat: 'currencyMult', valuePerLevel: 0.10 },
   },
+  {
+    id:           'perm_projectile_lifetime',
+    name:         '시간 연장',
+    description:  '투사체 지속시간 +10%',
+    icon:         '⌛',
+    maxLevel:     5,
+    costPerLevel: (level) => 24 + level * 12,
+    effect:       { stat: 'projectileLifetimeMult', valuePerLevel: 0.10 },
+  },
 
   // ── 슬롯 확장 ──────────────────────────────────────────────────────────────
   {
@@ -150,6 +159,24 @@ export const permanentUpgradeData = [
     maxLevel:     2,
     costPerLevel: (level) => 500 + level * 500,
     effect:       { stat: 'bonusProjectileCount', valuePerLevel: 1 },
+  },
+  {
+    id:           'reroll_charge',
+    name:         '전술 재편',
+    description:  '레벨업 보상에서 카드 1장을 다시 뽑을 수 있는 횟수 +1',
+    icon:         '🔁',
+    maxLevel:     5,
+    costPerLevel: (level) => 45 + level * 20,
+    effect:       { stat: 'rerollCharge', valuePerLevel: 1 },
+  },
+  {
+    id:           'banish_charge',
+    name:         '추방의 인장',
+    description:  '레벨업 보상에서 카드 1종을 이번 런 전체에서 봉인할 수 있는 횟수 +1',
+    icon:         '🚫',
+    maxLevel:     5,
+    costPerLevel: (level) => 55 + level * 24,
+    effect:       { stat: 'banishCharge', valuePerLevel: 1 },
   },
 ];
 
@@ -213,6 +240,10 @@ export function applyPermanentUpgrades(player, perm) {
         player.currencyMult = (player.currencyMult ?? 1.0) + total;
         break;
 
+      case 'projectileLifetimeMult':
+        player.projectileLifetimeMult = (player.projectileLifetimeMult ?? 1.0) + total;
+        break;
+
       case 'maxWeaponSlots':
         player.maxWeaponSlots = (player.maxWeaponSlots ?? 3) + total;
         break;
@@ -223,6 +254,10 @@ export function applyPermanentUpgrades(player, perm) {
 
       case 'bonusProjectileCount':
         player.bonusProjectileCount = (player.bonusProjectileCount ?? 0) + total;
+        break;
+
+      case 'rerollCharge':
+      case 'banishCharge':
         break;
 
       default:

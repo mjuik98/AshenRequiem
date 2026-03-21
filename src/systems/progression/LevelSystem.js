@@ -25,7 +25,9 @@ export const LevelSystem = {
       world.pendingLevelUpType = 'levelup';
 
       try {
-        world.pendingLevelUpChoices = UpgradeSystem.generateChoices(player);
+        world.pendingLevelUpChoices = UpgradeSystem.generateChoices(player, {
+          banishedUpgradeIds: world.banishedUpgradeIds ?? [],
+        });
       } catch (e) {
         console.warn('[LevelSystem] generateChoices 실패:', e.message);
         world.pendingLevelUpChoices = [];
@@ -46,7 +48,9 @@ export const LevelSystem = {
       world.pendingLevelUpType = 'chest';
 
       try {
-        world.pendingLevelUpChoices = UpgradeSystem.generateChoices(player);
+        world.pendingLevelUpChoices = UpgradeSystem.generateChoices(player, {
+          banishedUpgradeIds: world.banishedUpgradeIds ?? [],
+        });
       } catch (e) {
         console.warn('[LevelSystem] chest reward generateChoices 실패:', e.message);
         world.pendingLevelUpChoices = [];

@@ -9,6 +9,7 @@
  *   - projectileSizeMult  : 투사체 크기 배율 (1.0 = 기본, 높을수록 큼)
  *   - xpMult              : 경험치 획득 배율 (1.0 = 기본, 높을수록 많이 획득)
  *   - currencyMult        : 골드 획득 배율 (1.0 = 기본, 높을수록 많이 획득)
+ *   - projectileLifetimeMult : 투사체 지속시간 배율 (1.0 = 기본, 높을수록 오래 유지)
  */
 import { PLAYER_DEFAULTS }         from '../data/constants.js';
 import { getWeaponDataById }       from '../data/weaponData.js';
@@ -24,7 +25,17 @@ import { applyPermanentUpgrades }  from '../data/permanentUpgradeData.js';
  * @param {object|null} [session=null]  game.session — 영구 업그레이드 적용에 사용
  */
 export function createPlayer(x = 0, y = 0, session = null) {
-  const startWeapon = getWeaponDataById('magic_bolt');
+  const unlockedWeapons = Array.isArray(session?.meta?.unlockedWeapons)
+    ? [...session.meta.unlockedWeapons]
+    : ['magic_bolt'];
+  const unlockedAccessories = Array.isArray(session?.meta?.unlockedAccessories)
+    ? [...session.meta.unlockedAccessories]
+    : [];
+  const selectedStartWeaponId = session?.meta?.selectedStartWeaponId;
+  const startWeaponId = unlockedWeapons.includes(selectedStartWeaponId)
+    ? selectedStartWeaponId
+    : 'magic_bolt';
+  const startWeapon = getWeaponDataById(startWeaponId) ?? getWeaponDataById('magic_bolt');
 
   const player = {
     id:            generateId(),
@@ -40,6 +51,8 @@ export function createPlayer(x = 0, y = 0, session = null) {
     xp:            0,
     level:         1,
     weapons:       startWeapon ? [{ ...startWeapon, currentCooldown: 0, level: 1 }] : [],
+    unlockedWeapons,
+    unlockedAccessories,
     invincibleTimer:    0,
     invincibleDuration: 0.5,
     lifesteal:     0,
@@ -77,6 +90,8 @@ export function createPlayer(x = 0, y = 0, session = null) {
     xpMult:              1.0,
     /** 골드 획득 배율 — 1.0 기본, 높을수록 처치 시 더 많은 골드 획득 */
     currencyMult:        1.0,
+    /** 투사체 지속시간 배율 — 1.0 기본, 높을수록 투사체가 오래 유지됨 */
+    projectileLifetimeMult: 1.0,
 
     isAlive:       true,
     pendingDestroy: false,

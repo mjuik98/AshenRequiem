@@ -10,16 +10,21 @@ import { UpgradeSystem } from './UpgradeSystem.js';
 export const UpgradeApplySystem = {
   update({ world, data }) {
     if (!world.pendingUpgrade || !world.player) return;
+    const pendingUpgrade = world.pendingUpgrade;
 
     UpgradeSystem.applyUpgrade(
       world.player,
-      world.pendingUpgrade,
+      pendingUpgrade,
       data?.synergyData,
       world.synergyState,
     );
 
-    if (world.pendingUpgrade.type === 'weapon_new') {
-      world.events.weaponAcquired?.push({ weaponId: world.pendingUpgrade.weaponId });
+    if (pendingUpgrade.type === 'weapon_new') {
+      world.events.weaponAcquired?.push({ weaponId: pendingUpgrade.weaponId });
+    }
+
+    if (pendingUpgrade.type === 'stat' && pendingUpgrade.effect?.stat === 'currency') {
+      world.events.currencyEarned?.push({ amount: pendingUpgrade.effect.value ?? 0 });
     }
 
     world.pendingUpgrade        = null;

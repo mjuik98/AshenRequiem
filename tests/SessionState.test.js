@@ -39,9 +39,9 @@ console.log('\n[SessionState 테스트 시작]');
 
 // ── 기본값 구조 ───────────────────────────────────────────────────────────
 
-test('createSessionState()는 _version:2를 반환한다', () => {
+test('createSessionState()는 현재 세션 버전을 반환한다', () => {
   const s = createSessionState();
-  assert.equal(s._version, 2);
+  assert.equal(s._version, 5);
 });
 
 test('createSessionState()의 best 필드명이 올바르다 (kills/survivalTime/level)', () => {
@@ -58,6 +58,10 @@ test('createSessionState()의 meta 필드가 올바르다', () => {
   const s = createSessionState();
   assert.equal(typeof s.meta.currency, 'number');
   assert(typeof s.meta.permanentUpgrades === 'object');
+  assert.deepEqual(s.meta.unlockedWeapons, ['magic_bolt']);
+  assert.deepEqual(s.meta.unlockedAccessories, []);
+  assert.deepEqual(s.meta.completedUnlocks, []);
+  assert.equal(s.meta.selectedStartWeaponId, 'magic_bolt');
 });
 
 // ── updateSessionBest ─────────────────────────────────────────────────────
@@ -133,7 +137,7 @@ test('loadSession(): localStorage에 없을 때 기본값을 반환한다 (Node 
   if (typeof localStorage === 'undefined') return; // Node 환경에서는 localStorage 없음
   localStorage.removeItem('ashenRequiem_session');
   const s = loadSession();
-  assert.equal(s._version, 2);
+  assert.equal(s._version, 5);
   assert.equal(s.best.kills, 0);
 });
 

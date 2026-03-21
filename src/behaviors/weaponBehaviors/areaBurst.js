@@ -20,6 +20,9 @@
  *   ({ weapon, player, enemies, spawnQueue, events? }) => boolean
  */
 
+import { spawnProjectile } from '../../state/spawnRequest.js';
+import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
+
 /**
  * areaBurst 무기 동작 — 플레이어 중심 범위 투사체 생성
  *
@@ -27,10 +30,11 @@
  * @returns {true}
  */
 export function areaBurst({ weapon, player, spawnQueue }) {
-  const duration = weapon.burstDuration ?? 0.85;
+  const duration = (weapon.burstDuration ?? 0.85) * getProjectileLifetimeMult(player);
 
-  spawnQueue.push({
-    type: 'projectile',
+  spawnQueue.push(spawnProjectile({
+    x: player.x,
+    y: player.y,
     config: {
       x:          player.x,
       y:          player.y,
@@ -52,7 +56,7 @@ export function areaBurst({ weapon, player, spawnQueue }) {
       // ProjectileSystem이 매 프레임 player 위치로 동기화함
       orbitsPlayer: weapon.orbitsPlayer ?? false,
     },
-  });
+  }));
 
   return true;
 }

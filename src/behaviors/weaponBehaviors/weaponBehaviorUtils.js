@@ -9,6 +9,16 @@ import { spawnProjectile } from '../../state/spawnRequest.js';
 
 export { getLiveEnemies };
 
+/**
+ * 플레이어의 투사체 지속시간 배율을 반환한다.
+ *
+ * @param {object} [player]
+ * @returns {number}
+ */
+export function getProjectileLifetimeMult(player) {
+  return Math.max(0.1, player?.projectileLifetimeMult ?? 1.0);
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // 근접 적 탐색
 // ─────────────────────────────────────────────────────────────────────
@@ -90,10 +100,16 @@ export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 
   const dir    = normalize(sub(target, player));
   const bonus  = player?.bonusProjectileCount ?? 0;
   const count  = (weapon.projectileCount ?? 1) + Math.floor(bonus);
+  const lifetimeMult = getProjectileLifetimeMult(player);
 
   // FIX(P2-7): weapon.spread로 무기별 확산각 제어 가능
   // 기본값 Math.PI / 14 ≈ 12.8° (기존 동작 유지)
   const spread = weapon.spread ?? Math.PI / 14;
+  const speed = weapon.projectileSpeed ?? 350;
+  const maxRange = (weapon.range ?? 0) * lifetimeMult;
+  const maxLifetime = speed > 0 && maxRange > 0
+    ? maxRange / speed
+    : undefined;
 
   for (let i = 0; i < count; i++) {
     const offset = (i - (count - 1) / 2) * spread;
@@ -107,13 +123,14 @@ export function spawnDirectionalProjectiles(weapon, player, target, spawnQueue) 
       config: {
         dirX:   dir.x * cos - dir.y * sin,
         dirY:   dir.x * sin + dir.y * cos,
-        speed:              weapon.projectileSpeed ?? 350,
+        speed,
         damage:             weapon.damage,
         radius:             weapon.radius ?? 5,
         color:              weapon.projectileColor,
         pierce:             weapon.pierce ?? 1,
         hitCount:           0,
-        maxRange:           weapon.range,
+        maxRange,
+        maxLifetime,
         behaviorId:         'targetProjectile',
         ownerId:            player.id,
         statusEffectId:     weapon.statusEffectId     ?? null,
