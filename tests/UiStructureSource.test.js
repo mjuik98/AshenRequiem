@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
-const playSceneSource = readFileSync(new URL('../src/scenes/PlayScene.js', import.meta.url), 'utf8');
 const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
 const gameSource = readFileSync(new URL('../src/core/Game.js', import.meta.url), 'utf8');
 
@@ -26,10 +25,12 @@ async function test(name, fn) {
 await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위임한다', async () => {
   let pauseSections;
   let pauseTooltipContent;
+  let pauseTooltipController;
 
   try {
     pauseSections = await import('../src/ui/pause/pauseViewSections.js');
     pauseTooltipContent = await import('../src/ui/pause/pauseTooltipContent.js');
+    pauseTooltipController = await import('../src/ui/pause/pauseTooltipController.js');
   } catch (error) {
     throw new Error(`PauseView 분리 모듈 import 실패: ${error.message}`);
   }
@@ -37,23 +38,29 @@ await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위
   assert.equal(typeof pauseSections.renderPauseTabPanels, 'function', 'pauseViewSections.renderPauseTabPanels가 없음');
   assert.equal(typeof pauseTooltipContent.buildPauseWeaponTooltipContent, 'function', '무기 tooltip builder가 없음');
   assert.equal(typeof pauseTooltipContent.buildPauseAccessoryTooltipContent, 'function', '장신구 tooltip builder가 없음');
+  assert.equal(typeof pauseTooltipController.buildPauseTooltipBindingEntries, 'function', 'tooltip binding helper가 없음');
+  assert.equal(typeof pauseTooltipController.computePauseTooltipPosition, 'function', 'tooltip position helper가 없음');
   assert.match(pauseViewSource, /from '\.\/pauseViewSections\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseTooltipContent\.js'/);
+  assert.match(pauseViewSource, /from '\.\/pauseTooltipController\.js'/);
 });
 
 await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임한다', async () => {
   let levelUpController;
+  let playSceneRuntime;
+  let playSceneOverlays;
 
   try {
     levelUpController = await import('../src/scenes/play/levelUpController.js');
+    playSceneRuntime = await import('../src/scenes/play/playSceneRuntime.js');
+    playSceneOverlays = await import('../src/scenes/play/playSceneOverlays.js');
   } catch (error) {
-    throw new Error(`levelUpController import 실패: ${error.message}`);
+    throw new Error(`playScene helper import 실패: ${error.message}`);
   }
 
   assert.equal(typeof levelUpController.createLevelUpController, 'function', 'createLevelUpController가 export되지 않음');
-  assert.match(playSceneSource, /from '\.\/play\/levelUpController\.js'/);
-  assert.equal(playSceneSource.includes('_rerollLevelUpChoice('), false, 'PlayScene에 카드별 리롤 로직이 남아 있음');
-  assert.equal(playSceneSource.includes('_banishLevelUpChoice('), false, 'PlayScene에 봉인 로직이 남아 있음');
+  assert.equal(typeof playSceneRuntime.applyRunSessionState, 'function', 'run state helper가 export되지 않음');
+  assert.equal(typeof playSceneOverlays.createPauseOverlayConfig, 'function', 'pause overlay helper가 export되지 않음');
+  assert.equal(typeof playSceneOverlays.createResultSceneActions, 'function', 'result overlay helper가 export되지 않음');
 });
 
 await test('Pause/Result 액션 버튼은 공통 토큰 모듈을 사용한다', async () => {

@@ -65,4 +65,10 @@ npm run validate
 
 # 전체 단위 테스트 실행 (Node.js Test Runner)
 npm test
+
+# 빌드 후 실제 브라우저에서 deterministic smoke 실행
+npm run test:smoke
+
+# 단위 테스트 + smoke까지 한 번에 검증
+npm run verify
 ```

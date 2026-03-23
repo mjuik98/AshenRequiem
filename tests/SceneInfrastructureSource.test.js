@@ -1,31 +1,96 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { test, summary } from './helpers/testRunner.js';
-
-const settingsSceneSource = readFileSync(new URL('../src/scenes/SettingsScene.js', import.meta.url), 'utf8');
-const codexSceneSource = readFileSync(new URL('../src/scenes/CodexScene.js', import.meta.url), 'utf8');
-const metaShopSceneSource = readFileSync(new URL('../src/scenes/MetaShopScene.js', import.meta.url), 'utf8');
-const titleSceneSource = readFileSync(new URL('../src/scenes/TitleScene.js', import.meta.url), 'utf8');
-const playResultHandlerSource = readFileSync(new URL('../src/scenes/play/PlayResultHandler.js', import.meta.url), 'utf8');
+import { createRunner } from './helpers/testRunner.js';
+import { makeSessionState, makeWorld } from './fixtures/index.js';
+import { PlayResultHandler } from '../src/scenes/play/PlayResultHandler.js';
+import { createSceneNavigationGuard } from '../src/scenes/sceneNavigation.js';
+import {
+  persistSession,
+  purchasePermanentUpgradeAndSave,
+  setSelectedStartWeaponAndSave,
+  updateSessionOptionsAndSave,
+} from '../src/state/sessionFacade.js';
+import {
+  resetSessionStorage,
+  setSessionStorage,
+} from '../src/state/createSessionState.js';
 
 console.log('\n[SceneInfrastructureSource]');
 
-test('서브씬은 공통 navigation guard를 사용한다', () => {
-  assert.equal(settingsSceneSource.includes('createSceneNavigationGuard'), true, 'SettingsScene이 공통 navigation guard를 사용하지 않음');
-  assert.equal(codexSceneSource.includes('createSceneNavigationGuard'), true, 'CodexScene이 공통 navigation guard를 사용하지 않음');
-  assert.equal(metaShopSceneSource.includes('createSceneNavigationGuard'), true, 'MetaShopScene이 공통 navigation guard를 사용하지 않음');
-  assert.equal(titleSceneSource.includes('createSceneNavigationGuard'), true, 'TitleScene이 공통 navigation guard를 사용하지 않음');
-  assert.equal(titleSceneSource.includes('this._nav.change('), true, 'TitleScene이 동기 씬 전환에도 공통 navigation helper를 사용하지 않음');
+const { test, summary } = createRunner('SceneInfrastructureSource');
+
+test('scene navigation guard는 중복 전환과 stale async commit을 막는다', async () => {
+  const guard = createSceneNavigationGuard();
+  guard.reset();
+
+  let resolveLoader;
+  const firstLoad = guard.load(
+    () => new Promise((resolve) => {
+      resolveLoader = resolve;
+    }),
+    () => {},
+  );
+  const secondLoad = guard.load(
+    async () => ({ value: 2 }),
+    () => {
+      throw new Error('second load should not commit');
+    },
+  );
+
+  assert.equal(await secondLoad, false);
+  guard.reset();
+  resolveLoader({ value: 1 });
+  assert.equal(await firstLoad, true);
+  assert.equal(guard.isNavigating(), false);
 });
 
-test('씬은 직접 saveSession() 대신 sessionFacade를 사용한다', () => {
-  assert.equal(settingsSceneSource.includes('saveSession('), false, 'SettingsScene이 직접 saveSession을 호출함');
-  assert.equal(metaShopSceneSource.includes('saveSession('), false, 'MetaShopScene이 직접 saveSession을 호출함');
-  assert.equal(titleSceneSource.includes('saveSession('), false, 'TitleScene이 직접 saveSession을 호출함');
-  assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), true, 'SettingsScene이 sessionFacade를 사용하지 않음');
-  assert.equal(metaShopSceneSource.includes('purchasePermanentUpgradeAndSave'), true, 'MetaShopScene이 sessionFacade를 사용하지 않음');
-  assert.equal(titleSceneSource.includes('setSelectedStartWeaponAndSave'), true, 'TitleScene이 sessionFacade를 사용하지 않음');
-  assert.equal(playResultHandlerSource.includes('persistSession'), true, 'PlayResultHandler가 sessionFacade persist를 사용하지 않음');
+test('session facade와 play result handler는 저장소 기반 세션 갱신을 수행한다', () => {
+  const writes = [];
+  setSessionStorage({
+    setItem(key, value) {
+      writes.push({ key, value: JSON.parse(value) });
+    },
+    getItem() {
+      return null;
+    },
+  });
+
+  try {
+    const session = makeSessionState({
+      meta: {
+        currency: 100,
+        permanentUpgrades: {},
+      },
+    });
+
+    const options = updateSessionOptionsAndSave(session, { showFps: true });
+    assert.equal(options.showFps, true);
+
+    const selected = setSelectedStartWeaponAndSave(session, 'fire_orb');
+    assert.equal(selected, 'fire_orb');
+
+    const purchased = purchasePermanentUpgradeAndSave(session, 'perm_hp', 10);
+    assert.equal(purchased, true);
+    assert.equal(session.meta.currency, 90);
+
+    persistSession(session);
+    assert.equal(writes.length >= 4, true);
+
+    const handler = new PlayResultHandler(session);
+    session.meta.currency = 123;
+    const result = handler.process(makeWorld({
+      killCount: 44,
+      elapsedTime: 180,
+      player: { level: 7, weapons: [{ id: 'magic_bolt' }] },
+      runOutcome: { type: 'victory' },
+    }));
+
+    assert.equal(result.killCount, 44);
+    assert.equal(result.currencyEarned, 33);
+    assert.equal(result.outcome, 'victory');
+    assert.equal(writes.length >= 5, true);
+  } finally {
+    resetSessionStorage();
+  }
 });
 
 summary();

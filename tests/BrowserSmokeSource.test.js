@@ -17,17 +17,23 @@ test('deterministic browser smoke runner 파일이 존재한다', () => {
   assert.equal(scenariosExists, true, 'scenarios.js 파일이 아직 없음');
 });
 
-test('runner는 runtime hook snapshot 또는 debug host를 사용한다', () => {
+test('runner는 안정된 debug host만 사용하고 scene 내부 슬롯에 직접 접근하지 않는다', () => {
   assert.equal(
-    runnerSource.includes('render_game_to_text') || runnerSource.includes('__ASHEN_RUNTIME__'),
+    runnerSource.includes('__ASHEN_DEBUG__'),
     true,
-    'runner가 runtime hook snapshot을 사용하지 않음',
+    'runner가 안정된 debug host를 사용하지 않음',
+  );
+  assert.equal(
+    runnerSource.includes('sceneManager.currentScene._ui'),
+    false,
+    'runner가 scene 내부 슬롯에 직접 접근하면 안 됨',
   );
 });
 
 test('scenario 정의는 title/play/pause/result 흐름 이름을 가진다', () => {
   assert.equal(scenariosSource.includes('title_to_play'), true, 'title_to_play 시나리오가 없음');
   assert.equal(scenariosSource.includes('pause_overlay'), true, 'pause_overlay 시나리오가 없음');
+  assert.equal(scenariosSource.includes('pause_layout'), true, 'pause_layout 시나리오가 없음');
   assert.equal(scenariosSource.includes('result_screen'), true, 'result_screen 시나리오가 없음');
 });
 

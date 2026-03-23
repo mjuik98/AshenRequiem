@@ -55,16 +55,18 @@ export function createCollisionSystem() {
         const p = projectiles[i];
         if (!isLive(p) || p.ownerId !== player.id) continue;
 
+        const queuedHitTargets = new Set(p.hitTargets);
+        let queuedHitCount = p.hitCount ?? 0;
         const candidates = _grid.queryUnique(p);
         for (const e of candidates) {
           if (!isLive(e)) continue;
-          if (p.hitTargets.has(e.id)) continue;
+          if (queuedHitTargets.has(e.id)) continue;
 
           const rSum = p.radius + e.radius;
           const dSq  = distanceSq(p, e);
           if (dSq <= rSum * rSum) {
-            p.hitTargets.add(e.id);
-            p.hitCount++;
+            queuedHitTargets.add(e.id);
+            queuedHitCount++;
             events.hits.push({
               attackerId:   p.ownerId,
               targetId:     e.id,
@@ -74,7 +76,7 @@ export function createCollisionSystem() {
               projectile:   p,
             });
 
-            if (p.hitCount >= p.pierce) break;
+            if (queuedHitCount >= p.pierce) break;
           }
         }
       }

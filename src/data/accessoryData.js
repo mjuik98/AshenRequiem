@@ -173,6 +173,7 @@ export const accessoryData = [
   {
     id:          'ring_of_speed',
     name:        '속도의 반지',
+    icon:        '💨',
     description: '이동 속도 +10',
     rarity:      'common',
     maxLevel:    5,
@@ -181,6 +182,7 @@ export const accessoryData = [
   {
     id:          'iron_heart',
     name:        '강철 심장',
+    icon:        '❤',
     description: '최대 HP +20',
     rarity:      'common',
     maxLevel:    5,
@@ -189,6 +191,7 @@ export const accessoryData = [
   {
     id:          'magnet_stone',
     name:        '자석석',
+    icon:        '🧲',
     description: '픽업 흡수 범위 +20',
     rarity:      'common',
     maxLevel:    5,
@@ -197,6 +200,7 @@ export const accessoryData = [
   {
     id:          'vampiric_amulet',
     name:        '흡혈 부적',
+    icon:        '🩸',
     description: '흡혈 +4%, 최대 HP +10',
     rarity:      'rare',
     maxLevel:    5,
@@ -208,6 +212,7 @@ export const accessoryData = [
   {
     id:          'tome_of_power',
     name:        '마력의 서',
+    icon:        '📘',
     description: '모든 무기 데미지 +10%',
     rarity:      'rare',
     maxLevel:    5,
@@ -216,6 +221,7 @@ export const accessoryData = [
   {
     id:          'shadow_cloak',
     name:        '그림자 망토',
+    icon:        '🜚',
     description: '이동 속도 +10, 무적 시간 +0.1초',
     rarity:      'rare',
     maxLevel:    5,
@@ -227,6 +233,7 @@ export const accessoryData = [
   {
     id:          'warrior_belt',
     name:        '전사의 허리띠',
+    icon:        '⚔',
     description: '최대 HP +10, 이동 속도 +5',
     rarity:      'common',
     maxLevel:    5,
@@ -238,6 +245,7 @@ export const accessoryData = [
   {
     id:          'crystal_lens',
     name:        '수정 렌즈',
+    icon:        '🔷',
     description: '픽업 흡수 범위 +10, 흡혈 +2%',
     rarity:      'rare',
     maxLevel:    5,
@@ -251,6 +259,7 @@ export const accessoryData = [
   {
     id:          'swift_hourglass',
     name:        '쾌속 모래시계',
+    icon:        '⌛',
     description: '무기 쿨다운 8% 단축',
     rarity:      'rare',
     maxLevel:    5,
@@ -259,6 +268,7 @@ export const accessoryData = [
   {
     id:          'wind_crystal',
     name:        '바람의 수정',
+    icon:        '💠',
     description: '투사체 속도 +10%',
     rarity:      'common',
     maxLevel:    5,
@@ -267,6 +277,7 @@ export const accessoryData = [
   {
     id:          'arcane_prism',
     name:        '비전 프리즘',
+    icon:        '🔮',
     description: '투사체 크기/범위 +10%',
     rarity:      'rare',
     maxLevel:    5,
@@ -275,6 +286,7 @@ export const accessoryData = [
   {
     id:          'scholars_rune',
     name:        '학자의 룬',
+    icon:        '✎',
     description: '경험치 획득 +10%',
     rarity:      'common',
     maxLevel:    5,
@@ -283,6 +295,7 @@ export const accessoryData = [
   {
     id:          'duplicator',
     name:        '복제기',
+    icon:        '◌',
     description: '모든 무기 투사체 수 +1',
     rarity:      'rare',
     maxLevel:    5,
@@ -293,6 +306,7 @@ export const accessoryData = [
   {
     id:          'scattered_shot',
     name:        '산탄 마법진',
+    icon:        '✹',
     description: '모든 직선 무기 투사체 +1발',
     rarity:      'rare',
     maxLevel:    5,
@@ -301,6 +315,7 @@ export const accessoryData = [
   {
     id:          'crit_gem',
     name:        '크리티컬 보석',
+    icon:        '💎',
     description: '크리티컬 확률 +5%, 크리티컬 피해 +10%',
     rarity:      'rare',
     maxLevel:    5,
@@ -312,6 +327,7 @@ export const accessoryData = [
   {
     id:          'executioner_ring',
     name:        '처형자의 반지',
+    icon:        '☍',
     description: '크리티컬 피해 +10%, HP +10',
     rarity:      'rare',
     maxLevel:    5,
@@ -325,6 +341,7 @@ export const accessoryData = [
   {
     id:          'coin_pendant',
     name:        '동전 목걸이',
+    icon:        '🪙',
     description: '골드 획득량 +10%',
     rarity:      'common',
     maxLevel:    5,
@@ -333,6 +350,7 @@ export const accessoryData = [
   {
     id:          'greed_amulet',
     name:        '탐욕의 부적',
+    icon:        '💰',
     description: '골드 획득량 +10%, 픽업 범위 +10',
     rarity:      'rare',
     maxLevel:    5,
@@ -344,6 +362,7 @@ export const accessoryData = [
   {
     id:          'persistence_charm',
     name:        '지속의 부적',
+    icon:        '🕰',
     description: '투사체 지속시간 +10%',
     rarity:      'rare',
     maxLevel:    5,

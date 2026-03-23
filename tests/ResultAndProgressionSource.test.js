@@ -5,12 +5,19 @@ import { bossData } from '../src/data/bossData.js';
 import { enemyData } from '../src/data/enemyData.js';
 import { waveData } from '../src/data/waveData.js';
 import { unlockData } from '../src/data/unlockData.js';
+import {
+  buildPauseLoadoutItems,
+  renderPauseLoadoutPanel,
+} from '../src/ui/pause/pauseLoadoutContent.js';
 import { renderPauseTabPanels } from '../src/ui/pause/pauseViewSections.js';
+import {
+  buildPauseAccessoryTooltipContent,
+  buildPauseWeaponTooltipContent,
+} from '../src/ui/pause/pauseTooltipContent.js';
+import { createResultSceneActions } from '../src/scenes/play/playSceneOverlays.js';
 
 const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
-const pauseTooltipSource = readFileSync(new URL('../src/ui/pause/pauseTooltipContent.js', import.meta.url), 'utf8');
 const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
-const playSceneSource = readFileSync(new URL('../src/scenes/PlayScene.js', import.meta.url), 'utf8');
 
 console.log('\n[Result/Progression Source]');
 
@@ -34,61 +41,80 @@ test('ESC 로드아웃 통합은 무기/장신구의 분리 렌더 경로를 제
 });
 
 test('PauseView는 로드아웃 카드 선택으로 상세 패널을 갱신한다', () => {
-  assert.equal(
-    pauseViewSource.includes('.pv-slot-card'),
-    true,
-    'PauseView가 로드아웃 카드 선택자를 사용하지 않음',
-  );
-  assert.equal(
-    pauseViewSource.includes('loadoutKey'),
-    true,
-    'PauseView가 로드아웃 selection key를 읽지 않음',
-  );
-  assert.equal(
-    pauseViewSource.includes('_bindLoadoutSelection'),
-    true,
-    'PauseView에 로드아웃 선택 바인딩 메서드가 없음',
-  );
-  assert.match(
-    pauseViewSource,
-    /addEventListener\('click',[\s\S]*_selectLoadoutItem\(/,
-    'PauseView가 클릭으로 로드아웃 선택을 갱신하지 않음',
-  );
-  assert.match(
-    pauseViewSource,
-    /addEventListener\('(focus|focusin)',[\s\S]*_selectLoadoutItem\(/,
-    'PauseView가 포커스로 로드아웃 선택을 갱신하지 않음',
-  );
+  const player = {
+    weapons: [
+      { id: 'magic_bolt', name: 'Magic Bolt', level: 2, maxLevel: 5, behaviorId: 'targetProjectile' },
+      { id: 'chain_lightning', name: 'Chain Lightning', level: 1, maxLevel: 5, behaviorId: 'chainLightning' },
+    ],
+    accessories: [
+      { id: 'iron_heart', name: 'Iron Heart', level: 1, maxLevel: 5, rarity: 'common' },
+    ],
+    maxWeaponSlots: 3,
+    maxAccessorySlots: 3,
+    activeSynergies: [],
+  };
+  const items = buildPauseLoadoutItems({ player });
+  const html = renderPauseLoadoutPanel({
+    items,
+    selectedItemKey: 'weapon:1',
+    player,
+    data: { weaponEvolutionData: [] },
+    indexes: {
+      weaponById: new Map(),
+      accessoryById: new Map(),
+      synergiesByWeaponId: new Map(),
+      synergiesByAccessoryId: new Map(),
+    },
+  });
+
+  assert.equal(html.includes('data-loadout-key="weapon:1"'), true, '로드아웃 카드 selection key가 렌더되지 않음');
+  assert.equal(html.includes('aria-pressed="true"'), true, '선택된 로드아웃 카드 상태가 렌더되지 않음');
+  assert.equal(html.includes('Chain Lightning'), true, '선택된 로드아웃 상세 패널이 갱신되지 않음');
 });
 
 test('Pause tooltip은 보조 안내만 담당하고 핵심 설명은 상세 패널로 넘긴다', () => {
-  assert.equal(
-    pauseTooltipSource.includes('pvt-note'),
-    true,
-    'pauseTooltipContent가 보조 안내 note를 제공하지 않음',
-  );
-  assert.equal(
-    pauseTooltipSource.includes('pvt-row'),
-    false,
-    'pauseTooltipContent가 여전히 핵심 수치 행을 길게 렌더함',
-  );
-  assert.equal(
-    pauseTooltipSource.includes('pvt-synergy'),
-    false,
-    'pauseTooltipContent가 여전히 시너지 상세 블록을 렌더함',
-  );
-  assert.equal(
-    pauseTooltipSource.includes('pvt-evo'),
-    false,
-    'pauseTooltipContent가 여전히 진화 상세 블록을 렌더함',
-  );
+  const player = {
+    weapons: [{ id: 'magic_bolt', name: 'Magic Bolt', level: 2, damage: 14, cooldown: 0.8 }],
+    accessories: [{ id: 'iron_heart', name: 'Iron Heart', level: 1, rarity: 'common' }],
+    bonusProjectileCount: 0,
+  };
+  const indexes = {
+    weaponById: new Map([['magic_bolt', { id: 'magic_bolt', name: 'Magic Bolt' }]]),
+    accessoryById: new Map([['iron_heart', { id: 'iron_heart', name: 'Iron Heart' }]]),
+  };
+  const weaponTooltip = buildPauseWeaponTooltipContent({
+    weaponId: 'magic_bolt',
+    player,
+    data: { weaponEvolutionData: [] },
+    indexes,
+  });
+  const accessoryTooltip = buildPauseAccessoryTooltipContent({
+    accessoryId: 'iron_heart',
+    player,
+    data: { weaponEvolutionData: [] },
+    indexes,
+  });
+
+  assert.equal(weaponTooltip.includes('pvt-note'), true, 'pauseTooltipContent가 보조 안내 note를 제공하지 않음');
+  assert.equal(accessoryTooltip.includes('pvt-note'), true, 'pauseTooltipContent가 보조 안내 note를 제공하지 않음');
+  assert.equal(weaponTooltip.includes('핵심 설명은 상세 패널에서 확인하세요.'), true, '무기 tooltip 안내 문구가 없음');
+  assert.equal(accessoryTooltip.includes('핵심 설명은 상세 패널에서 확인하세요.'), true, '장신구 tooltip 안내 문구가 없음');
+  assert.equal(weaponTooltip.includes('pvt-synergy'), false, 'pauseTooltipContent가 여전히 시너지 상세 블록을 렌더함');
+  assert.equal(weaponTooltip.includes('pvt-evo'), false, 'pauseTooltipContent가 여전히 진화 상세 블록을 렌더함');
 });
 
 test('결과 화면은 강화 상점 대신 메인 화면 버튼을 사용한다', () => {
   assert.equal(resultViewSource.includes('강화 상점'), false, 'ResultView에 강화 상점 버튼이 남아 있음');
   assert.equal(resultViewSource.includes('메인 화면으로'), true, 'ResultView에 메인 화면 버튼이 없음');
-  assert.equal(playSceneSource.includes('new MetaShopScene(this.game)'), false, 'PlayScene 결과 화면이 여전히 MetaShopScene으로 이동함');
-  assert.equal(playSceneSource.includes('new TitleScene(this.game)'), true, 'PlayScene 결과 화면이 TitleScene 복귀를 다루지 않음');
+  const transitions = [];
+  const actions = createResultSceneActions({
+    isBlocked: () => false,
+    setBlocked: () => {},
+    restart: () => transitions.push('restart'),
+    goToTitle: () => transitions.push('title'),
+  });
+  actions.onTitle();
+  assert.deepEqual(transitions, ['title'], '결과 액션이 메인 화면 복귀 경로를 사용하지 않음');
 });
 
 test('bossData는 5분 간격의 6종 서로 다른 보스를 사용한다', () => {

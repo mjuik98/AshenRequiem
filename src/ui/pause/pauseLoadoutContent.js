@@ -13,6 +13,18 @@ function toArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function formatCompactNumber(value, digits = 2) {
+  return Number.isFinite(value)
+    ? String(Number(value.toFixed(digits)))
+    : '—';
+}
+
+function formatSeconds(value, digits = 2) {
+  return Number.isFinite(value)
+    ? `${formatCompactNumber(value, digits)}s`
+    : '—';
+}
+
 function getKindLabel(kind) {
   switch (kind) {
     case 'weapon':
@@ -76,7 +88,7 @@ function summarizeWeapon(weapon) {
   const parts = [];
   if (weapon?.level != null) parts.push(`Lv.${weapon.level}`);
   if (weapon?.damage != null) parts.push(`데미지 ${weapon.damage}`);
-  if (weapon?.cooldown != null) parts.push(`쿨다운 ${weapon.cooldown}`);
+  if (weapon?.cooldown != null) parts.push(`쿨다운 ${formatCompactNumber(weapon.cooldown)}`);
   if (weapon?.range != null) parts.push(`사거리 ${Math.round(weapon.range)}`);
   return parts.join(' · ');
 }
@@ -93,6 +105,16 @@ function getAccessoryEffectSummary(accessory, indexes) {
   const definition = indexes?.accessoryById?.get(accessory?.id);
   const lines = definition ? buildAccessoryLevelDesc(definition) : [];
   return lines[0] ?? accessory?.description ?? '현재 효과 정보를 준비 중입니다.';
+}
+
+function getItemDefinition(item, indexes) {
+  if (item?.kind === 'weapon') {
+    return indexes?.weaponById?.get(item?.id) ?? item?.source ?? null;
+  }
+  if (item?.kind === 'accessory') {
+    return indexes?.accessoryById?.get(item?.id) ?? item?.source ?? null;
+  }
+  return item?.source ?? null;
 }
 
 export function normalizePauseSynergyRequirementId(requirement) {
@@ -208,13 +230,14 @@ function getBehaviorLabel(behaviorId) {
   return labels[behaviorId] ?? '무기';
 }
 
-function getSlotIcon(item) {
+function getSlotIcon(item, indexes) {
   if (item?.kind === 'empty' || item?.kind === 'locked') {
     return '<span class="pv-slot-icon-glyph muted">+</span>';
   }
 
-  if (item?.kind === 'accessory') {
-    return '<span class="pv-slot-icon-glyph">◈</span>';
+  const definition = getItemDefinition(item, indexes);
+  if (definition?.icon) {
+    return `<span class="pv-slot-icon-glyph">${escapeHtml(definition.icon)}</span>`;
   }
 
   const iconMap = {
@@ -284,10 +307,10 @@ function renderSlotCard(item, selectedItemKey, player, data, indexes) {
       data-loadout-id="${escapeHtml(item?.id ?? '')}"
       data-loadout-key="${escapeHtml(item?.selectionKey ?? '')}"
       aria-pressed="${isSelected}"
-      ${item?.kind === 'empty' || item?.kind === 'locked' ? 'disabled' : ''}
+      ${item?.kind === 'locked' ? 'disabled' : ''}
     >
       <div class="pv-slot-icon-box${iconBoxClass ? ` ${iconBoxClass}` : ''}">
-        ${getSlotIcon(item)}
+        ${getSlotIcon(item, indexes)}
       </div>
       <div class="pv-slot-body">
         <div class="pv-slot-name">${escapeHtml(item?.name ?? getKindLabel(item?.kind))}</div>
@@ -488,87 +511,29 @@ function renderEvolutionSection(selectedItem, player, data, indexes) {
   `;
 }
 
-function renderItemDetail(selectedItem, player, data, indexes) {
-  const kindLabel = getKindLabel(selectedItem?.kind);
-  const title = selectedItem?.name ?? kindLabel;
-  const summary = selectedItem?.kind === 'weapon'
-    ? `현재 효과: ${summarizeWeapon(selectedItem.source) || '기본 공격을 강화합니다.'}`
-    : selectedItem?.kind === 'accessory'
-      ? `현재 효과: ${getAccessoryEffectSummary(selectedItem.source, indexes)}`
-      : selectedItem?.kind === 'empty'
-        ? '새로운 장비를 찾을 수 있는 빈 슬롯입니다.'
-        : '추가 슬롯은 상점에서 해금합니다.';
-  const relationCount = getRelatedItems(selectedItem, player, data, indexes).length;
-  const progressRows = selectedItem?.kind === 'weapon'
-    ? `
-        <div class="pv-loadout-power-row"><span>레벨 진행</span><span>${escapeHtml(String(selectedItem.source?.level ?? 1))}/${escapeHtml(String(selectedItem.source?.maxLevel ?? 5))}</span></div>
-        <div class="pv-loadout-power-row"><span>현재 위력</span><span>${escapeHtml(String(selectedItem.source?.damage ?? '—'))}</span></div>
-        <div class="pv-loadout-power-row"><span>현재 쿨다운</span><span>${escapeHtml(String(selectedItem.source?.cooldown ?? '—'))}</span></div>
-        <div class="pv-loadout-power-row"><span>연결 수</span><span>${escapeHtml(String(relationCount))}</span></div>
-      `
-    : selectedItem?.kind === 'accessory'
-      ? `
-          <div class="pv-loadout-power-row"><span>레벨 진행</span><span>${escapeHtml(String(selectedItem.source?.level ?? 1))}/${escapeHtml(String(selectedItem.source?.maxLevel ?? 5))}</span></div>
-          <div class="pv-loadout-power-row"><span>희귀도</span><span>${escapeHtml(selectedItem.source?.rarity ?? 'common')}</span></div>
-          <div class="pv-loadout-power-row"><span>현재 효과</span><span>${escapeHtml(getAccessoryEffectSummary(selectedItem.source, indexes))}</span></div>
-          <div class="pv-loadout-power-row"><span>연결 수</span><span>${escapeHtml(String(relationCount))}</span></div>
-        `
-      : `
-          <div class="pv-loadout-power-row"><span>상태</span><span>${escapeHtml(kindLabel)}</span></div>
-        `;
-
-  let statsHtml = '';
-  if (selectedItem?.kind === 'weapon' && selectedItem?.source) {
-    const weapon = selectedItem.source;
-    const damage = weapon.damage ?? 0;
-    const cooldown = weapon.cooldown ?? 1;
-    const range = weapon.range ?? 0;
-    const cooldownFill = Math.max(0, Math.min(100, Math.round((1 - (cooldown / 4)) * 100)));
-
-    statsHtml = `
-      <div class="pv-loadout-stats-section">
-        <h4 class="pv-loadout-section-title">스탯</h4>
-        <div class="pv-stat-bar-row">
-          <span class="pv-stat-bar-key">데미지</span>
-          <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${Math.min(100, damage * 7)}%;background:#e06060"></div></div>
-          <span class="pv-stat-bar-val">${damage}</span>
-        </div>
-        <div class="pv-stat-bar-row">
-          <span class="pv-stat-bar-key">쿨다운</span>
-          <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${cooldownFill}%;background:#7ecde8"></div></div>
-          <span class="pv-stat-bar-val">${cooldown}s</span>
-        </div>
-        ${range > 0 ? `
-          <div class="pv-stat-bar-row">
-            <span class="pv-stat-bar-key">사거리</span>
-            <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${Math.min(100, Math.round(range / 5))}%;background:#6dba72"></div></div>
-            <span class="pv-stat-bar-val">${Math.round(range)}</span>
-          </div>
-        ` : ''}
-        ${weapon.statusEffectId ? `
-          <div class="pv-stat-bar-row">
-            <span class="pv-stat-bar-key">상태이상</span>
-            <span class="pv-stat-bar-status">${escapeHtml(getStatusLabel(weapon.statusEffectId))} ${Math.round((weapon.statusEffectChance ?? 0) * 100)}%</span>
-          </div>
-        ` : ''}
-      </div>
-    `;
+function buildStatusRows(selectedItem, relationCount) {
+  if (selectedItem?.kind === 'weapon') {
+    return [
+      ['현재 위력', selectedItem.source?.damage ?? '—'],
+      ['현재 쿨다운', formatCompactNumber(selectedItem.source?.cooldown)],
+      ['연결 수', relationCount],
+    ];
   }
 
-  let effectLevelsHtml = '';
-  if (selectedItem?.kind === 'accessory' && selectedItem?.source) {
-    const definition = indexes?.accessoryById?.get(selectedItem.source.id);
-    const lines = definition ? buildAccessoryLevelDesc(definition) : [];
-    if (lines.length > 0) {
-      effectLevelsHtml = `
-        <div class="pv-loadout-stats-section">
-          <h4 class="pv-loadout-section-title">레벨별 효과</h4>
-          ${lines.map((line) => `<div class="pv-loadout-level-line">${escapeHtml(line)}</div>`).join('')}
-        </div>
-      `;
-    }
+  if (selectedItem?.kind === 'accessory') {
+    return [
+      ['희귀도', selectedItem.source?.rarity ?? 'common'],
+      ['연결 수', relationCount],
+    ];
   }
 
+  return [
+    ['상태', getKindLabel(selectedItem?.kind)],
+  ];
+}
+
+function renderStatusBlock(selectedItem, relationCount) {
+  const rows = buildStatusRows(selectedItem, relationCount);
   const levelBlockHtml = selectedItem?.level != null && selectedItem?.maxLevel != null
     ? `
         <div class="pv-loadout-lv-block">
@@ -584,6 +549,91 @@ function renderItemDetail(selectedItem, player, data, indexes) {
     : '';
 
   return `
+    <div class="pv-loadout-power">
+      <h4 class="pv-loadout-section-title">현재 상태</h4>
+      <div class="pv-loadout-progress-block">
+        <div class="pv-loadout-power-lines">
+          ${rows.map(([label, value]) => `
+            <div class="pv-loadout-power-row">
+              <span>${escapeHtml(String(label))}</span>
+              <span>${escapeHtml(String(value))}</span>
+            </div>
+          `).join('')}
+        </div>
+        ${levelBlockHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderWeaponStatsSection(weapon) {
+  const damage = weapon.damage ?? 0;
+  const cooldown = weapon.cooldown ?? 1;
+  const range = weapon.range ?? 0;
+  const cooldownFill = Math.max(0, Math.min(100, Math.round((1 - (cooldown / 4)) * 100)));
+
+  return `
+    <div class="pv-loadout-stats-section">
+      <h4 class="pv-loadout-section-title">스탯</h4>
+      <div class="pv-stat-bar-row">
+        <span class="pv-stat-bar-key">데미지</span>
+        <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${Math.min(100, damage * 7)}%;background:#e06060"></div></div>
+        <span class="pv-stat-bar-val">${damage}</span>
+      </div>
+      <div class="pv-stat-bar-row">
+        <span class="pv-stat-bar-key">쿨다운</span>
+        <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${cooldownFill}%;background:#7ecde8"></div></div>
+        <span class="pv-stat-bar-val">${formatSeconds(cooldown)}</span>
+      </div>
+      ${range > 0 ? `
+        <div class="pv-stat-bar-row">
+          <span class="pv-stat-bar-key">사거리</span>
+          <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${Math.min(100, Math.round(range / 5))}%;background:#6dba72"></div></div>
+          <span class="pv-stat-bar-val">${Math.round(range)}</span>
+        </div>
+      ` : ''}
+      ${weapon.statusEffectId ? `
+        <div class="pv-stat-bar-row">
+          <span class="pv-stat-bar-key">상태이상</span>
+          <span class="pv-stat-bar-status">${escapeHtml(getStatusLabel(weapon.statusEffectId))} ${Math.round((weapon.statusEffectChance ?? 0) * 100)}%</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderAccessoryStatsSection(selectedItem, indexes) {
+  const definition = indexes?.accessoryById?.get(selectedItem.source.id);
+  const lines = definition ? buildAccessoryLevelDesc(definition) : [];
+  if (lines.length === 0) return '';
+
+  return `
+    <div class="pv-loadout-stats-section">
+      <h4 class="pv-loadout-section-title">레벨별 효과</h4>
+      ${lines.map((line) => `<div class="pv-loadout-level-line">${escapeHtml(line)}</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderItemDetail(selectedItem, player, data, indexes) {
+  const kindLabel = getKindLabel(selectedItem?.kind);
+  const title = selectedItem?.name ?? kindLabel;
+  const summary = selectedItem?.kind === 'weapon'
+    ? `현재 효과: ${summarizeWeapon(selectedItem.source) || '기본 공격을 강화합니다.'}`
+    : selectedItem?.kind === 'accessory'
+      ? `현재 효과: ${getAccessoryEffectSummary(selectedItem.source, indexes)}`
+      : selectedItem?.kind === 'empty'
+        ? '새로운 장비를 찾을 수 있는 빈 슬롯입니다.'
+        : '추가 슬롯은 상점에서 해금합니다.';
+  const relationCount = getRelatedItems(selectedItem, player, data, indexes).length;
+  const statsHtml = selectedItem?.kind === 'weapon' && selectedItem?.source
+    ? renderWeaponStatsSection(selectedItem.source)
+    : '';
+  const effectLevelsHtml = selectedItem?.kind === 'accessory' && selectedItem?.source
+    ? renderAccessoryStatsSection(selectedItem, indexes)
+    : '';
+
+  return `
     <div class="pv-loadout-detail-header">
       <div class="pv-loadout-detail-kind">${escapeHtml(kindLabel)}</div>
       <h3 class="pv-loadout-detail-name">${escapeHtml(title)}</h3>
@@ -591,45 +641,10 @@ function renderItemDetail(selectedItem, player, data, indexes) {
     </div>
     ${statsHtml}
     ${effectLevelsHtml}
-    <div class="pv-loadout-role-summary">
-      <h4 class="pv-loadout-section-title">역할 / 효과</h4>
-      <div class="pv-loadout-role-copy">${escapeHtml(summary || '선택된 항목 정보')}</div>
-      <div class="pv-loadout-role-copy muted">
-        ${escapeHtml(
-          selectedItem?.kind === 'weapon'
-            ? '선택한 무기의 현재 역할과 연결 조건을 우선 확인하세요.'
-            : selectedItem?.kind === 'accessory'
-              ? '선택한 장신구가 어떤 무기/시너지와 맞물리는지 먼저 확인하세요.'
-              : '선택 가능한 슬롯 상태를 확인하세요.',
-        )}
-      </div>
-    </div>
-    <div class="pv-loadout-power">
-      <h4 class="pv-loadout-section-title">현재 상태</h4>
-      <div class="pv-loadout-progress-block">
-        <div class="pv-loadout-power-lines">
-          ${progressRows}
-        </div>
-      </div>
-    </div>
-    ${levelBlockHtml ? `<div class="pv-loadout-power"><h4 class="pv-loadout-section-title">레벨 진행</h4>${levelBlockHtml}</div>` : ''}
+    ${renderStatusBlock(selectedItem, relationCount)}
     ${renderLinkedItems(selectedItem, player, data, indexes)}
     ${renderSynergySection(selectedItem, player, data, indexes)}
     ${renderEvolutionSection(selectedItem, player, data, indexes)}
-    <div class="pv-loadout-guidance">
-      <h4 class="pv-loadout-section-title">다음 안내</h4>
-      <div class="pv-loadout-empty-msg">
-        ${escapeHtml(
-          selectedItem?.kind === 'weapon'
-            ? '장신구와의 연결과 진화 조건을 확인하세요.'
-            : selectedItem?.kind === 'accessory'
-              ? '무기와 맞물리는 진화 조합을 확인하세요.'
-              : selectedItem?.kind === 'empty'
-                ? '장비를 채우면 상세 정보가 나타납니다.'
-                : '해금 후 상세 정보가 표시됩니다.',
-        )}
-      </div>
-    </div>
   `;
 }
 
@@ -638,9 +653,6 @@ export function buildPauseLoadoutItems({ player } = {}) {
     ...buildWeaponItems(player),
     ...buildAccessoryItems(player),
   ];
-  items.push(buildPlaceholderItem('locked', '상점 해금', items.length, {
-    description: '추가 슬롯은 상점에서 해금합니다.',
-  }));
 
   return items.map((item, index) => ({
     ...item,
@@ -674,7 +686,6 @@ export function renderPauseLoadoutPanel({
   const selectedKey = selectedItem?.selectionKey ?? null;
   const weaponItems = loadoutItems.filter((item) => item.kind === 'weapon' || (item.kind === 'empty' && item.name?.includes('무기')));
   const accessoryItems = loadoutItems.filter((item) => item.kind === 'accessory' || (item.kind === 'empty' && item.name?.includes('장신구')));
-  const lockedItems = loadoutItems.filter((item) => item.kind === 'locked');
 
   const weaponCardsHtml = weaponItems.map((item) => renderSlotCard(item, selectedKey, player, data, indexes)).join('');
   const accessoryCardsHtml = accessoryItems
@@ -682,7 +693,6 @@ export function renderPauseLoadoutPanel({
     .join('');
   const weaponCount = weaponItems.filter((item) => item.kind === 'weapon').length;
   const accessoryCount = accessoryItems.filter((item) => item.kind === 'accessory').length;
-  const lockCount = lockedItems.length;
   const maxWeaponSlots = Math.max(0, player?.maxWeaponSlots ?? 3);
   const maxAccessorySlots = Math.max(0, player?.maxAccessorySlots ?? 3);
 
@@ -697,12 +707,6 @@ export function renderPauseLoadoutPanel({
           ${renderSectionHeader('장신구', '◈', accessoryCount, maxAccessorySlots)}
           <div class="pv-slot-cards">${accessoryCardsHtml}</div>
         </div>
-        ${lockCount > 0 ? `
-          <div class="pv-slot-section pv-slot-section--locked">
-            ${renderSectionHeader('해금', '🔒', lockCount, lockCount)}
-            <div class="pv-slot-cards">${lockedItems.map((item) => renderSlotCard(item, selectedKey, player, data, indexes)).join('')}</div>
-          </div>
-        ` : ''}
       </div>
       <div class="pv-loadout-detail" data-loadout-detail>
         ${selectedItem ? renderItemDetail(selectedItem, player, data, indexes) : '<div class="pv-loadout-empty-msg">선택할 항목이 없습니다.</div>'}

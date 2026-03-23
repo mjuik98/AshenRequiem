@@ -6,6 +6,11 @@
  *   - 상자 보상: '📦 상자 보상!'
  *   - 카드 스타일은 동일하게 유지
  */
+import {
+  buildLevelUpCardMarkup,
+  buildLevelUpHeaderMarkup,
+} from './levelUpContent.js';
+
 export class LevelUpView {
   constructor(container) {
     this.el = document.createElement('div');
@@ -37,27 +42,12 @@ export class LevelUpView {
     this._onReroll = onReroll;
     this._onToggleBanishMode = onToggleBanishMode;
 
-    // 상자 보상 여부에 따라 타이틀 색상 클래스 변경
-    const isChest    = title.includes('상자');
-    const titleClass = isChest ? 'levelup-title chest-title' : 'levelup-title';
-
-    this.el.innerHTML = `
-      <div class="levelup-header">
-        <div class="${titleClass}">${title}</div>
-        <div class="levelup-actions">
-          <div class="levelup-uses">남은 리롤 <strong>${rerollsRemaining}</strong></div>
-          <div class="levelup-uses">남은 봉인 <strong>${banishesRemaining}</strong></div>
-          <button
-            class="levelup-mode-btn ${banishMode ? 'is-active' : ''}"
-            type="button"
-            ${banishesRemaining <= 0 && !banishMode ? 'disabled' : ''}
-          >
-            ${banishMode ? '봉인 모드 해제' : '봉인 모드'}
-          </button>
-        </div>
-      </div>
-      <div class="levelup-cards"></div>
-    `;
+    this.el.innerHTML = buildLevelUpHeaderMarkup({
+      title,
+      rerollsRemaining,
+      banishesRemaining,
+      banishMode,
+    });
     const cardsEl = this.el.querySelector('.levelup-cards');
     const toggleButton = this.el.querySelector('.levelup-mode-btn');
 
@@ -67,35 +57,22 @@ export class LevelUpView {
 
     choices.forEach((upgrade, index) => {
       const cardShell = document.createElement('div');
-      const card = document.createElement('div');
-      const typeClass = _getTypeClass(upgrade.type);
-      cardShell.className = 'levelup-card-shell';
-      card.className = `levelup-card ${typeClass}${banishMode ? ' is-banish-mode' : ''}`;
-
-      const badge = _getBadge(upgrade.type);
-      const rerollDisabled = rerollsRemaining <= 0 || banishMode;
-
-      card.innerHTML = `
-        ${badge ? `<div class="card-badge">${badge}</div>` : ''}
-        <div class="card-name">${upgrade.name}</div>
-        <div class="card-desc">${upgrade.description}</div>
-        ${upgrade.type === 'slot' ? `<div class="card-slot-hint">슬롯 확장</div>` : ''}
-      `;
+      cardShell.innerHTML = buildLevelUpCardMarkup({
+        upgrade,
+        index,
+        rerollsRemaining,
+        banishMode,
+      });
+      const renderedShell = cardShell.firstElementChild;
+      const card = renderedShell?.querySelector('.levelup-card');
       card.addEventListener('click', () => this._pick(upgrade, index));
-
-      const footerActions = document.createElement('div');
-      footerActions.className = 'card-footer-actions';
-      footerActions.innerHTML = `
-        <button class="card-reroll-btn" type="button" ${rerollDisabled ? 'disabled' : ''}>리롤</button>
-      `;
-      footerActions.querySelector('.card-reroll-btn')?.addEventListener('click', (event) => {
+      renderedShell?.querySelector('.card-reroll-btn')?.addEventListener('click', (event) => {
         event.stopPropagation();
         this._onReroll?.(index);
       });
-
-      cardShell.appendChild(card);
-      cardShell.appendChild(footerActions);
-      cardsEl.appendChild(cardShell);
+      if (renderedShell) {
+        cardsEl.appendChild(renderedShell);
+      }
     });
 
     this.el.style.display = 'flex';

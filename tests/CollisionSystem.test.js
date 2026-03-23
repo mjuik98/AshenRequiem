@@ -75,6 +75,23 @@ test('pierce=1인 투사체는 첫 번째 적 이후 관통 중단', () => {
   assert.ok(events.hits.length <= 1, `pierce=1 투사체가 ${events.hits.length}번 히트함`);
 });
 
+test('CollisionSystem은 히트 이벤트만 예약하고 projectile 상태는 직접 소비하지 않는다', () => {
+  const sys    = createCollisionSystem();
+  const player = makePlayer({ x: 0, y: 0 });
+  const enemy  = makeEnemy({ x: 5, y: 0 });
+  const proj   = makeProjectile({ x: 0, y: 0, pierce: 1 });
+  const events = makeEvents();
+
+  sys.update({
+    world: { player, enemies: [enemy], projectiles: [proj], pickups: [], events,
+             camera: { x: 0, y: 0, width: 1920, height: 1080 } },
+  });
+
+  assert.equal(events.hits.length, 1, '히트 이벤트가 예약되지 않음');
+  assert.equal(proj.hitCount, 0, 'CollisionSystem이 projectile.hitCount를 직접 증가시킴');
+  assert.equal(proj.hitTargets.size, 0, 'CollisionSystem이 projectile.hitTargets를 직접 수정함');
+});
+
 test('각 테스트에서 독립 인스턴스 — 그리드 상태 격리', () => {
   const sysA = createCollisionSystem();
   const sysB = createCollisionSystem();

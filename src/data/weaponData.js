@@ -9,6 +9,7 @@ export const weaponData = [
   // ── 기본 무기 ──────────────────────────────────────────────────────────────
   {
     id: 'magic_bolt', name: '마법탄',
+    icon: '✦',
     description: '가장 가까운 적을 향해 마법탄 발사',
     damage: 2, cooldown: 0.8, projectileSpeed: 350, range: 400,
     radius: 5, pierce: 1, projectileColor: '#ffee58',
@@ -18,6 +19,7 @@ export const weaponData = [
   },
   {
     id: 'holy_aura', name: '성스러운 오라',
+    icon: '☼',
     description: '주변 적에게 지속 데미지',
     damage: 2, cooldown: 0.8, range: 80, radius: 80,
     projectileSpeed: 0, pierce: 999, projectileColor: '#ffd54f',
@@ -28,6 +30,7 @@ export const weaponData = [
   },
   {
     id: 'lightning_ring', name: '번개의 고리',
+    icon: '⚡',
     description: '플레이어 주위를 회전하는 전기 구체',
     damage: 3, cooldown: 3.5, radius: 9, pierce: 999,
     projectileColor: '#40c4ff',
@@ -37,6 +40,7 @@ export const weaponData = [
   },
   {
     id: 'frost_nova', name: '냉기 폭발',
+    icon: '❄',
     description: '주변에 냉기 폭발 — 적을 얼린다',
     damage: 2, cooldown: 2.0, range: 100, radius: 100,
     projectileSpeed: 0, pierce: 999, projectileColor: '#80deea',
@@ -47,6 +51,7 @@ export const weaponData = [
   },
   {
     id: 'boomerang', name: '부메랑',
+    icon: '↺',
     description: '가까운 적을 향해 발사되며 돌아오는 관통 부메랑',
     damage: 8, cooldown: 1.4, projectileSpeed: 280, range: 400,
     radius: 10, pierce: 3, maxRange: 600, projectileColor: '#ffd54f',
@@ -55,6 +60,7 @@ export const weaponData = [
   },
   {
     id: 'chain_lightning', name: '연쇄 번개',
+    icon: '⛓',
     description: '가장 가까운 적에게 번개를 쏘아 연쇄적으로 타격',
     damage: 12, cooldown: 2.0, range: 350,
     chainCount: 3, chainRange: 120, radius: 12,
@@ -63,6 +69,7 @@ export const weaponData = [
   },
   {
     id: 'solar_ray', name: '태양 광선',
+    icon: '☀',
     description: '가장 가까운 적 방향으로 관통 레이저를 긋는다',
     damage: 3, cooldown: 1.35, range: 320, radius: 13,
     beamLength: 220, beamSegments: 4, beamLifetime: 0.14,
@@ -71,6 +78,7 @@ export const weaponData = [
   },
   {
     id: 'piercing_spear', name: '관통 창',
+    icon: '🗡',
     description: '직선으로 날아가며 여러 적을 꿰뚫는 창을 발사',
     damage: 9, cooldown: 0.95, projectileSpeed: 440, range: 540,
     radius: 7, pierce: 4, spread: 0, projectileColor: '#d4a373',
@@ -79,6 +87,7 @@ export const weaponData = [
   },
   {
     id: 'flame_zone', name: '화염 지대',
+    icon: '🔥',
     description: '적 위치에 화염 장판을 깔아 지속 피해를 준다',
     damage: 4, cooldown: 1.7, range: 300, radius: 42,
     zoneDuration: 2.1, zoneTickInterval: 0.30,
@@ -87,6 +96,7 @@ export const weaponData = [
   },
   {
     id: 'venom_bog', name: '독성 늪',
+    icon: '☣',
     description: '적 위치에 독늪을 생성해 피해와 감속을 건다',
     damage: 3, cooldown: 1.9, range: 280, radius: 48,
     zoneDuration: 2.5, zoneTickInterval: 0.38,
@@ -96,6 +106,7 @@ export const weaponData = [
   },
   {
     id: 'crystal_shard', name: '수정 파편',
+    icon: '◆',
     description: '적중 후 다음 적으로 튕기는 수정 탄환',
     damage: 5, cooldown: 1.05, projectileSpeed: 330, range: 380,
     radius: 6, pierce: 4, bounceCount: 3, projectileColor: '#8ecae6',
@@ -104,6 +115,7 @@ export const weaponData = [
   },
   {
     id: 'radiant_orb', name: '성광 탄환',
+    icon: '✺',
     description: '안정적으로 튕기며 적을 연속 타격하는 성광 구체',
     damage: 5, cooldown: 0.92, projectileSpeed: 310, range: 360,
     radius: 9, pierce: 3, bounceCount: 2, projectileColor: '#fff3b0',
@@ -114,6 +126,7 @@ export const weaponData = [
   // ── 진화 무기 (isEvolved: true — WeaponEvolutionSystem에서만 획득 가능) ───────
   {
     id: 'arcane_nova', name: '비전 폭발',
+    icon: '✷',
     description: '360도 전방향 마법 폭발 — 마법탄의 최종 진화',
     damage: 8, cooldown: 1.2, projectileSpeed: 340, range: 460,
     radius: 7, pierce: 2, projectileColor: '#e040fb',
@@ -124,6 +137,7 @@ export const weaponData = [
   },
   {
     id: 'storm_crown', name: '폭풍의 왕관',
+    icon: '♛',
     description: '5개 고속 번개 구체 회전 — 번개의 고리의 최종 진화',
     damage: 6, cooldown: 2.5, radius: 11, pierce: 999,
     projectileColor: '#00e5ff',
@@ -134,6 +148,7 @@ export const weaponData = [
   },
   {
     id: 'divine_shield', name: '신성한 방패',
+    icon: '⛨',
     description: '광역 신성 방패 — 성스러운 오라의 최종 진화',
     damage: 5, cooldown: 0.5, range: 130, radius: 130,
     projectileSpeed: 0, pierce: 999, projectileColor: '#ffffff',
@@ -145,6 +160,7 @@ export const weaponData = [
   },
   {
     id: 'infinity_blade', name: '무한의 칼날',
+    icon: '✥',
     description: '무한 관통 흡혈 부메랑 — 부메랑의 최종 진화',
     damage: 18, cooldown: 0.9, projectileSpeed: 360, range: 500,
     radius: 14, pierce: 10, maxRange: 900, projectileColor: '#ff1744',
@@ -154,6 +170,7 @@ export const weaponData = [
   },
   {
     id: 'blizzard_nova', name: '블리자드 노바',
+    icon: '✹',
     description: '초광역 빙하 폭풍 — 냉기 폭발의 최종 진화',
     damage: 6, cooldown: 1.4, range: 160, radius: 160,
     projectileSpeed: 0, pierce: 999, projectileColor: '#b3e5fc',
@@ -165,6 +182,7 @@ export const weaponData = [
   },
   {
     id: 'helios_lance', name: '헬리오스 랜스',
+    icon: '☄',
     description: '더 길고 뜨거운 관통 레이저를 연속으로 그린다',
     damage: 6, cooldown: 0.95, range: 360, radius: 18,
     beamLength: 340, beamSegments: 5, beamLifetime: 0.20,
@@ -174,6 +192,7 @@ export const weaponData = [
   },
   {
     id: 'astral_pike', name: '아스트랄 파이크',
+    icon: '✶',
     description: '별빛 창을 연속으로 발사해 전열을 관통한다',
     damage: 14, cooldown: 0.75, projectileSpeed: 520, range: 640,
     radius: 9, pierce: 7, spread: 0.06, projectileColor: '#f4a261',
@@ -183,6 +202,7 @@ export const weaponData = [
   },
   {
     id: 'inferno_field', name: '인페르노 필드',
+    icon: '♨',
     description: '넓은 화염 지대를 남겨 적을 빠르게 태운다',
     damage: 6, cooldown: 1.15, range: 320, radius: 56,
     zoneDuration: 2.7, zoneTickInterval: 0.25,
@@ -192,6 +212,7 @@ export const weaponData = [
   },
   {
     id: 'plague_marsh', name: '플레그 마시',
+    icon: '☠',
     description: '거대한 역병 늪으로 적을 약화시키고 침식한다',
     damage: 4, cooldown: 1.35, range: 300, radius: 60,
     zoneDuration: 3.2, zoneTickInterval: 0.32,
@@ -202,6 +223,7 @@ export const weaponData = [
   },
   {
     id: 'prism_volley', name: '프리즘 볼리',
+    icon: '❖',
     description: '다수의 수정 파편이 더 멀리, 더 많이 튕긴다',
     damage: 8, cooldown: 0.82, projectileSpeed: 360, range: 440,
     radius: 7, pierce: 6, bounceCount: 5, projectileColor: '#90caf9',
@@ -211,6 +233,7 @@ export const weaponData = [
   },
   {
     id: 'seraph_disc', name: '세라프 디스크',
+    icon: '✪',
     description: '성광 원환이 적들 사이를 안정적으로 순회한다',
     damage: 7, cooldown: 0.72, projectileSpeed: 340, range: 420,
     radius: 11, pierce: 5, bounceCount: 4, projectileColor: '#fff8d6',

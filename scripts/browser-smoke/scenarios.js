@@ -11,6 +11,12 @@ export const SCENARIOS = {
     artifactDir: `${OUTPUT_ROOT}/pause-overlay`,
     stepNames: ['play', 'pause'],
   },
+  pause_layout: {
+    id: 'pause_layout',
+    artifactDir: `${OUTPUT_ROOT}/pause-layout`,
+    stepNames: ['play', 'pause', 'responsive'],
+    experimental: true,
+  },
   result_screen: {
     id: 'result_screen',
     artifactDir: `${OUTPUT_ROOT}/result-screen`,
@@ -18,6 +24,9 @@ export const SCENARIOS = {
   },
 };
 
-export function getScenarioIds() {
-  return Object.keys(SCENARIOS);
+export function getScenarioIds(options = {}) {
+  const includeExperimental = options.includeExperimental ?? false;
+  return Object.values(SCENARIOS)
+    .filter((scenario) => includeExperimental || scenario.experimental !== true)
+    .map((scenario) => scenario.id);
 }

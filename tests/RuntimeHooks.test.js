@@ -6,8 +6,23 @@ const { test, summary } = createRunner('RuntimeHooks');
 
 console.log('\n[RuntimeHooks]');
 
-test('render_game_to_text는 minify된 constructor.name 대신 안정적인 sceneId를 우선 사용한다', () => {
+test('runtime hook은 기본적으로 비활성 상태이며 전역 debug host를 노출하지 않는다', () => {
+  registerRuntimeHooks({ sceneManager: { currentScene: null } });
+
+  try {
+    assert.equal('__ASHEN_DEBUG__' in globalThis, false);
+    assert.equal('render_game_to_text' in globalThis, false);
+    assert.equal('advanceTime' in globalThis, false);
+  } finally {
+    unregisterRuntimeHooks();
+  }
+});
+
+test('활성화된 runtime hook은 안정적인 debug host에서 snapshot과 제어 API를 제공한다', () => {
   const game = {
+    advanceTime(ms) {
+      this.lastAdvanceMs = ms;
+    },
     sceneManager: {
       currentScene: {
         sceneId: 'PlayScene',
@@ -36,10 +51,10 @@ test('render_game_to_text는 minify된 constructor.name 대신 안정적인 scen
     },
   };
 
-  registerRuntimeHooks(game);
+  registerRuntimeHooks(game, { enabled: true });
 
   try {
-    const snapshot = JSON.parse(globalThis.render_game_to_text());
+    const snapshot = globalThis.__ASHEN_DEBUG__?.getSnapshot();
     assert.equal(snapshot.scene, 'PlayScene');
     assert.equal(snapshot.playMode, 'playing');
     assert.deepEqual(snapshot.player.weapons, ['solar_ray']);
@@ -48,24 +63,47 @@ test('render_game_to_text는 minify된 constructor.name 대신 안정적인 scen
       levelUpVisible: false,
       resultVisible: false,
     });
+    globalThis.__ASHEN_DEBUG__?.advanceTime(136);
+    assert.equal(game.lastAdvanceMs, 136);
   } finally {
     unregisterRuntimeHooks();
   }
 });
 
 test('unregisterRuntimeHooks는 등록한 전역 훅을 제거한다', () => {
-  registerRuntimeHooks({ sceneManager: { currentScene: null } });
+  registerRuntimeHooks({ sceneManager: { currentScene: null } }, { enabled: true });
   unregisterRuntimeHooks();
+  assert.equal('__ASHEN_DEBUG__' in globalThis, false);
   assert.equal('render_game_to_text' in globalThis, false);
   assert.equal('advanceTime' in globalThis, false);
 });
 
-test('registerRuntimeHooks는 현재 game 인스턴스에 접근 가능한 debug host를 노출한다', () => {
+test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 노출한다', () => {
+  let pauseOpened = false;
+  let resultOpened = false;
   const game = { sceneManager: { currentScene: null } };
-  registerRuntimeHooks(game);
+  game.sceneManager.currentScene = {
+    sceneId: 'PlayScene',
+    _ui: {
+      isPaused: () => pauseOpened,
+      isLevelUpVisible: () => false,
+      isResultVisible: () => resultOpened,
+      showPause: () => { pauseOpened = true; },
+      showResult: () => { resultOpened = true; },
+    },
+    _gameData: {},
+    world: {
+      elapsedTime: 17,
+      killCount: 9,
+      player: { level: 3, weapons: [], accessories: [] },
+    },
+  };
+  registerRuntimeHooks(game, { enabled: true });
 
   try {
-    assert.equal(globalThis.__ASHEN_RUNTIME__?.game, game);
+    assert.equal(globalThis.__ASHEN_DEBUG__?.getGame(), game);
+    assert.equal(globalThis.__ASHEN_DEBUG__?.openPauseOverlay(), true);
+    assert.equal(globalThis.__ASHEN_DEBUG__?.openResultOverlay(), true);
   } finally {
     unregisterRuntimeHooks();
   }

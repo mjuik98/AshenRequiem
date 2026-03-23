@@ -106,4 +106,38 @@ test('pendingDestroy=true 엔티티는 데미지를 받지 않는다', () => {
   assert.equal(enemy.hp, 50, 'pendingDestroy 엔티티에 데미지 적용됨');
 });
 
+test('같은 프레임에 적이 먼저 죽으면 뒤늦은 히트에 묶인 다른 투사체는 소비되지 않는다', () => {
+  if (!DamageSystem) return;
+  const enemy = makeEnemy({ hp: 5 });
+  const projectiles = Array.from({ length: 4 }, () => {
+    const projectile = {
+      hitCount: 1,
+      hitTargets: new Set([enemy.id]),
+      ownerId: 'player',
+    };
+    return projectile;
+  });
+  const hits = projectiles.map((projectile) => makeHitEvent({
+    attackerId: 'player',
+    target: enemy,
+    damage: 10,
+    projectile,
+  }));
+  const player = makePlayer({ critChance: 0 });
+  const world = makeWorld({
+    player,
+    enemies: [enemy],
+    events: makeEvents({ hits }),
+  });
+
+  DamageSystem.update({ world });
+
+  assert.equal(projectiles[0].hitCount, 1, '실제로 적을 처치한 첫 투사체의 소비 정보가 사라짐');
+  assert.equal(projectiles[0].hitTargets.has(enemy.id), true, '첫 투사체의 명중 대상 정보가 사라짐');
+  for (let i = 1; i < projectiles.length; i += 1) {
+    assert.equal(projectiles[i].hitCount, 0, `남은 투사체 ${i}의 hitCount가 롤백되지 않음`);
+    assert.equal(projectiles[i].hitTargets.size, 0, `남은 투사체 ${i}의 hitTargets가 비워지지 않음`);
+  }
+});
+
 summary();

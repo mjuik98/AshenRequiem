@@ -17,7 +17,12 @@ export const DamageSystem = {
       const target = hit.target;
 
       // isAlive + pendingDestroy 이중 확인
-      if (!target || !target.isAlive || target.pendingDestroy) continue;
+      if (!target || !target.isAlive || target.pendingDestroy) {
+        this._rollbackProjectileHit(hit);
+        continue;
+      }
+
+      this._commitProjectileHit(hit, player);
 
       // 플레이어 무적 프레임 가드
       if (target.type === 'player' && target.invincibleTimer > 0) continue;
@@ -100,6 +105,36 @@ export const DamageSystem = {
           },
         });
       }
+    }
+  },
+
+  _rollbackProjectileHit(hit) {
+    const projectile = hit?.projectile;
+    if (!(projectile?.hitTargets instanceof Set)) return;
+    const candidateTargetIds = [
+      hit?.targetId,
+      hit?.target?.id,
+    ].filter(Boolean);
+    const matchedTargetId = candidateTargetIds.find((targetId) => projectile.hitTargets.has(targetId));
+    if (!matchedTargetId) return;
+
+    projectile.hitTargets.delete(matchedTargetId);
+    if (typeof projectile.hitCount === 'number') {
+      projectile.hitCount = Math.max(0, projectile.hitCount - 1);
+    }
+  },
+
+  _commitProjectileHit(hit, player) {
+    const projectile = hit?.projectile;
+    if (!projectile || hit?.attackerId !== player?.id || hit?.target?.type !== 'enemy') return;
+    if (!(projectile.hitTargets instanceof Set)) return;
+
+    const targetId = hit?.target?.id ?? hit?.targetId;
+    if (!targetId || projectile.hitTargets.has(targetId)) return;
+
+    projectile.hitTargets.add(targetId);
+    if (typeof projectile.hitCount === 'number') {
+      projectile.hitCount += 1;
     }
   },
 };

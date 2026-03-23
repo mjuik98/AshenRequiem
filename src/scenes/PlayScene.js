@@ -13,31 +13,31 @@
 import { PlayContext }                  from '../core/PlayContext.js';
 import { createWorld }                  from '../state/createWorld.js';
 import { createPlayer }                 from '../entities/createPlayer.js';
-import { GameConfig }                   from '../core/GameConfig.js';
 import { GameDataLoader }               from '../data/GameDataLoader.js';
 import { mountUI }                      from '../ui/dom/mountUI.js';
 import { PlayUI }                       from './play/PlayUI.js';
 import { PlayResultHandler }            from './play/PlayResultHandler.js';
 import { createLevelUpController }      from './play/levelUpController.js';
+import {
+  applyRunSessionState,
+  recordStartingWeapons,
+  shouldEnablePipelineProfiling,
+} from './play/playSceneRuntime.js';
+import {
+  persistPauseSceneOptions,
+  runPlaySceneFrame,
+  showPlaySceneResult,
+  syncPlaySceneDevicePixelRatio,
+  togglePlayScenePause,
+} from './play/playSceneFlow.js';
 import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
-import { transitionPlayMode, PlayMode } from '../state/PlayMode.js';
+import { transitionPlayMode } from '../state/PlayMode.js';
 import { TitleScene }                   from './TitleScene.js';
 import { recordWeaponAcquired }         from '../systems/event/codexHandler.js';
 import {
   applySessionOptionsToRuntime,
-  getEffectiveDevicePixelRatio,
   normalizeSessionOptions,
 } from '../state/sessionOptions.js';
-import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
-
-function shouldEnablePipelineProfiling() {
-  const host = typeof globalThis !== 'undefined' ? globalThis : null;
-  if (!host) return false;
-  if (host.__ASHEN_PROFILE_PIPELINE__ === true) return true;
-
-  const search = host.location?.search ?? '';
-  return new URLSearchParams(search).has('profilePipeline');
-}
 
 export class PlayScene {
   constructor(game) {
@@ -63,10 +63,7 @@ export class PlayScene {
   enter() {
     this.world        = createWorld();
     this.world.player = createPlayer(0, 0, this.game.session);
-    this.world.runRerollsRemaining = this.game.session?.meta?.permanentUpgrades?.reroll_charge ?? 0;
-    this.world.runBanishesRemaining = this.game.session?.meta?.permanentUpgrades?.banish_charge ?? 0;
-    this.world.banishedUpgradeIds = [];
-    this.world.levelUpActionMode = 'select';
+    applyRunSessionState(this.world, this.game.session);
 
     this._gameData = GameDataLoader.clone(this.game.gameData);
 
@@ -117,14 +114,14 @@ export class PlayScene {
       },
     });
 
-    this._dpr             = this._getEffectiveDpr();
+    this._dpr = syncPlaySceneDevicePixelRatio({
+      sessionOptions: this.game.session?.options,
+      currentDpr: 1,
+      devicePixelRatio: window.devicePixelRatio || 1,
+    }).dpr;
 
     // Record initial starting weapons for Codex
-    if (this.world.player && this.world.player.weapons) {
-       this.world.player.weapons.forEach(w => {
-         recordWeaponAcquired(this.game.session, w.id);
-       });
-    }
+    recordStartingWeapons(this.game.session, this.world.player, recordWeaponAcquired);
 
     this._pauseWasDown    = false;
     this._isSceneChanging = false;
@@ -144,20 +141,16 @@ export class PlayScene {
     });
   }
 
-  _getEffectiveDpr() {
-    return getEffectiveDevicePixelRatio(
-      this.game.session?.options,
-      window.devicePixelRatio || 1,
-      GameConfig.useDevicePixelRatio,
-    );
-  }
-
   update(dt) {
     if (!this.world || !this._ctx || !this._uiState || this._isSceneChanging) return;
 
-    const nextDpr = this._getEffectiveDpr();
-    if (nextDpr !== this._dpr) {
-      this._dpr = nextDpr;
+    const dprState = syncPlaySceneDevicePixelRatio({
+      sessionOptions: this.game.session?.options,
+      currentDpr: this._dpr,
+      devicePixelRatio: window.devicePixelRatio || 1,
+    });
+    if (dprState.changed) {
+      this._dpr = dprState.dpr;
     }
 
     const inputState = this.game.inputState ?? this.game.input.poll();
@@ -170,16 +163,14 @@ export class PlayScene {
 
     if (this._uiState.tick(this.world.playMode)) return;
 
-    this._runGamePipeline(dt);
-  }
-
-  _runGamePipeline(dt) {
-    if (!this.world || !this._pipeline || !this._pipelineCtx) return;
-    this.world.deltaTime  = dt;
-    this._pipelineCtx.dt  = dt;
-    this._pipelineCtx.dpr = this._dpr;
-    this._pipeline.run(this._pipelineCtx);
-    this._ui.update(this.world);
+    runPlaySceneFrame({
+      world: this.world,
+      pipeline: this._pipeline,
+      pipelineCtx: this._pipelineCtx,
+      ui: this._ui,
+      dt,
+      dpr: this._dpr,
+    });
   }
 
   render() {}
@@ -205,57 +196,37 @@ export class PlayScene {
   // ── 내부 핸들러 ───────────────────────────────────────────────────────
 
   _handlePauseToggle() {
-    if (!this.world || this._isSceneChanging) return;
-
-    const mode = this.world.playMode;
-    if (mode === PlayMode.PLAYING) {
-      transitionPlayMode(this.world, PlayMode.PAUSED);
-
-      this._ui.showPause({
-        player: this.world.player,
-        data: this._gameData,
-        world: this.world,
-        session: this.game.session,
-        onResume: () => {
-          if (!this.world || this._isSceneChanging) return;
-          transitionPlayMode(this.world, PlayMode.PLAYING);
-          this._ui.hidePause();
-        },
-        onForfeit: () => {
-          if (!this.world || this._isSceneChanging) return;
-          this.world.runOutcome = { type: 'defeat' };
-          this._ui.hidePause();
-          transitionPlayMode(this.world, PlayMode.DEAD);
-        },
-        onOptionsChange: (nextOptions) => this._updatePauseOptions(nextOptions),
-      });
-    } else if (mode === PlayMode.PAUSED) {
-      transitionPlayMode(this.world, PlayMode.PLAYING);
-      this._ui.hidePause();
-    }
+    togglePlayScenePause({
+      world: this.world,
+      ui: this._ui,
+      data: this._gameData,
+      session: this.game.session,
+      isBlocked: () => this._isSceneChanging,
+      onOptionsChange: (nextOptions) => this._updatePauseOptions(nextOptions),
+    });
   }
 
   _updatePauseOptions(nextOptions) {
-    if (!this.game.session) return;
-    updateSessionOptionsAndSave(this.game.session, nextOptions);
-    this._applySessionOptions();
+    persistPauseSceneOptions(this.game.session, nextOptions, {
+      applyRuntimeOptions: () => this._applySessionOptions(),
+    });
   }
 
   _showResultUI() {
-    if (this._isSceneChanging) return;
-    const stats = this._resultHandler.process(this.world);
-    this._ui.showResult(
-      stats,
-      () => {
-        if (this._isSceneChanging) return;
-        this._isSceneChanging = true;
+    showPlaySceneResult({
+      world: this.world,
+      resultHandler: this._resultHandler,
+      ui: this._ui,
+      isBlocked: () => this._isSceneChanging,
+      setBlocked: (value) => {
+        this._isSceneChanging = value;
+      },
+      restart: () => {
         this.game.sceneManager.changeScene(new PlayScene(this.game));
       },
-      () => {
-        if (this._isSceneChanging) return;
-        this._isSceneChanging = true;
+      goToTitle: () => {
         this.game.sceneManager.changeScene(new TitleScene(this.game));
       },
-    );
+    });
   }
 }

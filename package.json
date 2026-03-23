@@ -6,11 +6,13 @@
   "scripts": {
     "test": "node scripts/runTests.js",
     "test:watch": "node --watch scripts/runTests.js",
+    "test:smoke": "node scripts/browser-smoke/runSmokeAgainstPreview.mjs --all",
     "validate": "node scripts/validateData.js",
     "pretest": "node scripts/validateData.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "verify": "npm test && npm run test:smoke && npm run build",
     "profile": "node scripts/profile.js",
     "profile:600": "node scripts/profile.js 600"
   },

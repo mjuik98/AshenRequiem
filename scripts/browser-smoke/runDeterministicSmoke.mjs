@@ -4,8 +4,13 @@ import { spawnSync } from 'node:child_process';
 import { SCENARIOS, getScenarioIds, OUTPUT_ROOT } from './scenarios.js';
 
 const OUTPUT_PATH_PREFIX = 'output/web-game/';
-const BASH_CMD = 'bash';
 const PWCLI = resolvePwcliPath();
+
+function withDebugRuntime(url) {
+  const nextUrl = new URL(url);
+  nextUrl.searchParams.set('debugRuntime', '1');
+  return nextUrl.toString();
+}
 
 function parseArgs(argv) {
   const args = {
@@ -44,11 +49,13 @@ function ensureDir(dirPath) {
 }
 
 function runCli(args) {
-  const command = [PWCLI, ...args].map(quoteShellArg).join(' ');
-  const result = spawnSync(BASH_CMD, ['-lc', command], {
+  const invocation = buildPlaywrightInvocation(args);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: process.cwd(),
     env: process.env,
     encoding: 'utf8',
+    shell: false,
+    timeout: 20000,
   });
 
   if (result.status !== 0) {
@@ -60,6 +67,27 @@ function runCli(args) {
   }
 
   return result.stdout ?? '';
+}
+
+function buildPlaywrightInvocation(args) {
+  if (process.platform === 'win32') {
+    const npxCliPath = path.join(
+      path.dirname(process.execPath),
+      'node_modules',
+      'npm',
+      'bin',
+      'npx-cli.js',
+    );
+    return {
+      command: process.execPath,
+      args: [npxCliPath, '--yes', '--package', '@playwright/cli', 'playwright-cli', ...args],
+    };
+  }
+
+  return {
+    command: 'bash',
+    args: ['-lc', [PWCLI, ...args].map(quoteShellArg).join(' ')],
+  };
 }
 
 function quoteShellArg(value) {
@@ -177,11 +205,10 @@ function buildSessionId(scenarioId) {
 }
 
 function closePage(sessionId) {
-  try {
-    pw(sessionId, ['close']);
-  } catch (error) {
-    console.warn(`[browser-smoke] close skipped for ${sessionId}: ${error.message}`);
-  }
+  // Each smoke scenario uses a unique session id, so explicit CLI close is optional.
+  // The close command has proven flaky on Windows npm/npx wrappers and can hang
+  // the stable smoke baseline after all assertions have already completed.
+  void sessionId;
 }
 
 function runCode(sessionId, source) {
@@ -191,7 +218,7 @@ function runCode(sessionId, source) {
 }
 
 async function bootToPlay(sessionId, url) {
-  const openOutput = pw(sessionId, ['open', url]);
+  const openOutput = pw(sessionId, ['open', withDebugRuntime(url)]);
   const titleSnapshot = parseSnapshotPath(openOutput);
   const titleStartRef = titleSnapshot ? findRefByText(titleSnapshot, 'Start Game') : null;
   if (!titleStartRef) {
@@ -207,10 +234,10 @@ async function bootToPlay(sessionId, url) {
 
   pw(sessionId, ['click', loadoutStartRef]);
   await sleep(250);
-  evalJson(sessionId, 'window.__ASHEN_RUNTIME__?.game?.advanceTime?.(136), true');
+  evalJson(sessionId, 'window.__ASHEN_DEBUG__?.advanceTime?.(136), true');
   return pollEval(
     sessionId,
-    'JSON.parse(window.render_game_to_text())',
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
     (state) => state?.scene === 'PlayScene',
     5000,
     200,
@@ -245,16 +272,13 @@ async function runPauseOverlay(url, artifactDir) {
 
   try {
     await bootToPlay(sessionId, url);
-    const pauseOpened = evalJson(
-      sessionId,
-      `window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.showPause({ player: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.player, data: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._gameData, world: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world, session: window.__ASHEN_RUNTIME__.game.session, onResume: null, onForfeit: null, onOptionsChange: null }), window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.isPaused()`,
-    );
+    const pauseOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openPauseOverlay?.() ?? false');
     if (pauseOpened !== true) {
       throw new Error('Pause overlay did not open');
     }
     const state = await pollEval(
       sessionId,
-      'JSON.parse(window.render_game_to_text())',
+      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
       (value) => value?.ui?.pauseVisible === true,
       3000,
       150,
@@ -304,29 +328,106 @@ async function runPauseOverlay(url, artifactDir) {
   }
 }
 
+async function runPauseLayout(url, artifactDir) {
+  const sessionId = buildSessionId('pause_layout');
+  ensureDir(artifactDir);
+
+  const readLayoutState = (includeVisible = false) => ({
+    selected: evalJson(sessionId, `document.querySelector('.pv-slot-card.selected')?.dataset.loadoutKey ?? null`),
+    grid: evalJson(sessionId, `getComputedStyle(document.querySelector('.pv-loadout-panel')).gridTemplateColumns ?? ''`),
+    width: evalJson(sessionId, 'window.innerWidth'),
+    height: evalJson(sessionId, 'window.innerHeight'),
+    ...(includeVisible
+      ? { visible: evalJson(sessionId, `!!document.querySelector('#pv-tab-loadout.active')`) }
+      : {}),
+  });
+
+  try {
+    await bootToPlay(sessionId, url);
+    const pauseOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openPauseOverlay?.() ?? false');
+    if (pauseOpened !== true) {
+      throw new Error('Pause overlay did not open');
+    }
+
+    await pollEval(
+      sessionId,
+      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+      (value) => value?.ui?.pauseVisible === true,
+      3000,
+      150,
+    );
+
+    const desktopBefore = readLayoutState();
+
+    const layoutSnapshotOutput = pw(sessionId, ['snapshot']);
+    const layoutSnapshot = parseSnapshotPath(layoutSnapshotOutput);
+    const alternateRef = layoutSnapshot ? findRefByText(layoutSnapshot, '빈 무기 슬롯') : null;
+    if (!alternateRef) {
+      throw new Error('Failed to find 빈 무기 슬롯 ref from pause layout snapshot');
+    }
+    pw(sessionId, ['click', alternateRef]);
+    await sleep(120);
+    const accessorySelection = evalJson(
+      sessionId,
+      `document.querySelector('.pv-slot-card.selected')?.dataset.loadoutKey ?? null`,
+    );
+
+    pw(sessionId, ['press', 'Escape']);
+    await sleep(180);
+    pw(sessionId, ['press', 'Escape']);
+    await sleep(250);
+
+    const desktopReopen = readLayoutState(true);
+
+    pw(sessionId, ['resize', '540', '960']);
+    await sleep(180);
+
+    const mobile = readLayoutState();
+
+    takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+    const summary = {
+      scenario: 'pause_layout',
+      pauseOpened,
+      desktopBefore,
+      accessorySelection,
+      desktopReopen,
+      mobile,
+      assertions: {
+        pauseVisibleAfterReopen: desktopReopen?.visible === true,
+        selectionChanged: Boolean(accessorySelection) && accessorySelection !== desktopBefore?.selected,
+        selectionPersisted: Boolean(accessorySelection) && desktopReopen?.selected === accessorySelection,
+        mobileStillSelected: mobile?.selected === accessorySelection,
+        mobileSingleColumn: String(mobile?.grid ?? '').trim().split(/\s+/).length === 1,
+        mobileViewportApplied: mobile?.width <= 540,
+      },
+    };
+    writeJson(path.join(artifactDir, 'summary.json'), summary);
+    return summary;
+  } finally {
+    closePage(sessionId);
+  }
+}
+
 async function runResultScreen(url, artifactDir) {
   const sessionId = buildSessionId('result_screen');
   ensureDir(artifactDir);
 
   try {
     await bootToPlay(sessionId, url);
-    const resultOpened = evalJson(
-      sessionId,
-      `window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.showResult({ survivalTime: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.elapsedTime ?? 0, level: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.player?.level ?? 1, killCount: window.__ASHEN_RUNTIME__.game.sceneManager.currentScene.world.killCount ?? 0, outcome: 'defeat', currencyEarned: 0, totalCurrency: window.__ASHEN_RUNTIME__.game.session?.meta?.currency ?? 0 }, null, null), window.__ASHEN_RUNTIME__.game.sceneManager.currentScene._ui.isResultVisible()`,
-    );
+    const resultOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openResultOverlay?.() ?? false');
     if (resultOpened !== true) {
       throw new Error('Result overlay did not open');
     }
     const triggerState = await pollEval(
       sessionId,
-      'JSON.parse(window.render_game_to_text())',
+      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
       (value) => value?.ui?.resultVisible === true,
       3000,
       150,
     );
     const state = await pollEval(
       sessionId,
-      'JSON.parse(window.render_game_to_text())',
+      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
       (value) => value?.ui?.resultVisible === true,
       3000,
       150,
@@ -359,6 +460,7 @@ async function runResultScreen(url, artifactDir) {
 const RUNNERS = {
   title_to_play: runTitleToPlay,
   pause_overlay: runPauseOverlay,
+  pause_layout: runPauseLayout,
   result_screen: runResultScreen,
 };
 
@@ -407,3 +509,4 @@ async function main() {
 }
 
 await main();
+process.exit(process.exitCode ?? 0);
