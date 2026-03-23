@@ -13,10 +13,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "verify": "npm run typecheck && npm test && npm run test:smoke && npm run build",
+    "verify": "npm run verify:fast",
+    "verify:fast": "npm run typecheck && npm run profile:check && npm test && npm run build",
+    "verify:ci": "npm run typecheck && npm run profile:check && npm test && npm run test:smoke && npm run build",
     "profile": "node scripts/profile.js",
     "profile:600": "node scripts/profile.js 600",
-    "profile:json": "node scripts/profile.js 300 --json"
+    "profile:json": "node scripts/profile.js 300 --json",
+    "profile:check": "node scripts/profile.js 300 --assert-budget"
   },
   "keywords": [],
   "author": "",

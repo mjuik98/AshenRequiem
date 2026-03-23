@@ -57,7 +57,7 @@ function scheduleBeep(target, options) {
     registerVoice: (voiceId, typeName) => registerVoice(target, voiceId, typeName),
     unregisterVoice: (voiceId, typeName) => unregisterVoice(target, voiceId, typeName),
     disconnectSafely: (...nodes) => disconnectSoundNodes(...nodes),
-    randomSpread: (amount) => randomSoundSpread(amount),
+    randomSpread: (amount) => randomSoundSpread(amount, target._randomSource),
   });
 }
 
@@ -70,7 +70,7 @@ function scheduleChord(target, options) {
     registerVoice: (voiceId, typeName) => registerVoice(target, voiceId, typeName),
     unregisterVoice: (voiceId, typeName) => unregisterVoice(target, voiceId, typeName),
     disconnectSafely: (...nodes) => disconnectSoundNodes(...nodes),
-    randomSpread: (amount) => randomSoundSpread(amount),
+    randomSpread: (amount) => randomSoundSpread(amount, target._randomSource),
   });
 }
 

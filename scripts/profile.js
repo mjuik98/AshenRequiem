@@ -17,13 +17,21 @@ import {
 
 const argv = process.argv.slice(2);
 const JSON_OUTPUT = argv.includes('--json');
+const ASSERT_BUDGET = argv.includes('--assert-budget');
 const presetIndex = argv.indexOf('--preset');
+const budgetOverrideIndex = argv.indexOf('--budget-ms');
 const PROFILE_PRESET = presetIndex !== -1 ? argv[presetIndex + 1] : 'baseline';
+const BUDGET_OVERRIDE = budgetOverrideIndex !== -1 ? Number.parseFloat(argv[budgetOverrideIndex + 1]) : null;
 const frameArg = argv.find((value) => /^\d+$/.test(value));
 const FRAME_COUNT = parseInt(frameArg ?? '300', 10);
 
 if (!getProfilePresetIds().includes(PROFILE_PRESET)) {
   console.error(`알 수 없는 profile preset: ${PROFILE_PRESET}`);
+  process.exit(1);
+}
+
+if (BUDGET_OVERRIDE != null && Number.isNaN(BUDGET_OVERRIDE)) {
+  console.error('잘못된 --budget-ms 값입니다.');
   process.exit(1);
 }
 
@@ -83,16 +91,22 @@ async function runProfile() {
 
   const totalAll = Object.values(totals).reduce((sum, value) => sum + value, 0);
   const perFrame = totalAll / FRAME_COUNT;
+  const activeBudget = BUDGET_OVERRIDE != null
+    ? { ...(ctx.budget ?? {}), maxPerFrameMs: BUDGET_OVERRIDE }
+    : ctx.budget;
   const summary = buildProfileSummary({
     systems,
     totals,
     totalAll,
     perFrame,
-    budget: ctx.budget,
+    budget: activeBudget,
   });
 
   if (JSON_OUTPUT) {
     process.stdout.write(`${JSON.stringify(summary)}\n`);
+    if (ASSERT_BUDGET && !summary.withinBudget) {
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -128,6 +142,10 @@ async function runProfile() {
     );
   } else {
     console.log('\n✓  프레임 예산 내에서 실행 중입니다.');
+  }
+
+  if (ASSERT_BUDGET && !summary.withinBudget) {
+    process.exitCode = 1;
   }
 }
 

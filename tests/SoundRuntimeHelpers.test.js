@@ -180,4 +180,19 @@ test('sound runtime helper modules expose graph and voice helpers', () => {
   assert.equal(typeof sfxControllerApi.stopAllSoundEffects, 'function', 'sound sfx stop helper가 없음');
 });
 
+test('randomSoundSpread는 주입된 rng를 사용해 deterministic jitter를 만든다', () => {
+  const busRuntimeApi = getSoundBusRuntimeApi();
+
+  assert.equal(
+    busRuntimeApi.randomSoundSpread(0.5, () => 0.75),
+    0.25,
+    'randomSoundSpread가 주입된 rng를 사용하지 않음',
+  );
+  assert.equal(
+    busRuntimeApi.randomSoundSpread(0, () => 0.75),
+    0,
+    'spread amount가 0일 때는 rng와 무관하게 0이어야 함',
+  );
+});
+
 summary();

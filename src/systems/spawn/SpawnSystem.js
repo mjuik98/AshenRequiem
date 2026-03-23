@@ -1,4 +1,4 @@
-import { randomPick, randomRange } from '../../utils/random.js';
+import { chance, nextFloat, randomPick, randomRange } from '../../utils/random.js';
 import { GameConfig }              from '../../core/GameConfig.js';
 import { spawnEnemy }              from '../../state/spawnRequest.js';
 
@@ -37,18 +37,18 @@ export function createSpawnSystem() {
   }
 
   /** @private */
-  function _randomOffscreenPosition(player) {
+  function _randomOffscreenPosition(player, rng) {
     const margin = 80;
     const w = GameConfig.canvasWidth  + margin * 2;
     const h = GameConfig.canvasHeight + margin * 2;
 
-    const side = Math.floor(Math.random() * 4);
+    const side = Math.floor(nextFloat(rng) * 4);
     let x, y;
     switch (side) {
-      case 0: x = randomRange(-margin, w - margin); y = -margin;                          break;
-      case 1: x = randomRange(-margin, w - margin); y = h - margin;                       break;
-      case 2: x = -margin;                          y = randomRange(-margin, h - margin); break;
-      default:x = w - margin;                       y = randomRange(-margin, h - margin); break;
+      case 0: x = randomRange(-margin, w - margin, rng); y = -margin;                               break;
+      case 1: x = randomRange(-margin, w - margin, rng); y = h - margin;                            break;
+      case 2: x = -margin;                               y = randomRange(-margin, h - margin, rng); break;
+      default:x = w - margin;                            y = randomRange(-margin, h - margin, rng); break;
     }
     return {
       x: player.x + x - GameConfig.canvasWidth  / 2,
@@ -57,7 +57,7 @@ export function createSpawnSystem() {
   }
 
   return {
-    update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode, events }, data: { waveData, bossData, enemyData = [] } }) {
+    update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode, events, rng }, data: { waveData, bossData, enemyData = [] } }) {
       if (playMode !== 'playing') return;
       if (!player?.isAlive) return;
 
@@ -68,7 +68,7 @@ export function createSpawnSystem() {
           if (elapsedTime >= boss.at && !_spawnedBossAt.has(boss.at)) {
             _spawnedBossAt.add(boss.at);
             _lastBossSpawnTime = elapsedTime;
-            const pos = _randomOffscreenPosition(player);
+            const pos = _randomOffscreenPosition(player, rng);
             spawnQueue.push(spawnEnemy({ enemyId: boss.enemyId, x: pos.x, y: pos.y }));
             events?.bossSpawned?.push({
               enemyId: boss.enemyId,
@@ -96,11 +96,11 @@ export function createSpawnSystem() {
 
       while (_spawnAccumulator >= 1) {
         _spawnAccumulator -= 1;
-        const isElite = activeWave.eliteChance && Math.random() < activeWave.eliteChance;
+        const isElite = activeWave.eliteChance ? chance(activeWave.eliteChance, rng) : false;
         const pool    = isElite ? (activeWave.eliteIds ?? activeWave.enemyIds) : activeWave.enemyIds;
         if (!pool?.length) continue;
-        const enemyId = randomPick(pool);
-        const pos     = _randomOffscreenPosition(player);
+        const enemyId = randomPick(pool, rng);
+        const pos     = _randomOffscreenPosition(player, rng);
         spawnQueue.push(spawnEnemy({ enemyId, x: pos.x, y: pos.y }));
       }
     },

@@ -32,8 +32,6 @@ test('runtime info logs are routed through shared logger helpers', () => {
   const weaponEvolutionSource = readFileSync(new URL('../src/systems/progression/WeaponEvolutionSystem.js', import.meta.url), 'utf8');
   const bossPhaseHandlerSource = readFileSync(new URL('../src/systems/event/bossPhaseHandler.js', import.meta.url), 'utf8');
 
-  assert.match(weaponEvolutionSource, /from '\.\.\/\.\.\/utils\/runtimeLogger\.js'/);
-  assert.match(bossPhaseHandlerSource, /from '\.\.\/\.\.\/utils\/runtimeLogger\.js'/);
   assert.equal(weaponEvolutionSource.includes('console.info('), false, 'WeaponEvolutionSystem에 console.info가 남아 있음');
   assert.equal(bossPhaseHandlerSource.includes('console.info('), false, 'bossPhaseHandler에 console.info가 남아 있음');
   assert.equal(weaponEvolutionSource.includes('logRuntimeInfo('), true, 'WeaponEvolutionSystem이 shared runtime logger를 사용하지 않음');

@@ -26,11 +26,12 @@ import { getStatusEffectData }  from '../../data/statusEffectData.js';
 import { statusEffectRegistry }  from '../../data/statusEffectRegistry.js';
 import { generateId }            from '../../utils/ids.js';
 import { isLive }                from '../../utils/entityUtils.js';
+import { chance }                from '../../utils/random.js';
 
 export const StatusEffectSystem = {
-  update({ world: { enemies, player, deltaTime, events } }) {
+  update({ world: { enemies, player, deltaTime, events, rng } }) {
     if (events.hits?.length > 0) {
-      this.applyFromHits({ hits: events.hits, events });
+      this.applyFromHits({ hits: events.hits, events, rng });
     }
     this.tick({ enemies, player, deltaTime, events });
   },
@@ -41,14 +42,14 @@ export const StatusEffectSystem = {
    *
    * @param {{ hits: object[], events?: object }} param
    */
-  applyFromHits({ hits, events }) {
+  applyFromHits({ hits, events, rng }) {
     for (let i = 0; i < hits.length; i++) {
       const hit  = hits[i];
       const proj = hit.projectile;
       if (!proj?.statusEffectId) continue;
 
       // 확률 체크
-      if (Math.random() > (proj.statusEffectChance ?? 1.0)) continue;
+      if (!chance(proj.statusEffectChance ?? 1.0, rng)) continue;
 
       const target = hit.target;
       if (!isLive(target) || !target.statusEffects) continue;

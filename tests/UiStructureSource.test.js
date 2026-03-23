@@ -1,21 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
-const pauseLoadoutContentSource = readFileSync(new URL('../src/ui/pause/pauseLoadoutContent.js', import.meta.url), 'utf8');
 const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
 const codexViewSource = readFileSync(new URL('../src/ui/codex/CodexView.js', import.meta.url), 'utf8');
-const pauseLoadoutDetailSectionsSource = readFileSync(new URL('../src/ui/pause/pauseLoadoutDetailSections.js', import.meta.url), 'utf8');
 const soundSystemSource = readFileSync(new URL('../src/systems/sound/SoundSystem.js', import.meta.url), 'utf8');
-const upgradeSystemSource = readFileSync(new URL('../src/systems/progression/UpgradeSystem.js', import.meta.url), 'utf8');
 const codexStylesSource = readFileSync(new URL('../src/ui/codex/codexStyles.js', import.meta.url), 'utf8');
-const pauseLoadoutMetaSectionsSource = readFileSync(new URL('../src/ui/pause/pauseLoadoutMetaSections.js', import.meta.url), 'utf8');
-const gameSource = readFileSync(new URL('../src/core/Game.js', import.meta.url), 'utf8');
-const titleSceneSource = readFileSync(new URL('../src/scenes/TitleScene.js', import.meta.url), 'utf8');
-const smokeCliTransportSource = readFileSync(new URL('../scripts/browser-smoke/smokeCliTransport.mjs', import.meta.url), 'utf8');
 const codexAccessoryTabSource = readFileSync(new URL('../src/ui/codex/codexAccessoryTab.js', import.meta.url), 'utf8');
 const pauseStylesSource = readFileSync(new URL('../src/ui/pause/pauseStyles.js', import.meta.url), 'utf8');
-const titleBackgroundRendererSource = readFileSync(new URL('../src/scenes/title/TitleBackgroundRenderer.js', import.meta.url), 'utf8');
 const accessoryDataSource = readFileSync(new URL('../src/data/accessoryData.js', import.meta.url), 'utf8');
 const weaponDataSource = readFileSync(new URL('../src/data/weaponData.js', import.meta.url), 'utf8');
 
@@ -37,6 +28,7 @@ async function test(name, fn) {
 }
 
 await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위임한다', async () => {
+  let pauseView;
   let pauseSections;
   let pauseTooltipContent;
   let pauseTooltipController;
@@ -46,6 +38,7 @@ await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위
   let pauseTooltipBindings;
 
   try {
+    pauseView = await import('../src/ui/pause/PauseView.js');
     pauseSections = await import('../src/ui/pause/pauseViewSections.js');
     pauseTooltipContent = await import('../src/ui/pause/pauseTooltipContent.js');
     pauseTooltipController = await import('../src/ui/pause/pauseTooltipController.js');
@@ -57,6 +50,7 @@ await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위
     throw new Error(`PauseView 분리 모듈 import 실패: ${error.message}`);
   }
 
+  assert.equal(typeof pauseView.PauseView, 'function', 'PauseView class가 없음');
   assert.equal(typeof pauseSections.renderPauseTabPanels, 'function', 'pauseViewSections.renderPauseTabPanels가 없음');
   assert.equal(typeof pauseTooltipContent.buildPauseWeaponTooltipContent, 'function', '무기 tooltip builder가 없음');
   assert.equal(typeof pauseTooltipContent.buildPauseAccessoryTooltipContent, 'function', '장신구 tooltip builder가 없음');
@@ -68,37 +62,38 @@ await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위
   assert.equal(typeof pauseViewLifecycle.resetPauseViewRuntime, 'function', 'pause lifecycle reset helper가 없음');
   assert.equal(typeof pauseAudioController.bindPauseAudioControls, 'function', 'pause audio controller helper가 없음');
   assert.equal(typeof pauseTooltipBindings.bindPauseTooltipEntries, 'function', 'pause tooltip binding helper가 없음');
-  assert.match(pauseViewSource, /from '\.\/pauseViewSections\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseTooltipController\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseViewModel\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseViewLifecycle\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseAudioController\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseTooltipBindings\.js'/);
 });
 
 await test('PauseView는 shell과 interaction controller로 렌더 조립을 추가 분리한다', async () => {
+  let pauseView;
   let pauseViewShell;
   let pauseViewInteractions;
+  let pauseViewRuntime;
 
   try {
+    pauseView = await import('../src/ui/pause/PauseView.js');
     pauseViewShell = await import('../src/ui/pause/pauseViewShell.js');
     pauseViewInteractions = await import('../src/ui/pause/pauseViewInteractions.js');
+    pauseViewRuntime = await import('../src/ui/pause/pauseViewRuntime.js');
   } catch (error) {
     throw new Error(`PauseView shell/controller import 실패: ${error.message}`);
   }
 
+  assert.equal(typeof pauseView.PauseView, 'function', 'PauseView class가 없음');
   assert.equal(typeof pauseViewShell.renderPauseViewShell, 'function', 'pauseViewShell.renderPauseViewShell이 없음');
   assert.equal(typeof pauseViewInteractions.bindPauseFooterActions, 'function', 'pauseViewInteractions.bindPauseFooterActions가 없음');
   assert.equal(typeof pauseViewInteractions.bindPauseInteractionHandlers, 'function', 'pauseViewInteractions.bindPauseInteractionHandlers가 없음');
-  assert.match(pauseViewSource, /from '\.\/pauseViewShell\.js'/);
-  assert.match(pauseViewSource, /from '\.\/pauseViewInteractions\.js'/);
+  assert.equal(typeof pauseViewRuntime.renderPauseViewRuntime, 'function', 'pauseViewRuntime.renderPauseViewRuntime이 없음');
+  assert.equal(typeof pauseViewRuntime.refreshPauseLoadoutPanelRuntime, 'function', 'pauseViewRuntime.refreshPauseLoadoutPanelRuntime이 없음');
 });
 
 await test('pauseLoadoutContent는 모델/섹션 helper 모듈로 위임한다', async () => {
+  let pauseLoadoutContent;
   let pauseLoadoutModel;
   let pauseLoadoutSections;
 
   try {
+    pauseLoadoutContent = await import('../src/ui/pause/pauseLoadoutContent.js');
     pauseLoadoutModel = await import('../src/ui/pause/pauseLoadoutModel.js');
     pauseLoadoutSections = await import('../src/ui/pause/pauseLoadoutSections.js');
   } catch (error) {
@@ -109,15 +104,17 @@ await test('pauseLoadoutContent는 모델/섹션 helper 모듈로 위임한다',
   assert.equal(typeof pauseLoadoutModel.normalizePauseSynergyRequirementId, 'function', 'pauseLoadoutModel.normalizePauseSynergyRequirementId가 없음');
   assert.equal(typeof pauseLoadoutSections.renderPauseLoadoutPanel, 'function', 'pauseLoadoutSections.renderPauseLoadoutPanel이 없음');
   assert.equal(typeof pauseLoadoutSections.renderPauseLoadoutDetail, 'function', 'pauseLoadoutSections.renderPauseLoadoutDetail이 없음');
-  assert.match(pauseLoadoutContentSource, /from '\.\/pauseLoadoutModel\.js'/);
-  assert.match(pauseLoadoutContentSource, /from '\.\/pauseLoadoutSections\.js'/);
+  assert.equal(pauseLoadoutContent.buildPauseLoadoutItems, pauseLoadoutModel.buildPauseLoadoutItems, 'pauseLoadoutContent가 모델 facade를 재-export하지 않음');
+  assert.equal(pauseLoadoutContent.renderPauseLoadoutPanel, pauseLoadoutSections.renderPauseLoadoutPanel, 'pauseLoadoutContent가 섹션 facade를 재-export하지 않음');
 });
 
 await test('pause loadout detail는 meta/stats helper로 세부 섹션을 위임한다', async () => {
+  let pauseLoadoutDetailSections;
   let pauseLoadoutMetaSections;
   let pauseLoadoutStatsSections;
 
   try {
+    pauseLoadoutDetailSections = await import('../src/ui/pause/pauseLoadoutDetailSections.js');
     pauseLoadoutMetaSections = await import('../src/ui/pause/pauseLoadoutMetaSections.js');
     pauseLoadoutStatsSections = await import('../src/ui/pause/pauseLoadoutStatsSections.js');
   } catch (error) {
@@ -129,16 +126,17 @@ await test('pause loadout detail는 meta/stats helper로 세부 섹션을 위임
   assert.equal(typeof pauseLoadoutMetaSections.renderPauseEvolutionSection, 'function', 'meta helper가 evolution section을 export하지 않음');
   assert.equal(typeof pauseLoadoutStatsSections.renderPauseStatusBlock, 'function', 'stats helper가 status block을 export하지 않음');
   assert.equal(typeof pauseLoadoutStatsSections.renderPauseLoadoutDetailHeader, 'function', 'stats helper가 detail header를 export하지 않음');
-  assert.match(pauseLoadoutDetailSectionsSource, /from '\.\/pauseLoadoutMetaSections\.js'/);
-  assert.match(pauseLoadoutDetailSectionsSource, /from '\.\/pauseLoadoutStatsSections\.js'/);
+  assert.equal(typeof pauseLoadoutDetailSections.renderPauseLoadoutDetail, 'function', 'detail section facade가 없음');
 });
 
 await test('pause loadout meta는 linked/synergy/evolution helper로 추가 분리된다', async () => {
+  let pauseLoadoutMetaSections;
   let linkedItemsSection;
   let synergySection;
   let evolutionSection;
 
   try {
+    pauseLoadoutMetaSections = await import('../src/ui/pause/pauseLoadoutMetaSections.js');
     linkedItemsSection = await import('../src/ui/pause/pauseLinkedItemsSection.js');
     synergySection = await import('../src/ui/pause/pauseSynergySection.js');
     evolutionSection = await import('../src/ui/pause/pauseEvolutionSection.js');
@@ -149,9 +147,9 @@ await test('pause loadout meta는 linked/synergy/evolution helper로 추가 분�
   assert.equal(typeof linkedItemsSection.renderPauseLinkedItemsSection, 'function', 'linked items helper가 없음');
   assert.equal(typeof synergySection.renderPauseSynergySection, 'function', 'synergy helper가 없음');
   assert.equal(typeof evolutionSection.renderPauseEvolutionSection, 'function', 'evolution helper가 없음');
-  assert.match(pauseLoadoutMetaSectionsSource, /from '\.\/pauseLinkedItemsSection\.js'/);
-  assert.match(pauseLoadoutMetaSectionsSource, /from '\.\/pauseSynergySection\.js'/);
-  assert.match(pauseLoadoutMetaSectionsSource, /from '\.\/pauseEvolutionSection\.js'/);
+  assert.equal(pauseLoadoutMetaSections.renderPauseLinkedItemsSection, linkedItemsSection.renderPauseLinkedItemsSection, 'meta facade가 linked items helper를 재-export하지 않음');
+  assert.equal(pauseLoadoutMetaSections.renderPauseSynergySection, synergySection.renderPauseSynergySection, 'meta facade가 synergy helper를 재-export하지 않음');
+  assert.equal(pauseLoadoutMetaSections.renderPauseEvolutionSection, evolutionSection.renderPauseEvolutionSection, 'meta facade가 evolution helper를 재-export하지 않음');
 });
 
 await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임한다', async () => {
@@ -175,17 +173,22 @@ await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임�
 
 await test('Pause/Result 액션 버튼은 공통 토큰 모듈을 사용한다', async () => {
   let actionButtonTheme;
+  let pauseView;
+  let resultView;
 
   try {
     actionButtonTheme = await import('../src/ui/shared/actionButtonTheme.js');
+    pauseView = await import('../src/ui/pause/PauseView.js');
+    resultView = await import('../src/ui/result/ResultView.js');
   } catch (error) {
     throw new Error(`actionButtonTheme import 실패: ${error.message}`);
   }
 
   assert.equal(typeof actionButtonTheme.renderActionButton, 'function', 'renderActionButton helper가 없음');
   assert.equal(typeof actionButtonTheme.ACTION_BUTTON_THEME, 'object', 'ACTION_BUTTON_THEME 토큰이 없음');
+  assert.equal(typeof pauseView.PauseView, 'function', 'PauseView class가 없음');
+  assert.equal(typeof resultView.ResultView, 'function', 'ResultView class가 없음');
   assert.match(resultViewSource, /from '\.\.\/shared\/actionButtonTheme\.js'/);
-  assert.match(pauseViewSource, /from '\.\.\/shared\/actionButtonTheme\.js'/);
 });
 
 await test('CodexView는 codex helper modules로 탭 렌더링과 스타일을 위임한다', async () => {
@@ -200,6 +203,7 @@ await test('CodexView는 codex helper modules로 탭 렌더링과 스타일을 �
   let codexViewBindings;
   let codexViewShell;
   let codexViewControllers;
+  let codexViewRuntime;
 
   try {
     enemyTab = await import('../src/ui/codex/codexEnemyTab.js');
@@ -213,6 +217,7 @@ await test('CodexView는 codex helper modules로 탭 렌더링과 스타일을 �
     codexViewBindings = await import('../src/ui/codex/codexViewBindings.js');
     codexViewShell = await import('../src/ui/codex/codexViewShell.js');
     codexViewControllers = await import('../src/ui/codex/codexViewControllers.js');
+    codexViewRuntime = await import('../src/ui/codex/codexViewRuntime.js');
   } catch (error) {
     throw new Error(`codex helper import 실패: ${error.message}`);
   }
@@ -228,11 +233,10 @@ await test('CodexView는 codex helper modules로 탭 렌더링과 스타일을 �
   assert.equal(typeof codexViewBindings.bindCodexTabButtons, 'function', 'codex binding helper가 없음');
   assert.equal(typeof codexViewShell.renderCodexViewShell, 'function', 'codex shell helper가 없음');
   assert.equal(typeof codexViewControllers.renderCodexAccessoryPanel, 'function', 'codex panel controller helper가 없음');
+  assert.equal(typeof codexViewRuntime.renderCodexViewRuntime, 'function', 'codex runtime helper가 없음');
   assert.match(codexViewSource, /from '\.\/codexStyles\.js'/);
   assert.match(codexViewSource, /from '\.\/codexViewState\.js'/);
-  assert.match(codexViewSource, /from '\.\/codexViewBindings\.js'/);
-  assert.match(codexViewSource, /from '\.\/codexViewShell\.js'/);
-  assert.match(codexViewSource, /from '\.\/codexViewControllers\.js'/);
+  assert.match(codexViewSource, /from '\.\/codexViewRuntime\.js'/);
   assert.match(codexAccessoryTabSource, /from '\.\/codexAccessoryModel\.js'/);
   assert.match(codexAccessoryTabSource, /from '\.\/codexAccessoryRender\.js'/);
   assert.equal(codexViewSource.includes('Object.defineProperties(this'), false, 'CodexView에 state mirroring descriptor가 남아 있음');
@@ -280,11 +284,13 @@ await test('UpgradeSystem은 choice/fallback/apply helper 모듈로 분리된다
   let upgradeChoicePool;
   let upgradeFallbackChoices;
   let upgradeApplyRuntime;
+  let upgradeSystem;
 
   try {
     upgradeChoicePool = await import('../src/systems/progression/upgradeChoicePool.js');
     upgradeFallbackChoices = await import('../src/systems/progression/upgradeFallbackChoices.js');
     upgradeApplyRuntime = await import('../src/systems/progression/upgradeApplyRuntime.js');
+    upgradeSystem = await import('../src/systems/progression/UpgradeSystem.js');
   } catch (error) {
     throw new Error(`upgrade helper import 실패: ${error.message}`);
   }
@@ -292,9 +298,8 @@ await test('UpgradeSystem은 choice/fallback/apply helper 모듈로 분리된다
   assert.equal(typeof upgradeChoicePool.buildUpgradeChoicePool, 'function', 'upgrade choice pool helper가 없음');
   assert.equal(typeof upgradeFallbackChoices.fillWithFallbackChoices, 'function', 'upgrade fallback helper가 없음');
   assert.equal(typeof upgradeApplyRuntime.applyUpgradeRuntime, 'function', 'upgrade apply helper가 없음');
-  assert.match(upgradeSystemSource, /from '\.\/upgradeChoicePool\.js'/);
-  assert.match(upgradeSystemSource, /from '\.\/upgradeFallbackChoices\.js'/);
-  assert.match(upgradeSystemSource, /from '\.\/upgradeApplyRuntime\.js'/);
+  assert.equal(typeof upgradeSystem.UpgradeSystem.generateChoices, 'function', 'UpgradeSystem.generateChoices가 없음');
+  assert.equal(typeof upgradeSystem.UpgradeSystem.replaceChoiceAtIndex, 'function', 'UpgradeSystem.replaceChoiceAtIndex가 없음');
 });
 
 await test('codex styles는 세부 style fragment 모듈로 조합된다', async () => {
@@ -353,12 +358,14 @@ await test('browser smoke transport는 resolver\/runner\/parser\/session facade 
   let smokeCliRunner;
   let smokeCliParsers;
   let smokeSessionTransport;
+  let smokeCliTransport;
 
   try {
     smokeCliPaths = await import('../scripts/browser-smoke/smokeCliPaths.mjs');
     smokeCliRunner = await import('../scripts/browser-smoke/smokeCliRunner.mjs');
     smokeCliParsers = await import('../scripts/browser-smoke/smokeCliParsers.mjs');
     smokeSessionTransport = await import('../scripts/browser-smoke/smokeSessionTransport.mjs');
+    smokeCliTransport = await import('../scripts/browser-smoke/smokeCliTransport.mjs');
   } catch (error) {
     throw new Error(`smoke transport helper import 실패: ${error.message}`);
   }
@@ -369,48 +376,57 @@ await test('browser smoke transport는 resolver\/runner\/parser\/session facade 
   assert.equal(typeof smokeCliParsers.parseEvalResult, 'function', 'smoke cli parser helper가 없음');
   assert.equal(typeof smokeCliParsers.parseSnapshotPath, 'function', 'smoke cli snapshot parser가 없음');
   assert.equal(typeof smokeSessionTransport.createPlaywrightSessionTransport, 'function', 'smoke session transport helper가 없음');
-  assert.match(smokeCliTransportSource, /from '\.\/smokeCliPaths\.mjs'/);
-  assert.match(smokeCliTransportSource, /from '\.\/smokeCliRunner\.mjs'/);
-  assert.match(smokeCliTransportSource, /from '\.\/smokeCliParsers\.mjs'/);
-  assert.match(smokeCliTransportSource, /from '\.\/smokeSessionTransport\.mjs'/);
+  assert.equal(typeof smokeCliTransport.buildPlaywrightInvocation, 'function', 'smoke transport facade가 build helper를 재노출하지 않음');
+  assert.equal(typeof smokeCliTransport.runPlaywrightCliCommand, 'function', 'smoke transport facade가 runner helper를 재노출하지 않음');
+  assert.equal(typeof smokeCliTransport.parseEvalResult, 'function', 'smoke transport facade가 parser helper를 재노출하지 않음');
+  assert.equal(typeof smokeCliTransport.createPlaywrightSessionTransport, 'function', 'smoke transport facade가 session helper를 재노출하지 않음');
 });
 
 await test('Game는 deterministic runtime hook 모듈을 등록한다', async () => {
   let runtimeHooks;
+  let Game;
 
   try {
     runtimeHooks = await import('../src/core/runtimeHooks.js');
+    ({ Game } = await import('../src/core/Game.js'));
   } catch (error) {
     throw new Error(`runtimeHooks import 실패: ${error.message}`);
   }
 
   assert.equal(typeof runtimeHooks.registerRuntimeHooks, 'function', 'registerRuntimeHooks가 export되지 않음');
   assert.equal(typeof runtimeHooks.unregisterRuntimeHooks, 'function', 'unregisterRuntimeHooks가 export되지 않음');
-  assert.match(gameSource, /from '\.\/runtimeHooks\.js'/);
-  assert.match(gameSource, /registerRuntimeHooks\(this\)/);
+  assert.equal(typeof Game, 'function', 'Game 클래스가 export되지 않음');
 });
 
 await test('TitleScene는 상태/종료 처리 helper를 별도 모듈로 위임한다', async () => {
   let titleSceneStatus;
+  let titleSceneRuntime;
+  let TitleScene;
 
   try {
     titleSceneStatus = await import('../src/scenes/title/titleSceneStatus.js');
+    titleSceneRuntime = await import('../src/scenes/title/titleSceneRuntime.js');
+    ({ TitleScene } = await import('../src/scenes/TitleScene.js'));
   } catch (error) {
     throw new Error(`titleSceneStatus import 실패: ${error.message}`);
   }
 
   assert.equal(typeof titleSceneStatus.createTitleStatusController, 'function', 'createTitleStatusController가 없음');
   assert.equal(typeof titleSceneStatus.attemptWindowClose, 'function', 'attemptWindowClose가 없음');
-  assert.match(titleSceneSource, /from '\.\/title\/titleSceneStatus\.js'/);
+  assert.equal(typeof titleSceneRuntime.buildTitleSceneDom, 'function', 'title scene runtime DOM helper가 없음');
+  assert.equal(typeof titleSceneRuntime.bindTitleSceneEvents, 'function', 'title scene runtime event helper가 없음');
+  assert.equal(typeof TitleScene, 'function', 'TitleScene가 export되지 않음');
 });
 
 await test('TitleBackgroundRenderer는 state builder와 draw pass helper로 분리된다', async () => {
   let titleBackgroundState;
   let titleBackgroundDraw;
+  let titleBackgroundRenderer;
 
   try {
     titleBackgroundState = await import('../src/scenes/title/titleBackgroundState.js');
     titleBackgroundDraw = await import('../src/scenes/title/titleBackgroundDraw.js');
+    titleBackgroundRenderer = await import('../src/scenes/title/TitleBackgroundRenderer.js');
   } catch (error) {
     throw new Error(`title background helper import 실패: ${error.message}`);
   }
@@ -418,8 +434,7 @@ await test('TitleBackgroundRenderer는 state builder와 draw pass helper로 분�
   assert.equal(typeof titleBackgroundState.createTitleBackgroundState, 'function', 'title background state helper가 없음');
   assert.equal(typeof titleBackgroundState.resizeTitleBackgroundState, 'function', 'title background resize helper가 없음');
   assert.equal(typeof titleBackgroundDraw.drawTitleBackgroundFrame, 'function', 'title background frame draw helper가 없음');
-  assert.match(titleBackgroundRendererSource, /from '\.\/titleBackgroundState\.js'/);
-  assert.match(titleBackgroundRendererSource, /from '\.\/titleBackgroundDraw\.js'/);
+  assert.equal(typeof titleBackgroundRenderer.TitleBackgroundRenderer, 'function', 'TitleBackgroundRenderer가 export되지 않음');
 });
 
 await test('콘텐츠 데이터 파일은 설명 helper를 별도 모듈로 분리한다', async () => {

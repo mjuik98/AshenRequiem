@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { createSpawnSystem } from '../src/systems/spawn/SpawnSystem.js';
 import { bossData }          from '../src/data/bossData.js';
 import { test, summary }     from './helpers/testRunner.js';
+import { makeRng }           from './fixtures/index.js';
 
 const testWave   = [{ from: 0, to: 999, spawnPerSecond: 2, enemyIds: ['zombie'], eliteChance: 0, eliteIds: [] }];
 const testPlayer = { isAlive: true, x: 0, y: 0 };
@@ -110,6 +111,37 @@ test('보스 스폰 시 bossSpawned 이벤트를 발행한다', () => {
   });
 
   assert.deepEqual(events.bossSpawned, [{ enemyId: 'boss_lich', bossName: 'The Lich' }], 'bossSpawned 이벤트가 발행되지 않음');
+});
+
+test('gameplay spawn randomness는 world.rng를 사용해 엘리트 판정을 수행한다', () => {
+  const sys = createSpawnSystem();
+  const queue = [];
+  const rng = makeRng([0.25]);
+
+  sys.update({
+    world: {
+      elapsedTime: 10,
+      player: testPlayer,
+      spawnQueue: queue,
+      deltaTime: 1,
+      playMode: 'playing',
+      rng,
+    },
+    data: {
+      waveData: [{
+        from: 0,
+        to: 999,
+        spawnPerSecond: 1,
+        enemyIds: ['zombie'],
+        eliteChance: 0.5,
+        eliteIds: ['elite_bat'],
+      }],
+      bossData: [],
+    },
+  });
+
+  assert.ok(rng.calls > 0, 'SpawnSystem이 world.rng를 사용하지 않음');
+  assert.equal(queue[0]?.config?.enemyId, 'elite_bat', '주입된 RNG 기준 엘리트 적이 스폰되지 않음');
 });
 
 summary();

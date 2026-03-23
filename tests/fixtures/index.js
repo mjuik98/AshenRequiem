@@ -8,6 +8,24 @@
 let _id = 0;
 const uid = () => `entity_${++_id}`;
 
+export function makeRng(sequence = [0.5]) {
+  let index = 0;
+  let calls = 0;
+  const values = Array.isArray(sequence) && sequence.length > 0 ? sequence : [0.5];
+
+  return {
+    get calls() {
+      return calls;
+    },
+    nextFloat() {
+      calls += 1;
+      const value = values[Math.min(index, values.length - 1)];
+      index += 1;
+      return value;
+    },
+  };
+}
+
 export function makePlayer(overrides = {}) {
   return {
     id:              'player',
@@ -115,6 +133,7 @@ export function makeWorld(overrides = {}) {
     events:      makeEvents(),
     spawnQueue:  [],
     camera:      { x: 0, y: 0 },
+    rng:         makeRng(),
     elapsedTime: 0,
     deltaTime:   0.016,
     killCount:   0,
@@ -154,7 +173,7 @@ export function makeBoss(overrides = {}) {
     isBoss:         true,
     isElite:        false,
     statusEffects:  [],
-    _phaseFlags:    null,
+    bossPhaseState: null,
     ...overrides,
     enemyDataId,
   };

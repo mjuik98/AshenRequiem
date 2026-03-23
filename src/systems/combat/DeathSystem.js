@@ -9,10 +9,11 @@
 import { EFFECT_DEFAULTS }                      from '../../data/constants.js';
 import { transitionPlayMode, PlayMode }          from '../../state/PlayMode.js';
 import { spawnPickup, spawnEffect, spawnEnemy }  from '../../state/spawnRequest.js';
+import { nextFloat, randomRange }                from '../../utils/random.js';
 
 export const DeathSystem = {
   update({ world, data = {} }) {
-    const { events, spawnQueue } = world;
+    const { events, spawnQueue, rng } = world;
     const totalBosses = Array.isArray(data?.bossData) ? data.bossData.length : Infinity;
 
     for (let i = 0; i < events.deaths.length; i++) {
@@ -49,7 +50,7 @@ export const DeathSystem = {
 
         if (entity.isBoss) {
           // XP 젬 대량 드랍
-          _spawnBossXpDrop(spawnQueue, entity, xpVal);
+          _spawnBossXpDrop(spawnQueue, entity, xpVal, rng);
 
           // 상자 드랍
           spawnQueue.push(spawnPickup({
@@ -126,7 +127,7 @@ function _setRunOutcome(world, type) {
   }
 }
 
-function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
+function _spawnBossXpDrop(spawnQueue, boss, totalXp, rng) {
   const BIG_GEM_XP = 12;
   const MED_GEM_XP = 5;
   const BIG_COUNT  = 4;
@@ -136,7 +137,7 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
 
   for (let i = 0; i < BIG_COUNT && remaining > 0; i++) {
     const angle   = (i / BIG_COUNT) * Math.PI * 2 + Math.PI / 4;
-    const scatter = 60 + Math.random() * 40;
+    const scatter = randomRange(60, 100, rng);
     const gemXp   = Math.min(BIG_GEM_XP, remaining);
     remaining    -= gemXp;
     spawnQueue.push(spawnPickup({
@@ -149,7 +150,7 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
 
   for (let i = 0; i < MED_COUNT && remaining > 0; i++) {
     const angle   = (i / MED_COUNT) * Math.PI * 2;
-    const scatter = 30 + Math.random() * 50;
+    const scatter = randomRange(30, 80, rng);
     const gemXp   = Math.min(MED_GEM_XP, remaining);
     remaining    -= gemXp;
     spawnQueue.push(spawnPickup({
@@ -163,8 +164,8 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp) {
   while (remaining > 0) {
     const gemXp  = Math.min(3, remaining);
     remaining   -= gemXp;
-    const angle   = Math.random() * Math.PI * 2;
-    const scatter = 20 + Math.random() * 80;
+    const angle   = nextFloat(rng) * Math.PI * 2;
+    const scatter = randomRange(20, 100, rng);
     spawnQueue.push(spawnPickup({
       x:       boss.x + Math.cos(angle) * scatter,
       y:       boss.y + Math.sin(angle) * scatter,

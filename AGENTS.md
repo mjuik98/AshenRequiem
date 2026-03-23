@@ -44,6 +44,9 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | **R-21** | `WorldTickSystem`이 이벤트 큐 초기화 안 함 | 프레임 시작 시 `EVENT_TYPES` 루프로 모든 이벤트 큐 초기화 |
 | **R-22** | `InputState.debug = false` — bool 직접 할당 | `InputState.actions = Set<string>`. `isAction('debug')` API 사용 |
 | **R-23** | `EFFECT_DEFAULTS.duration = 0.4` vs `EFFECT_DEFAULTS_SHAPE.maxLifetime = 0.5` 불일치 | 두 값 모두 `0.5`로 통일 |
+| **R-28** | 전투/스폰/보상 시스템이 `Math.random()` 직접 호출 | `world.rng` 주입을 통해 gameplay randomness를 일원화 |
+| **R-29** | 엔티티에 `_shootTimer`, `_phaseFlags` 같은 숨은 슬롯 저장 | `behaviorState`, `bossPhaseState` 같은 명시 슬롯 사용 |
+| **R-30** | 성능 프로파일은 수동 확인만 가능 | `profile:check`를 로컬 `verify`와 CI 기준선에 포함 |
 
 ---
 
@@ -185,6 +188,9 @@ R-24: spawnRequest 팩토리는 config를 그대로 전달한다. (destructuring
 R-25: 엔티티 객체에 _ 시스템 내부 상태 저장 금지 (synergyState 등 전용 슬롯 사용)
 R-26: GameDataLoader의 JSON clone 시 behaviorState 등 함수 필드 복원 필수
 R-27: 프로덕션 시스템은 enemy.enemyDataId를 참조한다. (enemyId는 테스트 전용)
+R-28: gameplay randomness는 world.rng를 통해 주입한다. (전투/스폰/보상 계층의 Math.random 직접 호출 금지)
+R-29: 적의 임시 타이머/페이즈 상태는 behaviorState, bossPhaseState 등 명시 슬롯에 둔다.
+R-30: 성능 예산 검증은 profile:check를 SSOT로 삼고 verify/CI에 포함한다.
 ```
 
 ### 6.8 폴더 구조 스냅샷(권장)

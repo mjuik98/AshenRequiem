@@ -45,7 +45,7 @@
 /**
  * @typedef {Object} EnemyEntity
  * @property {string}   id
- * @property {string}   enemyId
+ * @property {string}   enemyDataId
  * @property {number}   x
  * @property {number}   y
  * @property {number}   radius
@@ -58,6 +58,7 @@
  * @property {boolean}  pendingDestroy
  * @property {string}   [behaviorId]
  * @property {string}   [color]
+ * @property {{ triggered: boolean[] }|null} [bossPhaseState]
  * @property {StatusEffect[]} statusEffects
  */
 
@@ -131,6 +132,7 @@
  * @property {object[]}           spawnQueue
  * @property {WorldEvents}        events
  * @property {Camera}             camera
+ * @property {{ nextFloat: () => number }} rng
  * @property {number}             elapsedTime
  * @property {number}             deltaTime
  * @property {number}             killCount

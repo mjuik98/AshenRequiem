@@ -61,7 +61,11 @@ test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
 });
 
 test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => {
-  assert.equal(playSceneSource.includes('this.game.gameData'), true, 'PlayScene이 Game의 gameData 참조를 사용하지 않음');
+  assert.equal(
+    playSceneSource.includes('bootstrapPlaySceneRuntime') || playSceneSource.includes('this.game.gameData'),
+    true,
+    'PlayScene이 Game의 gameData 기반 bootstrap 경로를 사용하지 않음',
+  );
   assert.equal(playSceneSource.includes('GameDataLoader.clone(this.game.gameData)'), false, 'PlayScene이 여전히 gameData 전체 복제를 수행함');
   assert.equal(playSceneSource.includes('GameDataLoader.loadDefault()'), false, 'PlayScene이 여전히 loadDefault를 직접 호출함');
   assert.equal(codexSceneSource.includes('this.game.gameData'), true, 'CodexScene이 Game.gameData를 사용하지 않음');
@@ -71,6 +75,18 @@ test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => 
 test('PlayContext는 런타임에서 사용하지 않는 AssetManager를 생성하지 않는다', () => {
   assert.equal(playContextSource.includes('new AssetManager()'), false, 'PlayContext가 사용하지 않는 AssetManager를 생성함');
   assert.equal(playContextSource.includes('ctx.assets'), false, 'PlayContext가 불필요한 assets 슬롯을 유지함');
+});
+
+test('PlayScene 부트스트랩과 PlayContext 런타임 생성은 전용 helper로 분리된다', async () => {
+  const playSceneBootstrap = await import('../src/scenes/play/playSceneBootstrap.js');
+  const playContextRuntime = await import('../src/core/playContextRuntime.js');
+
+  assert.equal(typeof playSceneBootstrap.bootstrapPlaySceneRuntime, 'function', 'PlayScene bootstrap helper가 없음');
+  assert.equal(typeof playSceneBootstrap.createPlaySceneWorldState, 'function', 'PlayScene world bootstrap helper가 없음');
+  assert.equal(typeof playContextRuntime.createPlayContextRuntimeState, 'function', 'PlayContext runtime helper가 없음');
+  assert.equal(typeof playContextRuntime.createPlayContextServices, 'function', 'PlayContext services helper가 없음');
+  assert.equal(playSceneSource.includes('bootstrapPlaySceneRuntime'), true, 'PlayScene이 bootstrap helper를 사용하지 않음');
+  assert.equal(playContextSource.includes('createPlayContextRuntimeState'), true, 'PlayContext가 runtime helper를 사용하지 않음');
 });
 
 test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {

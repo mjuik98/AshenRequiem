@@ -30,6 +30,7 @@
  */
 
 import { getLiveEnemies, findClosestEnemy, findNearestFrom } from './weaponBehaviorUtils.js';
+import { spawnProjectile } from '../../state/spawnRequest.js';
 
 /**
  * chainLightning — 연쇄 번개 즉발 공격
@@ -81,11 +82,10 @@ export function chainLightning({ weapon, player, enemies, spawnQueue, events }) 
     // fallback: events 없는 환경 — areaBurst 투사체로 대체
     for (let i = 0; i < chain.length; i++) {
       const dmg = Math.round(damage * Math.pow(0.75, i));
-      spawnQueue.push({
-        type: 'projectile',
+      spawnQueue.push(spawnProjectile({
+        x: chain[i].x,
+        y: chain[i].y,
         config: {
-          x:           chain[i].x,
-          y:           chain[i].y,
           dirX:        0,
           dirY:        0,
           speed:       0,
@@ -98,7 +98,7 @@ export function chainLightning({ weapon, player, enemies, spawnQueue, events }) 
           maxLifetime: 0.08,
           ownerId:     player.id,
         },
-      });
+      }));
     }
   }
 

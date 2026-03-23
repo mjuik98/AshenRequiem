@@ -10,6 +10,9 @@
  *   - shootTimer 종료 시 : 플레이어 방향으로 투사체 발사 (projectileConfig 필요)
  */
 
+import { spawnProjectile } from '../../state/spawnRequest.js';
+import { nextFloat } from '../../utils/random.js';
+
 const MIN_DIST    = 180;   // 이 거리 이내면 후퇴
 const MAX_DIST    = 320;   // 이 거리 이상이면 접근
 const SHOOT_INTERVAL_BASE  = 2.2;  // 기본 발사 간격 (s)
@@ -17,9 +20,9 @@ const SHOOT_INTERVAL_RAND  = 1.0;  // 랜덤 추가 간격
 
 /**
  * @param {object} enemy
- * @param {{ player: object, deltaTime: number, spawnQueue?: object[] }} ctx
+ * @param {{ player: object, deltaTime: number, spawnQueue?: object[], rng?: { nextFloat: () => number } }} ctx
  */
-export function rangedChase(enemy, { player, deltaTime, spawnQueue = [] }) {
+export function rangedChase(enemy, { player, deltaTime, spawnQueue = [], rng }) {
   if (!player?.isAlive) return;
 
   const dx   = player.x - enemy.x;
@@ -43,21 +46,21 @@ export function rangedChase(enemy, { player, deltaTime, spawnQueue = [] }) {
   // ── 투사체 발사 ───────────────────────────────────────────────────────────
   if (!enemy.projectileConfig) return;
 
-  if (enemy._shootTimer === undefined) {
-    enemy._shootTimer = SHOOT_INTERVAL_BASE * 0.5; // 첫 발사 빠르게
+  const state = enemy.behaviorState ?? (enemy.behaviorState = {});
+  if (state.shootTimer === undefined) {
+    state.shootTimer = SHOOT_INTERVAL_BASE * 0.5; // 첫 발사 빠르게
   }
 
-  enemy._shootTimer -= deltaTime;
-  if (enemy._shootTimer > 0) return;
+  state.shootTimer -= deltaTime;
+  if (state.shootTimer > 0) return;
 
-  enemy._shootTimer = SHOOT_INTERVAL_BASE + Math.random() * SHOOT_INTERVAL_RAND;
+  state.shootTimer = SHOOT_INTERVAL_BASE + nextFloat(rng) * SHOOT_INTERVAL_RAND;
 
   const cfg = enemy.projectileConfig;
-  spawnQueue.push({
-    type: 'projectile',
+  spawnQueue.push(spawnProjectile({
+    x: enemy.x,
+    y: enemy.y,
     config: {
-      x:          enemy.x,
-      y:          enemy.y,
       dirX,
       dirY,
       speed:      cfg.speed  ?? 170,
@@ -69,5 +72,5 @@ export function rangedChase(enemy, { player, deltaTime, spawnQueue = [] }) {
       behaviorId: 'targetProjectile',
       ownerId:    enemy.id,
     },
-  });
+  }));
 }

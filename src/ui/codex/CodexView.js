@@ -1,21 +1,15 @@
-import { buildCodexDiscoverySummary } from './codexRecords.js';
-import {
-  bindCodexTabButtons,
-  syncCodexTabPanels,
-} from './codexViewBindings.js';
-import {
-  renderCodexAccessoryPanel,
-  renderCodexEnemyPanel,
-  renderCodexRecordsPanel,
-  renderCodexWeaponPanel,
-} from './codexViewControllers.js';
-import { renderCodexViewShell } from './codexViewShell.js';
 import {
   createCodexViewState,
   resetCodexViewState,
-  setCodexActiveTab,
 } from './codexViewState.js';
 import { CODEX_VIEW_CSS, CODEX_VIEW_STYLE_ID } from './codexStyles.js';
+import {
+  activateCodexTabRuntime,
+  renderCodexPanelsRuntime,
+  renderCodexViewRuntime,
+  showCodexAccessoryRuntime,
+  showCodexWeaponRuntime,
+} from './codexViewRuntime.js';
 
 export class CodexView {
   constructor(container) {
@@ -60,72 +54,27 @@ export class CodexView {
   }
 
   _render() {
-    const discovery = buildCodexDiscoverySummary({
-      session: this._session,
-      gameData: this._gameData,
-    });
-    const totalEnemies = discovery.entries.find((entry) => entry.label === '적')?.total ?? 0;
-    const totalWeapons = discovery.entries.find((entry) => entry.label === '무기')?.total ?? 0;
-    const totalAccessories = discovery.entries.find((entry) => entry.label === '장신구')?.total ?? 0;
-
-    this.el.innerHTML = renderCodexViewShell({
-      discovery,
-      activeTab: this._state.activeTab,
-      totalEnemies,
-      totalWeapons,
-      totalAccessories,
-    });
-
-    this._bindTabEvents();
-    this._renderPanels();
-
-    this.el.querySelector('#cx-back-btn')
-      ?.addEventListener('click', () => this._onBack?.());
+    renderCodexViewRuntime(this);
   }
 
   _bindTabEvents() {
-    bindCodexTabButtons(this.el, (tabName) => this._setActiveTab(tabName));
+    renderCodexViewRuntime(this);
   }
 
   _setActiveTab(tabName) {
-    setCodexActiveTab(this._state, tabName);
-    syncCodexTabPanels(this.el, this._state.activeTab);
+    activateCodexTabRuntime(this, tabName);
   }
 
   _showAccessoryCodex(accessoryId) {
-    this._state.selectedAccessoryId = accessoryId;
-    this._setActiveTab('accessory');
-    this._renderPanels();
+    showCodexAccessoryRuntime(this, accessoryId);
   }
 
   _showWeaponCodex(weaponId) {
-    this._state.selectedWeaponId = weaponId;
-    this._setActiveTab('weapon');
-    this._renderPanels();
+    showCodexWeaponRuntime(this, weaponId);
   }
 
   _renderPanels() {
-    renderCodexEnemyPanel(this.el, {
-      state: this._state,
-      gameData: this._gameData,
-      session: this._session,
-    });
-    renderCodexWeaponPanel(this.el, {
-      state: this._state,
-      gameData: this._gameData,
-      session: this._session,
-      onAccessoryRef: (accessoryId) => this._showAccessoryCodex(accessoryId),
-    });
-    renderCodexAccessoryPanel(this.el, {
-      state: this._state,
-      gameData: this._gameData,
-      session: this._session,
-      onWeaponRef: (weaponId) => this._showWeaponCodex(weaponId),
-    });
-    renderCodexRecordsPanel(this.el, {
-      session: this._session,
-      gameData: this._gameData,
-    });
+    renderCodexPanelsRuntime(this);
   }
 
   _injectStyles() {

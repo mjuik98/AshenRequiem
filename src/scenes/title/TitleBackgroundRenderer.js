@@ -5,18 +5,19 @@ import {
 import { drawTitleBackgroundFrame } from './titleBackgroundDraw.js';
 
 export class TitleBackgroundRenderer {
-  constructor(canvas, win = window) {
+  constructor(canvas, win = window, rng) {
     this._window = win;
     this._canvas = canvas;
     this._ctx = canvas?.getContext?.('2d') ?? null;
     this._frameId = 0;
     this._state = null;
+    this._rng = rng;
   }
 
   start() {
     if (!this._canvas || !this._ctx) return;
 
-    this._state = createTitleBackgroundState(this._window);
+    this._state = createTitleBackgroundState(this._window, this._rng);
     this.resize();
 
     if (this._state.prefersReducedMotion) {

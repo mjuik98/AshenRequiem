@@ -19,18 +19,41 @@ export const PlayerMovementSystem = {
   update({ input, world: { player, deltaTime } }) {
     if (!player?.isAlive) return;
 
-    const dir = input.getDirection();
-    if (dir.x !== 0 || dir.y !== 0) {
+    let dirX = 0;
+    let dirY = 0;
+
+    if (typeof input?.moveX === 'number' && typeof input?.moveY === 'number') {
+      const rawX = input.moveX;
+      const rawY = input.moveY;
+
+      if (rawX !== 0 || rawY !== 0) {
+        if (rawX === 0 || rawY === 0) {
+          dirX = rawX;
+          dirY = rawY;
+        } else {
+          const length = Math.hypot(rawX, rawY) || 1;
+          dirX = rawX / length;
+          dirY = rawY / length;
+        }
+      }
+    } else if (typeof input?.getDirection === 'function') {
+      const dir = input.getDirection();
+      dirX = dir.x;
+      dirY = dir.y;
+    }
+
+    if (dirX !== 0 || dirY !== 0) {
       const speedMult = getSlowMultiplier(player);
 
-      player.x += dir.x * player.moveSpeed * speedMult * deltaTime;
-      player.y += dir.y * player.moveSpeed * speedMult * deltaTime;
-      player.facingX = dir.x;
-      player.facingY = dir.y;
+      player.x += dirX * player.moveSpeed * speedMult * deltaTime;
+      player.y += dirY * player.moveSpeed * speedMult * deltaTime;
+      player.facingX = dirX;
+      player.facingY = dirY;
     }
 
     if (player.invincibleTimer > 0) {
-      player.invincibleTimer = Math.max(0, player.invincibleTimer - deltaTime);
+      const nextInvincibleTimer = player.invincibleTimer - deltaTime;
+      player.invincibleTimer = nextInvincibleTimer > 0 ? nextInvincibleTimer : 0;
     }
   },
 };

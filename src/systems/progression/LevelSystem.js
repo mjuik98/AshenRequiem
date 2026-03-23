@@ -27,6 +27,7 @@ export const LevelSystem = {
       try {
         world.pendingLevelUpChoices = UpgradeSystem.generateChoices(player, {
           banishedUpgradeIds: world.banishedUpgradeIds ?? [],
+          rng: world.rng,
         }, data);
       } catch (e) {
         console.warn('[LevelSystem] generateChoices 실패:', e.message);
@@ -50,6 +51,7 @@ export const LevelSystem = {
       try {
         world.pendingLevelUpChoices = UpgradeSystem.generateChoices(player, {
           banishedUpgradeIds: world.banishedUpgradeIds ?? [],
+          rng: world.rng,
         }, data);
       } catch (e) {
         console.warn('[LevelSystem] chest reward generateChoices 실패:', e.message);

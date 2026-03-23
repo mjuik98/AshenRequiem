@@ -15,8 +15,10 @@ export const BossPhaseSystem = {
       const bossDef = bossData.find(b => b.enemyId === enemy.enemyDataId);
       if (!bossDef?.phases) continue;
 
-      if (!enemy._phaseFlags) {
-        enemy._phaseFlags = new Array(bossDef.phases.length).fill(false);
+      if (!Array.isArray(enemy.bossPhaseState?.triggered) || enemy.bossPhaseState.triggered.length !== bossDef.phases.length) {
+        enemy.bossPhaseState = {
+          triggered: new Array(bossDef.phases.length).fill(false),
+        };
       }
 
       if (!enemy.maxHp || enemy.maxHp <= 0) {
@@ -25,13 +27,14 @@ export const BossPhaseSystem = {
       }
 
       const hpRatio = enemy.hp / enemy.maxHp;
+      const triggered = enemy.bossPhaseState.triggered;
 
       for (let pi = 0; pi < bossDef.phases.length; pi++) {
-        if (enemy._phaseFlags[pi]) continue;
+        if (triggered[pi]) continue;
 
         const phase = bossDef.phases[pi];
         if (hpRatio <= phase.hpThreshold) {
-          enemy._phaseFlags[pi] = true;
+          triggered[pi] = true;
 
           world.events.bossPhaseChanged.push({
             enemy,

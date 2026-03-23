@@ -36,6 +36,24 @@ await test('run state helper는 session 메타 기반 런 상태를 world에 적
   assert.equal(world.levelUpActionMode, 'select');
 });
 
+await test('play scene runtime helper는 초기 world state 생성 계약을 제공한다', async () => {
+  const bootstrap = await import('../src/scenes/play/playSceneBootstrap.js');
+  const world = bootstrap.createPlaySceneWorldState({
+    session: {
+      meta: {
+        permanentUpgrades: {
+          reroll_charge: 1,
+          banish_charge: 2,
+        },
+      },
+    },
+  });
+
+  assert.equal(Boolean(world.player), true, 'bootstrap helper가 player를 생성하지 않음');
+  assert.equal(world.runRerollsRemaining, 1);
+  assert.equal(world.runBanishesRemaining, 2);
+});
+
 await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', async () => {
   const overlays = await import('../src/scenes/play/playSceneOverlays.js');
   const world = makeWorld({ playMode: 'playing' });

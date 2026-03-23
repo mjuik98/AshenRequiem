@@ -29,12 +29,22 @@ test('frame pipeline systems do not directly mutate session state', () => {
 });
 
 test('spawn requests are issued through factory helpers instead of inline literals', () => {
-  const source = readFileSync(new URL('../src/systems/spawn/SpawnSystem.js', import.meta.url), 'utf8');
-  assert.equal(
-    /spawnQueue\.push\(\s*\{\s*type\s*:/.test(source),
-    false,
-    'SpawnSystem에 inline spawn literal이 남아 있음',
-  );
+  const files = [
+    '../src/systems/spawn/SpawnSystem.js',
+    '../src/systems/combat/DamageSystem.js',
+    '../src/behaviors/weaponBehaviors/chainLightning.js',
+    '../src/behaviors/enemyBehaviors/rangedChase.js',
+    '../src/behaviors/enemyBehaviors/circleDash.js',
+  ];
+
+  files.forEach((ref) => {
+    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    assert.equal(
+      /spawnQueue\.push\(\s*\{\s*type\s*:/.test(source),
+      false,
+      `${ref}에 inline spawn literal이 남아 있음`,
+    );
+  });
 });
 
 test('production source files do not directly assign world.playMode outside PlayMode SSOT', () => {
@@ -92,6 +102,40 @@ test('SynergySystem does not directly import synergyData and post-event systems 
   postEventFiles.forEach((ref) => {
     const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
     assert.equal(/world\.events|events\./.test(source), false, `${ref}가 post-event 구간에서 world.events를 읽고 있음`);
+  });
+});
+
+test('production entity/runtime state avoids underscore-prefixed private slots and direct gameplay Math.random', () => {
+  const underscoreStateFiles = [
+    '../src/entities/createEnemy.js',
+    '../src/systems/combat/BossPhaseSystem.js',
+    '../src/behaviors/enemyBehaviors/rangedChase.js',
+  ];
+  const gameplayRandomFiles = [
+    '../src/systems/spawn/SpawnSystem.js',
+    '../src/systems/combat/DamageSystem.js',
+    '../src/systems/combat/StatusEffectSystem.js',
+    '../src/systems/combat/DeathSystem.js',
+    '../src/systems/event/chestRewardHandler.js',
+    '../src/behaviors/enemyBehaviors/rangedChase.js',
+  ];
+
+  underscoreStateFiles.forEach((ref) => {
+    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    assert.equal(
+      /\b(enemy|player|projectile|pickup|effect)\._[A-Za-z]/.test(source),
+      false,
+      `${ref}에 underscore-prefixed entity state가 남아 있음`,
+    );
+  });
+
+  gameplayRandomFiles.forEach((ref) => {
+    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    assert.equal(
+      /Math\.random\(/.test(source),
+      false,
+      `${ref}가 gameplay RNG를 Math.random에 직접 의존하고 있음`,
+    );
   });
 });
 

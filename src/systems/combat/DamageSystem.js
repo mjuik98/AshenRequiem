@@ -1,4 +1,6 @@
 import { KNOCKBACK, DAMAGE_TEXT, CRIT } from '../../data/constants.js';
+import { spawnEffect } from '../../state/spawnRequest.js';
+import { chance } from '../../utils/random.js';
 
 /**
  * DamageSystem — 데미지 적용
@@ -8,7 +10,7 @@ import { KNOCKBACK, DAMAGE_TEXT, CRIT } from '../../data/constants.js';
  *   - 기존 Fix들 유지 (BUG-8 무적 시간 가드, BUG-LIFESTEAL 등)
  */
 export const DamageSystem = {
-  update({ world: { events, player, spawnQueue } }) {
+  update({ world: { events, player, spawnQueue, rng } }) {
     const hits = events.hits;
     let damageTextCount = 0;
 
@@ -32,8 +34,8 @@ export const DamageSystem = {
       let isCrit      = hit.isCrit ?? false;  // chainLightning 등 외부에서 미리 세팅 가능
 
       if (!isCrit && target.type === 'enemy' && hit.attackerId === player?.id) {
-        const chance = player?.critChance ?? CRIT.BASE_CHANCE;
-        if (Math.random() < chance) {
+        const critChance = player?.critChance ?? CRIT.BASE_CHANCE;
+        if (critChance > 0 && chance(critChance, rng)) {
           isCrit      = true;
           const multi  = player?.critMultiplier ?? CRIT.BASE_MULTIPLIER;
           finalDamage  = Math.round(finalDamage * multi);
@@ -92,18 +94,17 @@ export const DamageSystem = {
           ? DAMAGE_TEXT.COLOR_CRIT
           : (target.type === 'player' ? DAMAGE_TEXT.COLOR_PLAYER : DAMAGE_TEXT.COLOR_ENEMY);
 
-        spawnQueue.push({
-          type: 'effect',
+        spawnQueue.push(spawnEffect({
+          x:          target.x,
+          y:          target.y - target.radius,
+          effectType: 'damageText',
           config: {
-            x:          target.x,
-            y:          target.y - target.radius,
-            effectType: 'damageText',
-            text:       isCrit ? `-${finalDamage}!` : `-${finalDamage}`,
-            color:      textColor,
-            radius:     isCrit ? 20 : 14,   // 크리티컬은 더 크게 표시
-            duration:   DAMAGE_TEXT.DURATION,
+            text:     isCrit ? `-${finalDamage}!` : `-${finalDamage}`,
+            color:    textColor,
+            radius:   isCrit ? 20 : 14,
+            duration: DAMAGE_TEXT.DURATION,
           },
-        });
+        }));
       }
     }
   },

@@ -4,24 +4,11 @@
  * CHANGE(P1): session을 services에서 제거 — R-14 완전 준수
  */
 
-import { ObjectPool }        from '../managers/ObjectPool.js';
 import { PipelineBuilder }   from './PipelineBuilder.js';
-import { SoundSystem }       from '../systems/sound/SoundSystem.js';
-import { NullSoundSystem }   from '../systems/sound/NullSoundSystem.js';
-import { PipelineProfiler }  from '../systems/debug/PipelineProfiler.js';
-import { EventRegistry }     from '../systems/event/EventRegistry.js';
-
-import { createProjectile, resetProjectile } from '../entities/createProjectile.js';
-import { createEffect,     resetEffect }     from '../entities/createEffect.js';
-import { createEnemy,      resetEnemy }      from '../entities/createEnemy.js';
-import { createPickup,     resetPickup }     from '../entities/createPickup.js';
-
-const POOL_SIZES = {
-  projectile: 200,
-  effect:     100,
-  enemy:      150,
-  pickup:     80,
-};
+import {
+  createPlayContextRuntimeState,
+  createPlayContextServices,
+} from './playContextRuntime.js';
 
 export class PlayContext {
   static create({
@@ -32,33 +19,15 @@ export class PlayContext {
     poolSizes        = {},
     session          = null,
   } = {}) {
-    const ctx   = new PlayContext();
-    const sizes = { ...POOL_SIZES, ...poolSizes };
-
-    ctx.session = session;
-
-    // ── Object Pool ──────────────────────────────────────────────────
-    ctx.projectilePool = new ObjectPool(createProjectile, resetProjectile, sizes.projectile);
-    ctx.effectPool     = new ObjectPool(createEffect,     resetEffect,     sizes.effect);
-    ctx.enemyPool      = new ObjectPool(createEnemy,      resetEnemy,      sizes.enemy);
-    ctx.pickupPool     = new ObjectPool(createPickup,     resetPickup,     sizes.pickup);
-
-    // ── Sound ────────────────────────────────────────────────────────
-    ctx.soundSystem = soundEnabled
-      ? (() => { const s = new SoundSystem(); s.init(); return s; })()
-      : new NullSoundSystem();
-
-    // ── EventRegistry (인스턴스) ─────────────────────────────────────
-    ctx.eventRegistry = new EventRegistry();
-
-    ctx.profiler  = profilingEnabled ? new PipelineProfiler() : null;
-    ctx.canvas    = canvas;
-    ctx.renderer  = renderer;
-
-    // CHANGE: 연출 뷰는 PlayScene이 주입한다 (buildPipeline 전에 setAnnouncementViews 호출)
-    ctx.bossAnnouncementView = null;
-    ctx.weaponEvolutionView  = null;
-
+    const ctx = new PlayContext();
+    Object.assign(ctx, createPlayContextRuntimeState({
+      canvas,
+      renderer,
+      soundEnabled,
+      profilingEnabled,
+      poolSizes,
+      session,
+    }));
     return ctx;
   }
 
@@ -122,17 +91,6 @@ export class PlayContext {
 
   /** @private — session 제거됨 (R-14 완전 준수) */
   _buildServices() {
-    return {
-      projectilePool: this.projectilePool,
-      effectPool:     this.effectPool,
-      enemyPool:      this.enemyPool,
-      pickupPool:     this.pickupPool,
-      soundSystem:    this.soundSystem,
-      canvas:         this.canvas,
-      renderer:       this.renderer,
-      // CHANGE: 연출 뷰를 서비스로 노출
-      bossAnnouncementView: this.bossAnnouncementView,
-      weaponEvolutionView:  this.weaponEvolutionView,
-    };
+    return createPlayContextServices(this);
   }
 }

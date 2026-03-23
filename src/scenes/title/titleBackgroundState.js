@@ -1,23 +1,27 @@
+function nextTitleRandom(state) {
+  return typeof state?.rng === 'function' ? state.rng() : Math.random();
+}
+
 function buildTitleBackgroundLayers(state) {
   const starCount = Math.max(90, Math.floor(state.width * state.height / 12000));
   const rainCount = state.prefersReducedMotion ? 0 : Math.max(36, Math.floor(state.width / 18));
 
   state.stars = Array.from({ length: starCount }, () => ({
-    x: Math.random() * state.width,
-    y: Math.random() * state.height * 0.62,
-    radius: 0.4 + Math.random() * 1.5,
-    alpha: 0.2 + Math.random() * 0.6,
-    speed: 0.25 + Math.random() * 1.4,
-    phase: Math.random() * Math.PI * 2,
-    layer: Math.random() < 0.55 ? 0.6 : 1,
+    x: nextTitleRandom(state) * state.width,
+    y: nextTitleRandom(state) * state.height * 0.62,
+    radius: 0.4 + nextTitleRandom(state) * 1.5,
+    alpha: 0.2 + nextTitleRandom(state) * 0.6,
+    speed: 0.25 + nextTitleRandom(state) * 1.4,
+    phase: nextTitleRandom(state) * Math.PI * 2,
+    layer: nextTitleRandom(state) < 0.55 ? 0.6 : 1,
   }));
 
   state.rain = Array.from({ length: rainCount }, () => ({
-    x: Math.random() * state.width,
-    y: Math.random() * state.height,
-    length: 6 + Math.random() * 14,
-    speed: 220 + Math.random() * 220,
-    alpha: 0.06 + Math.random() * 0.12,
+    x: nextTitleRandom(state) * state.width,
+    y: nextTitleRandom(state) * state.height,
+    length: 6 + nextTitleRandom(state) * 14,
+    speed: 220 + nextTitleRandom(state) * 220,
+    alpha: 0.06 + nextTitleRandom(state) * 0.12,
   }));
 
   state.fogBands = Array.from({ length: 3 }, (_, index) => ({
@@ -28,7 +32,7 @@ function buildTitleBackgroundLayers(state) {
   }));
 }
 
-export function createTitleBackgroundState(win = window) {
+export function createTitleBackgroundState(win = window, rng) {
   const prefersReducedMotion = win.matchMedia('(prefers-reduced-motion: reduce)').matches;
   return {
     width: 0,
@@ -43,6 +47,7 @@ export function createTitleBackgroundState(win = window) {
     fogBands: [],
     lastTime: 0,
     prefersReducedMotion,
+    rng,
   };
 }
 

@@ -14,11 +14,13 @@
 /**
  * @param {import('./EventRegistry.js').EventRegistry} registry
  */
+import { nextFloat } from '../../utils/random.js';
+
 export function registerChestRewardHandler(registry) {
   if (!registry) return;
 
   registry.register('chestCollected', (_event, world) => {
-    const roll = Math.random();
+    const roll = nextFloat(world?.rng);
     let count;
     if      (roll < 0.10) count = 3;   // 10% — 3회
     else if (roll < 0.40) count = 2;   // 30% — 2회

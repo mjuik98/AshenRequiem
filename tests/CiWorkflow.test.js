@@ -6,11 +6,9 @@ const { test, summary } = createRunner('CiWorkflow');
 
 console.log('\n[CiWorkflow]');
 
-test('verify workflow는 test, smoke, build 기준선을 모두 실행한다', () => {
+test('verify workflow는 smoke가 포함된 CI 기준선을 실행한다', () => {
   const workflow = readFileSync(new URL('../.github/workflows/verify.yml', import.meta.url), 'utf8');
-  assert.equal(workflow.includes('npm test'), true);
-  assert.equal(workflow.includes('npm run test:smoke'), true);
-  assert.equal(workflow.includes('npm run build'), true);
+  assert.equal(workflow.includes('npm run verify:ci'), true);
 });
 
 summary();

@@ -8,6 +8,7 @@
 
 import { EVENT_TYPES }        from '../data/constants/events.js';
 import { createSynergyState }  from './createSynergyState.js';
+import { createRng }           from '../utils/random.js';
 
 /** createWorld — 월드 상태 초기화 */
 export function createWorld() {
@@ -30,6 +31,9 @@ export function createWorld() {
 
     // ── 카메라 상태 ───────────────────────────────────────────────────
     camera: { x: 0, y: 0, targetX: 0, targetY: 0 },
+
+    // ── 난수 소스 (런타임 주입 가능) ──────────────────────────────────
+    rng: createRng(),
 
     // ── 프레임 시간 ───────────────────────────────────────────────────
     deltaTime: 0,

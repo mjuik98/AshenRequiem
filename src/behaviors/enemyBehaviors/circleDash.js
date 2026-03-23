@@ -24,6 +24,7 @@
  */
 
 import { ELITE_BEHAVIOR } from '../../data/constants.js';
+import { spawnProjectile } from '../../state/spawnRequest.js';
 
 const ORBIT_ANGULAR_SPEED = 1.2;   // rad/s
 const ORBIT_RADIUS        = 140;   // px
@@ -87,11 +88,10 @@ export function circleDash(enemy, { player, deltaTime, spawnQueue = [] }) {
       const count = enemy.isBoss ? PROJECTILE_COUNT_BOSS : PROJECTILE_COUNT_NORMAL;
       for (let i = 0; i < count; i++) {
         const angle = (i / count) * Math.PI * 2;
-        spawnQueue.push({
-          type: 'projectile',
+        spawnQueue.push(spawnProjectile({
+          x: enemy.x,
+          y: enemy.y,
           config: {
-            x:          enemy.x,
-            y:          enemy.y,
             dirX:       Math.cos(angle),
             dirY:       Math.sin(angle),
             speed:      projCfg.speed,
@@ -103,7 +103,7 @@ export function circleDash(enemy, { player, deltaTime, spawnQueue = [] }) {
             behaviorId: 'targetProjectile',
             ownerId:    enemy.id,
           },
-        });
+        }));
       }
 
       s.phase = 'dashing';

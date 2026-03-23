@@ -64,7 +64,7 @@ export function createLevelUpController({
       world.player,
       currentChoices,
       index,
-      { banishedUpgradeIds: world.banishedUpgradeIds ?? [] },
+      { banishedUpgradeIds: world.banishedUpgradeIds ?? [], rng: world.rng },
       getCurrentData(),
     );
     if (!nextChoices[index] || nextChoices[index]?.id === currentChoices[index]?.id) {
@@ -104,7 +104,7 @@ export function createLevelUpController({
       world.player,
       currentChoices,
       index,
-      { banishedUpgradeIds: nextBanishedIds },
+      { banishedUpgradeIds: nextBanishedIds, rng: world.rng },
       getCurrentData(),
     );
     const nextChoices = [...replacedChoices];

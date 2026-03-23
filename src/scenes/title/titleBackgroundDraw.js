@@ -1,3 +1,7 @@
+function nextTitleRandom(state) {
+  return typeof state?.rng === 'function' ? state.rng() : Math.random();
+}
+
 function drawTitleSky(ctx, state, time) {
   const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
   gradient.addColorStop(0, '#090512');
@@ -179,7 +183,7 @@ function drawTitleRain(ctx, state, delta) {
     drop.x += drop.speed * delta * 0.12;
     if (drop.y > state.height + drop.length) {
       drop.y = -drop.length;
-      drop.x = Math.random() * state.width;
+      drop.x = nextTitleRandom(state) * state.width;
     }
     ctx.globalAlpha = drop.alpha;
     ctx.beginPath();

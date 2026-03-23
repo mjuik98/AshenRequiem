@@ -81,7 +81,7 @@ export function createEnemyMovementSystem() {
   }
 
   return {
-    update({ world: { player, enemies, deltaTime, spawnQueue } }) {
+    update({ world: { player, enemies, deltaTime, spawnQueue, rng } }) {
       if (!isLive(player)) return;
 
       for (let i = 0; i < enemies.length; i++) {
@@ -111,7 +111,7 @@ export function createEnemyMovementSystem() {
         const effectiveDt = deltaTime * getSlowMultiplier(e);
 
         const behaviorFn = getEnemyBehavior(e.behaviorId || 'chase');
-        behaviorFn(e, { player, enemies, deltaTime: effectiveDt, spawnQueue });
+        behaviorFn(e, { player, enemies, deltaTime: effectiveDt, spawnQueue, rng });
       }
 
       _applySeparation(enemies);

@@ -6,9 +6,13 @@ export function clampSoundUnit(value) {
   return clampSoundValue(Number(value) || 0, 0, 1);
 }
 
-export function randomSoundSpread(amount) {
+function nextSoundRandom(rng) {
+  return typeof rng === 'function' ? rng() : Math.random();
+}
+
+export function randomSoundSpread(amount, rng) {
   if (!amount) return 0;
-  return (Math.random() * 2 - 1) * amount;
+  return (nextSoundRandom(rng) * 2 - 1) * amount;
 }
 
 export function disconnectSoundNodes(...nodes) {

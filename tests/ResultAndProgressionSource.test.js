@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test, summary } from './helpers/testRunner.js';
+import { installMockDom } from './helpers/mockDom.js';
 import { bossData } from '../src/data/bossData.js';
 import { enemyData } from '../src/data/enemyData.js';
 import { waveData } from '../src/data/waveData.js';
@@ -14,21 +14,14 @@ import {
   buildPauseAccessoryTooltipContent,
   buildPauseWeaponTooltipContent,
 } from '../src/ui/pause/pauseTooltipContent.js';
+import { ResultView } from '../src/ui/result/ResultView.js';
 import { createResultSceneActions } from '../src/scenes/play/playSceneOverlays.js';
-
-const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
-const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
 
 console.log('\n[Result/Progression Source]');
 
 test('ESC 로드아웃 통합은 무기/장신구의 분리 렌더 경로를 제거한다', () => {
   const panelsHtml = renderPauseTabPanels({
     activeTabName: 'loadout',
-    weapons: [{ id: 'magic_bolt' }],
-    accessories: [{ id: 'iron_heart' }],
-    maxAccSlots: 3,
-    weaponCardsHtml: '<section data-old-panel="weapons">weapons</section>',
-    accessoryGridHtml: '<section data-old-panel="accessories">accessories</section>',
     statsHtml: '',
     soundControlsHtml: '',
   });
@@ -104,17 +97,38 @@ test('Pause tooltip은 보조 안내만 담당하고 핵심 설명은 상세 패
 });
 
 test('결과 화면은 강화 상점 대신 메인 화면 버튼을 사용한다', () => {
-  assert.equal(resultViewSource.includes('강화 상점'), false, 'ResultView에 강화 상점 버튼이 남아 있음');
-  assert.equal(resultViewSource.includes('메인 화면으로'), true, 'ResultView에 메인 화면 버튼이 없음');
+  const { document, restore } = installMockDom();
   const transitions = [];
-  const actions = createResultSceneActions({
-    isBlocked: () => false,
-    setBlocked: () => {},
-    restart: () => transitions.push('restart'),
-    goToTitle: () => transitions.push('title'),
-  });
-  actions.onTitle();
-  assert.deepEqual(transitions, ['title'], '결과 액션이 메인 화면 복귀 경로를 사용하지 않음');
+
+  try {
+    const container = document.createElement('div');
+    const view = new ResultView(container);
+    const actions = createResultSceneActions({
+      isBlocked: () => false,
+      setBlocked: () => {},
+      restart: () => transitions.push('restart'),
+      goToTitle: () => transitions.push('title'),
+    });
+
+    view.show(
+      {
+        survivalTime: 90,
+        level: 6,
+        killCount: 18,
+        outcome: 'defeat',
+      },
+      actions.onRestart,
+      actions.onTitle,
+    );
+
+    assert.equal(view.el.innerHTML.includes('강화 상점'), false, 'ResultView에 강화 상점 버튼이 남아 있음');
+    assert.equal(view.el.innerHTML.includes('메인 화면으로'), true, 'ResultView에 메인 화면 버튼이 없음');
+
+    view.el.querySelector('.result-title-btn')?.click();
+    assert.deepEqual(transitions, ['title'], '결과 액션이 메인 화면 복귀 경로를 사용하지 않음');
+  } finally {
+    restore();
+  }
 });
 
 test('bossData는 5분 간격의 6종 서로 다른 보스를 사용한다', () => {

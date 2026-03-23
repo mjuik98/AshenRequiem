@@ -10,17 +10,11 @@
  * - 비동기 import 레이스 방지용 플래그 추가
  * - devicePixelRatio 변화를 추적해 렌더 파이프라인에 반영
  */
-import { PlayContext }                  from '../core/PlayContext.js';
-import { createWorld }                  from '../state/createWorld.js';
-import { createPlayer }                 from '../entities/createPlayer.js';
-import { mountUI }                      from '../ui/dom/mountUI.js';
-import { PlayUI }                       from './play/PlayUI.js';
 import { PlayResultHandler }            from './play/PlayResultHandler.js';
 import { createLevelUpController }      from './play/levelUpController.js';
+import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
 import {
-  applyRunSessionState,
   recordStartingWeapons,
-  shouldEnablePipelineProfiling,
 } from './play/playSceneRuntime.js';
 import {
   persistPauseSceneOptions,
@@ -35,7 +29,6 @@ import { TitleScene }                   from './TitleScene.js';
 import { recordWeaponAcquired }         from '../systems/event/codexHandler.js';
 import {
   applySessionOptionsToRuntime,
-  normalizeSessionOptions,
 } from '../state/sessionOptions.js';
 
 export class PlayScene {
@@ -60,39 +53,14 @@ export class PlayScene {
   }
 
   enter() {
-    this.world        = createWorld();
-    this.world.player = createPlayer(0, 0, this.game.session);
-    applyRunSessionState(this.world, this.game.session);
-
-    this._gameData = this.game.gameData;
-
-    // CHANGE(Settings): soundEnabled를 session.options에서 읽음
-    const opts = normalizeSessionOptions(this.game.session?.options);
-
-    this._ctx = PlayContext.create({
-      canvas:           this.game.canvas,
-      renderer:         this.game.renderer,
-      soundEnabled:     opts.soundEnabled ?? true,
-      profilingEnabled: shouldEnablePipelineProfiling(),
-      session:          this.game.session,
-    });
-
-    this._ui = new PlayUI(mountUI());
-    this._ui.showHud();
-
-    this._ctx.setAnnouncementViews(
-      this._ui.getBossAnnouncementView(),
-      this._ui.getWeaponEvolutionView(),
-    );
-
-    const { pipeline, pipelineCtx, systems } = this._ctx.buildPipeline(
-      this.world,
-      this.game.input,
-      this._gameData,
-    );
-    this._pipeline    = pipeline;
-    this._pipelineCtx = pipelineCtx;
-    this._systems     = systems;
+    const runtime = bootstrapPlaySceneRuntime({ game: this.game });
+    this.world = runtime.world;
+    this._gameData = runtime.gameData;
+    this._ctx = runtime.ctx;
+    this._ui = runtime.ui;
+    this._pipeline = runtime.pipeline;
+    this._pipelineCtx = runtime.pipelineCtx;
+    this._systems = runtime.systems;
 
     // CHANGE(Settings): 볼륨·품질 설정 반영
     this._applySessionOptions();

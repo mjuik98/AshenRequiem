@@ -5,7 +5,7 @@
  *   createEnemy() 호출 후 assertEnemyContract()로 엔티티 계약 검증.
  *   프로덕션 빌드에서는 tree-shake되어 제거됨.
  *
- * FIX(BUG-PHASE-FLAGS): resetEnemy 시 _phaseFlags 초기화 누락 버그 수정 (기존 유지)
+ * CHANGE: 보스 페이즈 상태는 underscore 슬롯 대신 bossPhaseState 전용 슬롯에 저장한다.
  */
 import { generateId }            from '../utils/ids.js';
 import { getEnemyDataById }      from '../data/enemyData.js';
@@ -44,7 +44,7 @@ export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
     behaviorState:   data.behaviorState  ? data.behaviorState() : null,
     projectileConfig: data.projectileConfig ?? null,
     deathSpawn:      data.deathSpawn ?? null,
-    _phaseFlags:     null,
+    bossPhaseState:  null,
     isAlive:         true,
     pendingDestroy:  false,
   };
@@ -90,7 +90,7 @@ export function resetEnemy(enemy, config) {
   enemy.behaviorState    = data.behaviorState  ? data.behaviorState() : null;
   enemy.projectileConfig = data.projectileConfig ?? null;
   enemy.deathSpawn       = data.deathSpawn ?? null;
-  enemy._phaseFlags      = null;   // FIX(BUG-PHASE-FLAGS): 풀 재사용 시 반드시 null 리셋
+  enemy.bossPhaseState   = null;
   enemy.isAlive          = true;
   enemy.pendingDestroy   = false;
 

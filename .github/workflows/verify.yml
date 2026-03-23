@@ -24,11 +24,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run unit tests
-        run: npm test
-
-      - name: Run deterministic smoke
-        run: npm run test:smoke
-
-      - name: Build production bundle
-        run: npm run build
+      - name: Run CI verify baseline
+        run: npm run verify:ci

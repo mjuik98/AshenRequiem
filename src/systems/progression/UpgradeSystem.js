@@ -20,12 +20,13 @@ import { SynergySystem } from './SynergySystem.js';
 export const UpgradeSystem = {
 
   generateChoices(player, options = {}, data = {}) {
+    const rng = options?.rng;
     const picks = this._buildAvailablePool(player, options, data);
-    let result  = shuffle(picks).slice(0, 3);
+    let result  = shuffle(picks, rng).slice(0, 3);
 
     // 폴백: 후보 풀이 바닥나면 회복/골드를 중복 없이 보충한다.
     if (result.length < 3) {
-      result = this._fillWithFallbackChoices(result, options.excludeChoiceIds ?? [], data);
+      result = this._fillWithFallbackChoices(result, options.excludeChoiceIds ?? [], data, rng);
     }
 
     return result;
@@ -41,6 +42,7 @@ export const UpgradeSystem = {
 
   replaceChoiceAtIndex(player, currentChoices, index, options = {}, data = {}) {
     const nextChoices = [...currentChoices];
+    const rng = options?.rng;
     const excludeChoiceIds = currentChoices
       .filter((choice, choiceIndex) => choiceIndex !== index || choice?.id === currentChoices[index]?.id)
       .map((choice) => choice?.id)
@@ -48,8 +50,8 @@ export const UpgradeSystem = {
     const pool = shuffle(this._buildAvailablePool(player, {
       ...options,
       excludeChoiceIds,
-    }, data));
-    const replacement = pool[0] ?? this._getFallbackChoice(excludeChoiceIds, data);
+    }, data), rng);
+    const replacement = pool[0] ?? this._getFallbackChoice(excludeChoiceIds, data, rng);
     if (replacement) {
       nextChoices[index] = replacement;
     }
@@ -77,12 +79,13 @@ export const UpgradeSystem = {
 
 // ── fallback 선택지 ─────────────────────────────────────────────────────────
 
-UpgradeSystem._fillWithFallbackChoices = function _fillWithFallbackChoices(result, seedExcludeIds = [], data = {}) {
+UpgradeSystem._fillWithFallbackChoices = function _fillWithFallbackChoices(result, seedExcludeIds = [], data = {}, rng) {
   return fillWithFallbackChoices(result, seedExcludeIds, data, {
-    getFallbackChoice: (excludeIds, nextData) => this._getFallbackChoice(excludeIds, nextData),
+    rng,
+    getFallbackChoice: (excludeIds, nextData, nextRng) => this._getFallbackChoice(excludeIds, nextData, nextRng),
   });
 };
 
-UpgradeSystem._getFallbackChoice = function _getFallbackChoice(excludeIds = [], data = {}) {
-  return getFallbackUpgradeChoice(excludeIds, data);
+UpgradeSystem._getFallbackChoice = function _getFallbackChoice(excludeIds = [], data = {}, rng) {
+  return getFallbackUpgradeChoice(excludeIds, data, rng);
 };

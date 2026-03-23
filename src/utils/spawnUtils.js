@@ -13,7 +13,7 @@
  */
 
 import { GameConfig } from '../core/GameConfig.js';
-import { randomRange } from './random.js';
+import { nextFloat, randomRange } from './random.js';
 
 /**
  * 플레이어 기준 화면 바깥 랜덤 위치를 월드 좌표로 반환한다.
@@ -23,31 +23,32 @@ import { randomRange } from './random.js';
  *
  * @param {{ x: number, y: number }} player
  * @param {number} [margin=80]  화면 경계에서 얼마나 더 바깥에 스폰할지 (px)
+ * @param {{ nextFloat: () => number }} [rng]
  * @returns {{ x: number, y: number }}
  */
-export function randomOffscreenPosition(player, margin = 80) {
+export function randomOffscreenPosition(player, margin = 80, rng) {
   const w = GameConfig.canvasWidth  + margin * 2;
   const h = GameConfig.canvasHeight + margin * 2;
 
-  const side = Math.floor(Math.random() * 4);
+  const side = Math.floor(nextFloat(rng) * 4);
   let x, y;
 
   switch (side) {
     case 0:  // 위
-      x = randomRange(-margin, w - margin);
+      x = randomRange(-margin, w - margin, rng);
       y = -margin;
       break;
     case 1:  // 아래
-      x = randomRange(-margin, w - margin);
+      x = randomRange(-margin, w - margin, rng);
       y = h - margin;
       break;
     case 2:  // 왼쪽
       x = -margin;
-      y = randomRange(-margin, h - margin);
+      y = randomRange(-margin, h - margin, rng);
       break;
     default: // 오른쪽
       x = w - margin;
-      y = randomRange(-margin, h - margin);
+      y = randomRange(-margin, h - margin, rng);
       break;
   }
 

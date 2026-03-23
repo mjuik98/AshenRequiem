@@ -20,7 +20,7 @@
 import assert from 'node:assert/strict';
 import {
   makePlayer, makeEnemy, makeBoss, makeWorld, makeEvents,
-  makePoolStub, makeServices,
+  makePoolStub, makeServices, makeRng,
 } from './fixtures/index.js';
 import { test, summary } from './helpers/testRunner.js';
 import { bossData } from '../src/data/bossData.js';
@@ -72,6 +72,26 @@ test('적 사망 시 pickup이 spawnQueue에 추가된다', () => {
   run(world);
   const hasPickup = world.spawnQueue.some(item => item.type === 'pickup' || item.config?.type === 'pickup');
   assert.ok(hasPickup || world.spawnQueue.length > 0, 'spawnQueue에 항목이 없음');
+});
+
+test('보스 XP 젬 산개는 world.rng 기반으로 결정된다', () => {
+  if (!DeathSystem) return;
+  const boss = makeBoss({ xpValue: 12, x: 50, y: 75 });
+  const events = makeEvents({ deaths: [{ entity: boss }] });
+  const rng = makeRng([0.25]);
+  const world = makeWorld({ enemies: [boss], events, rng });
+
+  run(world);
+
+  assert.ok(rng.calls > 0, 'DeathSystem이 world.rng를 사용하지 않음');
+  const xpPickup = world.spawnQueue.find((item) => item.type === 'pickup' && item.config?.xpValue === 12);
+  assert.ok(xpPickup, '보스 XP 젬이 스폰되지 않음');
+
+  const expectedScatter = 60 + (0.25 * 40);
+  const expectedX = boss.x + Math.cos(Math.PI / 4) * expectedScatter;
+  const expectedY = boss.y + Math.sin(Math.PI / 4) * expectedScatter;
+  assert.ok(Math.abs(xpPickup.config.x - expectedX) < 1e-9, '주입된 RNG 기준 X 위치가 아님');
+  assert.ok(Math.abs(xpPickup.config.y - expectedY) < 1e-9, '주입된 RNG 기준 Y 위치가 아님');
 });
 
 // ── playMode ──────────────────────────────────────────────────────────

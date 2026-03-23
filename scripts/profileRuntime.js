@@ -1,5 +1,6 @@
 import { createWorld } from '../src/state/createWorld.js';
 import { createPlayer } from '../src/entities/createPlayer.js';
+import { createRng } from '../src/utils/random.js';
 
 export const PROFILE_TARGET_FPS = 60;
 export const PROFILE_SIM_DT = 1 / PROFILE_TARGET_FPS;
@@ -257,6 +258,7 @@ export function makeHeadlessProfileWorld() {
   world.playMode = 'playing';
   world.deltaTime = PROFILE_SIM_DT;
   world.elapsedTime = 0;
+  world.rng = createRng(() => 0.5);
   return world;
 }
 
