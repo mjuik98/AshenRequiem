@@ -74,4 +74,48 @@ test('level up controller는 선택과 카드별 리롤/봉인 토글 콜백을 
   assert.equal(world.runBanishesRemaining, 0);
 });
 
+test('level up controller 리롤은 주입된 game data를 사용해 선택지를 교체한다', () => {
+  const world = makeWorld({
+    player: makePlayer({
+      weapons: [{ id: 'magic_bolt', level: 1, currentCooldown: 0 }],
+      maxWeaponSlots: 2,
+      unlockedWeapons: ['magic_bolt', 'test_blade'],
+    }),
+    playMode: 'levelup',
+    pendingLevelUpChoices: [
+      { id: 'get_magic_bolt', type: 'weapon_new', weaponId: 'magic_bolt', name: 'Magic Bolt' },
+      { id: 'stat_heal', type: 'stat', effect: { stat: 'hp', value: 25 }, name: '치유' },
+      { id: 'stat_gold', type: 'stat', effect: { stat: 'currency', value: 25 }, name: '골드' },
+    ],
+    pendingLevelUpType: 'levelup',
+    runRerollsRemaining: 1,
+    banishedUpgradeIds: [],
+    levelUpActionMode: 'select',
+  });
+
+  const controller = createLevelUpController({
+    getWorld: () => world,
+    getData: () => ({
+      upgradeData: [
+        { id: 'get_magic_bolt', type: 'weapon_new', weaponId: 'magic_bolt', name: 'Magic Bolt' },
+        { id: 'get_test_blade', type: 'weapon_new', weaponId: 'test_blade', name: 'Test Blade' },
+        { id: 'stat_heal', type: 'stat', effect: { stat: 'hp', value: 25 }, name: '치유' },
+        { id: 'stat_gold', type: 'stat', effect: { stat: 'currency', value: 25 }, name: '골드' },
+      ],
+      weaponData: [
+        { id: 'magic_bolt', maxLevel: 7 },
+        { id: 'test_blade', maxLevel: 7 },
+      ],
+      accessoryData: [],
+      weaponProgressionData: {},
+    }),
+    showLevelUp() {},
+  });
+
+  controller.reroll(0);
+
+  assert.equal(world.pendingLevelUpChoices[0]?.id, 'get_test_blade', '리롤이 주입된 game data 후보를 사용하지 않음');
+  assert.equal(world.runRerollsRemaining, 0, '리롤 횟수가 차감되지 않음');
+});
+
 summary();

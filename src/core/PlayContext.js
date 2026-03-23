@@ -9,7 +9,6 @@ import { PipelineBuilder }   from './PipelineBuilder.js';
 import { SoundSystem }       from '../systems/sound/SoundSystem.js';
 import { NullSoundSystem }   from '../systems/sound/NullSoundSystem.js';
 import { PipelineProfiler }  from '../systems/debug/PipelineProfiler.js';
-import { AssetManager }      from '../managers/AssetManager.js';
 import { EventRegistry }     from '../systems/event/EventRegistry.js';
 
 import { createProjectile, resetProjectile } from '../entities/createProjectile.js';
@@ -36,7 +35,6 @@ export class PlayContext {
     const ctx   = new PlayContext();
     const sizes = { ...POOL_SIZES, ...poolSizes };
 
-    ctx.assets  = new AssetManager();
     ctx.session = session;
 
     // ── Object Pool ──────────────────────────────────────────────────
@@ -75,7 +73,6 @@ export class PlayContext {
     this.canvas         = null;
     this.renderer       = null;
     this._builder       = null;
-    this.assets         = null;
     this.session        = null;
     this.bossAnnouncementView = null;
     this.weaponEvolutionView  = null;

@@ -13,15 +13,15 @@
  *   - world.events.weaponEvolved 이벤트 발행
  *   - 진화 레시피 ID를 player.evolvedWeapons에 기록
  */
-import { getWeaponDataById } from '../../data/weaponData.js';
+import { logRuntimeInfo } from '../../utils/runtimeLogger.js';
 
 function getWeaponDef(id, runtimeWeaponData) {
-  return runtimeWeaponData?.find((weapon) => weapon.id === id) ?? getWeaponDataById(id);
+  return runtimeWeaponData.find((weapon) => weapon.id === id) ?? null;
 }
 
 export const WeaponEvolutionSystem = {
   update({ world, data }) {
-    if (!world?.player || !data?.weaponEvolutionData) return;
+    if (!world?.player || !data?.weaponEvolutionData || !data?.weaponData) return;
 
     const player = world.player;
     if (!player.evolvedWeapons) player.evolvedWeapons = new Set();
@@ -38,6 +38,7 @@ export const WeaponEvolutionSystem = {
 
       // 기반 무기가 maxLevel에 도달했는지 확인
       const baseWeaponDef = getWeaponDef(weaponId, data.weaponData);
+      if (!baseWeaponDef) continue;
       const maxLevel      = baseWeaponDef?.maxLevel ?? 5;
       if (baseWeapon.level < maxLevel) continue;
 
@@ -77,7 +78,7 @@ export const WeaponEvolutionSystem = {
         });
       }
 
-      console.info(`[WeaponEvolutionSystem] ${weaponId} → ${recipe.resultWeaponId} 진화 완료`);
+      logRuntimeInfo('WeaponEvolutionSystem', `${weaponId} → ${recipe.resultWeaponId} 진화 완료`);
     }
   },
 };

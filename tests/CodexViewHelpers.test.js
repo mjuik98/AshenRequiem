@@ -92,6 +92,9 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
 
 await test('codex accessory helper derives filterable grid/detail models and discovery gating', async () => {
   const accessoryTab = await import('../src/ui/codex/codexAccessoryTab.js');
+  const accessoryModel = await import('../src/ui/codex/codexAccessoryModel.js');
+  const accessoryRender = await import('../src/ui/codex/codexAccessoryRender.js');
+  const accessoryStyles = await import('../src/ui/codex/codexAccessoryStyles.js');
 
   const accessoryData = [
     { id: 'iron_heart', name: 'Iron Heart', icon: '❤', rarity: 'common', description: '최대 HP +20', maxLevel: 5 },
@@ -103,7 +106,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
     },
   };
 
-  const card = accessoryTab.buildCodexAccessoryCardModel({
+  const card = accessoryModel.buildCodexAccessoryCardModel({
     accessory: accessoryData[1],
     session,
     selectedAccessoryId: 'arcane_prism',
@@ -114,7 +117,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(card.rarityLabel, '희귀');
   assert.equal(card.icon, '🔮');
 
-  const grid = accessoryTab.buildCodexAccessoryGridModel({
+  const grid = accessoryModel.buildCodexAccessoryGridModel({
     accessoryData,
     weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
     session,
@@ -127,7 +130,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(grid.entries.length, 1);
   assert.equal(grid.entries[0].isCatalyst, true);
 
-  const detail = accessoryTab.buildCodexAccessoryDetailModel({
+  const detail = accessoryModel.buildCodexAccessoryDetailModel({
     accessoryData,
     weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
     weaponData: [{ id: 'solar_ray', name: 'Solar Ray', icon: '☀' }, { id: 'helios_lance', name: 'Helios Lance', icon: '✹' }],
@@ -139,7 +142,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(detail.linkedWeapons.length, 1);
   assert.equal(detail.unlocked, true);
 
-  const html = accessoryTab.renderCodexAccessoryTab({
+  const html = accessoryRender.renderCodexAccessoryTab({
     accessoryData,
     weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
     weaponData: [{ id: 'solar_ray', name: 'Solar Ray', icon: '☀' }, { id: 'helios_lance', name: 'Helios Lance', icon: '✹' }],
@@ -156,6 +159,9 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(html.includes('cx-af'), true);
   assert.equal(html.includes('cx-ef'), true);
   assert.equal(html.includes('cx-discovery-hint'), true);
+  assert.equal(typeof accessoryTab.buildCodexAccessoryGridModel, 'function');
+  assert.equal(typeof accessoryTab.renderCodexAccessoryTab, 'function');
+  assert.equal(accessoryStyles.CODEX_ACCESSORY_TAB_CSS.includes('.cx-accessory-grid'), true);
 });
 
 await test('codex records helper packages summary, achievements, and unlock entries together', async () => {
@@ -217,6 +223,48 @@ await test('codex styles live in a dedicated module', async () => {
   assert.equal(typeof styles.CODEX_VIEW_CSS, 'string');
   assert.equal(styles.CODEX_VIEW_CSS.includes('.cx-root'), true);
   assert.equal(typeof styles.CODEX_VIEW_STYLE_ID, 'string');
+});
+
+await test('codex view helper modules expose state transitions and dom bindings', async () => {
+  const stateApi = await import('../src/ui/codex/codexViewState.js');
+  const bindingApi = await import('../src/ui/codex/codexViewBindings.js');
+  const shellApi = await import('../src/ui/codex/codexViewShell.js');
+  const controllerApi = await import('../src/ui/codex/codexViewControllers.js');
+
+  assert.equal(typeof stateApi.createCodexViewState, 'function');
+  assert.equal(typeof stateApi.resetCodexViewState, 'function');
+  assert.equal(typeof stateApi.toggleCodexSelection, 'function');
+  assert.equal(typeof stateApi.updateCodexAccessoryFilters, 'function');
+  assert.equal(typeof stateApi.setCodexActiveTab, 'function');
+  assert.equal(typeof bindingApi.bindCodexTabButtons, 'function');
+  assert.equal(typeof bindingApi.bindCodexSelectableCards, 'function');
+  assert.equal(typeof bindingApi.bindCodexButtonGroup, 'function');
+  assert.equal(typeof bindingApi.syncCodexTabPanels, 'function');
+  assert.equal(typeof shellApi.renderCodexViewShell, 'function');
+  assert.equal(typeof controllerApi.renderCodexEnemyPanel, 'function');
+  assert.equal(typeof controllerApi.renderCodexWeaponPanel, 'function');
+  assert.equal(typeof controllerApi.renderCodexAccessoryPanel, 'function');
+  assert.equal(typeof controllerApi.renderCodexRecordsPanel, 'function');
+
+  const state = stateApi.createCodexViewState();
+  stateApi.setCodexActiveTab(state, 'records');
+  stateApi.toggleCodexSelection(state, 'weapon', 'magic_bolt');
+  stateApi.updateCodexAccessoryFilters(state, {
+    search: 'prism',
+    rarityFilter: 'rare',
+    effectFilter: 'utility',
+  });
+
+  assert.equal(state.activeTab, 'records');
+  assert.equal(state.selectedWeaponId, 'magic_bolt');
+  assert.equal(state.accessory.search, 'prism');
+  assert.equal(state.accessory.rarityFilter, 'rare');
+  assert.equal(state.accessory.effectFilter, 'utility');
+
+  stateApi.resetCodexViewState(state);
+  assert.equal(state.activeTab, 'enemy');
+  assert.equal(state.selectedWeaponId, null);
+  assert.equal(state.accessory.search, '');
 });
 
 console.log(`\nCodexViewHelpers: ${passed}개 통과, ${failed}개 실패`);

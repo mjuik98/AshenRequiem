@@ -13,7 +13,7 @@ let ProjectileSystem;
 
 try {
   ({ getRegisteredBehaviorIds } = await import('../src/behaviors/weaponBehaviorRegistry.js'));
-  ({ getWeaponDataById } = await import('../src/data/weaponData.js'));
+  ({ getWeaponDataById } = await import('../src/data/weaponDataHelpers.js'));
   ({ laserBeam } = await import('../src/behaviors/weaponBehaviors/laserBeam.js'));
   ({ groundZone } = await import('../src/behaviors/weaponBehaviors/groundZone.js'));
   ({ ricochetProjectile } = await import('../src/behaviors/weaponBehaviors/ricochetProjectile.js'));

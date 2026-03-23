@@ -16,10 +16,16 @@ const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', imp
 const pauseAudioSource = readFileSync(new URL('../src/ui/pause/pauseAudioControls.js', import.meta.url), 'utf8');
 const codexSceneSource = readFileSync(new URL('../src/scenes/CodexScene.js', import.meta.url), 'utf8');
 const codexHandlerSource = readFileSync(new URL('../src/systems/event/codexHandler.js', import.meta.url), 'utf8');
+const playContextSource = readFileSync(new URL('../src/core/PlayContext.js', import.meta.url), 'utf8');
 const collisionSystemSource = readFileSync(new URL('../src/systems/combat/CollisionSystem.js', import.meta.url), 'utf8');
 const enemyMovementSystemSource = readFileSync(new URL('../src/systems/movement/EnemyMovementSystem.js', import.meta.url), 'utf8');
 const statusEffectSystemSource = readFileSync(new URL('../src/systems/combat/StatusEffectSystem.js', import.meta.url), 'utf8');
 const bossHudViewSource = readFileSync(new URL('../src/ui/boss/BossHudView.js', import.meta.url), 'utf8');
+const accessoryDataSource = readFileSync(new URL('../src/data/accessoryData.js', import.meta.url), 'utf8');
+const weaponDataSource = readFileSync(new URL('../src/data/weaponData.js', import.meta.url), 'utf8');
+const accessoryModelSource = readFileSync(new URL('../src/ui/codex/codexAccessoryModel.js', import.meta.url), 'utf8');
+const pauseLoadoutStatsSource = readFileSync(new URL('../src/ui/pause/pauseLoadoutStatsSections.js', import.meta.url), 'utf8');
+const createPlayerSource = readFileSync(new URL('../src/entities/createPlayer.js', import.meta.url), 'utf8');
 
 console.log('\n[CentralizationSource]');
 
@@ -55,10 +61,16 @@ test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
 });
 
 test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => {
-  assert.equal(playSceneSource.includes('GameDataLoader.clone(this.game.gameData)'), true, 'PlayScene이 Game의 gameData 복제 경로를 사용하지 않음');
+  assert.equal(playSceneSource.includes('this.game.gameData'), true, 'PlayScene이 Game의 gameData 참조를 사용하지 않음');
+  assert.equal(playSceneSource.includes('GameDataLoader.clone(this.game.gameData)'), false, 'PlayScene이 여전히 gameData 전체 복제를 수행함');
   assert.equal(playSceneSource.includes('GameDataLoader.loadDefault()'), false, 'PlayScene이 여전히 loadDefault를 직접 호출함');
   assert.equal(codexSceneSource.includes('this.game.gameData'), true, 'CodexScene이 Game.gameData를 사용하지 않음');
   assert.equal(codexSceneSource.includes('GameDataLoader.loadDefault()'), false, 'CodexScene이 여전히 loadDefault를 직접 호출함');
+});
+
+test('PlayContext는 런타임에서 사용하지 않는 AssetManager를 생성하지 않는다', () => {
+  assert.equal(playContextSource.includes('new AssetManager()'), false, 'PlayContext가 사용하지 않는 AssetManager를 생성함');
+  assert.equal(playContextSource.includes('ctx.assets'), false, 'PlayContext가 불필요한 assets 슬롯을 유지함');
 });
 
 test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {
@@ -72,6 +84,15 @@ test('Codex 메타 초기화는 단일 헬퍼로 중앙화된다', () => {
   assert.equal(codexSceneSource.includes('ensureCodexMeta'), true, 'CodexScene이 공통 Codex 메타 헬퍼를 사용하지 않음');
   assert.equal(codexSceneSource.includes('reconcileSessionUnlocks'), true, 'CodexScene이 기존 누적 해금 보정 헬퍼를 사용하지 않음');
   assert.equal(codexHandlerSource.includes('ensureCodexMeta'), true, 'codexHandler가 공통 Codex 메타 헬퍼를 사용하지 않음');
+});
+
+test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙화된다', () => {
+  assert.equal(accessoryDataSource.includes('export function buildAccessoryLevelDesc'), false, 'accessoryData가 설명 helper를 직접 export함');
+  assert.equal(accessoryDataSource.includes('export function buildAccessoryCurrentDesc'), false, 'accessoryData가 현재 설명 helper를 직접 export함');
+  assert.equal(weaponDataSource.includes('export function getWeaponDataById'), false, 'weaponData가 조회 helper를 직접 export함');
+  assert.equal(accessoryModelSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Codex accessory model이 전용 accessory helper를 사용하지 않음');
+  assert.equal(pauseLoadoutStatsSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Pause loadout stats가 전용 accessory helper를 사용하지 않음');
+  assert.equal(createPlayerSource.includes("from '../data/weaponDataHelpers.js'"), true, 'createPlayer가 전용 weapon helper를 사용하지 않음');
 });
 
 summary();

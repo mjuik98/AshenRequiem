@@ -1,38 +1,30 @@
-import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import {
+  buildCommandInvocation,
+  pipeChildOutput,
+  spawnCommand,
+  stopChildProcess,
+  waitForChildExit,
+} from './smokeProcessUtils.mjs';
+import {
+  createSmokeLogger,
+  getActiveHandleSummary,
+  isDebugSmokeEnabled,
+} from './smokeDiagnostics.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const NPM_CMD = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const VITE_CLI = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 const DEFAULT_PORT = 4173;
 const DEFAULT_HOST = '127.0.0.1';
+const BUILD_TIMEOUT_MS = 60_000;
+const SMOKE_TIMEOUT_MS = 120_000;
+const DEBUG_SMOKE = isDebugSmokeEnabled();
+const debugLog = createSmokeLogger({ enabled: DEBUG_SMOKE, output: process.stdout });
 
-function quoteCommandArg(value) {
-  const text = String(value ?? '');
-  if (text.length === 0) return '""';
-  if (/[\s"&()<>^|]/.test(text)) {
-    return `"${text.replaceAll('"', '\\"')}"`;
-  }
-  return text;
-}
-
-export function buildCommandInvocation(command, args, options = {}) {
-  const platform = options.platform ?? process.platform;
-  const comspec = options.comspec ?? process.env.ComSpec ?? process.env.COMSPEC ?? 'cmd.exe';
-  const isNpmCommand = /(^|[\\/])npm(?:\.cmd)?$/i.test(command);
-
-  if (platform === 'win32' && isNpmCommand) {
-    return {
-      command: comspec,
-      args: ['/d', '/s', '/c', [command, ...args].map(quoteCommandArg).join(' ')],
-      shell: false,
-    };
-  }
-
-  return { command, args, shell: false };
-}
+export { buildCommandInvocation, stopChildProcess, waitForChildExit } from './smokeProcessUtils.mjs';
 
 function parseArgs(argv) {
   const args = {
@@ -56,6 +48,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === '--all') {
       args.all = true;
+    } else if (value === '--debug-smoke') {
+      continue;
     }
   }
 
@@ -66,78 +60,32 @@ function parseArgs(argv) {
   return args;
 }
 
-function spawnCommand(command, args, options = {}) {
-  const invocation = buildCommandInvocation(command, args, options);
-  return spawn(invocation.command, invocation.args, {
-    cwd: ROOT,
-    stdio: options.stdio ?? 'inherit',
-    env: process.env,
-    shell: invocation.shell,
-  });
-}
-
 async function runCommand(command, args, options = {}) {
-  const child = spawnCommand(command, args, options);
-  const [code] = await once(child, 'close');
+  debugLog('runCommand:start', { command, args });
+  const child = spawnCommand(command, args, {
+    ...options,
+    cwd: ROOT,
+    env: process.env,
+  });
+  if ((options.stdio ?? 'pipe') === 'pipe' && options.pipeOutput !== false) {
+    pipeChildOutput(child);
+  }
+  const code = await waitForChildExit(child, options.timeoutMs ?? null);
+  debugLog('runCommand:finish', { command, args, code });
+  if (code === null) {
+    await stopChildProcess(child, { env: process.env });
+    throw new Error(`${command} ${args.join(' ')} timed out after ${options.timeoutMs}ms`);
+  }
   if (code !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed with exit code ${code}`);
   }
 }
 
-export function waitForChildExit(child, timeoutMs = 5000) {
-  if (!child) {
-    return Promise.resolve(null);
+function ensureViteCli() {
+  if (!path.isAbsolute(VITE_CLI)) {
+    throw new Error(`Resolved Vite CLI path is not absolute: ${VITE_CLI}`);
   }
-  return Promise.race([
-    once(child, 'close').then(([code]) => code),
-    new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs)),
-  ]);
-}
-
-function pipeChildOutput(child) {
-  child.stdout?.on('data', (chunk) => process.stdout.write(String(chunk)));
-  child.stderr?.on('data', (chunk) => process.stderr.write(String(chunk)));
-}
-
-function closeChildStreams(child) {
-  child.stdout?.destroy?.();
-  child.stderr?.destroy?.();
-}
-
-export async function stopChildProcess(child) {
-  if (!child?.pid) return;
-  if (child.exitCode !== null || child.signalCode !== null) {
-    closeChildStreams(child);
-    return;
-  }
-
-  if (process.platform === 'win32') {
-    const killer = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], {
-      stdio: 'ignore',
-      shell: false,
-      env: process.env,
-    });
-    const killerCode = await waitForChildExit(killer, 2000).catch(() => null);
-    if (killerCode === null && killer.exitCode === null) {
-      killer.kill('SIGKILL');
-      await waitForChildExit(killer, 1000).catch(() => {});
-    }
-    const closed = await waitForChildExit(child).catch(() => null);
-    if (closed === null && child.exitCode === null) {
-      child.kill('SIGKILL');
-      await waitForChildExit(child, 1000).catch(() => {});
-    }
-    closeChildStreams(child);
-    return;
-  }
-
-  child.kill('SIGTERM');
-  const closed = await waitForChildExit(child);
-  if (closed === null && child.exitCode === null) {
-    child.kill('SIGKILL');
-    await waitForChildExit(child, 1000).catch(() => {});
-  }
-  closeChildStreams(child);
+  return VITE_CLI;
 }
 
 export async function waitForServer(url, timeoutMs = 15000) {
@@ -157,9 +105,19 @@ export async function waitForServer(url, timeoutMs = 15000) {
   throw new Error(`Timed out waiting for preview server: ${url}`);
 }
 
-async function waitForPreviewReady(preview, url, timeoutMs = 15000) {
-  pipeChildOutput(preview);
-  await waitForServer(url, timeoutMs);
+export async function waitForPreviewReady(
+  preview,
+  url,
+  timeoutMs = 15000,
+  { waitForServerFn = waitForServer } = {},
+) {
+  const exitPromise = once(preview, 'close').then(([code]) => {
+    throw new Error(`Preview server exited before becoming ready (code: ${code ?? 'unknown'})`);
+  });
+  await Promise.race([
+    waitForServerFn(url, timeoutMs),
+    exitPromise,
+  ]);
 }
 
 async function canListen(port, host) {
@@ -188,6 +146,7 @@ export async function runSmokeAgainstPreview(options = {}) {
   const host = options.host ?? DEFAULT_HOST;
   const port = await findAvailablePort(options.port ?? DEFAULT_PORT, host);
   const url = `http://${host}:${port}`;
+  const viteCli = ensureViteCli();
   const smokeArgs = [
     path.join('scripts', 'browser-smoke', 'runDeterministicSmoke.mjs'),
     '--url',
@@ -200,29 +159,62 @@ export async function runSmokeAgainstPreview(options = {}) {
     smokeArgs.push('--scenario', options.scenario);
   }
 
-  await runCommand(NPM_CMD, ['run', 'build']);
+  debugLog('smoke:start', { url });
+  await runCommand(process.execPath, [viteCli, 'build'], {
+    shell: false,
+    timeoutMs: BUILD_TIMEOUT_MS,
+  });
 
-  const preview = spawnCommand(NPM_CMD, [
-    'run',
+  const preview = spawnCommand(process.execPath, [
+    viteCli,
     'preview',
-    '--',
     '--host',
     host,
     '--port',
     String(port),
   ], {
-    stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: ROOT,
+    env: process.env,
+    stdio: 'ignore',
   });
 
   try {
+    debugLog('preview:spawned', { pid: preview.pid });
     await waitForPreviewReady(preview, url);
-    await runCommand(process.execPath, smokeArgs, { shell: false });
+    debugLog('preview:ready', { pid: preview.pid });
+    await runCommand(process.execPath, smokeArgs, {
+      shell: false,
+      timeoutMs: SMOKE_TIMEOUT_MS,
+    });
+    debugLog('smoke:completed');
   } finally {
-    await stopChildProcess(preview);
+    debugLog('preview:stopping', { pid: preview.pid });
+    await stopChildProcess(preview, { env: process.env });
+    debugLog('preview:stopped', { pid: preview.pid, handles: getActiveHandleSummary() });
+  }
+}
+
+export async function runSmokeCli(
+  argv = process.argv,
+  {
+    parseArgsFn = parseArgs,
+    runFn = runSmokeAgainstPreview,
+    exitFn = (code) => process.exit(code),
+    errorFn = (message) => console.error(message),
+  } = {},
+) {
+  try {
+    const args = parseArgsFn(argv);
+    debugLog('cli:parsed', args);
+    await runFn(args);
+    debugLog('cli:run-finished', { handles: getActiveHandleSummary() });
+    exitFn(0);
+  } catch (error) {
+    errorFn(error instanceof Error ? error.message : String(error));
+    exitFn(1);
   }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const args = parseArgs(process.argv);
-  await runSmokeAgainstPreview(args);
+  await runSmokeCli(process.argv);
 }

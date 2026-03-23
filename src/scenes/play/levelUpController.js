@@ -3,12 +3,17 @@ import { UpgradeSystem } from '../../systems/progression/UpgradeSystem.js';
 
 export function createLevelUpController({
   getWorld,
+  getData = () => null,
   isBlocked = () => false,
   showLevelUp,
 }) {
   function getCurrentWorld() {
     const world = getWorld?.();
     return world ?? null;
+  }
+
+  function getCurrentData() {
+    return getData?.() ?? null;
   }
 
   function show() {
@@ -60,6 +65,7 @@ export function createLevelUpController({
       currentChoices,
       index,
       { banishedUpgradeIds: world.banishedUpgradeIds ?? [] },
+      getCurrentData(),
     );
     if (!nextChoices[index] || nextChoices[index]?.id === currentChoices[index]?.id) {
       show();
@@ -99,6 +105,7 @@ export function createLevelUpController({
       currentChoices,
       index,
       { banishedUpgradeIds: nextBanishedIds },
+      getCurrentData(),
     );
     const nextChoices = [...replacedChoices];
 

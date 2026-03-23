@@ -8,7 +8,10 @@ import { PAUSE_TOOLTIP_SELECTORS } from '../src/ui/pause/pauseTooltipController.
 import { createPauseOverlayConfig } from '../src/scenes/play/playSceneOverlays.js';
 
 const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
+const pauseViewModelSource = readFileSync(new URL('../src/ui/pause/pauseViewModel.js', import.meta.url), 'utf8');
+const pauseViewLifecycleSource = readFileSync(new URL('../src/ui/pause/pauseViewLifecycle.js', import.meta.url), 'utf8');
 const pauseViewBindingsSource = readFileSync(new URL('../src/ui/pause/pauseViewBindings.js', import.meta.url), 'utf8');
+const pauseStylesSource = readFileSync(new URL('../src/ui/pause/pauseStyles.js', import.meta.url), 'utf8');
 const playUiSource = readFileSync(new URL('../src/scenes/play/PlayUI.js', import.meta.url), 'utf8');
 const titleSceneSource = readFileSync(new URL('../src/scenes/TitleScene.js', import.meta.url), 'utf8');
 const keyboardAdapterSource = readFileSync(new URL('../src/input/KeyboardAdapter.js', import.meta.url), 'utf8');
@@ -59,11 +62,6 @@ test('PauseView는 로드아웃 helper와 선택 상태를 통합한다', () => 
     'PauseView가 통합 로드아웃 항목 helper를 사용하지 않음',
   );
   assert.equal(
-    pauseViewSource.includes('getDefaultPauseSelection'),
-    true,
-    'PauseView가 기본 선택 helper를 사용하지 않음',
-  );
-  assert.equal(
     pauseViewSource.includes('renderPauseLoadoutPanel'),
     true,
     'PauseView가 통합 로드아웃 패널 helper를 사용하지 않음',
@@ -84,9 +82,49 @@ test('PauseView는 로드아웃 helper와 선택 상태를 통합한다', () => 
     'PauseView가 tooltip 위치 helper를 사용하지 않음',
   );
   assert.equal(
-    pauseViewSource.includes('normalizePauseSynergyRequirementId'),
+    pauseViewSource.includes('bindPauseAudioControls'),
     true,
-    'PauseView가 공유 시너지 requirement 정규화 helper를 사용하지 않음',
+    'PauseView가 audio controller helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('bindPauseTooltipEntries'),
+    true,
+    'PauseView가 tooltip binding controller를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('showTooltip: showPauseTooltip'),
+    true,
+    'PauseView가 tooltip binding helper에 showPauseTooltip을 명시적으로 주입하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('applyPauseViewShowState'),
+    true,
+    'PauseView가 lifecycle show helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('renderPauseViewShell'),
+    true,
+    'PauseView가 shell helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('bindPauseInteractionHandlers'),
+    true,
+    'PauseView가 interaction controller helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewSource.includes('resetPauseViewRuntime'),
+    true,
+    'PauseView가 lifecycle reset helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewLifecycleSource.includes('buildPauseViewIndexes'),
+    true,
+    'pauseViewLifecycle가 인덱스 생성 helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewLifecycleSource.includes('resolvePauseSelectedLoadoutKey'),
+    true,
+    'pauseViewLifecycle가 선택 상태 helper를 사용하지 않음',
   );
   assert.match(
     pauseViewSource,
@@ -99,9 +137,19 @@ test('PauseView는 로드아웃 helper와 선택 상태를 통합한다', () => 
     'PauseView에 선택된 로드아웃 상태가 없음',
   );
   assert.equal(
-    pauseViewSource.includes('_resolveSelectedLoadoutKey'),
+    pauseViewModelSource.includes('getDefaultPauseSelection'),
     true,
-    'PauseView가 재오픈 시 선택 상태를 복원하는 helper를 제공하지 않음',
+    'pauseViewModel이 기본 선택 helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewModelSource.includes('normalizePauseSynergyRequirementId'),
+    true,
+    'pauseViewModel이 공유 시너지 requirement 정규화 helper를 사용하지 않음',
+  );
+  assert.equal(
+    pauseViewModelSource.includes('resolvePauseSelectedLoadoutKey'),
+    true,
+    'pauseViewModel이 재오픈 선택 복원 helper를 제공하지 않음',
   );
   assert.equal(
     pauseViewBindingsSource.includes('.pv-slot-card[data-loadout-key]'),
@@ -120,11 +168,18 @@ test('PauseView는 로드아웃 helper와 선택 상태를 통합한다', () => 
   );
 });
 
+test('PauseView 스타일은 fragment 모듈을 조합해 구성된다', () => {
+  assert.equal(pauseStylesSource.includes("from './pauseLayoutStyles.js'"), true, 'pauseStyles가 layout fragment를 사용하지 않음');
+  assert.equal(pauseStylesSource.includes("from './pauseLoadoutStyles.js'"), true, 'pauseStyles가 loadout fragment를 사용하지 않음');
+  assert.equal(pauseStylesSource.includes("from './pauseAudioStyles.js'"), true, 'pauseStyles가 audio fragment를 사용하지 않음');
+  assert.equal(pauseStylesSource.includes("from './pauseResponsiveStyles.js'"), true, 'pauseStyles가 responsive fragment를 사용하지 않음');
+});
+
 test('ESC 모달은 재오픈 시 이전 로드아웃 선택을 유지할 수 있어야 한다', () => {
   assert.match(
-    pauseViewSource,
-    /this\._selectedLoadoutKey\s*=\s*this\._resolveSelectedLoadoutKey\(this\._loadoutItems\)/,
-    'PauseView.show()가 이전 선택을 복원하지 않음',
+    pauseViewLifecycleSource,
+    /view\._selectedLoadoutKey\s*=\s*resolvePauseSelectedLoadoutKey\(\s*view\._loadoutItems,\s*view\._selectedLoadoutKey,\s*player,\s*\)/,
+    'pauseViewLifecycle가 이전 선택을 복원하지 않음',
   );
   const hideMethod = pauseViewSource.match(/hide\(\)\s*\{[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.equal(

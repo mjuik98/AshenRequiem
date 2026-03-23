@@ -11,7 +11,7 @@ let getWeaponDataById;
 try {
   ({ WeaponEvolutionSystem } = await import('../src/systems/progression/WeaponEvolutionSystem.js'));
   ({ weaponEvolutionData } = await import('../src/data/weaponEvolutionData.js'));
-  ({ getWeaponDataById } = await import('../src/data/weaponData.js'));
+  ({ getWeaponDataById } = await import('../src/data/weaponDataHelpers.js'));
 } catch (e) {
   console.warn('[테스트] WeaponEvolutionSystem import 실패 — 스킵:', e.message);
   process.exit(0);
@@ -30,6 +30,17 @@ function makeWeaponMaxLevel(id = 'magic_bolt', level = 7) {
   return { id, level, currentCooldown: 0, damage: 10, cooldown: 0.8 };
 }
 
+function makeInjectedWeaponData(baseWeaponId = 'magic_bolt', baseMaxLevel = 7, evolvedWeaponId = 'arcane_nova') {
+  const baseWeapon = getWeaponDataById(baseWeaponId) ?? { id: baseWeaponId, maxLevel: baseMaxLevel };
+  const evolvedWeapon = getWeaponDataById(evolvedWeaponId)
+    ?? { id: evolvedWeaponId, name: evolvedWeaponId, damage: 10, cooldown: 0.5, behaviorId: 'omnidirectional', maxLevel: 7 };
+
+  return [
+    { ...baseWeapon, maxLevel: baseMaxLevel },
+    evolvedWeapon,
+  ];
+}
+
 console.log('\n[WeaponEvolutionSystem 테스트]');
 
 test('기반 무기 maxLevel + 장신구 조건 충족 시 진화 실행', () => {
@@ -39,7 +50,7 @@ test('기반 무기 maxLevel + 장신구 조건 충족 시 진화 실행', () =>
     evolvedWeapons: new Set(),
   });
   const world = makeWorld({ player });
-  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA };
+  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA, weaponData: makeInjectedWeaponData() };
 
   WeaponEvolutionSystem.update({ world, data });
 
@@ -54,7 +65,7 @@ test('기반 무기 레벨 미달 시 진화 미발생', () => {
     evolvedWeapons: new Set(),
   });
   const world = makeWorld({ player });
-  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA };
+  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA, weaponData: makeInjectedWeaponData() };
 
   WeaponEvolutionSystem.update({ world, data });
 
@@ -70,7 +81,7 @@ test('장신구 조건 미충족 시 진화 미발생', () => {
     evolvedWeapons: new Set(),
   });
   const world = makeWorld({ player });
-  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA };
+  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA, weaponData: makeInjectedWeaponData() };
 
   WeaponEvolutionSystem.update({ world, data });
 
@@ -85,7 +96,7 @@ test('이미 진화한 레시피는 중복 실행 안 됨', () => {
     evolvedWeapons: new Set(['evo_test']),  // 이미 진화됨
   });
   const world = makeWorld({ player });
-  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA };
+  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA, weaponData: makeInjectedWeaponData() };
 
   WeaponEvolutionSystem.update({ world, data });
 
@@ -101,7 +112,7 @@ test('진화 성공 시 weaponEvolved 이벤트 발행', () => {
     evolvedWeapons: new Set(),
   });
   const world = makeWorld({ player });
-  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA };
+  const data  = { weaponEvolutionData: MOCK_EVOLUTION_DATA, weaponData: makeInjectedWeaponData() };
 
   WeaponEvolutionSystem.update({ world, data });
 
@@ -140,7 +151,10 @@ test('solar_ray는 요구 장신구 보유 시 helios_lance로 진화한다', ()
     evolvedWeapons: new Set(),
   });
   const world = makeWorld({ player });
-  const data = { weaponEvolutionData: [solarRayRecipe] };
+  const data = {
+    weaponEvolutionData: [solarRayRecipe],
+    weaponData: makeInjectedWeaponData('solar_ray', 7, 'helios_lance'),
+  };
 
   WeaponEvolutionSystem.update({ world, data });
 
@@ -166,6 +180,23 @@ test('주입된 weaponData를 기준으로 진화 maxLevel을 판단한다', () 
   WeaponEvolutionSystem.update({ world, data });
 
   assert.equal(player.weapons.some((weapon) => weapon.id === 'arcane_nova'), true, '주입된 weaponData 기준 maxLevel에서 진화하지 않음');
+});
+
+test('WeaponEvolutionSystem은 주입된 weaponData 없이는 진화 정의를 추론하지 않는다', () => {
+  const player = makePlayer({
+    weapons: [makeWeaponMaxLevel('magic_bolt', 7)],
+    accessories: [{ id: 'tome_of_power' }],
+    evolvedWeapons: new Set(),
+  });
+  const world = makeWorld({ player });
+  const data = {
+    weaponEvolutionData: MOCK_EVOLUTION_DATA,
+  };
+
+  WeaponEvolutionSystem.update({ world, data });
+
+  assert.equal(player.weapons.some((weapon) => weapon.id === 'arcane_nova'), false, 'weaponData 주입 없이 정적 fallback으로 진화하면 안 됨');
+  assert.equal(world.events.weaponEvolved.length, 0, 'weaponData 주입 없이 진화 이벤트가 발행되면 안 됨');
 });
 
 summary();

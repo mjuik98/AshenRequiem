@@ -13,7 +13,6 @@
 import { PlayContext }                  from '../core/PlayContext.js';
 import { createWorld }                  from '../state/createWorld.js';
 import { createPlayer }                 from '../entities/createPlayer.js';
-import { GameDataLoader }               from '../data/GameDataLoader.js';
 import { mountUI }                      from '../ui/dom/mountUI.js';
 import { PlayUI }                       from './play/PlayUI.js';
 import { PlayResultHandler }            from './play/PlayResultHandler.js';
@@ -65,7 +64,7 @@ export class PlayScene {
     this.world.player = createPlayer(0, 0, this.game.session);
     applyRunSessionState(this.world, this.game.session);
 
-    this._gameData = GameDataLoader.clone(this.game.gameData);
+    this._gameData = this.game.gameData;
 
     // CHANGE(Settings): soundEnabled를 session.options에서 읽음
     const opts = normalizeSessionOptions(this.game.session?.options);
@@ -101,6 +100,7 @@ export class PlayScene {
     this._resultHandler = new PlayResultHandler(this.game.session);
     this._levelUpController = createLevelUpController({
       getWorld: () => this.world,
+      getData: () => this._gameData,
       isBlocked: () => this._isSceneChanging,
       showLevelUp: (config) => this._ui.showLevelUp(config),
     });

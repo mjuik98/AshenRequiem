@@ -4,6 +4,10 @@ import { setSelectedStartWeaponAndSave } from '../state/sessionFacade.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { buildTitleLoadoutConfig } from './title/titleLoadout.js';
 import {
+  attemptWindowClose,
+  createTitleStatusController,
+} from './title/titleSceneStatus.js';
+import {
   ensureTitleFonts,
   ensureTitleStyles,
   TITLE_SCREEN_HTML,
@@ -73,22 +77,7 @@ export class TitleScene {
   _bindEvents() {
     const liveEl = this._el.querySelector('#title-live');
     const flashEl = this._el.querySelector('#title-flash');
-
-    const pulseFlash = () => {
-      if (!flashEl) return;
-      flashEl.style.background = 'rgba(255, 242, 216, 0.12)';
-      setTimeout(() => {
-        if (flashEl) {
-          flashEl.style.background = 'rgba(255, 242, 216, 0)';
-        }
-      }, 260);
-    };
-
-    const setMessage = (text) => {
-      if (liveEl) {
-        liveEl.textContent = text;
-      }
-    };
+    const { pulseFlash, setMessage } = createTitleStatusController(liveEl, flashEl);
 
     const startGame = () => {
       pulseFlash();
@@ -98,25 +87,13 @@ export class TitleScene {
 
     const attemptQuit = () => {
       pulseFlash();
-      setMessage('게임을 종료하는 중…');
-
-      const showBlockedMessage = () => {
-        setMessage('브라우저가 종료를 차단했습니다. 탭 또는 창을 직접 닫아주세요.');
-      };
-
-      try {
-        window.close();
-      } catch (error) {
-        console.warn('[TitleScene] 창 종료 시도 실패:', error);
-        showBlockedMessage();
-        return;
-      }
-
-      window.setTimeout(() => {
-        if (!window.closed) {
-          showBlockedMessage();
-        }
-      }, 180);
+      attemptWindowClose({
+        windowRef: window,
+        setMessage,
+        onError: (error) => {
+          console.warn('[TitleScene] 창 종료 시도 실패:', error);
+        },
+      });
     };
 
     this._el.querySelectorAll('[data-action]').forEach((button) => {

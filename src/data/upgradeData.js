@@ -9,9 +9,11 @@
  */
 import {
   accessoryData,
+} from './accessoryData.js';
+import {
   buildAccessoryPickupDesc,
   buildAccessoryUpgradeDesc,
-} from './accessoryData.js';
+} from './accessoryDataHelpers.js';
 
 export const upgradeData = [
   // ── 신규 무기 ────────────────────────────────────────────────────────────────

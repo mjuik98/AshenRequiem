@@ -13,6 +13,7 @@
  *   → PlayContext가 소유하는 EventRegistry 인스턴스에 등록
  *   → dispose() 시 자동 정리
  */
+import { logRuntimeInfo } from '../../utils/runtimeLogger.js';
 
 /**
  * bossPhaseChanged 핸들러를 EventRegistry 인스턴스에 등록한다.
@@ -41,9 +42,10 @@ export function registerBossPhaseHandler(services, registry) {
     // ── 2. 카메라 쉐이크 요청 (CameraSystem이 처리) ────────────────────
     // world.events.shakeRequested?.push({ intensity: 8, duration: 0.4 });
 
-    console.info(
-      `[BossPhaseHandler] ${enemy.enemyDataId ?? enemy.enemyId} 페이즈 ${phaseIndex + 2} 발동 `
-      + `(HP ≤ ${Math.round(hpThreshold * 100)}%)`,
+    logRuntimeInfo(
+      'BossPhaseHandler',
+      `${enemy.enemyDataId ?? enemy.enemyId} 페이즈 ${phaseIndex + 2} 발동 `
+        + `(HP ≤ ${Math.round(hpThreshold * 100)}%)`,
     );
   });
 }

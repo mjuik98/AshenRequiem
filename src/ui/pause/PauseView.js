@@ -6,25 +6,27 @@ import {
 } from './pauseViewSections.js';
 import {
   buildPauseLoadoutItems,
-  getDefaultPauseSelection,
-  normalizePauseSynergyRequirementId,
   renderPauseLoadoutPanel,
 } from './pauseLoadoutContent.js';
 import { renderPauseStats } from './pauseStatsContent.js';
 import {
   PAUSE_AUDIO_DEFAULTS,
-  buildNextPauseOptions,
   renderPauseSoundControls,
 } from './pauseAudioControls.js';
 import {
   buildPauseTooltipBindingEntries,
 } from './pauseTooltipController.js';
+import { bindPauseAudioControls } from './pauseAudioController.js';
 import {
   applyPauseTabState,
   bindPauseLoadoutCards,
-  bindPauseTabs,
   emitPauseOptionsChange,
 } from './pauseViewBindings.js';
+import { bindPauseTooltipEntries } from './pauseTooltipBindings.js';
+import {
+  applyPauseViewShowState,
+  resetPauseViewRuntime,
+} from './pauseViewLifecycle.js';
 import {
   ensurePauseTooltip,
   hidePauseTooltip,
@@ -36,6 +38,14 @@ import {
   PAUSE_VIEW_STYLE_ID,
 } from './pauseStyles.js';
 import { formatWeaponSynergyBonus } from './pauseTooltipContent.js';
+import {
+  formatPauseElapsedTime,
+} from './pauseViewModel.js';
+import { renderPauseViewShell } from './pauseViewShell.js';
+import {
+  bindPauseFooterActions,
+  bindPauseInteractionHandlers,
+} from './pauseViewInteractions.js';
 
 export class PauseView {
   constructor(container) {
@@ -50,6 +60,7 @@ export class PauseView {
     this._onKeyDown = null;
     this._tt = null;
     this._ttHideTimer = null;
+    this._tooltipBinding = null;
     this._data = null;
     this._indexes = null;
     this._player = null;
@@ -74,23 +85,15 @@ export class PauseView {
     world = null,
     session = null,
   }) {
-    clearTimeout(this._ttHideTimer);
-    this._isClosingToMenu = false;
-    this._onResume = onResume;
-    this._onForfeit = onForfeit;
-    this._onOptionsChange = onOptionsChange;
-    this._data = data;
-    this._indexes = this._buildIndexes(data);
-    this._player = player;
-    this._world = world;
-    this._session = session;
-    this._loadoutItems = buildPauseLoadoutItems({ player });
-    this._selectedLoadoutKey = this._resolveSelectedLoadoutKey(this._loadoutItems);
-    this._pauseOptions = {
-      ...PAUSE_AUDIO_DEFAULTS,
-      ...(session?.options ?? {}),
-    };
-    this._activeTabName = 'loadout';
+    applyPauseViewShowState(this, {
+      player,
+      data,
+      onResume,
+      onForfeit,
+      onOptionsChange,
+      world,
+      session,
+    });
 
     this._render(player, world);
     this._bindTooltips(player);
@@ -102,21 +105,13 @@ export class PauseView {
   }
 
   hide() {
-    clearTimeout(this._ttHideTimer);
+    this._tooltipBinding?.dispose();
+    this._tooltipBinding = null;
     this._hideTooltip();
     this._unbindKeyboard();
     this.el.setAttribute('aria-hidden', 'true');
     this.el.style.display = 'none';
-    this._onResume = null;
-    this._onForfeit = null;
-    this._onOptionsChange = null;
-    this._player = null;
-    this._world = null;
-    this._session = null;
-    this._loadoutItems = [];
-    this._pauseOptions = { ...PAUSE_AUDIO_DEFAULTS };
-    this._activeTabName = 'loadout';
-    this._isClosingToMenu = false;
+    resetPauseViewRuntime(this);
   }
 
   isVisible() {
@@ -124,19 +119,12 @@ export class PauseView {
   }
 
   destroy() {
-    clearTimeout(this._ttHideTimer);
+    this._tooltipBinding?.dispose();
+    this._tooltipBinding = null;
     this._unbindKeyboard();
     this._tt?.remove();
     this._tt = null;
-    this._data = null;
-    this._indexes = null;
-    this._player = null;
-    this._world = null;
-    this._session = null;
-    this._loadoutItems = [];
-    this._selectedLoadoutKey = null;
-    this._pauseOptions = { ...PAUSE_AUDIO_DEFAULTS };
-    this._isClosingToMenu = false;
+    resetPauseViewRuntime(this, { clearSelection: true });
     this.el.remove();
   }
 
@@ -156,7 +144,7 @@ export class PauseView {
     const elapsed = world?.elapsedTime ?? null;
     const killCount = world?.killCount ?? null;
     const level = player.level ?? 1;
-    const timeStr = elapsed != null ? formatTime(elapsed) : '--:--';
+    const timeStr = elapsed != null ? formatPauseElapsedTime(elapsed) : '--:--';
     const killStr = killCount != null ? killCount : '—';
     const loadoutPanelHtml = renderPauseLoadoutPanel({
       items: this._loadoutItems,
@@ -172,78 +160,41 @@ export class PauseView {
       formatSynergyBonus: formatWeaponSynergyBonus,
     });
     const soundControlsHtml = renderPauseSoundControls(this._pauseOptions);
-    const forfeitButton = this._onForfeit
-      ? renderActionButton({
-          className: 'pv-btn-forfeit',
-          id: 'pv-forfeit-btn',
-          label: '전투 포기',
-          tone: 'danger',
-          ariaLabel: '전투 포기',
-        })
-      : '';
-    const resumeButton = renderActionButton({
-      className: 'pv-btn-resume',
-      id: 'pv-resume-btn',
-      label: '재개',
-      tone: 'accent',
-      ariaLabel: '게임 재개 (ESC)',
-      leading: '<span class="pv-btn-arrow" aria-hidden="true"></span>',
-      trailing: '<kbd class="pv-kbd">ESC</kbd>',
-      stretch: true,
+    void renderActionButton;
+    void renderPauseHeader;
+    void renderPauseTabNavigation;
+    void renderPauseTabPanels;
+    void buildPauseLoadoutItems;
+    this.el.innerHTML = renderPauseViewShell({
+      activeTabName: this._activeTabName,
+      timeStr,
+      killStr,
+      level,
+      hp,
+      maxHp,
+      hpPct,
+      hpFillClass,
+      hpFillColor,
+      hpPctColor,
+      weaponCount: weapons.length,
+      maxWpnSlots: player.maxWeaponSlots ?? 3,
+      accessoryCount: player.accessories?.length ?? 0,
+      maxAccSlots: player.maxAccessorySlots ?? 3,
+      loadoutPanelHtml,
+      statsHtml,
+      soundControlsHtml,
+      showForfeitButton: Boolean(this._onForfeit),
     });
 
-    this.el.innerHTML = `
-      <div class="pv-backdrop"></div>
-      <div class="pv-panel" role="dialog" aria-label="일시정지 메뉴">
-        ${renderPauseHeader({
-          timeStr,
-          killStr,
-          level,
-          hp,
-          maxHp,
-          hpPct,
-          hpFillClass,
-          hpFillColor,
-          hpPctColor,
-        })}
-        ${renderPauseTabNavigation({
-          activeTabName: this._activeTabName,
-          weaponCount: weapons.length,
-          maxWpnSlots: player.maxWeaponSlots ?? 3,
-          accessoryCount: player.accessories?.length ?? 0,
-          maxAccSlots: player.maxAccessorySlots ?? 3,
-        })}
-        ${renderPauseTabPanels({
-          activeTabName: this._activeTabName,
-          loadoutPanelHtml,
-          statsHtml,
-          soundControlsHtml,
-        })}
-        <footer class="pv-footer">
-          ${forfeitButton}
-          ${resumeButton}
-        </footer>
-      </div>
-    `;
-
-    const resumeBtn = this.el.querySelector('#pv-resume-btn');
-    resumeBtn?.addEventListener('click', () => {
-      if (this._isClosingToMenu) return;
-      this._onResume?.();
+    bindPauseFooterActions(this.el, {
+      onResume: this._onResume,
+      onForfeit: this._onForfeit,
+      isClosingToMenu: () => this._isClosingToMenu,
     });
-
-    const forfeitBtn = this.el.querySelector('#pv-forfeit-btn');
-    forfeitBtn?.addEventListener('click', () => {
-      if (this._isClosingToMenu) return;
-      this._onForfeit?.();
+    bindPauseInteractionHandlers(this.el, {
+      onActivateTabName: (name) => this._activateTab(name),
+      onSelectLoadoutKey: (key) => this._selectLoadoutItem(key),
     });
-
-    this._bindTabs();
-    this._bindLoadoutSelection();
-  }
-
-  _bindTabs() {
-    bindPauseTabs(this.el, (name) => this._activateTab(name));
   }
 
   _bindLoadoutSelection() {
@@ -254,21 +205,6 @@ export class PauseView {
     if (!selectedLoadoutKey || this._selectedLoadoutKey === selectedLoadoutKey) return;
     this._selectedLoadoutKey = selectedLoadoutKey;
     this._renderLoadoutPanel();
-  }
-
-  _resolveSelectedLoadoutKey(items) {
-    if (!Array.isArray(items) || items.length === 0) return null;
-    if (this._selectedLoadoutKey) {
-      const current = items.find((item) => item.selectionKey === this._selectedLoadoutKey);
-      if (current) return current.selectionKey;
-    }
-
-    return (
-      items.find((item) => item.kind === 'weapon' || item.kind === 'accessory')?.selectionKey
-      ?? getDefaultPauseSelection({ player: this._player })?.selectionKey
-      ?? items[0]?.selectionKey
-      ?? null
-    );
   }
 
   _renderLoadoutPanel() {
@@ -293,34 +229,9 @@ export class PauseView {
   }
 
   _bindAudioControls() {
-    this.el.querySelectorAll('.pv-audio-slider').forEach((input) => {
-      input.addEventListener('input', (event) => {
-        const key = event.currentTarget.dataset.soundKey;
-        const value = Number(event.currentTarget.value);
-        this._pauseOptions = buildNextPauseOptions(this._pauseOptions, {
-          type: 'slider',
-          key,
-          value,
-        });
-        const valueEl = this.el.querySelector(`#pv-sound-value-${key}`);
-        if (valueEl) valueEl.textContent = String(value);
-        this._emitOptionsChange();
-      });
-    });
-
-    this.el.querySelectorAll('.pv-sound-toggle').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        const key = event.currentTarget.dataset.toggleKey;
-        this._pauseOptions = buildNextPauseOptions(this._pauseOptions, {
-          type: 'toggle',
-          key,
-        });
-        event.currentTarget.classList.toggle('active', this._pauseOptions[key]);
-        event.currentTarget.setAttribute('aria-pressed', String(this._pauseOptions[key]));
-        const pill = event.currentTarget.querySelector('.pv-sound-toggle-pill');
-        if (pill) pill.textContent = this._pauseOptions[key] ? 'ON' : 'OFF';
-        this._emitOptionsChange();
-      });
+    bindPauseAudioControls(this.el, () => this._pauseOptions, (nextOptions) => {
+      this._pauseOptions = nextOptions;
+      this._emitOptionsChange();
     });
   }
 
@@ -328,63 +239,23 @@ export class PauseView {
     emitPauseOptionsChange(this._onOptionsChange, this._pauseOptions);
   }
 
-  _buildIndexes(data) {
-    const weaponById = new Map((data?.weaponData ?? []).map((weapon) => [weapon?.id, weapon]));
-    const accessoryById = new Map((data?.accessoryData ?? []).map((accessory) => [accessory?.id, accessory]));
-    const synergiesByWeaponId = new Map();
-    const synergiesByAccessoryId = new Map();
-
-    for (const synergy of data?.synergyData ?? []) {
-      for (const requirement of synergy?.requires ?? []) {
-        const id = normalizePauseSynergyRequirementId(requirement);
-        if (!id) continue;
-
-        if (weaponById.has(id)) {
-          const list = synergiesByWeaponId.get(id) ?? [];
-          list.push(synergy);
-          synergiesByWeaponId.set(id, list);
-        }
-
-        if (accessoryById.has(id)) {
-          const list = synergiesByAccessoryId.get(id) ?? [];
-          list.push(synergy);
-          synergiesByAccessoryId.set(id, list);
-        }
-      }
-    }
-
-    return { weaponById, accessoryById, synergiesByWeaponId, synergiesByAccessoryId };
-  }
-
   _bindTooltips(player) {
-    this._tt = ensurePauseTooltip(this._tt, document);
-
-    const showTip = (element, buildContent, event) => {
-      clearTimeout(this._ttHideTimer);
-      showPauseTooltip({
-        tooltip: this._tt,
-        element,
-        buildContent,
-        event,
-      });
-    };
-    const hideTip = () => {
-      this._ttHideTimer = setTimeout(() => this._hideTooltip(), 80);
-    };
-
-    buildPauseTooltipBindingEntries({
-      player,
-      data: this._data,
-      indexes: this._indexes,
-    }).forEach(({ selector, buildContent }) => {
-      this.el.querySelectorAll(selector).forEach((element) => {
-        element.addEventListener('mouseenter', (event) => showTip(element, buildContent, event));
-        element.addEventListener('mousemove', (event) => this._positionTooltip(event));
-        element.addEventListener('mouseleave', hideTip);
-        element.addEventListener('focusin', (event) => showTip(element, buildContent, event));
-        element.addEventListener('focusout', hideTip);
-      });
+    this._tooltipBinding?.dispose();
+    this._tooltipBinding = bindPauseTooltipEntries({
+      root: this.el,
+      tooltip: this._tt,
+      entries: buildPauseTooltipBindingEntries({
+        player,
+        data: this._data,
+        indexes: this._indexes,
+      }),
+      ensureTooltip: (tooltip, documentRef) => ensurePauseTooltip(tooltip, documentRef),
+      showTooltip: showPauseTooltip,
+      hideTooltip: (tooltip) => hidePauseTooltip(tooltip),
+      positionTooltip: (tooltip, event) => positionPauseTooltip(tooltip, event, window),
+      documentRef: document,
     });
+    this._tt = this._tooltipBinding.tooltip;
   }
 
   _hideTooltip() {
@@ -416,10 +287,4 @@ export class PauseView {
     style.textContent = PAUSE_VIEW_CSS;
     document.head.appendChild(style);
   }
-}
-
-function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const secs = String(Math.floor(seconds % 60)).padStart(2, '0');
-  return `${minutes}:${secs}`;
 }

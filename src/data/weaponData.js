@@ -242,8 +242,3 @@ export const weaponData = [
     isEvolved: true,
   },
 ];
-
-/** id로 무기 데이터 조회 */
-export function getWeaponDataById(id) {
-  return weaponData.find(w => w.id === id) ?? null;
-}

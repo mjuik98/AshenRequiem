@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { createRunner } from './helpers/testRunner.js';
 
 console.log('\n[TypecheckScripts]');
@@ -25,6 +26,23 @@ test('scoped typecheck config exists and enables checkJs without emitting', () =
   assert.equal(tsconfig.compilerOptions?.noEmit, true, 'noEmit이 활성화되지 않음');
   assert.equal(Array.isArray(tsconfig.include), true, 'include 배열이 필요함');
   assert.equal(tsconfig.include.length > 0, true, 'typecheck 대상 include가 비어 있음');
+});
+
+test('scoped typecheck baseline passes on the current source tree', () => {
+  const result = spawnSync(
+    process.execPath,
+    ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.typecheck.json', '--pretty', 'false'],
+    {
+      cwd: new URL('..', import.meta.url),
+      encoding: 'utf8',
+    },
+  );
+
+  assert.equal(
+    result.status,
+    0,
+    `typecheck failed:\n${result.stdout}${result.stderr}`,
+  );
 });
 
 summary();

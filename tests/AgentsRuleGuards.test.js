@@ -71,6 +71,8 @@ test('production source files do not directly assign world.playMode outside Play
 
 test('SynergySystem does not directly import synergyData and post-event systems do not read world.events', () => {
   const synergySystemSource = readFileSync(new URL('../src/systems/progression/SynergySystem.js', import.meta.url), 'utf8');
+  const weaponEvolutionSystemSource = readFileSync(new URL('../src/systems/progression/WeaponEvolutionSystem.js', import.meta.url), 'utf8');
+  const upgradeSystemSource = readFileSync(new URL('../src/systems/progression/UpgradeSystem.js', import.meta.url), 'utf8');
   const postEventFiles = [
     '../src/systems/spawn/EffectTickSystem.js',
     '../src/systems/spawn/FlushSystem.js',
@@ -80,6 +82,12 @@ test('SynergySystem does not directly import synergyData and post-event systems 
   ];
 
   assert.equal(/import\s+\{\s*synergyData\s*\}/.test(synergySystemSource), false, 'SynergySystem에 synergyData 직접 import가 남아 있음');
+  assert.equal(/import\s+\{\s*getWeaponDataById\s*\}/.test(weaponEvolutionSystemSource), false, 'WeaponEvolutionSystem에 weaponData 직접 import fallback이 남아 있음');
+  assert.equal(/import\s+\{\s*upgradeData\s*\}/.test(upgradeSystemSource), false, 'UpgradeSystem에 upgradeData 직접 import fallback이 남아 있음');
+  assert.equal(/import\s+\{\s*getWeaponDataById\s*\}/.test(upgradeSystemSource), false, 'UpgradeSystem에 weaponData 직접 import fallback이 남아 있음');
+  assert.equal(/import\s+\{\s*getAccessoryById\s*\}/.test(upgradeSystemSource), false, 'UpgradeSystem에 accessoryData 직접 import fallback이 남아 있음');
+  assert.equal(/import\s+\{[^}]*weaponProgressionData[^}]*\}/.test(upgradeSystemSource), false, 'UpgradeSystem에 weaponProgressionData 직접 import fallback이 남아 있음');
+  assert.equal(/import\s+\{[^}]*getNextWeaponProgression[^}]*\}/.test(upgradeSystemSource), false, 'UpgradeSystem에 getNextWeaponProgression 직접 import fallback이 남아 있음');
 
   postEventFiles.forEach((ref) => {
     const source = readFileSync(new URL(ref, import.meta.url), 'utf8');

@@ -12,7 +12,7 @@
  *   - projectileLifetimeMult : 투사체 지속시간 배율 (1.0 = 기본, 높을수록 오래 유지)
  */
 import { PLAYER_DEFAULTS }         from '../data/constants.js';
-import { getWeaponDataById }       from '../data/weaponData.js';
+import { getWeaponDataById }       from '../data/weaponDataHelpers.js';
 import { generateId }              from '../utils/ids.js';
 import { createSynergyState }      from '../state/createSynergyState.js';
 import { applyPermanentUpgrades }  from '../data/permanentUpgradeData.js';
