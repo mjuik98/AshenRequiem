@@ -74,7 +74,12 @@ await test('setSelectedStartWeaponAndSave()는 시작 무기를 기록하고 저
   const storage = makeMemoryStorage();
   setSessionStorage(storage);
 
-  const session = makeSessionState();
+  const session = makeSessionState({
+    meta: {
+      unlockedWeapons: ['magic_bolt', 'boomerang'],
+      selectedStartWeaponId: 'magic_bolt',
+    },
+  });
   setSelectedStartWeaponAndSave(session, 'boomerang');
 
   assert.equal(session.meta.selectedStartWeaponId, 'boomerang');

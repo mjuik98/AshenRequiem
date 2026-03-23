@@ -24,6 +24,10 @@ export const UpgradeApplySystem = {
       world.events.weaponAcquired?.push({ weaponId: pendingUpgrade.weaponId });
     }
 
+    if (pendingUpgrade.type === 'accessory') {
+      world.events.accessoryAcquired?.push({ accessoryId: pendingUpgrade.accessoryId });
+    }
+
     if (pendingUpgrade.type === 'stat' && pendingUpgrade.effect?.stat === 'currency') {
       world.events.currencyEarned?.push({ amount: pendingUpgrade.effect.value ?? 0 });
     }

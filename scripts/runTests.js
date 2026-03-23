@@ -24,6 +24,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT      = resolve(__dirname, '..');
 const TEST_DIR  = join(ROOT, 'tests');
+const argv = process.argv.slice(2);
+const matchIndex = argv.indexOf('--match');
+const TEST_MATCH = (matchIndex !== -1 ? argv[matchIndex + 1] : process.env.TEST_MATCH ?? '')?.trim();
 
 // P2-② 추가: 테스트 파일당 최대 실행 시간 (ms)
 const TEST_TIMEOUT_MS = 10_000;
@@ -33,6 +36,7 @@ let testFiles;
 try {
   testFiles = readdirSync(TEST_DIR)
     .filter(f => f.endsWith('.test.js'))
+    .filter((fileName) => !TEST_MATCH || fileName.includes(TEST_MATCH))
     .sort()
     .map(f => join(TEST_DIR, f));
 } catch {
@@ -47,6 +51,9 @@ if (testFiles.length === 0) {
 
 console.log(`\n${'='.repeat(52)}`);
 console.log(` 테스트 실행 — ${testFiles.length}개 파일  (timeout: ${TEST_TIMEOUT_MS / 1000}s)`);
+if (TEST_MATCH) {
+  console.log(` 필터: ${TEST_MATCH}`);
+}
 console.log(`${'='.repeat(52)}\n`);
 
 let passed  = 0;

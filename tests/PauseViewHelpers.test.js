@@ -1,128 +1,158 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
-import { renderPauseStats } from '../src/ui/pause/pauseStatsContent.js';
-import {
-  PAUSE_AUDIO_DEFAULTS,
-  buildNextPauseOptions,
-  renderPauseSoundControls,
-} from '../src/ui/pause/pauseAudioControls.js';
-import {
-  PAUSE_TOOLTIP_SELECTORS,
-  buildPauseTooltipBindingEntries,
-  computePauseTooltipPosition,
-} from '../src/ui/pause/pauseTooltipController.js';
-import {
-  PAUSE_VIEW_CSS,
-  PAUSE_VIEW_STYLE_ID,
-} from '../src/ui/pause/pauseStyles.js';
-
-const { test, summary } = createRunner('PauseViewHelpers');
 
 console.log('\n[PauseViewHelpers]');
 
-test('pause stats renderer는 전투 스탯과 활성 시너지 요약을 만든다', () => {
-  const html = renderPauseStats({
-    player: {
-      moveSpeed: 240,
-      magnetRadius: 80,
-      lifesteal: 0.1,
-      critChance: 0.15,
-      critMultiplier: 2.5,
-      xpMult: 1.2,
-      globalDamageMult: 1.3,
-      currencyMult: 1.5,
-      projectileSizeMult: 1.4,
-      projectileLifetimeMult: 1.1,
-      cooldownMult: 0.8,
-      bonusProjectileCount: 2,
-    },
-    activeSynergies: [
-      {
-        id: 'storm_chain',
-        name: '폭풍 연쇄',
-        description: '연쇄 피해가 확장됩니다.',
-        bonus: { speedMult: 1.25 },
-      },
-    ],
-    session: {
-      meta: { currency: 1234 },
-    },
-  });
+const { test, summary } = createRunner('PauseViewHelpers');
 
-  assert.equal(html.includes('전투 스탯'), true);
-  assert.equal(html.includes('투사체 크기/범위'), true);
-  assert.equal(html.includes('추가 투사체'), true);
-  assert.equal(html.includes('활성 시너지'), true);
-  assert.equal(html.includes('폭풍 연쇄'), true);
-  assert.equal(html.includes('속도 ×1.25'), true);
-  assert.equal(html.includes('1,234'), true);
-});
+let pauseViewBindings = null;
+let pauseViewTooltip = null;
 
-test('pause audio helpers는 컨트롤 마크업과 옵션 변경을 순수 함수로 제공한다', () => {
-  const html = renderPauseSoundControls(PAUSE_AUDIO_DEFAULTS);
-  assert.equal(html.includes('마스터 볼륨'), true);
-  assert.equal(html.includes('배경음악 (BGM)'), true);
-  assert.equal(html.includes('효과음 (SFX)'), true);
-  assert.equal(html.includes('data-sound-key="masterVolume"'), true);
-  assert.equal(html.includes('data-toggle-key="musicEnabled"'), true);
+try {
+  pauseViewBindings = await import('../src/ui/pause/pauseViewBindings.js');
+} catch (error) {
+  pauseViewBindings = { error };
+}
 
-  const toggled = buildNextPauseOptions(PAUSE_AUDIO_DEFAULTS, {
-    type: 'toggle',
-    key: 'musicEnabled',
-  });
-  assert.equal(toggled.musicEnabled, !PAUSE_AUDIO_DEFAULTS.musicEnabled);
+try {
+  pauseViewTooltip = await import('../src/ui/pause/pauseViewTooltip.js');
+} catch (error) {
+  pauseViewTooltip = { error };
+}
 
-  const adjusted = buildNextPauseOptions(PAUSE_AUDIO_DEFAULTS, {
-    type: 'slider',
-    key: 'masterVolume',
-    value: 77,
-  });
-  assert.equal(adjusted.masterVolume, 77);
-});
-
-test('pause tooltip helpers는 슬롯 셀렉터와 viewport clamp 좌표를 제공한다', () => {
-  const entries = buildPauseTooltipBindingEntries({
-    player: {
-      weapons: [{ id: 'magic_bolt', name: 'Magic Bolt', level: 1 }],
-      accessories: [{ id: 'iron_heart', name: 'Iron Heart', level: 1 }],
-    },
-    data: { weaponEvolutionData: [] },
-    indexes: {
-      weaponById: new Map(),
-      accessoryById: new Map(),
-    },
-  });
-
-  assert.deepEqual(
-    entries.map((entry) => entry.selector),
-    [PAUSE_TOOLTIP_SELECTORS.weapon, PAUSE_TOOLTIP_SELECTORS.accessory],
+function getBindingsApi() {
+  assert.ok(
+    !pauseViewBindings.error,
+    pauseViewBindings.error?.message ?? 'src/ui/pause/pauseViewBindings.js가 아직 없음',
   );
+  return pauseViewBindings;
+}
 
-  const position = computePauseTooltipPosition({
-    event: {
-      clientX: 490,
-      clientY: 290,
-      target: {
-        getBoundingClientRect: () => ({ right: 490, top: 250, height: 24 }),
-      },
+function getTooltipApi() {
+  assert.ok(
+    !pauseViewTooltip.error,
+    pauseViewTooltip.error?.message ?? 'src/ui/pause/pauseViewTooltip.js가 아직 없음',
+  );
+  return pauseViewTooltip;
+}
+
+function makeFakeClassList(initial = []) {
+  const values = new Set(initial);
+  return {
+    toggle(name, active) {
+      if (active) values.add(name);
+      else values.delete(name);
     },
-    tooltipWidth: 120,
-    tooltipHeight: 80,
-    viewportWidth: 500,
-    viewportHeight: 300,
-  });
+    contains(name) {
+      return values.has(name);
+    },
+  };
+}
 
-  assert.deepEqual(position, { x: 356, y: 212 });
+function makeFakeTab(name) {
+  return {
+    dataset: { tabName: name },
+    classList: makeFakeClassList(name === 'loadout' ? ['active'] : []),
+    attributes: new Map(),
+    tabIndex: 0,
+    setAttribute(key, value) {
+      this.attributes.set(key, value);
+    },
+    getAttribute(key) {
+      return this.attributes.get(key);
+    },
+  };
+}
+
+function makeFakePanel(id) {
+  return {
+    id,
+    classList: makeFakeClassList(id === 'pv-tab-loadout' ? ['active'] : []),
+  };
+}
+
+test('pause helper modules expose tab, option, and tooltip helpers', () => {
+  const bindingsApi = getBindingsApi();
+  const tooltipApi = getTooltipApi();
+
+  assert.equal(typeof bindingsApi.applyPauseTabState, 'function', 'applyPauseTabState가 없음');
+  assert.equal(typeof bindingsApi.emitPauseOptionsChange, 'function', 'emitPauseOptionsChange가 없음');
+  assert.equal(typeof tooltipApi.positionPauseTooltip, 'function', 'positionPauseTooltip가 없음');
+  assert.equal(typeof tooltipApi.hidePauseTooltip, 'function', 'hidePauseTooltip가 없음');
 });
 
-test('pause view styles는 별도 모듈에서 관리되고 레거시 tooltip row 스타일을 제거한다', () => {
-  assert.equal(PAUSE_VIEW_STYLE_ID, 'pauseview-v3-styles');
-  assert.equal(PAUSE_VIEW_CSS.includes('.pv-loadout-panel'), true);
-  assert.equal(PAUSE_VIEW_CSS.includes('.pv-slot-card.selected'), true);
-  assert.equal(PAUSE_VIEW_CSS.includes('@media (max-width: 780px)'), true);
-  assert.equal(PAUSE_VIEW_CSS.includes('.pvt-row'), false);
-  assert.equal(PAUSE_VIEW_CSS.includes('.pvt-synergy'), false);
-  assert.equal(PAUSE_VIEW_CSS.includes('.pvt-evo'), false);
+test('applyPauseTabState는 active 탭과 panel 상태를 동기화한다', () => {
+  const { applyPauseTabState } = getBindingsApi();
+  const loadoutTab = makeFakeTab('loadout');
+  const soundTab = makeFakeTab('sound');
+  const loadoutPanel = makeFakePanel('pv-tab-loadout');
+  const soundPanel = makeFakePanel('pv-tab-sound');
+  const root = {
+    querySelectorAll(selector) {
+      if (selector === '.pv-tab') return [loadoutTab, soundTab];
+      if (selector === '.pv-tab-content') return [loadoutPanel, soundPanel];
+      return [];
+    },
+  };
+
+  applyPauseTabState(root, 'sound');
+
+  assert.equal(loadoutTab.classList.contains('active'), false, '기존 탭 active 상태가 해제되지 않음');
+  assert.equal(soundTab.classList.contains('active'), true, '대상 탭이 active 되지 않음');
+  assert.equal(loadoutTab.getAttribute('aria-selected'), 'false');
+  assert.equal(soundTab.getAttribute('aria-selected'), 'true');
+  assert.equal(loadoutTab.tabIndex, -1);
+  assert.equal(soundTab.tabIndex, 0);
+  assert.equal(loadoutPanel.classList.contains('active'), false, '기존 패널 active 상태가 해제되지 않음');
+  assert.equal(soundPanel.classList.contains('active'), true, '대상 패널이 active 되지 않음');
+});
+
+test('emitPauseOptionsChange는 콜백에 복제된 옵션 payload를 전달한다', () => {
+  const { emitPauseOptionsChange } = getBindingsApi();
+  const options = { soundEnabled: true, masterVolume: 70 };
+  let received = null;
+
+  emitPauseOptionsChange((payload) => {
+    received = payload;
+  }, options);
+
+  assert.deepEqual(received, options);
+  assert.notEqual(received, options, 'options payload를 그대로 재사용하면 외부 mutate 위험이 남음');
+});
+
+test('positionPauseTooltip는 viewport 안쪽으로 left/top 스타일을 갱신한다', () => {
+  const { positionPauseTooltip, hidePauseTooltip } = getTooltipApi();
+  const tooltip = {
+    offsetWidth: 180,
+    offsetHeight: 90,
+    style: {
+      display: 'block',
+      left: '0px',
+      top: '0px',
+    },
+  };
+
+  positionPauseTooltip(tooltip, {
+    clientX: 380,
+    clientY: 160,
+    target: {
+      getBoundingClientRect() {
+        return { right: 380, top: 140, height: 24 };
+      },
+    },
+  }, {
+    innerWidth: 420,
+    innerHeight: 240,
+  });
+
+  assert.equal(typeof tooltip.style.left, 'string');
+  assert.equal(typeof tooltip.style.top, 'string');
+  assert.equal(Number.parseFloat(tooltip.style.left) <= 232, true, 'tooltip이 viewport 밖으로 밀려남');
+  assert.equal(Number.parseFloat(tooltip.style.top) >= 8, true, 'tooltip top clamp가 적용되지 않음');
+
+  hidePauseTooltip(tooltip);
+  assert.equal(tooltip.style.display, 'none');
+  assert.equal(tooltip.innerHTML, '');
 });
 
 summary();

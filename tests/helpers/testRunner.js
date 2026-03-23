@@ -28,20 +28,42 @@
 export function createRunner(label = '최종 결과') {
   let _passed = 0;
   let _failed = 0;
+  const _pending = new Set();
 
   function test(name, fn) {
     try {
-      fn();
+      const result = fn();
+      if (result && typeof result.then === 'function') {
+        let pending = null;
+        pending = result.then(() => {
+          console.log(`  ✓ ${name}`);
+          _passed++;
+        }).catch((e) => {
+          console.error(`  ✗ ${name}`);
+          console.error(`    [ERROR] ${e.message}`);
+          _failed++;
+        }).finally(() => {
+          _pending.delete(pending);
+        });
+        _pending.add(pending);
+        return pending;
+      }
+
       console.log(`  ✓ ${name}`);
       _passed++;
+      return Promise.resolve();
     } catch (e) {
       console.error(`  ✗ ${name}`);
       console.error(`    [ERROR] ${e.message}`);
       _failed++;
+      return Promise.resolve();
     }
   }
 
   function summary() {
+    if (_pending.size > 0) {
+      return Promise.allSettled([..._pending]).then(() => summary());
+    }
     console.log(`\n${label}: ${_passed}개 통과, ${_failed}개 실패`);
     if (_failed > 0) process.exit(1);
   }
@@ -49,6 +71,7 @@ export function createRunner(label = '최종 결과') {
   function resetCounts() {
     _passed = 0;
     _failed = 0;
+    _pending.clear();
   }
 
   return { test, summary, resetCounts };

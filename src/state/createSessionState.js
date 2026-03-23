@@ -27,6 +27,7 @@ export {
  *   enemiesEncountered: string[],
  *   killedBosses: string[],
  *   weaponsUsedAll: string[],
+ *   accessoriesOwnedAll: string[],
  *   evolvedWeapons: string[],
  *   totalRuns: number,
  *   unlockedWeapons: string[],

@@ -16,6 +16,7 @@
  *   session.meta.enemiesEncountered: string[]                — 발견한 적 ID 목록
  *   session.meta.killedBosses      : string[]                — 처치한 보스 ID 목록
  *   session.meta.weaponsUsedAll    : string[]                — 한 번이라도 사용한 무기 ID 목록
+ *   session.meta.accessoriesOwnedAll: string[]               — 한 번이라도 획득한 장신구 ID 목록
  *   session.meta.evolvedWeapons    : string[]                — 진화시킨 무기 ID 목록
  *   session.meta.totalRuns         : number                  — 총 런 수
  *

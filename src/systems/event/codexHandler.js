@@ -62,6 +62,11 @@ export function registerCodexHandlers(session, registry) {
       if (!event.weaponId) return;
       recordWeaponAcquired(session, event.weaponId);
   });
+
+  registry.register('accessoryAcquired', (event) => {
+    if (!event.accessoryId) return;
+    recordAccessoryAcquired(session, event.accessoryId);
+  });
 }
 
 /**
@@ -80,6 +85,14 @@ export function recordWeaponAcquired(session, weaponId) {
   ensureCodexMeta(session);
   if (!session.meta.weaponsUsedAll.includes(weaponId)) {
     session.meta.weaponsUsedAll.push(weaponId);
+  }
+}
+
+export function recordAccessoryAcquired(session, accessoryId) {
+  if (!session || !accessoryId) return;
+  ensureCodexMeta(session);
+  if (!session.meta.accessoriesOwnedAll.includes(accessoryId)) {
+    session.meta.accessoriesOwnedAll.push(accessoryId);
   }
 }
 

@@ -100,6 +100,7 @@ export function makeEvents(overrides = {}) {
     currencyEarned:   [],  // FIX(BUG-4 지원): currencyEarned 큐 추가
     weaponEvolved:    [],
     weaponAcquired:   [],
+    accessoryAcquired: [],
     ...overrides,
   };
 }
@@ -184,6 +185,7 @@ export function makeSessionState(overrides = {}) {
       enemiesEncountered: [],
       killedBosses: [],
       weaponsUsedAll: [],
+      accessoriesOwnedAll: [],
       evolvedWeapons: [],
       totalRuns: 0,
       unlockedWeapons: ['magic_bolt'],

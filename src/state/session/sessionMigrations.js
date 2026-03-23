@@ -62,6 +62,9 @@ export function normalizeSessionState(state) {
       unlockedAccessories: Array.isArray(state?.meta?.unlockedAccessories)
         ? [...state.meta.unlockedAccessories]
         : [...defaults.meta.unlockedAccessories],
+      accessoriesOwnedAll: Array.isArray(state?.meta?.accessoriesOwnedAll)
+        ? [...state.meta.accessoriesOwnedAll]
+        : [...defaults.meta.accessoriesOwnedAll],
       completedUnlocks: Array.isArray(state?.meta?.completedUnlocks)
         ? [...state.meta.completedUnlocks]
         : [...defaults.meta.completedUnlocks],
@@ -151,6 +154,7 @@ export function migrateSessionState(raw) {
             enemiesEncountered: s.meta?.enemiesEncountered ?? [],
             killedBosses: s.meta?.killedBosses ?? [],
             weaponsUsedAll: s.meta?.weaponsUsedAll ?? [],
+            accessoriesOwnedAll: s.meta?.accessoriesOwnedAll ?? [],
             evolvedWeapons: s.meta?.evolvedWeapons ?? [],
             totalRuns: s.meta?.totalRuns ?? 0,
           },

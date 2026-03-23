@@ -84,8 +84,32 @@ async function runCommand(command, args, options = {}) {
   }
 }
 
-async function stopChildProcess(child) {
+export function waitForChildExit(child, timeoutMs = 5000) {
+  if (!child) {
+    return Promise.resolve(null);
+  }
+  return Promise.race([
+    once(child, 'close').then(([code]) => code),
+    new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ]);
+}
+
+function pipeChildOutput(child) {
+  child.stdout?.on('data', (chunk) => process.stdout.write(String(chunk)));
+  child.stderr?.on('data', (chunk) => process.stderr.write(String(chunk)));
+}
+
+function closeChildStreams(child) {
+  child.stdout?.destroy?.();
+  child.stderr?.destroy?.();
+}
+
+export async function stopChildProcess(child) {
   if (!child?.pid) return;
+  if (child.exitCode !== null || child.signalCode !== null) {
+    closeChildStreams(child);
+    return;
+  }
 
   if (process.platform === 'win32') {
     const killer = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], {
@@ -93,15 +117,30 @@ async function stopChildProcess(child) {
       shell: false,
       env: process.env,
     });
-    await once(killer, 'close').catch(() => {});
+    const killerCode = await waitForChildExit(killer, 2000).catch(() => null);
+    if (killerCode === null && killer.exitCode === null) {
+      killer.kill('SIGKILL');
+      await waitForChildExit(killer, 1000).catch(() => {});
+    }
+    const closed = await waitForChildExit(child).catch(() => null);
+    if (closed === null && child.exitCode === null) {
+      child.kill('SIGKILL');
+      await waitForChildExit(child, 1000).catch(() => {});
+    }
+    closeChildStreams(child);
     return;
   }
 
   child.kill('SIGTERM');
-  await once(child, 'close').catch(() => {});
+  const closed = await waitForChildExit(child);
+  if (closed === null && child.exitCode === null) {
+    child.kill('SIGKILL');
+    await waitForChildExit(child, 1000).catch(() => {});
+  }
+  closeChildStreams(child);
 }
 
-async function waitForServer(url, timeoutMs = 15000) {
+export async function waitForServer(url, timeoutMs = 15000) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt <= timeoutMs) {
@@ -116,6 +155,11 @@ async function waitForServer(url, timeoutMs = 15000) {
   }
 
   throw new Error(`Timed out waiting for preview server: ${url}`);
+}
+
+async function waitForPreviewReady(preview, url, timeoutMs = 15000) {
+  pipeChildOutput(preview);
+  await waitForServer(url, timeoutMs);
 }
 
 async function canListen(port, host) {
@@ -166,10 +210,12 @@ export async function runSmokeAgainstPreview(options = {}) {
     host,
     '--port',
     String(port),
-  ]);
+  ], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 
   try {
-    await waitForServer(url);
+    await waitForPreviewReady(preview, url);
     await runCommand(process.execPath, smokeArgs, { shell: false });
   } finally {
     await stopChildProcess(preview);

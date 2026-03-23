@@ -14,6 +14,7 @@ export function createDefaultSessionMeta() {
     enemiesEncountered:    [],
     killedBosses:          [],
     weaponsUsedAll:        [],
+    accessoriesOwnedAll:   [],
     evolvedWeapons:        [],
     totalRuns:             0,
     unlockedWeapons:       ['magic_bolt'],
@@ -39,6 +40,9 @@ export function ensureCodexMeta(session) {
   meta.weaponsUsedAll = Array.isArray(meta.weaponsUsedAll)
     ? [...meta.weaponsUsedAll]
     : [...defaults.weaponsUsedAll];
+  meta.accessoriesOwnedAll = Array.isArray(meta.accessoriesOwnedAll)
+    ? [...meta.accessoriesOwnedAll]
+    : [...defaults.accessoriesOwnedAll];
   meta.evolvedWeapons = Array.isArray(meta.evolvedWeapons)
     ? [...meta.evolvedWeapons]
     : [...defaults.evolvedWeapons];
@@ -52,9 +56,13 @@ export function ensureCodexMeta(session) {
   meta.completedUnlocks = Array.isArray(meta.completedUnlocks)
     ? [...meta.completedUnlocks]
     : [...defaults.completedUnlocks];
+  if (!Array.isArray(meta.unlockedWeapons) || meta.unlockedWeapons.length === 0) {
+    meta.unlockedWeapons = [...defaults.unlockedWeapons];
+  }
   meta.selectedStartWeaponId = typeof meta.selectedStartWeaponId === 'string'
+    && meta.unlockedWeapons.includes(meta.selectedStartWeaponId)
     ? meta.selectedStartWeaponId
-    : defaults.selectedStartWeaponId;
+    : meta.unlockedWeapons[0] ?? defaults.selectedStartWeaponId;
 
   return meta;
 }

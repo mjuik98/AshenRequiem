@@ -5,6 +5,40 @@ import { SCENARIOS, getScenarioIds, OUTPUT_ROOT } from './scenarios.js';
 
 const OUTPUT_PATH_PREFIX = 'output/web-game/';
 const PWCLI = resolvePwcliPath();
+const SMOKE_SESSION_PREFIX = 'ashen-smoke-';
+
+function resolveWindowsPlaywrightCliPath() {
+  const explicit = process.env.PLAYWRIGHT_CLI_JS ?? process.env.PWCLI_JS;
+  if (explicit && fs.existsSync(explicit)) {
+    return explicit;
+  }
+
+  const localAppData = process.env.LOCALAPPDATA?.replaceAll('\\', '/');
+  if (!localAppData) {
+    throw new Error('LOCALAPPDATA is required to resolve @playwright/cli cache path on Windows.');
+  }
+
+  const npxRoot = `${localAppData}/npm-cache/_npx`;
+  const candidateDirs = fs.existsSync(npxRoot)
+    ? fs.readdirSync(npxRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => `${npxRoot}/${entry.name}`)
+    : [];
+
+  const cliCandidates = candidateDirs
+    .map((dirPath) => ({
+      scriptPath: `${dirPath}/node_modules/@playwright/cli/playwright-cli.js`,
+      mtimeMs: fs.existsSync(dirPath) ? fs.statSync(dirPath).mtimeMs : 0,
+    }))
+    .filter((entry) => fs.existsSync(entry.scriptPath))
+    .sort((left, right) => right.mtimeMs - left.mtimeMs);
+
+  if (cliCandidates.length > 0) {
+    return cliCandidates[0].scriptPath;
+  }
+
+  throw new Error('Unable to locate cached @playwright/cli script on Windows.');
+}
 
 function withDebugRuntime(url) {
   const nextUrl = new URL(url);
@@ -71,16 +105,10 @@ function runCli(args) {
 
 function buildPlaywrightInvocation(args) {
   if (process.platform === 'win32') {
-    const npxCliPath = path.join(
-      path.dirname(process.execPath),
-      'node_modules',
-      'npm',
-      'bin',
-      'npx-cli.js',
-    );
+    const cliScriptPath = resolveWindowsPlaywrightCliPath();
     return {
       command: process.execPath,
-      args: [npxCliPath, '--yes', '--package', '@playwright/cli', 'playwright-cli', ...args],
+      args: [cliScriptPath, ...args],
     };
   }
 
@@ -167,6 +195,23 @@ function evalJson(sessionId, expression) {
   return parseEvalResult(stdout);
 }
 
+async function clickByText(sessionId, buttonText, timeoutMs = 5000, intervalMs = 150) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    const snapshotOutput = pw(sessionId, ['snapshot']);
+    const snapshotPath = parseSnapshotPath(snapshotOutput);
+    const ref = snapshotPath ? findRefByText(snapshotPath, buttonText) : null;
+    if (ref) {
+      pw(sessionId, ['click', ref]);
+      return true;
+    }
+    await sleep(intervalMs);
+  }
+
+  return false;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -201,14 +246,47 @@ function writeJson(outputPath, payload) {
 }
 
 function buildSessionId(scenarioId) {
-  return `ashen-smoke-${scenarioId.replaceAll('_', '-')}-${process.pid}-${Date.now()}`;
+  return `${SMOKE_SESSION_PREFIX}${scenarioId.replaceAll('_', '-')}-${process.pid}-${Date.now()}`;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function cleanupSmokeSessionProcesses(sessionPattern) {
+  if (!sessionPattern) return;
+
+  if (process.platform === 'win32') {
+    const psScript = [
+      `$pattern = '${sessionPattern.replaceAll("'", "''")}'`,
+      '$targets = Get-CimInstance Win32_Process | Where-Object {',
+      '  $_.CommandLine -match $pattern -and ($_.Name -eq "node.exe" -or $_.Name -eq "cmd.exe")',
+      '}',
+      'foreach ($target in $targets) {',
+      '  try { Stop-Process -Id $target.ProcessId -Force -ErrorAction Stop } catch {}',
+      '}',
+    ].join('; ');
+    spawnSync('powershell.exe', ['-NoProfile', '-Command', psScript], {
+      cwd: process.cwd(),
+      env: process.env,
+      encoding: 'utf8',
+      shell: false,
+      timeout: 5000,
+    });
+    return;
+  }
+
+  spawnSync('pkill', ['-f', sessionPattern], {
+    cwd: process.cwd(),
+    env: process.env,
+    encoding: 'utf8',
+    shell: false,
+    timeout: 5000,
+  });
 }
 
 function closePage(sessionId) {
-  // Each smoke scenario uses a unique session id, so explicit CLI close is optional.
-  // The close command has proven flaky on Windows npm/npx wrappers and can hang
-  // the stable smoke baseline after all assertions have already completed.
-  void sessionId;
+  cleanupSmokeSessionProcesses(escapeRegExp(sessionId));
 }
 
 function runCode(sessionId, source) {
@@ -218,21 +296,34 @@ function runCode(sessionId, source) {
 }
 
 async function bootToPlay(sessionId, url) {
-  const openOutput = pw(sessionId, ['open', withDebugRuntime(url)]);
-  const titleSnapshot = parseSnapshotPath(openOutput);
-  const titleStartRef = titleSnapshot ? findRefByText(titleSnapshot, 'Start Game') : null;
-  if (!titleStartRef) {
-    throw new Error('Failed to find Start Game ref from title snapshot');
+  pw(sessionId, ['open', withDebugRuntime(url)]);
+  await pollEval(
+    sessionId,
+    `Boolean(document.querySelector('[data-action="start"]'))`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  const titleClicked = await clickByText(sessionId, 'Start Game');
+  if (!titleClicked) {
+    throw new Error('Failed to click Start Game button');
   }
 
-  const loadoutOutput = pw(sessionId, ['click', titleStartRef]);
-  const loadoutSnapshot = parseSnapshotPath(loadoutOutput);
-  const loadoutStartRef = loadoutSnapshot ? findRefByText(loadoutSnapshot, '시작하기') : null;
-  if (!loadoutStartRef) {
-    throw new Error('Failed to find loadout start ref from snapshot');
+  const loadoutVisible = await pollEval(
+    sessionId,
+    `Boolean(document.querySelector('.sl-root [data-action="start"]')) && getComputedStyle(document.querySelector('.sl-root')).display !== 'none'`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  if (loadoutVisible !== true) {
+    throw new Error('Start loadout dialog did not open');
   }
 
-  pw(sessionId, ['click', loadoutStartRef]);
+  const loadoutClicked = await clickByText(sessionId, '시작하기');
+  if (!loadoutClicked) {
+    throw new Error('Failed to click loadout start button');
+  }
   await sleep(250);
   evalJson(sessionId, 'window.__ASHEN_DEBUG__?.advanceTime?.(136), true');
   return pollEval(
@@ -244,92 +335,182 @@ async function bootToPlay(sessionId, url) {
   );
 }
 
-async function runTitleToPlay(url, artifactDir) {
-  const sessionId = buildSessionId('title_to_play');
+async function runTitleToPlay(url, artifactDir, sessionId) {
   ensureDir(artifactDir);
 
-  try {
-    const state = await bootToPlay(sessionId, url);
-    takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
-    const summary = {
-      scenario: 'title_to_play',
-      state,
-      assertions: {
-        scene: state?.scene === 'PlayScene',
-        weaponCount: (state?.player?.weapons?.length ?? 0) === 1,
-      },
-    };
-    writeJson(path.join(artifactDir, 'summary.json'), summary);
-    return summary;
-  } finally {
-    closePage(sessionId);
-  }
+  const state = await bootToPlay(sessionId, url);
+  takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'title_to_play',
+    state,
+    assertions: {
+      scene: state?.scene === 'PlayScene',
+      weaponCount: (state?.player?.weapons?.length ?? 0) === 1,
+    },
+  };
+  writeJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
 }
 
-async function runPauseOverlay(url, artifactDir) {
-  const sessionId = buildSessionId('pause_overlay');
+async function runTitleCodex(url, artifactDir, sessionId) {
   ensureDir(artifactDir);
 
-  try {
-    await bootToPlay(sessionId, url);
-    const pauseOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openPauseOverlay?.() ?? false');
-    if (pauseOpened !== true) {
-      throw new Error('Pause overlay did not open');
-    }
-    const state = await pollEval(
-      sessionId,
-      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
-      (value) => value?.ui?.pauseVisible === true,
-      3000,
-      150,
-    );
-    const pauseSnapshotOutput = pw(sessionId, ['snapshot']);
-    const pauseSnapshot = parseSnapshotPath(pauseSnapshotOutput);
-    const weaponRef = pauseSnapshot ? findRefByText(pauseSnapshot, '마법탄') : null;
-    if (!weaponRef) {
-      throw new Error('Failed to find 마법탄 ref from pause snapshot');
-    }
-    pw(sessionId, ['hover', weaponRef]);
-    const hover = {
-      ok: true,
-      weaponRef,
-      cardName: evalJson(sessionId, `document.querySelector('.pv-slot-card[data-loadout="weapon"] .pv-slot-name')?.textContent ?? ''`),
-    };
-    const tooltipVisible = await pollEval(
-      sessionId,
-      `!!document.querySelector('.pv-tooltip')
-        && getComputedStyle(document.querySelector('.pv-tooltip')).display !== 'none'`,
-      (value) => value === true,
-      3000,
-      150,
-    );
-    const tooltip = {
-      visible: tooltipVisible === true,
-      text: evalJson(sessionId, `document.querySelector('.pv-tooltip')?.innerText ?? ''`),
-    };
-    takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
-    const summary = {
-      scenario: 'pause_overlay',
-      pauseOpened,
-      hover,
-      state,
-      tooltip,
-      assertions: {
-        pauseVisible: state?.ui?.pauseVisible === true,
-        tooltipVisible: tooltip?.visible === true,
-        hasTooltipText: typeof tooltip?.text === 'string'
-          && tooltip.text.includes(hover?.cardName ?? ''),
-      },
-    };
-    writeJson(path.join(artifactDir, 'summary.json'), summary);
-    return summary;
-  } finally {
-    closePage(sessionId);
+  pw(sessionId, ['open', withDebugRuntime(url)]);
+  await pollEval(
+    sessionId,
+    `Boolean(document.querySelector('[data-action="codex"]'))`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  const codexClicked = await clickByText(sessionId, 'Codex');
+  if (!codexClicked) {
+    throw new Error('Failed to click Codex button');
   }
+  const codexReady = await pollEval(
+    sessionId,
+    "Boolean(document.querySelector('.cx-root')) && Boolean(document.querySelector('.cx-tab[data-tab=\"accessory\"]'))",
+    (value) => value === true,
+    5000,
+    200,
+  );
+  const state = { scene: codexReady ? 'CodexScene' : null };
+
+  const discoveryStripCount = evalJson(sessionId, `document.querySelectorAll('.cx-disc-pill').length`);
+  const accessoryTabClicked = await clickByText(sessionId, '장신구 도감');
+  if (!accessoryTabClicked) {
+    throw new Error('Failed to click accessory tab');
+  }
+  const codexUi = {
+    rootVisible: evalJson(sessionId, `Boolean(document.querySelector('.cx-root'))`),
+    tabCount: evalJson(sessionId, `document.querySelectorAll('.cx-tab').length`),
+    discoveryStripCount,
+    accessoryTabActive: evalJson(sessionId, `Boolean(document.querySelector('#cx-tab-accessory')) && Boolean(document.querySelector('.cx-tab[data-tab="accessory"]'))`),
+    accessoryFilterCount: evalJson(sessionId, `document.querySelectorAll('#cx-tab-accessory .cx-af').length`),
+    effectFilterCount: evalJson(sessionId, `document.querySelectorAll('#cx-tab-accessory .cx-ef').length`),
+    accessoryDetailVisible: evalJson(sessionId, `Boolean(document.getElementById('cx-accessory-detail'))`),
+    accessoryHintCount: evalJson(sessionId, `document.getElementById('cx-tab-accessory') ? document.getElementById('cx-tab-accessory').querySelectorAll('.cx-discovery-hint').length : 0`),
+  };
+  takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'title_codex',
+    state,
+    codexUi,
+    assertions: {
+      scene: state?.scene === 'CodexScene',
+      rootVisible: codexUi.rootVisible === true,
+      hasTabs: codexUi.tabCount >= 4,
+      hasDiscoveryStrip: codexUi.discoveryStripCount >= 3,
+      hasAccessoryTab: codexUi.accessoryTabActive === true,
+      hasAccessoryFilters: codexUi.accessoryFilterCount >= 4 && codexUi.effectFilterCount >= 4,
+      hasAccessoryDetail: codexUi.accessoryDetailVisible === true,
+      hasHint: codexUi.accessoryHintCount >= 1,
+    },
+  };
+  writeJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
 }
 
-async function runPauseLayout(url, artifactDir) {
-  const sessionId = buildSessionId('pause_layout');
+async function runTitleSettings(url, artifactDir, sessionId) {
+  ensureDir(artifactDir);
+
+  pw(sessionId, ['open', withDebugRuntime(url)]);
+  await pollEval(
+    sessionId,
+    `Boolean(document.querySelector('[data-action="settings"]'))`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  const settingsClicked = await clickByText(sessionId, 'Settings');
+  if (!settingsClicked) {
+    throw new Error('Failed to click Settings button');
+  }
+  const state = await pollEval(
+    sessionId,
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.scene === 'SettingsScene',
+    5000,
+    200,
+  );
+  const settingsUi = {
+    rootVisible: evalJson(sessionId, `Boolean(document.querySelector('.sv-root'))`),
+    saveLabel: evalJson(sessionId, `document.querySelector('.sv-btn-primary')?.textContent?.trim() ?? ''`),
+  };
+  takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'title_settings',
+    state,
+    settingsUi,
+    assertions: {
+      scene: state?.scene === 'SettingsScene',
+      rootVisible: settingsUi.rootVisible === true,
+      hasSaveButton: typeof settingsUi.saveLabel === 'string'
+        && settingsUi.saveLabel.includes('저장하고 닫기'),
+    },
+  };
+  writeJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+async function runPauseOverlay(url, artifactDir, sessionId) {
+  ensureDir(artifactDir);
+
+  await bootToPlay(sessionId, url);
+  const pauseOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openPauseOverlay?.() ?? false');
+  if (pauseOpened !== true) {
+    throw new Error('Pause overlay did not open');
+  }
+  const state = await pollEval(
+    sessionId,
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.ui?.pauseVisible === true,
+    3000,
+    150,
+  );
+  const pauseSnapshotOutput = pw(sessionId, ['snapshot']);
+  const pauseSnapshot = parseSnapshotPath(pauseSnapshotOutput);
+  const weaponRef = pauseSnapshot ? findRefByText(pauseSnapshot, '마법탄') : null;
+  if (!weaponRef) {
+    throw new Error('Failed to find 마법탄 ref from pause snapshot');
+  }
+  pw(sessionId, ['hover', weaponRef]);
+  const hover = {
+    ok: true,
+    weaponRef,
+    cardName: evalJson(sessionId, `document.querySelector('.pv-slot-card[data-loadout="weapon"] .pv-slot-name')?.textContent ?? ''`),
+  };
+  const tooltipVisible = await pollEval(
+    sessionId,
+    `!!document.querySelector('.pv-tooltip')
+      && getComputedStyle(document.querySelector('.pv-tooltip')).display !== 'none'`,
+    (value) => value === true,
+    3000,
+    150,
+  );
+  const tooltip = {
+    visible: tooltipVisible === true,
+    text: evalJson(sessionId, `document.querySelector('.pv-tooltip')?.innerText ?? ''`),
+  };
+  takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'pause_overlay',
+    pauseOpened,
+    hover,
+    state,
+    tooltip,
+    assertions: {
+      pauseVisible: state?.ui?.pauseVisible === true,
+      tooltipVisible: tooltip?.visible === true,
+      hasTooltipText: typeof tooltip?.text === 'string'
+        && tooltip.text.includes(hover?.cardName ?? ''),
+    },
+  };
+  writeJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+async function runPauseLayout(url, artifactDir, sessionId) {
   ensureDir(artifactDir);
 
   const readLayoutState = (includeVisible = false) => ({
@@ -342,129 +523,122 @@ async function runPauseLayout(url, artifactDir) {
       : {}),
   });
 
-  try {
-    await bootToPlay(sessionId, url);
-    const pauseOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openPauseOverlay?.() ?? false');
-    if (pauseOpened !== true) {
-      throw new Error('Pause overlay did not open');
-    }
-
-    await pollEval(
-      sessionId,
-      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
-      (value) => value?.ui?.pauseVisible === true,
-      3000,
-      150,
-    );
-
-    const desktopBefore = readLayoutState();
-
-    const layoutSnapshotOutput = pw(sessionId, ['snapshot']);
-    const layoutSnapshot = parseSnapshotPath(layoutSnapshotOutput);
-    const alternateRef = layoutSnapshot ? findRefByText(layoutSnapshot, '빈 무기 슬롯') : null;
-    if (!alternateRef) {
-      throw new Error('Failed to find 빈 무기 슬롯 ref from pause layout snapshot');
-    }
-    pw(sessionId, ['click', alternateRef]);
-    await sleep(120);
-    const accessorySelection = evalJson(
-      sessionId,
-      `document.querySelector('.pv-slot-card.selected')?.dataset.loadoutKey ?? null`,
-    );
-
-    pw(sessionId, ['press', 'Escape']);
-    await sleep(180);
-    pw(sessionId, ['press', 'Escape']);
-    await sleep(250);
-
-    const desktopReopen = readLayoutState(true);
-
-    pw(sessionId, ['resize', '540', '960']);
-    await sleep(180);
-
-    const mobile = readLayoutState();
-
-    takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
-    const summary = {
-      scenario: 'pause_layout',
-      pauseOpened,
-      desktopBefore,
-      accessorySelection,
-      desktopReopen,
-      mobile,
-      assertions: {
-        pauseVisibleAfterReopen: desktopReopen?.visible === true,
-        selectionChanged: Boolean(accessorySelection) && accessorySelection !== desktopBefore?.selected,
-        selectionPersisted: Boolean(accessorySelection) && desktopReopen?.selected === accessorySelection,
-        mobileStillSelected: mobile?.selected === accessorySelection,
-        mobileSingleColumn: String(mobile?.grid ?? '').trim().split(/\s+/).length === 1,
-        mobileViewportApplied: mobile?.width <= 540,
-      },
-    };
-    writeJson(path.join(artifactDir, 'summary.json'), summary);
-    return summary;
-  } finally {
-    closePage(sessionId);
+  await bootToPlay(sessionId, url);
+  const pauseOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openPauseOverlay?.() ?? false');
+  if (pauseOpened !== true) {
+    throw new Error('Pause overlay did not open');
   }
+
+  await pollEval(
+    sessionId,
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.ui?.pauseVisible === true,
+    3000,
+    150,
+  );
+
+  const desktopBefore = readLayoutState();
+
+  const layoutSnapshotOutput = pw(sessionId, ['snapshot']);
+  const layoutSnapshot = parseSnapshotPath(layoutSnapshotOutput);
+  const alternateRef = layoutSnapshot ? findRefByText(layoutSnapshot, '빈 무기 슬롯') : null;
+  if (!alternateRef) {
+    throw new Error('Failed to find 빈 무기 슬롯 ref from pause layout snapshot');
+  }
+  pw(sessionId, ['click', alternateRef]);
+  await sleep(120);
+  const accessorySelection = evalJson(
+    sessionId,
+    `document.querySelector('.pv-slot-card.selected')?.dataset.loadoutKey ?? null`,
+  );
+
+  pw(sessionId, ['press', 'Escape']);
+  await sleep(180);
+  pw(sessionId, ['press', 'Escape']);
+  await sleep(250);
+
+  const desktopReopen = readLayoutState(true);
+
+  pw(sessionId, ['resize', '540', '960']);
+  await sleep(180);
+
+  const mobile = readLayoutState();
+
+  takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'pause_layout',
+    pauseOpened,
+    desktopBefore,
+    accessorySelection,
+    desktopReopen,
+    mobile,
+    assertions: {
+      pauseVisibleAfterReopen: desktopReopen?.visible === true,
+      selectionChanged: Boolean(accessorySelection) && accessorySelection !== desktopBefore?.selected,
+      selectionPersisted: Boolean(accessorySelection) && desktopReopen?.selected === accessorySelection,
+      mobileStillSelected: mobile?.selected === accessorySelection,
+      mobileSingleColumn: String(mobile?.grid ?? '').trim().split(/\s+/).length === 1,
+      mobileViewportApplied: mobile?.width <= 540,
+    },
+  };
+  writeJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
 }
 
-async function runResultScreen(url, artifactDir) {
-  const sessionId = buildSessionId('result_screen');
+async function runResultScreen(url, artifactDir, sessionId) {
   ensureDir(artifactDir);
 
-  try {
-    await bootToPlay(sessionId, url);
-    const resultOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openResultOverlay?.() ?? false');
-    if (resultOpened !== true) {
-      throw new Error('Result overlay did not open');
-    }
-    const triggerState = await pollEval(
-      sessionId,
-      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
-      (value) => value?.ui?.resultVisible === true,
-      3000,
-      150,
-    );
-    const state = await pollEval(
-      sessionId,
-      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
-      (value) => value?.ui?.resultVisible === true,
-      3000,
-      150,
-    );
-    const resultUi = {
-      title: evalJson(sessionId, `document.querySelector('.result-title')?.textContent?.trim() ?? ''`),
-      restart: evalJson(sessionId, `document.querySelector('.result-restart-btn')?.textContent?.trim() ?? ''`),
-      titleButton: evalJson(sessionId, `document.querySelector('.result-title-btn')?.textContent?.trim() ?? ''`),
-    };
-    takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
-    const summary = {
-      scenario: 'result_screen',
-      resultOpened,
-      triggerState,
-      state,
-      resultUi,
-      assertions: {
-        resultVisible: state?.ui?.resultVisible === true,
-        hasGameOver: typeof resultUi?.title === 'string' && resultUi.title.includes('GAME OVER'),
-        hasRestartButton: typeof resultUi?.restart === 'string' && resultUi.restart.includes('다시 시작'),
-      },
-    };
-    writeJson(path.join(artifactDir, 'summary.json'), summary);
-    return summary;
-  } finally {
-    closePage(sessionId);
+  await bootToPlay(sessionId, url);
+  const resultOpened = evalJson(sessionId, 'window.__ASHEN_DEBUG__?.openResultOverlay?.() ?? false');
+  if (resultOpened !== true) {
+    throw new Error('Result overlay did not open');
   }
+  const triggerState = await pollEval(
+    sessionId,
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.ui?.resultVisible === true,
+    3000,
+    150,
+  );
+  const state = await pollEval(
+    sessionId,
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.ui?.resultVisible === true,
+    3000,
+    150,
+  );
+  const resultUi = {
+    title: evalJson(sessionId, `document.querySelector('.result-title')?.textContent?.trim() ?? ''`),
+    restart: evalJson(sessionId, `document.querySelector('.result-restart-btn')?.textContent?.trim() ?? ''`),
+    titleButton: evalJson(sessionId, `document.querySelector('.result-title-btn')?.textContent?.trim() ?? ''`),
+  };
+  takeScreenshot(sessionId, path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'result_screen',
+    resultOpened,
+    triggerState,
+    state,
+    resultUi,
+    assertions: {
+      resultVisible: state?.ui?.resultVisible === true,
+      hasGameOver: typeof resultUi?.title === 'string' && resultUi.title.includes('GAME OVER'),
+      hasRestartButton: typeof resultUi?.restart === 'string' && resultUi.restart.includes('다시 시작'),
+    },
+  };
+  writeJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
 }
 
 const RUNNERS = {
   title_to_play: runTitleToPlay,
+  title_codex: runTitleCodex,
+  title_settings: runTitleSettings,
   pause_overlay: runPauseOverlay,
   pause_layout: runPauseLayout,
   result_screen: runResultScreen,
 };
 
-async function runScenario(url, scenarioId) {
+async function runScenario(url, scenarioId, sessionId) {
   const scenario = SCENARIOS[scenarioId];
   if (!scenario) {
     throw new Error(`Unknown scenario: ${scenarioId}`);
@@ -475,7 +649,7 @@ async function runScenario(url, scenarioId) {
     throw new Error(`No runner registered for scenario: ${scenarioId}`);
   }
 
-  return runner(url, scenario.artifactDir);
+  return runner(url, scenario.artifactDir, sessionId);
 }
 
 function summarize(results) {
@@ -492,19 +666,25 @@ async function main() {
     throw new Error(`Smoke output must stay under ${OUTPUT_PATH_PREFIX}`);
   }
   ensureDir(OUTPUT_ROOT);
+  cleanupSmokeSessionProcesses(escapeRegExp(SMOKE_SESSION_PREFIX));
+  const sessionId = buildSessionId(args.all ? 'all' : args.scenario);
 
-  const scenarioIds = args.all ? getScenarioIds() : [args.scenario];
-  const results = [];
-  for (const scenarioId of scenarioIds) {
-    // Keep one active CLI request at a time per session.
-    results.push(await runScenario(args.url, scenarioId));
-  }
-  const summary = summarize(results);
-  writeJson(path.join(OUTPUT_ROOT, 'summary.json'), summary);
-  process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+  try {
+    const scenarioIds = args.all ? getScenarioIds() : [args.scenario];
+    const results = [];
+    for (const scenarioId of scenarioIds) {
+      // Keep one active CLI request at a time per session.
+      results.push(await runScenario(args.url, scenarioId, sessionId));
+    }
+    const summary = summarize(results);
+    writeJson(path.join(OUTPUT_ROOT, 'summary.json'), summary);
+    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
 
-  if (!summary.allPassed) {
-    process.exitCode = 1;
+    if (!summary.allPassed) {
+      process.exitCode = 1;
+    }
+  } finally {
+    closePage(sessionId);
   }
 }
 

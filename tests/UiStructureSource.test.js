@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
+const pauseLoadoutContentSource = readFileSync(new URL('../src/ui/pause/pauseLoadoutContent.js', import.meta.url), 'utf8');
 const resultViewSource = readFileSync(new URL('../src/ui/result/ResultView.js', import.meta.url), 'utf8');
+const codexViewSource = readFileSync(new URL('../src/ui/codex/CodexView.js', import.meta.url), 'utf8');
 const gameSource = readFileSync(new URL('../src/core/Game.js', import.meta.url), 'utf8');
 
 console.log('\n[UiStructureSource]');
@@ -44,6 +46,25 @@ await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위
   assert.match(pauseViewSource, /from '\.\/pauseTooltipController\.js'/);
 });
 
+await test('pauseLoadoutContent는 모델/섹션 helper 모듈로 위임한다', async () => {
+  let pauseLoadoutModel;
+  let pauseLoadoutSections;
+
+  try {
+    pauseLoadoutModel = await import('../src/ui/pause/pauseLoadoutModel.js');
+    pauseLoadoutSections = await import('../src/ui/pause/pauseLoadoutSections.js');
+  } catch (error) {
+    throw new Error(`pause loadout helper import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof pauseLoadoutModel.buildPauseLoadoutItems, 'function', 'pauseLoadoutModel.buildPauseLoadoutItems가 없음');
+  assert.equal(typeof pauseLoadoutModel.normalizePauseSynergyRequirementId, 'function', 'pauseLoadoutModel.normalizePauseSynergyRequirementId가 없음');
+  assert.equal(typeof pauseLoadoutSections.renderPauseLoadoutPanel, 'function', 'pauseLoadoutSections.renderPauseLoadoutPanel이 없음');
+  assert.equal(typeof pauseLoadoutSections.renderPauseLoadoutDetail, 'function', 'pauseLoadoutSections.renderPauseLoadoutDetail이 없음');
+  assert.match(pauseLoadoutContentSource, /from '\.\/pauseLoadoutModel\.js'/);
+  assert.match(pauseLoadoutContentSource, /from '\.\/pauseLoadoutSections\.js'/);
+});
+
 await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임한다', async () => {
   let levelUpController;
   let playSceneRuntime;
@@ -76,6 +97,31 @@ await test('Pause/Result 액션 버튼은 공통 토큰 모듈을 사용한다',
   assert.equal(typeof actionButtonTheme.ACTION_BUTTON_THEME, 'object', 'ACTION_BUTTON_THEME 토큰이 없음');
   assert.match(resultViewSource, /from '\.\.\/shared\/actionButtonTheme\.js'/);
   assert.match(pauseViewSource, /from '\.\.\/shared\/actionButtonTheme\.js'/);
+});
+
+await test('CodexView는 codex helper modules로 탭 렌더링과 스타일을 위임한다', async () => {
+  let enemyTab;
+  let weaponTab;
+  let recordsTab;
+  let codexStyles;
+
+  try {
+    enemyTab = await import('../src/ui/codex/codexEnemyTab.js');
+    weaponTab = await import('../src/ui/codex/codexWeaponTab.js');
+    recordsTab = await import('../src/ui/codex/codexRecordsTab.js');
+    codexStyles = await import('../src/ui/codex/codexStyles.js');
+  } catch (error) {
+    throw new Error(`codex helper import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof enemyTab.buildCodexEnemyGridModel, 'function', 'enemy tab helper가 없음');
+  assert.equal(typeof weaponTab.partitionCodexWeapons, 'function', 'weapon tab helper가 없음');
+  assert.equal(typeof recordsTab.buildCodexRecordsModel, 'function', 'records tab helper가 없음');
+  assert.equal(typeof codexStyles.CODEX_VIEW_CSS, 'string', 'codex styles helper가 없음');
+  assert.match(codexViewSource, /from '\.\/codexEnemyTab\.js'/);
+  assert.match(codexViewSource, /from '\.\/codexWeaponTab\.js'/);
+  assert.match(codexViewSource, /from '\.\/codexRecordsTab\.js'/);
+  assert.match(codexViewSource, /from '\.\/codexStyles\.js'/);
 });
 
 await test('Game는 deterministic runtime hook 모듈을 등록한다', async () => {

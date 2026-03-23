@@ -18,8 +18,19 @@ import {
 } from './pauseAudioControls.js';
 import {
   buildPauseTooltipBindingEntries,
-  computePauseTooltipPosition,
 } from './pauseTooltipController.js';
+import {
+  applyPauseTabState,
+  bindPauseLoadoutCards,
+  bindPauseTabs,
+  emitPauseOptionsChange,
+} from './pauseViewBindings.js';
+import {
+  ensurePauseTooltip,
+  hidePauseTooltip,
+  positionPauseTooltip,
+  showPauseTooltip,
+} from './pauseViewTooltip.js';
 import {
   PAUSE_VIEW_CSS,
   PAUSE_VIEW_STYLE_ID,
@@ -232,56 +243,11 @@ export class PauseView {
   }
 
   _bindTabs() {
-    const tabs = [...this.el.querySelectorAll('.pv-tab')];
-    if (tabs.length === 0) return;
-
-    tabs.forEach((tab, index) => {
-      const activate = () => this._activateTab(tab.dataset.tabName);
-      tab.addEventListener('click', activate);
-      tab.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          activate();
-          return;
-        }
-
-        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-          event.preventDefault();
-          tabs[(index + 1) % tabs.length]?.focus();
-        }
-
-        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-          event.preventDefault();
-          tabs[(index - 1 + tabs.length) % tabs.length]?.focus();
-        }
-
-        if (event.key === 'Home') {
-          event.preventDefault();
-          tabs[0]?.focus();
-        }
-
-        if (event.key === 'End') {
-          event.preventDefault();
-          tabs[tabs.length - 1]?.focus();
-        }
-      });
-    });
+    bindPauseTabs(this.el, (name) => this._activateTab(name));
   }
 
   _bindLoadoutSelection() {
-    this.el.querySelectorAll('.pv-slot-card[data-loadout-key]').forEach((card) => {
-      const key = card.dataset.loadoutKey;
-      if (!key) return;
-
-      card.addEventListener('click', () => this._selectLoadoutItem(key));
-      card.addEventListener('focus', () => this._selectLoadoutItem(key));
-      card.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          this._selectLoadoutItem(key);
-        }
-      });
-    });
+    bindPauseLoadoutCards(this.el, (key) => this._selectLoadoutItem(key));
   }
 
   _selectLoadoutItem(selectedLoadoutKey) {
@@ -323,17 +289,7 @@ export class PauseView {
   _activateTab(name) {
     if (!name) return;
     this._activeTabName = name;
-
-    this.el.querySelectorAll('.pv-tab').forEach((tab) => {
-      const active = tab.dataset.tabName === name;
-      tab.classList.toggle('active', active);
-      tab.setAttribute('aria-selected', String(active));
-      tab.tabIndex = active ? 0 : -1;
-    });
-
-    this.el.querySelectorAll('.pv-tab-content').forEach((panel) => {
-      panel.classList.toggle('active', panel.id === `pv-tab-${name}`);
-    });
+    applyPauseTabState(this.el, name);
   }
 
   _bindAudioControls() {
@@ -369,7 +325,7 @@ export class PauseView {
   }
 
   _emitOptionsChange() {
-    this._onOptionsChange?.({ ...this._pauseOptions });
+    emitPauseOptionsChange(this._onOptionsChange, this._pauseOptions);
   }
 
   _buildIndexes(data) {
@@ -401,20 +357,16 @@ export class PauseView {
   }
 
   _bindTooltips(player) {
-    if (!this._tt) {
-      this._tt = document.createElement('div');
-      this._tt.className = 'pv-tooltip';
-      this._tt.style.display = 'none';
-      document.body.appendChild(this._tt);
-    }
+    this._tt = ensurePauseTooltip(this._tt, document);
 
     const showTip = (element, buildContent, event) => {
       clearTimeout(this._ttHideTimer);
-      const html = buildContent(element);
-      if (!html?.trim()) return;
-      this._tt.innerHTML = html;
-      this._tt.style.display = 'block';
-      this._positionTooltip(event);
+      showPauseTooltip({
+        tooltip: this._tt,
+        element,
+        buildContent,
+        event,
+      });
     };
     const hideTip = () => {
       this._ttHideTimer = setTimeout(() => this._hideTooltip(), 80);
@@ -436,22 +388,11 @@ export class PauseView {
   }
 
   _hideTooltip() {
-    if (!this._tt) return;
-    this._tt.style.display = 'none';
-    this._tt.innerHTML = '';
+    hidePauseTooltip(this._tt);
   }
 
   _positionTooltip(event) {
-    if (!this._tt) return;
-    const { x, y } = computePauseTooltipPosition({
-      event,
-      tooltipWidth: this._tt.offsetWidth || 220,
-      tooltipHeight: this._tt.offsetHeight || 100,
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-    });
-    this._tt.style.left = `${x}px`;
-    this._tt.style.top = `${y}px`;
+    positionPauseTooltip(this._tt, event, window);
   }
 
   _bindKeyboard() {

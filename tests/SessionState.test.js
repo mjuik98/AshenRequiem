@@ -77,6 +77,7 @@ test('createSessionState()의 meta 필드가 올바르다', () => {
   assert(typeof s.meta.permanentUpgrades === 'object');
   assert.deepEqual(s.meta.unlockedWeapons, ['magic_bolt']);
   assert.deepEqual(s.meta.unlockedAccessories, []);
+  assert.deepEqual(s.meta.accessoriesOwnedAll, []);
   assert.deepEqual(s.meta.completedUnlocks, []);
   assert.equal(s.meta.selectedStartWeaponId, 'magic_bolt');
 });

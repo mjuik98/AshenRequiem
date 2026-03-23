@@ -17,6 +17,7 @@
 
 import { getRegisteredBehaviorIds } from '../src/behaviors/weaponBehaviorRegistry.js';
 import { listEnemyBehaviors }       from '../src/behaviors/enemyBehaviors/enemyBehaviorRegistry.js';
+import { validateCoreGameData }     from '../src/data/gameDataValidation.js';
 
 let errors   = 0;
 let warnings = 0;
@@ -98,7 +99,6 @@ function validateEnemyData(enemyData) {
 
 function validateWeaponData(weaponData) {
   console.log('\n[weaponData]');
-  checkNoDuplicateIds(weaponData, 'weaponData');
 
   const required = ['id', 'name', 'damage', 'cooldown', 'behaviorId', 'maxLevel'];
 
@@ -110,7 +110,6 @@ function validateWeaponData(weaponData) {
     }
     if (w.cooldown <= 0)  err(`weapon "${w.id}": cooldown(${w.cooldown}) <= 0`);
     if (w.damage  < 0)    err(`weapon "${w.id}": damage(${w.damage}) < 0`);
-    if (w.maxLevel < 1)   err(`weapon "${w.id}": maxLevel(${w.maxLevel}) < 1`);
 
     // CHANGE(P0-①): 레지스트리에서 동적으로 검증 — 하드코딩 불필요
     if (w.behaviorId && !KNOWN_WEAPON_BEHAVIORS.has(w.behaviorId)) {
@@ -122,7 +121,6 @@ function validateWeaponData(weaponData) {
 
 function validateUpgradeData(upgradeData) {
   console.log('\n[upgradeData]');
-  checkNoDuplicateIds(upgradeData, 'upgradeData');
 
   for (const u of upgradeData) {
     if (!u.id)   { err(`upgrade: id 없음`); continue; }
@@ -173,7 +171,6 @@ function validateWaveData(waveData, enemyData) {
   const enemyIds = getIds(enemyData);
 
   for (const w of waveData) {
-    if (w.from >= w.to) err(`wave [${w.from}~${w.to}]: from >= to`);
     if (w.spawnPerSecond <= 0) err(`wave [${w.from}~${w.to}]: spawnPerSecond <= 0`);
     for (const eid of (w.enemyIds ?? [])) {
       if (!enemyIds.has(eid)) {
@@ -196,6 +193,14 @@ async function main() {
     console.error('데이터 로드 실패:', e.message);
     process.exit(1);
   }
+
+  const coreReport = validateCoreGameData({
+    upgradeData: data.upgradeData,
+    weaponData: data.weaponData,
+    waveData: data.waveData,
+  });
+  coreReport.errors.forEach((message) => err(message.replace('[validate] ', '')));
+  coreReport.warnings.forEach((message) => warn(message.replace('[validate] ', '')));
 
   validateEnemyData(data.enemyData);
   validateWeaponData(data.weaponData);

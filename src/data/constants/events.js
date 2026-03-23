@@ -16,5 +16,6 @@ export const EVENT_TYPES = [
   'currencyEarned',
   'weaponEvolved',
   'weaponAcquired',
+  'accessoryAcquired',
   'chestCollected',   // ← NEW: 상자 획득 시 발행
 ];

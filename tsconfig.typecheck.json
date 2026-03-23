@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "lib": ["ES2022", "DOM"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/types.js",
+    "src/state/worldTypes.js",
+    "src/state/pipelineTypes.js",
+    "src/ui/codex/*.js",
+    "src/data/gameDataValidation.js",
+    "src/utils/validateGameData.js"
+  ]
+}

@@ -10,6 +10,7 @@ const BASE_STATS = {
   globalDamageMult: 1.0,
   currencyMult: 1.0,
   projectileSizeMult: 1.0,
+  projectileSpeedMult: 1.0,
   projectileLifetimeMult: 1.0,
 };
 
@@ -59,6 +60,7 @@ export function renderPauseStats({
   const dmg = (player?.globalDamageMult ?? BASE_STATS.globalDamageMult) * 100;
   const gold = (player?.currencyMult ?? BASE_STATS.currencyMult) * 100;
   const projSize = (player?.projectileSizeMult ?? BASE_STATS.projectileSizeMult) * 100;
+  const projSpeed = (player?.projectileSpeedMult ?? BASE_STATS.projectileSpeedMult) * 100;
   const projLifetime = (player?.projectileLifetimeMult ?? BASE_STATS.projectileLifetimeMult) * 100;
   const cd = player?.cooldownMult ?? 1.0;
   const cdBonus = Math.round((1.0 - cd) * 100);
@@ -96,6 +98,7 @@ export function renderPauseStats({
         ${renderStatCell('★', '경험치 획득', 100, xpm - (BASE_STATS.xpMult * 100), '%', `경험치 획득 ${xpm.toFixed(0)}%`)}
         ${renderStatCell('💰', '골드 획득', 100, gold - (BASE_STATS.currencyMult * 100), '%', `골드 획득 ${gold.toFixed(0)}%`)}
         ${renderStatCell('◌', '투사체 크기/범위', 100, projSize - (BASE_STATS.projectileSizeMult * 100), '%', `투사체 크기/범위 ${projSize.toFixed(0)}%`)}
+        ${renderStatCell('➤', '투사체 속도', 100, projSpeed - (BASE_STATS.projectileSpeedMult * 100), '%', `투사체 속도 ${projSpeed.toFixed(0)}%`)}
         ${renderStatCell('⌛', '투사체 지속시간', 100, projLifetime - (BASE_STATS.projectileLifetimeMult * 100), '%', `투사체 지속시간 ${projLifetime.toFixed(0)}%`)}
         ${renderStatCell('⟳', '쿨다운 배율', `×${cd.toFixed(2)}`, cdBonus, cdBonus > 0 ? '% 단축' : '', `쿨다운 배율 ×${cd.toFixed(2)}`)}
         ${bonusProjectiles > 0 ? renderStatCell('+', '추가 투사체', 0, bonusProjectiles, '발', `추가 투사체 +${bonusProjectiles}발`) : ''}

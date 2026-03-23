@@ -25,6 +25,7 @@ test('ensureCodexMeta()는 도감 메타 필드를 기본값으로 보완한다'
   assert.deepEqual(meta.enemiesEncountered, []);
   assert.deepEqual(meta.killedBosses, []);
   assert.deepEqual(meta.weaponsUsedAll, []);
+  assert.deepEqual(meta.accessoriesOwnedAll, []);
   assert.deepEqual(meta.evolvedWeapons, []);
   assert.equal(meta.totalRuns, 0);
 });

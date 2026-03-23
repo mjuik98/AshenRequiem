@@ -5,6 +5,7 @@ import {
   PROFILE_TARGET_FPS,
   PROFILE_WARN_THRESHOLD,
   buildProfileContext,
+  getProfileBudget,
   loadProfileSystems,
 } from '../scripts/profileRuntime.js';
 
@@ -25,11 +26,14 @@ test('profile runtime은 팩토리 시스템을 실제 update 가능한 인스�
 
 test('profile runtime은 headless context 기본값을 제공하고 PlayScene profiler는 opt-in이다', () => {
   const ctx = buildProfileContext();
+  const budget = getProfileBudget('baseline');
 
   assert.equal(PROFILE_TARGET_FPS, 60);
   assert.equal(PROFILE_WARN_THRESHOLD > 0, true);
   assert.equal(ctx.world.playMode, 'playing');
+  assert.equal(ctx.preset, 'baseline');
   assert.equal(ctx.dt, 1 / PROFILE_TARGET_FPS);
+  assert.equal(typeof budget?.maxPerFrameMs, 'number');
   assert.equal(shouldEnablePipelineProfiling({ location: { search: '' } }), false);
   assert.equal(shouldEnablePipelineProfiling({ __ASHEN_PROFILE_PIPELINE__: true }), true);
 });

@@ -6,6 +6,16 @@ export const SCENARIOS = {
     artifactDir: `${OUTPUT_ROOT}/title-to-play`,
     stepNames: ['title', 'play'],
   },
+  title_codex: {
+    id: 'title_codex',
+    artifactDir: `${OUTPUT_ROOT}/title-codex`,
+    stepNames: ['title', 'codex', 'accessory'],
+  },
+  title_settings: {
+    id: 'title_settings',
+    artifactDir: `${OUTPUT_ROOT}/title-settings`,
+    stepNames: ['title', 'settings'],
+  },
   pause_overlay: {
     id: 'pause_overlay',
     artifactDir: `${OUTPUT_ROOT}/pause-overlay`,

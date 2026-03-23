@@ -35,6 +35,7 @@ test('scenario 정의는 title/play/pause/result 흐름 이름을 가진다', ()
   assert.equal(scenariosSource.includes('pause_overlay'), true, 'pause_overlay 시나리오가 없음');
   assert.equal(scenariosSource.includes('pause_layout'), true, 'pause_layout 시나리오가 없음');
   assert.equal(scenariosSource.includes('result_screen'), true, 'result_screen 시나리오가 없음');
+  assert.equal(scenariosSource.includes("'accessory'"), true, 'title_codex 시나리오가 accessory step을 포함하지 않음');
 });
 
 test('browser smoke 산출물은 output/web-game 또는 output/playwright 아래로 제한된다', () => {
@@ -42,6 +43,32 @@ test('browser smoke 산출물은 output/web-game 또는 output/playwright 아래
     runnerSource.includes('output/web-game/') || runnerSource.includes('output/playwright/'),
     true,
     'runner 산출물 경로가 output 하위로 고정되지 않음',
+  );
+});
+
+test('runner는 ashen-smoke 세션을 정리해 Playwright daemon 누수를 남기지 않는다', () => {
+  assert.equal(
+    runnerSource.includes('cleanupSmokeSessionProcesses'),
+    true,
+    'runner가 stale smoke session 정리 helper를 포함하지 않음',
+  );
+  assert.equal(
+    runnerSource.includes('SMOKE_SESSION_PREFIX'),
+    true,
+    'runner가 smoke session prefix를 기준으로 cleanup하지 않음',
+  );
+});
+
+test('title codex smoke는 장신구 탭 점프와 상세 힌트를 검증한다', () => {
+  assert.equal(
+    runnerSource.includes('cx-tab-accessory'),
+    true,
+    'title codex smoke가 장신구 탭 활성 상태를 확인하지 않음',
+  );
+  assert.equal(
+    runnerSource.includes('cx-discovery-hint'),
+    true,
+    'title codex smoke가 미발견 장신구 상세 힌트를 확인하지 않음',
   );
 });
 

@@ -1,3 +1,12 @@
+import { cloneSoundBgmDefs, cloneSoundSfxDefs } from './soundDefinitions.js';
+import { createSoundGraph, disconnectSoundGraph } from './soundGraph.js';
+import {
+  createBgmVoice,
+  disposeBgmVoice,
+  scheduleBeepVoice,
+  scheduleChordVoice,
+} from './soundVoices.js';
+
 /**
  * SoundSystem — Web Audio API 기반 절차적 사운드 엔진 (리팩터링 버전)
  *
@@ -51,106 +60,8 @@ export class SoundSystem {
     this._activeVoicesByType = new Map();
     this._maxVoices = 32;
 
-    // 기본 효과음 정의
-    this._sfxDefs = {
-      hit: {
-        kind: 'beep',
-        freq: 440,
-        duration: 0.05,
-        type: 'square',
-        volume: 0.08,
-        cooldown: 0.018,
-        maxPolyphony: 6,
-        randomDetune: 0.03,
-        randomVolume: 0.08,
-        duck: 0,
-      },
-      death: {
-        kind: 'beep',
-        freq: 200,
-        duration: 0.14,
-        type: 'sawtooth',
-        volume: 0.16,
-        cooldown: 0.08,
-        maxPolyphony: 2,
-        randomDetune: 0.02,
-        randomVolume: 0.05,
-        duck: 0.2,
-      },
-      levelup: {
-        kind: 'chord',
-        freqs: [523.25, 659.25, 783.99],
-        duration: 0.20,
-        type: 'sine',
-        volume: 0.18,
-        cooldown: 0.25,
-        maxPolyphony: 1,
-        randomDetune: 0.01,
-        randomVolume: 0.03,
-        step: 0.06,
-        duck: 0.45,
-      },
-      pickup: {
-        kind: 'beep',
-        freq: 880,
-        duration: 0.04,
-        type: 'sine',
-        volume: 0.06,
-        cooldown: 0.025,
-        maxPolyphony: 4,
-        randomDetune: 0.05,
-        randomVolume: 0.10,
-        duck: 0,
-      },
-      damage: {
-        kind: 'beep',
-        freq: 180,
-        duration: 0.08,
-        type: 'sawtooth',
-        volume: 0.10,
-        cooldown: 0.06,
-        maxPolyphony: 3,
-        randomDetune: 0.025,
-        randomVolume: 0.05,
-        duck: 0.12,
-      },
-    };
-
-    // 기본 BGM 정의
-    this._bgmDefs = {
-      title: {
-        baseFreq: 196.0,
-        interval: 1.5,
-        waveA: 'triangle',
-        waveB: 'sine',
-        lfoRate: 0.08,
-        lfoDepth: 5,
-      },
-      battle: {
-        baseFreq: 164.81,
-        interval: 1.5,
-        waveA: 'triangle',
-        waveB: 'square',
-        lfoRate: 0.11,
-        lfoDepth: 7,
-      },
-      boss: {
-        baseFreq: 130.81,
-        interval: 1.498,
-        waveA: 'sawtooth',
-        waveB: 'triangle',
-        lfoRate: 0.16,
-        lfoDepth: 10,
-      },
-      default: {
-        baseFreq: 174.61,
-        interval: 1.5,
-        waveA: 'triangle',
-        waveB: 'sine',
-        lfoRate: 0.09,
-        lfoDepth: 6,
-      },
-    };
+    this._sfxDefs = cloneSoundSfxDefs();
+    this._bgmDefs = cloneSoundBgmDefs();
   }
 
   init() {
@@ -349,22 +260,11 @@ export class SoundSystem {
     const ctx = this._ctx;
     if (!ctx) return;
 
-    this._masterBus = ctx.createGain();
-    this._bgmBus = ctx.createGain();
-    this._sfxBus = ctx.createGain();
-    this._compressor = ctx.createDynamicsCompressor();
-
-    // 너무 큰 피크를 부드럽게 눌러주는 설정
-    this._compressor.threshold.setValueAtTime(-18, ctx.currentTime);
-    this._compressor.knee.setValueAtTime(18, ctx.currentTime);
-    this._compressor.ratio.setValueAtTime(8, ctx.currentTime);
-    this._compressor.attack.setValueAtTime(0.003, ctx.currentTime);
-    this._compressor.release.setValueAtTime(0.15, ctx.currentTime);
-
-    this._bgmBus.connect(this._masterBus);
-    this._sfxBus.connect(this._masterBus);
-    this._masterBus.connect(this._compressor);
-    this._compressor.connect(ctx.destination);
+    const graph = createSoundGraph(ctx);
+    this._masterBus = graph.masterBus;
+    this._bgmBus = graph.bgmBus;
+    this._sfxBus = graph.sfxBus;
+    this._compressor = graph.compressor;
   }
 
   _syncVolumes(ramp = 0.03) {
@@ -433,53 +333,26 @@ export class SoundSystem {
     extraDetune = 0,
     startTime = null,
   }) {
-    const ctx = this._ctx;
-    if (!ctx || !this._sfxBus) return;
-
-    const t = startTime ?? ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const panner = this._createPanner(pan);
-
-    const voiceId = Symbol(typeName);
-    this._registerVoice(voiceId, typeName);
-
-    const detuneMul = 1 + this._randomSpread(randomDetune);
-    const volMul = 1 + this._randomSpread(randomVolume);
-    const effectiveFreq = Math.max(20, freq * detuneMul * (1 + extraDetune));
-    const effectiveVol = Math.max(0.0001, volume * intensity * volMul);
-
-    const attack = Math.min(0.005, duration * 0.25);
-    const release = Math.min(0.05, Math.max(0.015, duration * 0.45));
-    const sustainEnd = Math.max(t + attack, t + duration - release);
-    const stopAt = t + duration + 0.01;
-
-    osc.type = wave;
-    osc.frequency.setValueAtTime(effectiveFreq, t);
-
-    // 아주 짧은 pitch drop / rise를 섞으면 단조로운 반복음을 줄이는 데 도움이 된다.
-    osc.frequency.linearRampToValueAtTime(effectiveFreq * 0.995, t + Math.min(0.02, duration * 0.5));
-
-    osc.connect(gain);
-    if (panner) {
-      gain.connect(panner);
-      panner.connect(this._sfxBus);
-    } else {
-      gain.connect(this._sfxBus);
-    }
-
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(effectiveVol, t + attack);
-    gain.gain.setValueAtTime(effectiveVol, sustainEnd);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-
-    osc.start(t);
-    osc.stop(stopAt);
-
-    osc.onended = () => {
-      this._unregisterVoice(voiceId, typeName);
-      this._disconnectSafely(osc, gain, panner);
-    };
+    scheduleBeepVoice({
+      ctx: this._ctx,
+      sfxBus: this._sfxBus,
+      typeName,
+      freq,
+      duration,
+      wave,
+      volume,
+      pan,
+      intensity,
+      randomDetune,
+      randomVolume,
+      extraDetune,
+      startTime,
+      createPanner: (value) => this._createPanner(value),
+      registerVoice: (voiceId, nextTypeName) => this._registerVoice(voiceId, nextTypeName),
+      unregisterVoice: (voiceId, nextTypeName) => this._unregisterVoice(voiceId, nextTypeName),
+      disconnectSafely: (...nodes) => this._disconnectSafely(...nodes),
+      randomSpread: (amount) => this._randomSpread(amount),
+    });
   }
 
   _chord({
@@ -495,102 +368,44 @@ export class SoundSystem {
     randomVolume = 0,
     extraDetune = 0,
   }) {
-    const ctx = this._ctx;
-    if (!ctx) return;
-
-    const start = ctx.currentTime;
-    freqs.forEach((freq, index) => {
-      this._beep({
-        typeName,
-        freq,
-        duration,
-        wave,
-        volume: volume * 0.72,
-        pan,
-        intensity,
-        randomDetune,
-        randomVolume,
-        extraDetune,
-        startTime: start + index * step,
-      });
+    scheduleChordVoice({
+      ctx: this._ctx,
+      sfxBus: this._sfxBus,
+      typeName,
+      freqs,
+      duration,
+      wave,
+      volume,
+      pan,
+      intensity,
+      step,
+      randomDetune,
+      randomVolume,
+      extraDetune,
+      createPanner: (value) => this._createPanner(value),
+      registerVoice: (voiceId, nextTypeName) => this._registerVoice(voiceId, nextTypeName),
+      unregisterVoice: (voiceId, nextTypeName) => this._unregisterVoice(voiceId, nextTypeName),
+      disconnectSafely: (...nodes) => this._disconnectSafely(...nodes),
+      randomSpread: (amount) => this._randomSpread(amount),
     });
   }
 
   _createBgmVoice(id, def) {
-    const ctx = this._ctx;
-    if (!ctx || !this._bgmBus) return null;
-
-    const output = ctx.createGain();
-    const toneGainA = ctx.createGain();
-    const toneGainB = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    const lfo = ctx.createOscillator();
-    const lfoDepth = ctx.createGain();
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(id === 'boss' ? 1100 : 1800, ctx.currentTime);
-    filter.Q.setValueAtTime(0.5, ctx.currentTime);
-
-    output.connect(filter);
-    filter.connect(this._bgmBus);
-
-    const oscA = ctx.createOscillator();
-    oscA.type = def.waveA;
-    oscA.frequency.setValueAtTime(def.baseFreq, ctx.currentTime);
-
-    const oscB = ctx.createOscillator();
-    oscB.type = def.waveB;
-    oscB.frequency.setValueAtTime(def.baseFreq * def.interval, ctx.currentTime);
-
-    toneGainA.gain.setValueAtTime(0.55, ctx.currentTime);
-    toneGainB.gain.setValueAtTime(0.25, ctx.currentTime);
-
-    oscA.connect(toneGainA);
-    oscB.connect(toneGainB);
-    toneGainA.connect(output);
-    toneGainB.connect(output);
-
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(def.lfoRate, ctx.currentTime);
-    lfoDepth.gain.setValueAtTime(def.lfoDepth, ctx.currentTime);
-    lfo.connect(lfoDepth);
-    lfoDepth.connect(oscA.frequency);
-
-    oscA.start(ctx.currentTime);
-    oscB.start(ctx.currentTime);
-    lfo.start(ctx.currentTime);
-
-    return {
+    return createBgmVoice({
+      ctx: this._ctx,
+      bgmBus: this._bgmBus,
       id,
-      output,
-      filter,
-      lfo,
-      lfoDepth,
-      oscillators: [oscA, oscB],
-      gains: [toneGainA, toneGainB],
-    };
+      def,
+    });
   }
 
   _disposeBgm(bgm, afterSeconds = 0.02) {
-    if (!this._ctx || !bgm) return;
-    const stopAt = this._ctx.currentTime + Math.max(0.01, afterSeconds);
-
-    for (const osc of bgm.oscillators ?? []) {
-      try { osc.stop(stopAt); } catch {}
-    }
-    try { bgm.lfo?.stop(stopAt); } catch {}
-
-    const delayMs = Math.ceil((afterSeconds + 0.05) * 1000);
-    window.setTimeout(() => {
-      this._disconnectSafely(
-        ...(bgm.oscillators ?? []),
-        ...(bgm.gains ?? []),
-        bgm.lfo,
-        bgm.lfoDepth,
-        bgm.filter,
-        bgm.output,
-      );
-    }, delayMs);
+    disposeBgmVoice({
+      ctx: this._ctx,
+      bgm,
+      afterSeconds,
+      disconnectSafely: (...nodes) => this._disconnectSafely(...nodes),
+    });
   }
 
   _duckBgm(amount = 0.25, attack = 0.02, hold = 0.2) {
@@ -674,10 +489,12 @@ export class SoundSystem {
     this._activeVoicesByType.clear();
 
     if (this._ctx) {
-      try { this._masterBus?.disconnect(); } catch {}
-      try { this._bgmBus?.disconnect(); } catch {}
-      try { this._sfxBus?.disconnect(); } catch {}
-      try { this._compressor?.disconnect(); } catch {}
+      disconnectSoundGraph({
+        masterBus: this._masterBus,
+        bgmBus: this._bgmBus,
+        sfxBus: this._sfxBus,
+        compressor: this._compressor,
+      });
 
       this._ctx.close().catch(() => {});
     }

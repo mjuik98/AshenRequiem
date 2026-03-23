@@ -63,6 +63,9 @@ npm run dev
 # 데이터 무결성 검증 (순환 참조, 잘못된 ID 등)
 npm run validate
 
+# scoped checkJs 기반 타입 검증
+npm run typecheck
+
 # 전체 단위 테스트 실행 (Node.js Test Runner)
 npm test
 
@@ -71,4 +74,7 @@ npm run test:smoke
 
 # 단위 테스트 + smoke까지 한 번에 검증
 npm run verify
+
+# 파이프라인 성능 요약(JSON)
+npm run profile:json
 ```
