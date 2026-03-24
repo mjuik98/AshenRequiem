@@ -86,7 +86,7 @@ export function renderPauseHeader({
         <div class="pv-pause-icon" aria-hidden="true">
           <div class="pv-pbar"></div><div class="pv-pbar"></div>
         </div>
-        <span class="pv-pause-title">Paused</span>
+        <span class="pv-pause-title">일시정지</span>
       </div>
       <div class="pv-run-stats" aria-label="현재 런 정보">
         <div class="pv-run-stat"><span class="pv-run-val">${escapeHtml(timeStr)}</span><span class="pv-run-key">생존</span></div>

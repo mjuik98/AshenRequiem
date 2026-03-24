@@ -1,3 +1,5 @@
+import { buildAccessoryCurrentDesc } from '../../data/accessoryDataHelpers.js';
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -107,8 +109,12 @@ export function buildPauseAccessoryTooltipContent({
 
   const evoData = data?.weaponEvolutionData ?? [];
   const weaponById = indexes?.weaponById ?? new Map();
+  const accessoryDefinition = indexes?.accessoryById?.get(accessoryId)
+    ?? data?.accessoryData?.find((candidate) => candidate.id === accessoryId)
+    ?? accessory;
   const evoRecipes = evoData.filter((recipe) => recipe.requires?.accessoryIds?.includes(accessoryId));
   const rarityLabel = accessory.rarity === 'rare' ? '희귀' : '일반';
+  const currentEffects = buildAccessoryCurrentDesc(accessoryDefinition, accessory.level ?? 1).slice(0, 2);
   const evolutionSummary = evoRecipes.length > 0
     ? evoRecipes.map((recipe) => {
         const weaponName = weaponById.get(recipe.requires?.weaponId)?.name ?? recipe.requires?.weaponId ?? '무기';
@@ -119,6 +125,7 @@ export function buildPauseAccessoryTooltipContent({
   return `
     <div class="pvt-header">${escapeHtml(accessory.name ?? accessory.id ?? '장신구')} <span class="pvt-rarity pvt-rarity-${escapeHtml(accessory.rarity ?? 'common')}">${rarityLabel}</span></div>
     <div class="pvt-meta">Lv.${escapeHtml(String(accessory.level ?? 1))}${accessory.rarity === 'rare' ? ' · 희귀' : ''}</div>
+    ${currentEffects.map((line) => `<div class="pvt-meta pvt-effect">${escapeHtml(line)}</div>`).join('')}
     ${evolutionSummary ? `<div class="pvt-meta">${escapeHtml(evolutionSummary)}</div>` : ''}
     <div class="pvt-note">핵심 설명은 상세 패널에서 확인하세요.</div>
   `;

@@ -10,20 +10,27 @@
  *
  *   this._pipeline = new Pipeline();
  *   this._pipeline
+ *     .register(WorldTickSystem,     { priority: 0 })
  *     .register(this._spawnSystem,    { priority: 10 })
  *     .register(PlayerMovementSystem, { priority: 20 })
- *     .register(EnemyMovementSystem,  { priority: 30 })
+ *     .register(this._enemyMovementSystem, { priority: 30 })
  *     .register(EliteBehaviorSystem,  { priority: 35 })
  *     .register(WeaponSystem,         { priority: 40 })
  *     .register(ProjectileSystem,     { priority: 50 })
- *     .register(CollisionSystem,      { priority: 60 })
+ *     .register(this._collisionSystem,{ priority: 60 })
  *     .register(StatusEffectSystem,   { priority: 65 })
  *     .register(DamageSystem,         { priority: 70 })
  *     .register(DeathSystem,          { priority: 80 })
  *     .register(ExperienceSystem,     { priority: 90 })
+ *     .register(this._synergySystem,  { priority: 95 })
+ *     .register(WeaponEvolutionSystem,{ priority: 96 })
  *     .register(LevelSystem,          { priority: 100 })
+ *     .register(UpgradeApplySystem,   { priority: 101 })
+ *     .register(this._eventRegistry.asSystem(), { priority: 105 })
+ *     .register(EffectTickSystem,     { priority: 108 })
  *     .register(this._flushSystem,    { priority: 110 })
  *     .register(CameraSystem,         { priority: 120 })
+ *     .register(this._cullingSystem,  { priority: 125 })
  *     .register(RenderSystem,         { priority: 130 });
  *
  * USAGE (_runGamePipeline 교체):

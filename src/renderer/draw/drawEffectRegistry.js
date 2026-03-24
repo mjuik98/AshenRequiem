@@ -116,6 +116,60 @@ function drawBurst(ctx, effect, camera, _dpr) {
   }
 }
 
+function drawChainLightning(ctx, effect, camera, _dpr) {
+  const points = Array.isArray(effect.chainPoints) ? effect.chainPoints : null;
+  if (!points || points.length < 2) return;
+
+  const progress = Math.min(1, effect.lifetime / Math.max(0.001, effect.maxLifetime || 0.16));
+  const alpha = Math.max(0, 1 - progress * 1.15);
+  const outerWidth = Math.max(2, (effect.radius ?? 10) * (1.15 - progress * 0.45));
+  const innerWidth = Math.max(1, outerWidth * 0.42);
+  const color = effect.color ?? '#b388ff';
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.setLineDash([]);
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const from = points[index];
+    const to = points[index + 1];
+    const startX = from.x - camera.x;
+    const startY = from.y - camera.y;
+    const endX = to.x - camera.x;
+    const endY = to.y - camera.y;
+    const midX = (startX + endX) * 0.5;
+    const midY = (startY + endY) * 0.5;
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const length = Math.hypot(dx, dy) || 1;
+    const normalX = -dy / length;
+    const normalY = dx / length;
+    const bend = Math.min(18, length * 0.12) * (index % 2 === 0 ? 1 : -1) * (1 - progress * 0.4);
+
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.lineWidth = outerWidth;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.quadraticCurveTo(midX + normalX * bend, midY + normalY * bend, endX, endY);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#f7fbff';
+    ctx.shadowColor = '#f7fbff';
+    ctx.shadowBlur = 8;
+    ctx.lineWidth = innerWidth;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.quadraticCurveTo(midX + normalX * bend * 0.65, midY + normalY * bend * 0.65, endX, endY);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 // ── 레지스트리 ────────────────────────────────────────────────────────
 
 /**
@@ -126,6 +180,7 @@ const _registry = new Map([
   ['damageText', drawDamageText],
   ['levelFlash', drawLevelFlash],
   ['burst',      drawBurst],
+  ['chainLightning', drawChainLightning],
 ]);
 
 /**

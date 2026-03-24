@@ -123,6 +123,23 @@ test('이미 보유한 weapon_new는 선택지에 등장하지 않음', () => {
   );
 });
 
+test('진화 무기를 이미 보유 중이면 기반 weapon_new는 선택지에 등장하지 않음', () => {
+  if (!UpgradeSystem) return;
+  const player = makePlayer({
+    weapons: [{ id: 'helios_lance', level: 1, currentCooldown: 0 }],
+    accessories: [{ id: 'arcane_prism', level: 1 }],
+    unlockedWeapons: ['solar_ray'],
+    maxWeaponSlots: 6,
+    evolvedWeapons: new Set(['evolution_helios_lance']),
+  });
+  const choices = UpgradeSystem._buildAvailablePool(player, {}, makeUpgradeRuntimeData());
+  assert.equal(
+    choices.some((choice) => choice.type === 'weapon_new' && choice.weaponId === 'solar_ray'),
+    false,
+    '헬리오스 랜스 보유 중인데 태양 광선 신규 카드가 다시 후보에 등장함',
+  );
+});
+
 test('잠긴 weapon_new는 선택지에 등장하지 않음', () => {
   if (!UpgradeSystem) return;
   const player = makePlayer({

@@ -15,16 +15,16 @@ export const PAUSE_LOADOUT_CSS = `
     display: flex; align-items: center; gap: 9px; width: 100%;
     padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
     background: rgba(26,22,38,1); cursor: pointer; text-align: left; color: rgba(244,237,224,0.88);
-    transition: border-color 0.12s ease, background 0.12s ease;
+    transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
   }
-  .pv-slot-card:hover:not(:disabled) { border-color: rgba(212,175,106,0.3); background: rgba(33,29,46,1); }
+  .pv-slot-card:hover:not(:disabled) { border-color: rgba(212,175,106,0.3); background: rgba(33,29,46,1); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.18); }
   .pv-slot-card:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(212,175,106,0.4); }
-  .pv-slot-card.selected, .pv-slot-card[aria-pressed="true"] { border-color: rgba(212,175,106,0.6); background: rgba(212,175,106,0.08); }
+  .pv-slot-card.selected, .pv-slot-card[aria-pressed="true"] { border-color: rgba(212,175,106,0.7); background: linear-gradient(180deg, rgba(212,175,106,0.12), rgba(212,175,106,0.05)); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 10px 22px rgba(0,0,0,0.22); }
   .pv-slot-card.state-empty { opacity: 0.5; border-style: dashed; }
   .pv-slot-card.state-locked { opacity: 0.4; cursor: default; }
-  .pv-slot-card.state-evolution-ready { border-color: #d4af6a; }
-  .pv-slot-card.state-synergy-active { border-color: rgba(126,205,232,0.35); }
-  .pv-slot-card.state-rare { border-color: rgba(206,147,216,0.3); }
+  .pv-slot-card.state-evolution-ready { border-color: #d4af6a; box-shadow: inset 0 0 0 1px rgba(212,175,106,0.08); }
+  .pv-slot-card.state-synergy-active { border-color: rgba(126,205,232,0.42); box-shadow: inset 0 0 0 1px rgba(126,205,232,0.08); }
+  .pv-slot-card.state-rare { border-color: rgba(206,147,216,0.42); }
   .pv-slot-icon-box { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); }
   .pv-slot-icon-box.weapon { background: rgba(212,175,106,0.1); border-color: rgba(212,175,106,0.22); }
   .pv-slot-icon-box.acc { background: rgba(126,205,232,0.1); border-color: rgba(126,205,232,0.2); }
@@ -43,7 +43,7 @@ export const PAUSE_LOADOUT_CSS = `
   .pv-slot-dot.filled.max { background: #f0d898; }
   .pv-slot-syn-dot { width: 6px; height: 6px; border-radius: 50%; background: #7ecde8; }
   .pv-slot-evo-chip { font-size: 9px; color: #d4af6a; background: rgba(212,175,106,0.12); border: 1px solid rgba(212,175,106,0.28); border-radius: 4px; padding: 1px 5px; font-weight: 700; }
-  .pv-loadout-detail { display: flex; flex-direction: column; gap: 12px; min-height: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)); border: 1px solid rgba(212,175,106,0.18); box-shadow: 0 18px 40px rgba(0,0,0,0.28); }
+  .pv-loadout-detail { display: flex; flex-direction: column; gap: 12px; min-height: 100%; padding: 16px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.018)); border: 1px solid rgba(212,175,106,0.18); box-shadow: 0 18px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.03); }
   .pv-loadout-detail-header, .pv-loadout-power, .pv-loadout-linked-items, .pv-loadout-synergy, .pv-loadout-evolution { padding: 0 0 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
   .pv-loadout-evolution { border-bottom: 0; padding-bottom: 0; }
   .pv-loadout-detail-hero { display: flex; align-items: flex-start; gap: 12px; }

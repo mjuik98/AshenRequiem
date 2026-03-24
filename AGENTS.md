@@ -8,6 +8,8 @@
 This project is an **HTML / JavaScript vampire-survivors-like game**.
 The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression, Bosses, complex Synergies, and Save/Load, while maintaining a stable combat loop based on strict responsibilities.
 
+`AGENTS.md`는 **규범 문서**다. 현재 구현 상태, 씬 목록, 세부 파이프라인 구성처럼 자주 변하는 사실관계는 `docs/architecture-current.md`에 기록하고, 여기에는 **지속해서 강제할 규칙과 계약**만 남긴다.
+
 ---
 
 ## 2. 최우선 행동 원칙 (AI Agent Core Rules)
@@ -23,7 +25,8 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
    - 관련 없는 파일을 무분별하게 건드리지 않고, 확장이 필요하다면 새로운 behavior나 handler를 등록하는 패턴을 쓴다.
 4. **module-level static state 금지 (R-시리즈)**
    - 시스템 객체가 module scope에 SpatialGrid, 버퍼 배열 등을 선언하지 않는다.
-   - 모든 시스템은 `createXxxSystem()` factory 함수로 생성하며, 상태는 클로저 내부에 보유한다.
+   - **상태를 가지는 시스템**은 `createXxxSystem()` factory 함수로 생성하고, 상태는 클로저 내부에 보유한다.
+   - 상태 없는 시스템은 singleton으로 둘 수 있지만, module-level static state를 새로 도입하면 안 된다.
 5. **테스트 전용 메서드 금지 (R-시리즈)**
    - `_testWithData` 등 테스트를 위한 우회 메서드를 프로덕션 코드에 노출하지 않는다.
 
@@ -51,52 +54,34 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 ---
 
 ## 4. Standard Frame Pipeline (PlayScene)
-`PlayContext.buildPipeline()` → `Pipeline` 인스턴스에 등록된 순서 (priority 오름차순):
+`PlayContext.buildPipeline()`은 `PipelineBuilder`가 팩토리 시스템 인스턴스를 만들고, `SYSTEM_REGISTRY`의 상태 없는 시스템을 함께 등록해 파이프라인을 구성한다.
 
-| Priority | System |
-|----------|--------|
-| 10  | SpawnSystem (instance) |
-| 20  | PlayerMovementSystem |
-| 30  | EnemyMovementSystem |
-| 35  | EliteBehaviorSystem |
-| 40  | WeaponSystem |
-| 50  | ProjectileSystem |
-| 60  | CollisionSystem |
-| 65  | StatusEffectSystem |
-| 70  | DamageSystem |
-| 75  | BossPhaseSystem |
-| 80  | DeathSystem |
-| 90  | ExperienceSystem |
-| 100 | LevelSystem |
-| 105 | EventRegistry (asSystem) | |
-| 108 | EffectTickSystem | |
-| 110 | FlushSystem (instance) | |
-| 120 | CameraSystem | |
-| **125** | **CullingSystem (factory)** | **R-10 신규** |
-| 130 | RenderSystem | |
+현재 기준 등록 순서는 아래와 같다.
 
 | Priority | System | 패턴 |
 |----------|--------|------|
 | 0   | WorldTickSystem (이벤트 큐 초기화 + 시간 갱신) | singleton |
-| 10  | SpawnSystem (instance) | factory |
+| 10  | SpawnSystem | factory instance |
 | 20  | PlayerMovementSystem | singleton |
-| 30  | EnemyMovementSystem | **factory** (R-06) |
+| 30  | EnemyMovementSystem | factory instance (R-06) |
 | 35  | EliteBehaviorSystem | singleton |
 | 40  | WeaponSystem | singleton |
 | 50  | ProjectileSystem | singleton |
-| 60  | CollisionSystem | **factory** (R-05) |
+| 60  | CollisionSystem | factory instance (R-05) |
 | 65  | StatusEffectSystem | singleton |
 | 70  | DamageSystem | singleton |
 | 75  | BossPhaseSystem | singleton |
 | 80  | DeathSystem | singleton |
 | 90  | ExperienceSystem | singleton |
+| 95  | SynergySystem | factory instance |
+| 96  | WeaponEvolutionSystem | singleton |
 | 100 | LevelSystem | singleton |
-| **101** | **UpgradeApplySystem** | singleton (R-19 신규) |
-| 105 | EventRegistry.asSystem | singleton |
+| 101 | UpgradeApplySystem | singleton (R-19) |
+| 105 | EventRegistry.asSystem() | registry instance |
 | 108 | EffectTickSystem | singleton |
-| 110 | FlushSystem (instance) | factory |
+| 110 | FlushSystem | singleton |
 | 120 | CameraSystem | singleton |
-| 125 | CullingSystem (factory) | factory |
+| 125 | CullingSystem | factory instance |
 | 130 | RenderSystem | singleton |
 
 ---
@@ -172,7 +157,8 @@ getLiveEnemies(enemies)
 
 ### 6.5 컨텍스트 (`PlayContext`) / 파이프라인 규칙
 - factory 시스템(`createXxxSystem()`)은 PipelineBuilder가 인스턴스를 생성함
-- SYSTEM_REGISTRY에 `{ factory: createXxxSystem, priority: N }` 형태로 등록
+- `SYSTEM_REGISTRY`에는 **상태 없는 singleton 시스템만** `{ system, priority }` 형태로 등록한다.
+- 상태를 가지는 factory 시스템은 `PipelineBuilder`에서 직접 생성하고 `pipeline.register()` 한다.
 
 ### 6.6 이벤트 (`EventRegistry`) 규칙
 - 새 이벤트 타입은 `src/data/constants/events.js`의 `EVENT_TYPES`에 추가
@@ -207,4 +193,6 @@ src/
 ```
 
 ---
-> 작업 중 설계 충돌이 발견되거나, 위 규칙으로 설명할 수 없는 기능적 확장이 필요할 경우, 문서를 최신화하고 AGENTS.md(현재 문서)에 변경 로그를 남긴 후 실행한다.
+> 작업 중 설계 충돌이 발견되거나, 위 규칙으로 설명할 수 없는 기능적 확장이 필요할 경우:
+> 1. 규칙 자체가 바뀌면 `AGENTS.md`를 갱신한다.
+> 2. 현재 구현 사실만 바뀌면 `docs/architecture-current.md`를 갱신한다.

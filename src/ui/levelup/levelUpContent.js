@@ -4,7 +4,7 @@ function getTypeClass(type) {
     case 'weapon_new':
     case 'weapon_upgrade':
     case 'weapon_evolution':
-      return 'type-weapon';
+      return 'type-weapon type-evolution';
     case 'stat': return 'type-stat';
     case 'accessory': return 'type-accessory';
     case 'slot': return 'type-slot';
@@ -62,13 +62,22 @@ export function buildLevelUpCardMarkup({
   const typeClass = getTypeClass(upgrade?.type);
   const badge = getBadge(upgrade?.type);
   const rerollDisabled = rerollsRemaining <= 0 || banishMode;
+  const relatedHints = Array.isArray(upgrade?.relatedHints) ? upgrade.relatedHints : [];
+  const icon = upgrade?.icon ?? (upgrade?.type === 'weapon_evolution' ? '✦' : upgrade?.type === 'accessory' || upgrade?.type === 'accessory_upgrade' ? '◆' : upgrade?.type === 'slot' ? '⬒' : upgrade?.type === 'stat' ? '✚' : '⚔');
+  const badgeClass = upgrade?.type === 'weapon_evolution' ? ' card-badge-evolution' : '';
 
   return `
     <div class="levelup-card-shell" data-index="${index}">
       <div class="levelup-card ${typeClass}${banishMode ? ' is-banish-mode' : ''}">
-        ${badge ? `<div class="card-badge">${badge}</div>` : ''}
+        ${badge ? `<div class="card-badge${badgeClass}">${badge}</div>` : ''}
+        <div class="card-icon" aria-hidden="true">${icon}</div>
         <div class="card-name">${upgrade?.name ?? ''}</div>
         <div class="card-desc">${upgrade?.description ?? ''}</div>
+        ${relatedHints.length > 0 ? `
+          <div class="card-related-hints">
+            ${relatedHints.map((hint) => `<span class="card-related-chip">${hint}</span>`).join('')}
+          </div>
+        ` : ''}
         ${upgrade?.type === 'slot' ? '<div class="card-slot-hint">슬롯 확장</div>' : ''}
       </div>
       <div class="card-footer-actions">

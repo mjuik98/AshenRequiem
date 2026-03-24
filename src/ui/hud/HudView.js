@@ -107,13 +107,25 @@ export class HudView {
       }
       .hud-stats {
         display: flex; justify-content: space-between; align-items: flex-start;
-        font-size: 13px; color: #eee; font-family: 'Segoe UI', sans-serif;
+        font-size: 13px; color: #eee; font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
         padding: 4px 12px;
         text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6);
       }
       .hud-right-stats {
-        display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+        display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px;
+        max-width: 420px;
       }
+      .hud-level,
+      .hud-right-stats span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(10,14,22,0.82), rgba(10,14,22,0.62));
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+      .hud-level { border-color: rgba(212,175,106,0.22); }
       .hud-gold { color: #ffd54f; }
       .hud-curse { color: #ef9a9a; }
 

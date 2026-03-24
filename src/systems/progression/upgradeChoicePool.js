@@ -26,6 +26,17 @@ function getEvolutionResultWeapon(recipe, data) {
   return getWeaponDef(recipe?.resultWeaponId, data);
 }
 
+function isBaseWeaponBlockedByOwnedEvolution(weaponId, player, data) {
+  const recipes = data?.weaponEvolutionData ?? [];
+  return recipes.some((recipe) => {
+    if (recipe?.requires?.weaponId !== weaponId) return false;
+    const resultWeaponId = recipe?.resultWeaponId;
+    if (!resultWeaponId) return false;
+    return player?.weapons?.some((weapon) => weapon.id === resultWeaponId)
+      || (player?.evolvedWeapons?.has?.(recipe.id) ?? false);
+  });
+}
+
 function getAccessoryNames(accessoryIds = [], data) {
   return accessoryIds
     .map((accessoryId) => getAccessoryDef(accessoryId, data)?.name ?? accessoryId)
@@ -101,6 +112,7 @@ export function buildUpgradeChoicePool(player, options = {}, data = {}) {
       if (!definition?.isEvolved
           && unlockedWeapons.includes(upgrade.weaponId)
           && player.weapons.length < maxWeaponSlots
+          && !isBaseWeaponBlockedByOwnedEvolution(upgrade.weaponId, player, data)
           && !player.weapons.find((weapon) => weapon.id === upgrade.weaponId)) {
         picks.push(upgrade);
       }

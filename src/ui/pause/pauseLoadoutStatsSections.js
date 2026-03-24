@@ -1,4 +1,4 @@
-import { buildAccessoryLevelDesc } from '../../data/accessoryDataHelpers.js';
+import { buildAccessoryCurrentDesc } from '../../data/accessoryDataHelpers.js';
 import {
   escapeHtml,
   formatCompactNumber,
@@ -142,12 +142,13 @@ export function renderPauseWeaponStatsSection(weapon, player) {
 
 export function renderPauseAccessoryStatsSection(selectedItem, indexes) {
   const definition = indexes?.accessoryById?.get(selectedItem.source.id);
-  const lines = definition ? buildAccessoryLevelDesc(definition) : [];
+  const currentLevel = selectedItem?.source?.level ?? selectedItem?.level ?? 1;
+  const lines = definition ? buildAccessoryCurrentDesc(definition, currentLevel) : [];
   if (lines.length === 0) return '';
 
   return `
     <div class="pv-loadout-stats-section">
-      <h4 class="pv-loadout-section-title">레벨별 효과</h4>
+      <h4 class="pv-loadout-section-title">효과</h4>
       ${lines.map((line) => `<div class="pv-loadout-level-line">${escapeHtml(line)}</div>`).join('')}
     </div>
   `;

@@ -91,6 +91,7 @@ test('기본 3종 effectType이 등록되어 있다', () => {
   assert(types.has('damageText'), 'damageText 미등록');
   assert(types.has('levelFlash'), 'levelFlash 미등록');
   assert(types.has('burst'),      'burst 미등록');
+  assert(types.has('chainLightning'), 'chainLightning 미등록');
 });
 
 test('미등록 타입은 burst draw 함수로 폴백된다', () => {
@@ -143,6 +144,25 @@ test('levelFlash draw 함수가 예외 없이 실행된다 (setTransform 필요)
   const fn = getEffectDraw('levelFlash');
   assert.doesNotThrow(() => {
     fn(ctx, makeEffect({ effectType: 'levelFlash', lifetime: 0.2, maxLifetime: 0.6 }), camera, 2);
+  });
+});
+
+test('chainLightning draw 함수가 연쇄 포인트 기반으로 예외 없이 실행된다', () => {
+  const { ctx } = makeCtx();
+  const fn = getEffectDraw('chainLightning');
+  assert.doesNotThrow(() => {
+    fn(ctx, makeEffect({
+      effectType: 'chainLightning',
+      color: '#b388ff',
+      radius: 14,
+      chainPoints: [
+        { x: 100, y: 100 },
+        { x: 160, y: 96 },
+        { x: 220, y: 118 },
+      ],
+      lifetime: 0.05,
+      maxLifetime: 0.16,
+    }), camera, 1);
   });
 });
 

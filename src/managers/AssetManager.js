@@ -30,11 +30,10 @@
  *   // 에셋 사용
  *   const img = assets.get('player'); // HTMLImageElement | null
  *
- * MVP 전략:
- *   현재 Canvas 렌더링은 코드로 직접 그리므로 에셋이 없어도 동작한다.
- *   그러나 스프라이트 / 사운드 파일이 추가되는 시점에 AssetManager 없이
- *   로드 순서를 관리하면 Scene 진입 타이밍 버그가 발생한다.
- *   지금 이 인터페이스를 정의해두면 에셋 추가 시 소급 적용 비용이 없다.
+ * 현재 전략:
+ *   현재 Canvas 렌더링은 코드로 직접 그리는 비중이 크므로 에셋이 없어도 기본 동작은 가능하다.
+ *   하지만 스프라이트 / 사운드 파일이 늘어날수록 로드 순서를 중앙에서 관리하지 않으면
+ *   Scene 진입 타이밍 버그가 생기기 쉬우므로 AssetManager를 유지한다.
  */
 export class AssetManager {
   constructor() {
@@ -186,8 +185,7 @@ export class AssetManager {
       const arrayBuffer = await response.arrayBuffer();
 
       // AudioContext는 사용자 인터랙션 후 생성되어야 하므로
-      // 여기서는 ArrayBuffer만 보관하고 실제 decode는 SoundSystem에서 처리
-      // (MVP에서는 SoundSystem이 Web Audio API로 절차적 사운드를 생성하므로 미사용)
+      // 여기서는 ArrayBuffer만 보관하고 실제 decode는 SoundSystem에서 처리한다.
       this._cache.set(id, arrayBuffer);
       this._loadedCount++;
     } catch (e) {

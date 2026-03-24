@@ -139,10 +139,16 @@ test('bonusProjectileCount 반영 시 chainLightning 무기가 더 많은 연쇄
     damage: 12,
   };
   const events = { hits: [] };
+  const spawnQueue = [];
 
-  const fired = chainLightning({ weapon, player, enemies, spawnQueue: [], events });
+  const fired = chainLightning({ weapon, player, enemies, spawnQueue, events });
   assert.equal(fired, true, 'chainLightning 발동 실패');
   assert.equal(events.hits.length, 5, `연쇄 타격 수: ${events.hits.length} (기대: 5)`);
+  assert.equal(
+    spawnQueue.some((request) => request.type === 'effect' && request.config?.effectType === 'chainLightning'),
+    true,
+    'chainLightning가 시각 이펙트를 스폰하지 않음',
+  );
 });
 
 summary();

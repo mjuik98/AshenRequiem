@@ -5,6 +5,69 @@ import { drawEnemy }              from './draw/drawEnemy.js';
 import { drawProjectile }         from './draw/drawProjectile.js';
 import { drawEffect, drawPickup } from './draw/drawEffect.js';
 
+function drawProjectileLowQuality(ctx, proj, camera) {
+  if (!proj?.isAlive) return;
+
+  const sx = proj.x - camera.x;
+  const sy = proj.y - camera.y;
+  const radius = proj.radius ?? 5;
+  const behaviorId = proj.behaviorId ?? 'default';
+
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
+
+  switch (behaviorId) {
+    case 'ricochetProjectile':
+      ctx.translate(sx, sy);
+      ctx.rotate(Math.atan2(proj.dirY ?? 0, proj.dirX ?? 1));
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(0, radius * 0.8);
+      ctx.lineTo(-radius, 0);
+      ctx.lineTo(0, -radius * 0.8);
+      ctx.closePath();
+      ctx.fillStyle = proj.color ?? '#8ecae6';
+      ctx.fill();
+      break;
+    case 'boomerang':
+      ctx.translate(sx, sy);
+      ctx.rotate(proj.angle ?? 0);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 1.45, radius * 0.58, 0, 0, Math.PI * 2);
+      ctx.fillStyle = proj.color ?? '#ffaa00';
+      ctx.fill();
+      break;
+    case 'laserBeam':
+      ctx.translate(sx, sy);
+      ctx.rotate(proj.beamAngle ?? 0);
+      ctx.fillStyle = proj.color ?? '#ffd166';
+      ctx.fillRect(
+        -(proj.beamLength ?? 16) * 0.5,
+        -(radius ?? 8) * 0.35,
+        proj.beamLength ?? 16,
+        (radius ?? 8) * 0.7,
+      );
+      break;
+    case 'groundZone':
+    case 'areaBurst':
+      ctx.globalAlpha = behaviorId === 'groundZone' ? 0.55 : 0.48;
+      ctx.beginPath();
+      ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = proj.color ?? '#ff7043';
+      ctx.fill();
+      break;
+    default:
+      ctx.beginPath();
+      ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = proj.color ?? '#ffee58';
+      ctx.fill();
+      break;
+  }
+
+  ctx.restore();
+}
+
 /**
  * CanvasRenderer — Canvas 클리어 + 배경 그리기 및 IRenderer 구현
  *
@@ -98,27 +161,17 @@ export class CanvasRenderer {
   }
 
   /**
-   * [P2-③ FIX] lowQuality=true이면 투사체를 단순 원으로 렌더해 GPU 부하 절감.
+   * lowQuality=true이면 behavior별 경량 실루엣으로 렌더해 비용을 줄인다.
+   * 글로우와 세부 연출은 끄되, 무기별 형태 차이는 유지한다.
    */
   drawProjectiles(projectiles, camera, lowQuality = false) {
-    const ctx = this.ctx;
+    const useLowQuality = lowQuality || this._lowQuality;
 
-    if (lowQuality || this._lowQuality) {
-      for (let i = 0; i < projectiles.length; i++) {
-        const proj = projectiles[i];
-        if (!proj.isAlive) continue;
-
-        const sx = proj.x - camera.x;
-        const sy = proj.y - camera.y;
-
-        ctx.fillStyle = proj.color ?? '#ffee58';
-        ctx.beginPath();
-        ctx.arc(sx, sy, proj.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else {
-      for (let i = 0; i < projectiles.length; i++) {
-        drawProjectile(ctx, projectiles[i], camera);
+    for (let i = 0; i < projectiles.length; i++) {
+      if (useLowQuality) {
+        drawProjectileLowQuality(this.ctx, projectiles[i], camera);
+      } else {
+        drawProjectile(this.ctx, projectiles[i], camera, false);
       }
     }
   }

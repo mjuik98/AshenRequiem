@@ -8,11 +8,7 @@
 
 import { Pipeline }  from './Pipeline.js';
 import { SYSTEM_REGISTRY } from '../systems/index.js';
-import { createCollisionSystem }     from '../systems/combat/CollisionSystem.js';
-import { createEnemyMovementSystem } from '../systems/movement/EnemyMovementSystem.js';
-import { createSpawnSystem }         from '../systems/spawn/SpawnSystem.js';
-import { createCullingSystem }       from '../systems/render/CullingSystem.js';
-import { createSynergySystem }       from '../systems/progression/SynergySystem.js';
+import { PIPELINE_FACTORY_SYSTEMS } from './architectureSnapshot.js';
 
 import { registerChestRewardHandler } from '../systems/event/chestRewardHandler.js';
 import { registerBossPhaseHandler }   from '../systems/event/bossPhaseHandler.js';
@@ -48,11 +44,9 @@ export class PipelineBuilder {
    * Pipeline을 생성하고 모든 시스템과 이벤트 핸들러를 등록한다.
    */
   build(world, input, data = {}) {
-    this._spawnSystem         = createSpawnSystem();
-    this._cullingSystem       = createCullingSystem();
-    this._collisionSystem     = createCollisionSystem();
-    this._enemyMovementSystem = createEnemyMovementSystem();
-    this._synergySystem       = createSynergySystem();
+    for (const spec of PIPELINE_FACTORY_SYSTEMS) {
+      this[spec.slot] = spec.create();
+    }
 
     const pipeline = new Pipeline();
 
@@ -94,12 +88,10 @@ export class PipelineBuilder {
 
   /** @private */
   _registerSystems(pipeline) {
-    pipeline.register(this._spawnSystem,         { priority: 10  });
-    pipeline.register(this._enemyMovementSystem, { priority: 30  });
-    pipeline.register(this._synergySystem,       { priority: 95  });
-    pipeline.register(this._collisionSystem,     { priority: 60  });
+    for (const spec of PIPELINE_FACTORY_SYSTEMS) {
+      pipeline.register(this[spec.slot], { priority: spec.priority });
+    }
     pipeline.register(this._eventRegistry.asSystem(), { priority: 105 });
-    pipeline.register(this._cullingSystem,       { priority: 125 });
 
     for (const { system, priority } of SYSTEM_REGISTRY) {
       pipeline.register(system, { priority });

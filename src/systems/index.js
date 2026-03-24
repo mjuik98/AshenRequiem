@@ -49,41 +49,41 @@ import { RenderSystem }         from './render/RenderSystem.js';
  */
 export const SYSTEM_REGISTRY = [
   // priority 0: world 메타 동기화
-  { system: WorldTickSystem,        priority: 0   },
+  { name: 'WorldTickSystem',        system: WorldTickSystem,       priority: 0   },
 
   // priority 20: 플레이어 이동 (상태 없음 → 싱글턴 유지)
-  { system: PlayerMovementSystem,   priority: 20  },
+  { name: 'PlayerMovementSystem',   system: PlayerMovementSystem,  priority: 20  },
 
   // priority 30: EnemyMovementSystem → PipelineBuilder에서 팩토리 등록
 
   // priority 35: 엘리트 chargeEffect 정리 (상태 없음)
-  { system: EliteBehaviorSystem,    priority: 35  },
+  { name: 'EliteBehaviorSystem',    system: EliteBehaviorSystem,   priority: 35  },
 
   // priority 40~75: 전투 (상태 없음)
-  { system: WeaponSystem,           priority: 40  },
-  { system: ProjectileSystem,       priority: 50  },
+  { name: 'WeaponSystem',           system: WeaponSystem,          priority: 40  },
+  { name: 'ProjectileSystem',       system: ProjectileSystem,      priority: 50  },
 
   // priority 60: CollisionSystem → PipelineBuilder에서 팩토리 등록
 
-  { system: StatusEffectSystem,     priority: 65  },
-  { system: DamageSystem,           priority: 70  },
-  { system: BossPhaseSystem,        priority: 75  },
+  { name: 'StatusEffectSystem',     system: StatusEffectSystem,    priority: 65  },
+  { name: 'DamageSystem',           system: DamageSystem,          priority: 70  },
+  { name: 'BossPhaseSystem',        system: BossPhaseSystem,       priority: 75  },
 
   // priority 80~100: 처리/성장
-  { system: DeathSystem,            priority: 80  },
-  { system: ExperienceSystem,       priority: 90  },
+  { name: 'DeathSystem',            system: DeathSystem,           priority: 80  },
+  { name: 'ExperienceSystem',       system: ExperienceSystem,      priority: 90  },
   // synergySystem (95) → PipelineBuilder에서 팩토리 등록
-  { system: WeaponEvolutionSystem,  priority: 96  },
-  { system: LevelSystem,            priority: 100 },
-  { system: UpgradeApplySystem,     priority: 101 },
+  { name: 'WeaponEvolutionSystem',  system: WeaponEvolutionSystem, priority: 96  },
+  { name: 'LevelSystem',            system: LevelSystem,           priority: 100 },
+  { name: 'UpgradeApplySystem',     system: UpgradeApplySystem,    priority: 101 },
 
   // priority 105: EventRegistry → PipelineBuilder에서 인스턴스 asSystem() 등록
 
   // priority 108~130: 정리/렌더
-  { system: EffectTickSystem,       priority: 108 },
-  { system: FlushSystem,            priority: 110 },
-  { system: CameraSystem,           priority: 120 },
-  { system: RenderSystem,           priority: 130 },
+  { name: 'EffectTickSystem',       system: EffectTickSystem,      priority: 108 },
+  { name: 'FlushSystem',            system: FlushSystem,           priority: 110 },
+  { name: 'CameraSystem',           system: CameraSystem,          priority: 120 },
+  { name: 'RenderSystem',           system: RenderSystem,          priority: 130 },
 ];
 
 // ── 개별 re-export (테스트 코드 등 직접 import 지원) ─────────────────────

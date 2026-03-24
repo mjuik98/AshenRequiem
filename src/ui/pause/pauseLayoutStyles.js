@@ -73,12 +73,13 @@ export const PAUSE_LAYOUT_CSS = `
   .pv-btn-resume:hover { box-shadow: 0 8px 24px rgba(212,175,106,0.18); }
   .pv-btn-arrow { width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 7px; border-color: transparent transparent transparent #d4af6a; }
   .pv-kbd { font-size: 10px; font-weight: 700; background: rgba(212,175,106,0.1); border: 1px solid rgba(212,175,106,0.25); border-radius: 5px; padding: 2px 7px; color: rgba(212,175,106,0.55); letter-spacing: 0; }
-  .pv-tooltip { position: fixed; z-index: 9999; pointer-events: none; background: #12101e; border: 1px solid rgba(212,175,106,0.25); border-radius: 10px; padding: 10px 13px; font-family: 'Segoe UI', sans-serif; font-size: 12px; color: rgba(255,255,255,0.82); min-width: 180px; max-width: 250px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); line-height: 1.5; }
+  .pv-tooltip { position: fixed; z-index: 9999; pointer-events: none; background: linear-gradient(180deg, rgba(22,18,34,0.98), rgba(12,10,20,0.98)); border: 1px solid rgba(212,175,106,0.25); border-radius: 12px; padding: 11px 13px; font-family: 'Noto Sans KR', 'Segoe UI', sans-serif; font-size: 12px; color: rgba(255,255,255,0.84); min-width: 200px; max-width: 268px; box-shadow: 0 14px 36px rgba(0,0,0,0.62); line-height: 1.5; }
   .pvt-header { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); margin-bottom: 8px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .pvt-lv { font-size: 10px; font-weight: 700; color: #d4af6a; background: rgba(212,175,106,0.12); border-radius: 20px; padding: 1px 7px; border: 1px solid rgba(212,175,106,0.22); }
   .pvt-rarity { font-size: 10px; font-weight: 700; border-radius: 20px; padding: 1px 7px; }
   .pvt-rarity-rare { color: #d4af6a; background: rgba(212,175,106,0.12); border: 1px solid rgba(212,175,106,0.22); }
   .pvt-rarity-common { color: rgba(200,190,160,0.6); background: rgba(200,190,160,0.08); border: 1px solid rgba(200,190,160,0.15); }
   .pvt-meta { font-size: 11px; color: rgba(255,255,255,0.62); margin-bottom: 5px; line-height: 1.45; }
+  .pvt-effect { color: rgba(243,235,214,0.82); }
   .pvt-note { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; color: rgba(212,175,106,0.74); }
 `;

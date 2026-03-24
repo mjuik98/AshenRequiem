@@ -30,7 +30,7 @@
  */
 
 import { getLiveEnemies, findClosestEnemy, findNearestFrom } from './weaponBehaviorUtils.js';
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnEffect, spawnProjectile } from '../../state/spawnRequest.js';
 
 /**
  * chainLightning — 연쇄 번개 즉발 공격
@@ -63,6 +63,22 @@ export function chainLightning({ weapon, player, enemies, spawnQueue, events }) 
     chain.push(nextTarget);
     visited.add(nextTarget.id);
   }
+
+  const chainPoints = [
+    { x: player.x, y: player.y },
+    ...chain.map((target) => ({ x: target.x, y: target.y })),
+  ];
+  spawnQueue.push(spawnEffect({
+    effectType: 'chainLightning',
+    x: player.x,
+    y: player.y,
+    config: {
+      chainPoints,
+      color: weapon.projectileColor ?? weapon.color ?? '#b388ff',
+      radius: weapon.radius ?? 12,
+      maxLifetime: 0.16,
+    },
+  }));
 
   // ── 데미지 적용 ──────────────────────────────────────────────────
   if (events?.hits) {

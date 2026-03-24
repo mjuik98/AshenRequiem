@@ -1,6 +1,113 @@
 import { transitionPlayMode, PlayMode } from '../../state/PlayMode.js';
 import { UpgradeSystem } from '../../systems/progression/UpgradeSystem.js';
 
+function buildOwnedRequirementTokens(player) {
+  const tokens = new Set();
+
+  for (const weapon of player?.weapons ?? []) {
+    if (weapon?.id) tokens.add(weapon.id);
+  }
+
+  for (const accessory of player?.accessories ?? []) {
+    if (!accessory?.id) continue;
+    tokens.add(accessory.id);
+    tokens.add(`acc_${accessory.id}`);
+  }
+
+  for (const upgradeId of player?.acquiredUpgrades ?? []) {
+    if (upgradeId) tokens.add(upgradeId);
+  }
+
+  return tokens;
+}
+
+function buildChoiceRequirementTokens(choice) {
+  const tokens = new Set();
+  if (!choice) return tokens;
+
+  if (choice.id) tokens.add(choice.id);
+
+  if (choice.type === 'weapon_new' || choice.type === 'weapon_upgrade' || choice.type === 'weapon_evolution') {
+    if (choice.weaponId) tokens.add(choice.weaponId);
+    if (choice.resultWeaponId) tokens.add(choice.resultWeaponId);
+  }
+
+  if (choice.type === 'accessory' || choice.type === 'accessory_upgrade') {
+    if (choice.accessoryId) {
+      tokens.add(choice.accessoryId);
+      tokens.add(`acc_${choice.accessoryId}`);
+    }
+  }
+
+  return tokens;
+}
+
+function hasEvolutionRelation(choice, player, data) {
+  const recipes = data?.weaponEvolutionData ?? [];
+
+  if (choice?.type === 'accessory' || choice?.type === 'accessory_upgrade') {
+    const accessoryId = choice.accessoryId;
+    return recipes.some((recipe) =>
+      recipe?.requires?.accessoryIds?.includes(accessoryId)
+      && player?.weapons?.some((weapon) => weapon.id === recipe?.requires?.weaponId)
+    );
+  }
+
+  if (choice?.type === 'weapon_new' || choice?.type === 'weapon_upgrade') {
+    const weaponId = choice.weaponId;
+    return recipes.some((recipe) =>
+      recipe?.requires?.weaponId === weaponId
+      && recipe?.requires?.accessoryIds?.some((accessoryId) =>
+        player?.accessories?.some((accessory) => accessory.id === accessoryId)
+      )
+    );
+  }
+
+  return false;
+}
+
+function hasSynergyRelation(choice, player, data) {
+  const candidateTokens = buildChoiceRequirementTokens(choice);
+  if (candidateTokens.size === 0) return false;
+
+  const ownedTokens = buildOwnedRequirementTokens(player);
+  const synergies = data?.synergyData ?? [];
+
+  return synergies.some((synergy) => {
+    const requirements = synergy?.requires ?? [];
+    const matchesChoice = requirements.some((requirement) => candidateTokens.has(requirement));
+    if (!matchesChoice) return false;
+
+    return requirements.some((requirement) => !candidateTokens.has(requirement) && ownedTokens.has(requirement));
+  });
+}
+
+function decorateChoicesWithRelations(choices, player, data) {
+  const weaponById = new Map((data?.weaponData ?? []).map((weapon) => [weapon.id, weapon]));
+  const accessoryById = new Map((data?.accessoryData ?? []).map((accessory) => [accessory.id, accessory]));
+
+  return (choices ?? []).map((choice) => {
+    const relatedHints = [];
+    if (hasEvolutionRelation(choice, player, data)) relatedHints.push('진화 연관');
+    if (hasSynergyRelation(choice, player, data)) relatedHints.push('시너지 연관');
+
+    let icon = choice?.icon;
+    if (!icon && choice?.type === 'weapon_evolution') {
+      icon = weaponById.get(choice?.resultWeaponId)?.icon ?? weaponById.get(choice?.weaponId)?.icon;
+    } else if (!icon && (choice?.type === 'weapon_new' || choice?.type === 'weapon_upgrade' || choice?.type === 'weapon')) {
+      icon = weaponById.get(choice?.weaponId)?.icon;
+    } else if (!icon && (choice?.type === 'accessory' || choice?.type === 'accessory_upgrade')) {
+      icon = accessoryById.get(choice?.accessoryId)?.icon;
+    }
+
+    return {
+      ...choice,
+      ...(relatedHints.length > 0 ? { relatedHints } : {}),
+      ...(icon ? { icon } : {}),
+    };
+  });
+}
+
 export function createLevelUpController({
   getWorld,
   getData = () => null,
@@ -29,9 +136,10 @@ export function createLevelUpController({
 
     const isChest = world.pendingLevelUpType === 'chest';
     const title = isChest ? '📦 상자 보상!' : '⬆ LEVEL UP';
+    const decoratedChoices = decorateChoicesWithRelations(choices, world.player, getCurrentData());
 
     showLevelUp?.({
-      choices,
+      choices: decoratedChoices,
       title,
       rerollsRemaining: world.runRerollsRemaining ?? 0,
       banishesRemaining: world.runBanishesRemaining ?? 0,

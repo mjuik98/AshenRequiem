@@ -6,6 +6,7 @@ const BASE_STATS = {
   lifesteal: 0,
   critChance: 0.05,
   critMultiplier: 2.0,
+  curse: 0,
   xpMult: 1.0,
   globalDamageMult: 1.0,
   currencyMult: 1.0,
@@ -56,6 +57,7 @@ export function renderPauseStats({
   const ls = (player?.lifesteal ?? BASE_STATS.lifesteal) * 100;
   const cc = (player?.critChance ?? BASE_STATS.critChance) * 100;
   const cm = (player?.critMultiplier ?? BASE_STATS.critMultiplier) * 100;
+  const curse = (player?.curse ?? BASE_STATS.curse) * 100;
   const xpm = (player?.xpMult ?? BASE_STATS.xpMult) * 100;
   const dmg = (player?.globalDamageMult ?? BASE_STATS.globalDamageMult) * 100;
   const gold = (player?.currencyMult ?? BASE_STATS.currencyMult) * 100;
@@ -95,6 +97,7 @@ export function renderPauseStats({
         ${renderStatCell('!', '크리티컬 확률', Math.round(BASE_STATS.critChance * 100), cc - (BASE_STATS.critChance * 100), '%', `크리티컬 확률 ${cc.toFixed(0)}%`)}
         ${renderStatCell('×', '크리티컬 데미지', Math.round(BASE_STATS.critMultiplier * 100), cm - (BASE_STATS.critMultiplier * 100), '%', `크리티컬 데미지 ${cm.toFixed(0)}%`)}
         ${renderStatCell('⚔', '데미지 증가', Math.round(BASE_STATS.globalDamageMult * 100), dmg - (BASE_STATS.globalDamageMult * 100), '%', `데미지 증가 ${dmg.toFixed(0)}%`)}
+        ${renderStatCell('☠', '저주', Math.round(BASE_STATS.curse * 100), curse - (BASE_STATS.curse * 100), '%', `저주 ${curse.toFixed(0)}%`)}
         ${renderStatCell('★', '경험치 획득', 100, xpm - (BASE_STATS.xpMult * 100), '%', `경험치 획득 ${xpm.toFixed(0)}%`)}
         ${renderStatCell('💰', '골드 획득', 100, gold - (BASE_STATS.currencyMult * 100), '%', `골드 획득 ${gold.toFixed(0)}%`)}
         ${renderStatCell('◌', '투사체 크기/범위', 100, projSize - (BASE_STATS.projectileSizeMult * 100), '%', `투사체 크기/범위 ${projSize.toFixed(0)}%`)}

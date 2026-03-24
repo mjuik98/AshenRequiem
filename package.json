@@ -1,7 +1,7 @@
 {
   "name": "ashen-requiem",
   "version": "1.0.0",
-  "description": "HTML / JavaScript vampire-survivors-like MVP",
+  "description": "HTML / JavaScript vampire-survivors-like game",
   "type": "module",
   "scripts": {
     "test": "node scripts/runTests.js",
@@ -13,6 +13,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "architecture:snapshot": "node scripts/architectureSnapshot.mjs",
     "verify": "npm run verify:fast",
     "verify:fast": "npm run typecheck && npm run profile:check && npm test && npm run build",
     "verify:ci": "npm run typecheck && npm run profile:check && npm test && npm run test:smoke && npm run build",

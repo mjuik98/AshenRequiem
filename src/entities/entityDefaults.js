@@ -56,6 +56,7 @@ export const EFFECT_DEFAULTS_SHAPE = {
   color:          '#ff5722',
   text:           '',
   radius:         15,
+  chainPoints:    null,
   lifetime:       0,
   maxLifetime:    0.5,   // constants.js EFFECT_DEFAULTS.duration 과 동기화
   isAlive:        true,
