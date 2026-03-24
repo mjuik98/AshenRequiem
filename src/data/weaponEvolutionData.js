@@ -33,6 +33,15 @@ export const weaponEvolutionData = [
     announceText: '번개의 고리가 폭풍의 왕관으로 진화했다!',
   },
   {
+    id:             'evolution_judgement_chain',
+    resultWeaponId: 'judgement_chain',
+    requires: {
+      weaponId:     'chain_lightning',
+      accessoryIds: ['scholars_rune'],
+    },
+    announceText: '연쇄 번개가 천벌 사슬로 진화했다!',
+  },
+  {
     id:             'evolution_divine_shield',
     resultWeaponId: 'divine_shield',
     requires: {

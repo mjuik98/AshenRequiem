@@ -60,6 +60,14 @@ export const CODEX_TAB_CSS = `
   .cx-detail {
     border: 0.5px solid rgba(255,255,255,0.1); border-radius: 12px;
     padding: 16px; background: rgba(255,255,255,0.04); margin-top: 4px;
+    scroll-margin-top: 18px;
+  }
+  .cx-detail-kicker {
+    margin-bottom: 10px;
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: rgba(212,175,106,0.72);
   }
   .cx-dh { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
   .cx-davatar {
@@ -124,7 +132,7 @@ export const CODEX_TAB_CSS = `
   .cx-wname { font-size: 13px; font-weight: 600; color: rgba(244,237,224,0.88); }
   .cx-wtype { font-size: 9px; color: rgba(244,237,224,0.28); margin-top: 2px; }
   .cx-wbar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-  .cx-wbar-lbl { font-size: 10px; color: rgba(244,237,224,0.28); width: 28px; }
+  .cx-wbar-lbl { font-size: 10px; color: rgba(244,237,224,0.28); width: 52px; flex-shrink: 0; }
   .cx-wbar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; }
   .cx-wbar-fill { height: 100%; border-radius: 2px; }
   .cx-wrequires { font-size: 10px; color: rgba(212,175,106,0.55); margin-top: 6px; line-height: 1.5; }

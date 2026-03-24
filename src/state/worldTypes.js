@@ -136,6 +136,7 @@
  * @property {number}             elapsedTime
  * @property {number}             deltaTime
  * @property {number}             killCount
+ * @property {number}             runCurrencyEarned
  * @property {'playing'|'paused'|'levelup'|'dead'} playMode
  */
 

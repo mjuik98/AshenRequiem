@@ -36,7 +36,7 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
   // 보너스 투사체 반영을 위해 spawnDirectionalProjectiles 패턴 사용
   // 단, boomerang은 고유 config가 있으므로 직접 루프 구현
   const bonus = player?.bonusProjectileCount ?? 0;
-  const count = 1 + Math.floor(bonus);
+  const count = (weapon.projectileCount ?? 1) + Math.floor(bonus);
   const spread = 0.2; // 약 11.5도
   const lifetimeMult = getProjectileLifetimeMult(player);
   const maxRange = (weapon.maxRange ?? 600) * lifetimeMult;
@@ -58,6 +58,7 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
         y:                player.y,
         dirX:             rx,
         dirY:             ry,
+        angle:            Math.atan2(ry, rx),
         speed:            weapon.projectileSpeed ?? weapon.speed ?? 280,
         damage:           weapon.damage          ?? 8,
         radius:           weapon.radius          ?? 10,

@@ -28,6 +28,7 @@ export function buildCodexEnemyGridModel({
   const kills = session?.meta?.enemyKills ?? {};
 
   const entries = enemyData
+    .filter((enemy) => !enemy?.isProp)
     .filter((enemy) => {
       const tier = getCodexEnemyTier(enemy);
       const matchesTier = currentTier === 'all' || tier === currentTier;
@@ -71,7 +72,7 @@ export function buildCodexEnemyDetailModel({
 }) {
   if (!selectedEnemyId) return null;
 
-  const enemy = enemyData.find((entry) => entry.id === selectedEnemyId);
+  const enemy = enemyData.find((entry) => entry.id === selectedEnemyId && !entry?.isProp);
   if (!enemy || !isEnemyDiscovered(enemy, session)) return null;
 
   const killCount = session?.meta?.enemyKills?.[enemy.id] ?? 0;
@@ -145,10 +146,10 @@ export function renderCodexEnemyGrid(model) {
       </div>
       ${enemy.discovered ? `
         <div class="cx-estats">
-          <div class="cx-estat"><span class="v">${enemy.stats.hp}</span><span class="k">HP</span></div>
-          <div class="cx-estat"><span class="v">${enemy.stats.damage}</span><span class="k">DMG</span></div>
-          <div class="cx-estat"><span class="v">${enemy.stats.moveSpeed}</span><span class="k">SPD</span></div>
-          <div class="cx-estat"><span class="v">${enemy.stats.xpValue}</span><span class="k">XP</span></div>
+          <div class="cx-estat"><span class="v">${enemy.stats.hp}</span><span class="k">체력</span></div>
+          <div class="cx-estat"><span class="v">${enemy.stats.damage}</span><span class="k">공격</span></div>
+          <div class="cx-estat"><span class="v">${enemy.stats.moveSpeed}</span><span class="k">이속</span></div>
+          <div class="cx-estat"><span class="v">${enemy.stats.xpValue}</span><span class="k">경험치</span></div>
         </div>
         <div class="cx-ekills">처치 <span>${enemy.killCount.toLocaleString()}</span>회</div>
       ` : `
@@ -165,7 +166,8 @@ export function renderCodexEnemyDetail(model) {
   if (!model) return '';
 
   return `
-    <div class="cx-detail">
+    <div class="cx-detail" id="cx-enemy-detail-card" role="region" tabindex="-1" aria-label="선택한 적 상세 정보">
+      <div class="cx-detail-kicker">선택한 적</div>
       <div class="cx-dh">
         <div class="cx-davatar" style="background:${model.color}22;border-color:${model.borderColor};color:${model.color}">
           ${model.avatarText}
@@ -179,7 +181,7 @@ export function renderCodexEnemyDetail(model) {
         <div class="cx-dstat"><div class="v">${model.stats.hp}</div><div class="k">최대 HP</div></div>
         <div class="cx-dstat"><div class="v">${model.stats.moveSpeed}</div><div class="k">이동 속도</div></div>
         <div class="cx-dstat"><div class="v">${model.stats.damage}</div><div class="k">데미지</div></div>
-        <div class="cx-dstat"><div class="v">${model.stats.xpValue}</div><div class="k">XP 보상</div></div>
+        <div class="cx-dstat"><div class="v">${model.stats.xpValue}</div><div class="k">경험치 보상</div></div>
       </div>
       <div class="cx-drops-row">
         <span class="cx-drop-label">드롭:</span>

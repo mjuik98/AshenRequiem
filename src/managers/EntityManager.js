@@ -23,6 +23,7 @@ import {
   getLivePickups, 
   getLiveEffects 
 } from '../utils/entityUtils.js';
+import { buildCurseSnapshot } from '../data/curseScaling.js';
 
 export const EntityManager = {
 
@@ -41,12 +42,18 @@ export const EntityManager = {
 
   flushSpawn(world, pools = {}) {
     const { projectilePool, effectPool, enemyPool, pickupPool } = pools;
+    const curseSnapshot = buildCurseSnapshot(world.player?.curse ?? 0);
     for (const req of world.spawnQueue) {
       let entity = req.entity;
 
       switch (req.type) {
         case 'enemy':
-          if (!entity && enemyPool) entity = enemyPool.acquire(req.config);
+          if (!entity && enemyPool) {
+            entity = enemyPool.acquire({
+              ...req.config,
+              curseSnapshot,
+            });
+          }
           if (entity) world.enemies.push(entity);
           break;
         case 'projectile':

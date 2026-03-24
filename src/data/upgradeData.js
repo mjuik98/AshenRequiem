@@ -89,6 +89,10 @@ export const upgradeData = [
     name: '폭풍의 왕관 +', description: '다음 성장 적용',
   },
   {
+    id: 'up_judgement_chain_plus', type: 'weapon_upgrade', weaponId: 'judgement_chain',
+    name: '천벌 사슬 +', description: '다음 성장 적용',
+  },
+  {
     id: 'up_divine_shield_plus', type: 'weapon_upgrade', weaponId: 'divine_shield',
     name: '신성한 방패 +', description: '다음 성장 적용',
   },

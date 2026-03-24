@@ -43,7 +43,7 @@ function makeInjectedWeaponData(baseWeaponId = 'magic_bolt', baseMaxLevel = 7, e
 
 console.log('\n[WeaponEvolutionSystem 테스트]');
 
-test('기반 무기 maxLevel + 장신구 조건 충족 시 진화 실행', () => {
+test('기반 무기 maxLevel + 장신구 조건 충족 시 자동 진화는 발생하지 않는다', () => {
   const player = makePlayer({
     weapons:     [makeWeaponMaxLevel('magic_bolt', 7)],
     accessories: [{ id: 'tome_of_power' }],
@@ -54,8 +54,10 @@ test('기반 무기 maxLevel + 장신구 조건 충족 시 진화 실행', () =>
 
   WeaponEvolutionSystem.update({ world, data });
 
+  const hasMagic = player.weapons.some(w => w.id === 'magic_bolt');
   const hasArcane = player.weapons.some(w => w.id === 'arcane_nova');
-  assert.ok(hasArcane, '진화 무기 arcane_nova가 무기 목록에 없음');
+  assert.equal(hasMagic, true, '자동 진화가 제거된 뒤에도 기반 무기가 남아 있어야 함');
+  assert.equal(hasArcane, false, '조건 충족만으로 자동 진화되면 안 됨');
 });
 
 test('기반 무기 레벨 미달 시 진화 미발생', () => {
@@ -105,7 +107,7 @@ test('이미 진화한 레시피는 중복 실행 안 됨', () => {
   assert.ok(hasMagic, '이미 진화했는데 다시 교체됨');
 });
 
-test('진화 성공 시 weaponEvolved 이벤트 발행', () => {
+test('자동 진화가 제거되면 조건 충족만으로 weaponEvolved 이벤트를 발행하지 않는다', () => {
   const player = makePlayer({
     weapons:     [makeWeaponMaxLevel('magic_bolt', 7)],
     accessories: [{ id: 'tome_of_power' }],
@@ -116,12 +118,12 @@ test('진화 성공 시 weaponEvolved 이벤트 발행', () => {
 
   WeaponEvolutionSystem.update({ world, data });
 
-  assert.ok(world.events.weaponEvolved.length > 0, 'weaponEvolved 이벤트 미발행');
-  assert.equal(world.events.weaponEvolved[0].weaponId, 'magic_bolt');
+  assert.equal(world.events.weaponEvolved.length, 0, '자동 진화 제거 후에는 이벤트가 발행되면 안 됨');
 });
 
-test('신규 무기 6종은 전용 진화 레시피를 가진다', () => {
+test('확장 무기 7종은 전용 진화 레시피를 가진다', () => {
   const expected = [
+    ['chain_lightning', 'judgement_chain'],
     ['solar_ray', 'helios_lance'],
     ['piercing_spear', 'astral_pike'],
     ['flame_zone', 'inferno_field'],
@@ -141,7 +143,28 @@ test('신규 무기 6종은 전용 진화 레시피를 가진다', () => {
   }
 });
 
-test('solar_ray는 요구 장신구 보유 시 helios_lance로 진화한다', () => {
+test('chain_lightning는 요구 장신구 보유만으로 judgement_chain으로 자동 진화하지 않는다', () => {
+  const chainLightningRecipe = weaponEvolutionData.find((item) => item.requires.weaponId === 'chain_lightning');
+  assert.ok(chainLightningRecipe, 'chain_lightning 진화 레시피가 없음');
+
+  const player = makePlayer({
+    weapons: [makeWeaponMaxLevel('chain_lightning', 7)],
+    accessories: [{ id: chainLightningRecipe.requires.accessoryIds[0] }],
+    evolvedWeapons: new Set(),
+  });
+  const world = makeWorld({ player });
+  const data = {
+    weaponEvolutionData: [chainLightningRecipe],
+    weaponData: makeInjectedWeaponData('chain_lightning', 7, 'judgement_chain'),
+  };
+
+  WeaponEvolutionSystem.update({ world, data });
+
+  assert.equal(player.weapons.some((weapon) => weapon.id === 'judgement_chain'), false, '조건 충족만으로 judgement_chain 자동 진화가 발생하면 안 됨');
+  assert.equal(world.events.weaponEvolved.length, 0, '자동 진화 제거 후에는 chain_lightning 진화 이벤트가 없어야 함');
+});
+
+test('solar_ray는 요구 장신구 보유만으로 helios_lance로 자동 진화하지 않는다', () => {
   const solarRayRecipe = weaponEvolutionData.find((item) => item.requires.weaponId === 'solar_ray');
   assert.ok(solarRayRecipe, 'solar_ray 진화 레시피가 없음');
 
@@ -158,11 +181,11 @@ test('solar_ray는 요구 장신구 보유 시 helios_lance로 진화한다', ()
 
   WeaponEvolutionSystem.update({ world, data });
 
-  assert.equal(player.weapons.some((weapon) => weapon.id === 'helios_lance'), true, 'helios_lance 진화 실패');
-  assert.equal(world.events.weaponEvolved[0]?.evolvedWeaponId, 'helios_lance', 'weaponEvolved 이벤트 결과가 helios_lance가 아님');
+  assert.equal(player.weapons.some((weapon) => weapon.id === 'helios_lance'), false, '조건 충족만으로 helios_lance 자동 진화가 발생하면 안 됨');
+  assert.equal(world.events.weaponEvolved.length, 0, '자동 진화 제거 후에는 solar_ray 진화 이벤트가 없어야 함');
 });
 
-test('주입된 weaponData를 기준으로 진화 maxLevel을 판단한다', () => {
+test('주입된 weaponData를 기준으로 진화 조건 충족 여부만 판단하고 자동 적용하지 않는다', () => {
   const player = makePlayer({
     weapons: [{ id: 'magic_bolt', level: 2, currentCooldown: 0, damage: 1, cooldown: 1 }],
     accessories: [{ id: 'tome_of_power' }],
@@ -179,7 +202,7 @@ test('주입된 weaponData를 기준으로 진화 maxLevel을 판단한다', () 
 
   WeaponEvolutionSystem.update({ world, data });
 
-  assert.equal(player.weapons.some((weapon) => weapon.id === 'arcane_nova'), true, '주입된 weaponData 기준 maxLevel에서 진화하지 않음');
+  assert.equal(player.weapons.some((weapon) => weapon.id === 'arcane_nova'), false, '진화 조건 충족만으로 자동 적용되면 안 됨');
 });
 
 test('WeaponEvolutionSystem은 주입된 weaponData 없이는 진화 정의를 추론하지 않는다', () => {

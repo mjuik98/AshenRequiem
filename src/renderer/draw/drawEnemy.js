@@ -2,6 +2,11 @@
 export function drawEnemy(ctx, enemy, camera, timestamp) {
   if (!enemy.isAlive || enemy.pendingDestroy) return;
 
+  if (enemy.isProp) {
+    drawProp(ctx, enemy, camera, timestamp);
+    return;
+  }
+
   const sx = enemy.x - camera.x;
   const sy = enemy.y - camera.y;
 
@@ -67,6 +72,38 @@ export function drawEnemy(ctx, enemy, camera, timestamp) {
     ctx.fill();
     ctx.globalAlpha = 1;
   }
+
+  ctx.restore();
+}
+
+function drawProp(ctx, enemy, camera, timestamp = 0) {
+  const sx = enemy.x - camera.x;
+  const sy = enemy.y - camera.y;
+  const r = enemy.radius;
+  const pulse = 0.5 + 0.5 * Math.sin(timestamp * 2.5);
+
+  ctx.save();
+  ctx.shadowColor = enemy.color;
+  ctx.shadowBlur = 6 + pulse * 3;
+
+  ctx.fillStyle = '#6d4c41';
+  ctx.beginPath();
+  ctx.ellipse(sx, sy + r * 0.15, r * 0.8, r, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = enemy.hitFlashTimer > 0 ? '#ffffff' : enemy.color;
+  ctx.beginPath();
+  ctx.ellipse(sx, sy, r * 0.9, r * 1.05, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#4e342e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(sx - r * 0.5, sy - r * 0.15);
+  ctx.lineTo(sx + r * 0.5, sy - r * 0.15);
+  ctx.moveTo(sx - r * 0.55, sy + r * 0.35);
+  ctx.lineTo(sx + r * 0.55, sy + r * 0.35);
+  ctx.stroke();
 
   ctx.restore();
 }

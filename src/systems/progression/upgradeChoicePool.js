@@ -1,3 +1,8 @@
+import {
+  mergeUnlockedAccessoryIds,
+  mergeUnlockedWeaponIds,
+} from '../../data/unlockAvailability.js';
+
 export function getActiveUpgradeData(data) {
   return data?.upgradeData ?? [];
 }
@@ -17,13 +22,74 @@ export function getNextProgression(weapon, data) {
     ?? null;
 }
 
+function getEvolutionResultWeapon(recipe, data) {
+  return getWeaponDef(recipe?.resultWeaponId, data);
+}
+
+function getAccessoryNames(accessoryIds = [], data) {
+  return accessoryIds
+    .map((accessoryId) => getAccessoryDef(accessoryId, data)?.name ?? accessoryId)
+    .join(', ');
+}
+
+export function buildEvolutionChoicePool(player, options = {}, data = {}) {
+  if (!player || !data?.weaponEvolutionData || !data?.weaponData) return [];
+
+  const banishedUpgradeIds = new Set(options.banishedUpgradeIds ?? []);
+  const excludeChoiceIds = new Set(options.excludeChoiceIds ?? []);
+  const evolvedRecipeIds = player.evolvedWeapons ?? new Set();
+  const picks = [];
+
+  for (const recipe of data.weaponEvolutionData) {
+    const recipeId = recipe?.id;
+    if (!recipeId || banishedUpgradeIds.has(recipeId) || excludeChoiceIds.has(recipeId)) continue;
+    if (evolvedRecipeIds.has(recipeId)) continue;
+
+    const { weaponId, accessoryIds = [] } = recipe.requires ?? {};
+    const ownedWeapon = player.weapons?.find((weapon) => weapon.id === weaponId);
+    if (!ownedWeapon) continue;
+
+    const baseWeaponDef = getWeaponDef(weaponId, data);
+    const maxLevel = baseWeaponDef?.maxLevel ?? Infinity;
+    if ((ownedWeapon.level ?? 1) < maxLevel) continue;
+
+    const hasAllAccessories = accessoryIds.every((accessoryId) =>
+      player.accessories?.some((accessory) => accessory.id === accessoryId)
+    );
+    if (!hasAllAccessories) continue;
+
+    const resultWeapon = getEvolutionResultWeapon(recipe, data);
+    if (!resultWeapon) continue;
+    if (player.weapons?.some((weapon) => weapon.id === resultWeapon.id)) continue;
+
+    const baseWeaponName = baseWeaponDef?.name ?? ownedWeapon.name ?? weaponId;
+    const accessoryNames = getAccessoryNames(accessoryIds, data);
+    const description = accessoryNames
+      ? `${baseWeaponName}을 ${resultWeapon.name}로 진화. 필요 장신구: ${accessoryNames}`
+      : `${baseWeaponName}을 ${resultWeapon.name}로 진화`;
+
+    picks.push({
+      id: recipeId,
+      recipeId,
+      type: 'weapon_evolution',
+      weaponId,
+      resultWeaponId: recipe.resultWeaponId,
+      name: resultWeapon.name,
+      description,
+      announceText: recipe.announceText ?? `${resultWeapon.name}으로 진화했다!`,
+    });
+  }
+
+  return picks;
+}
+
 export function buildUpgradeChoicePool(player, options = {}, data = {}) {
   const picks = [];
 
   const maxWeaponSlots = player.maxWeaponSlots ?? 3;
   const maxAccessorySlots = player.maxAccessorySlots ?? 3;
-  const unlockedWeapons = Array.isArray(player.unlockedWeapons) ? player.unlockedWeapons : null;
-  const unlockedAccessories = Array.isArray(player.unlockedAccessories) ? player.unlockedAccessories : null;
+  const unlockedWeapons = mergeUnlockedWeaponIds(player.unlockedWeapons, data);
+  const unlockedAccessories = mergeUnlockedAccessoryIds(player.unlockedAccessories, data);
   const banishedUpgradeIds = new Set(options.banishedUpgradeIds ?? []);
   const excludeChoiceIds = new Set(options.excludeChoiceIds ?? []);
 
@@ -33,7 +99,7 @@ export function buildUpgradeChoicePool(player, options = {}, data = {}) {
     if (upgrade.type === 'weapon_new') {
       const definition = getWeaponDef(upgrade.weaponId, data);
       if (!definition?.isEvolved
-          && (!unlockedWeapons || unlockedWeapons.includes(upgrade.weaponId))
+          && unlockedWeapons.includes(upgrade.weaponId)
           && player.weapons.length < maxWeaponSlots
           && !player.weapons.find((weapon) => weapon.id === upgrade.weaponId)) {
         picks.push(upgrade);
@@ -57,7 +123,7 @@ export function buildUpgradeChoicePool(player, options = {}, data = {}) {
     }
 
     if (upgrade.type === 'accessory') {
-      if ((!unlockedAccessories || unlockedAccessories.includes(upgrade.accessoryId))
+      if (unlockedAccessories.includes(upgrade.accessoryId)
           && (player.accessories?.length ?? 0) < maxAccessorySlots) {
         const alreadyHas = player.accessories?.some((accessory) => accessory.id === upgrade.accessoryId);
         if (!alreadyHas) picks.push(upgrade);

@@ -9,6 +9,7 @@ let getWeaponDataById;
 let laserBeam;
 let groundZone;
 let ricochetProjectile;
+let boomerang;
 let ProjectileSystem;
 
 try {
@@ -17,6 +18,7 @@ try {
   ({ laserBeam } = await import('../src/behaviors/weaponBehaviors/laserBeam.js'));
   ({ groundZone } = await import('../src/behaviors/weaponBehaviors/groundZone.js'));
   ({ ricochetProjectile } = await import('../src/behaviors/weaponBehaviors/ricochetProjectile.js'));
+  ({ boomerang } = await import('../src/behaviors/weaponBehaviors/boomerangWeapon.js'));
   ({ ProjectileSystem } = await import('../src/systems/combat/ProjectileSystem.js'));
 } catch (error) {
   console.warn('[테스트] 신규 무기 behavior import 실패:', error.message);
@@ -113,6 +115,27 @@ test('ricochetProjectile은 bounceRemaining을 가진 투사체를 생성한다'
   assert.equal(spawnQueue.length, 1, '반사 투사체 spawn 수가 1이 아님');
   assert.equal(spawnQueue[0].config.behaviorId, 'ricochetProjectile', 'ricochet behaviorId 불일치');
   assert.equal(spawnQueue[0].config.bounceRemaining, 3, 'bounceRemaining 누락');
+});
+
+test('boomerang은 weapon.projectileCount 만큼 동시 투척한다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const enemies = [makeEnemy({ x: 140, y: 10 })];
+  const spawnQueue = [];
+  const weapon = {
+    id: 'boomerang',
+    behaviorId: 'boomerang',
+    damage: 8,
+    range: 360,
+    radius: 10,
+    projectileSpeed: 280,
+    projectileCount: 3,
+    maxRange: 600,
+    projectileColor: '#ffd54f',
+  };
+
+  const fired = boomerang({ weapon, player, enemies, spawnQueue });
+  assert.equal(fired, true, 'boomerang 발동 실패');
+  assert.equal(spawnQueue.length, 3, `boomerang 동시 투척 수 불일치 (실제: ${spawnQueue.length})`);
 });
 
 test('groundZone 투사체는 tick interval마다 hitTargets를 초기화한다', () => {

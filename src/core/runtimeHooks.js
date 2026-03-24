@@ -34,6 +34,7 @@ function buildSnapshot(game) {
     playMode: world.playMode ?? null,
     elapsedTime: world.elapsedTime ?? 0,
     killCount: world.killCount ?? 0,
+    runCurrencyEarned: world.runCurrencyEarned ?? 0,
     player: world.player
       ? {
           hp: world.player.hp ?? 0,

@@ -147,6 +147,16 @@ export const weaponData = [
     isEvolved: true,
   },
   {
+    id: 'judgement_chain', name: '천벌 사슬',
+    icon: '⛧',
+    description: '더 많은 적 사이를 번개가 연속 도약하며 강하게 타격한다',
+    damage: 18, cooldown: 1.25, range: 420,
+    chainCount: 5, chainRange: 160, radius: 14,
+    projectileColor: '#d7b8ff',
+    behaviorId: 'chainLightning', maxLevel: 7,
+    isEvolved: true,
+  },
+  {
     id: 'divine_shield', name: '신성한 방패',
     icon: '⛨',
     description: '광역 신성 방패 — 성스러운 오라의 최종 진화',

@@ -66,5 +66,72 @@ test('Phase 4: xpMult 적용 — 획득 XP에 배율 곱함 (올림 처리)', ()
   assert.equal(player2.xp, 6, `xpMult 올림 처리 미적용 (실제: ${player2.xp})`);
 });
 
+test('special pickup은 heal, ward, gold 효과를 적용하고 vacuum은 XP를 플레이어 쪽으로 끌어당긴다', () => {
+  if (!ExperienceSystem) return;
+  const player = makePlayer({ xp: 0, hp: 40, maxHp: 100, invincibleTimer: 0 });
+  const heal = makePickup({ pickupType: 'heal', healValue: 25 });
+  const ward = makePickup({ pickupType: 'ward', duration: 2.5 });
+  const gold = makePickup({ pickupType: 'gold', currencyValue: 12 });
+  const gemA = makePickup({ id: 'xp_a', pickupType: 'xp', xpValue: 3, x: 180, y: 0, magnetized: false });
+  const gemB = makePickup({ id: 'xp_b', pickupType: 'xp', xpValue: 5, x: 0, y: 220, magnetized: false });
+  const vacuum = makePickup({ pickupType: 'vacuum' });
+  const events = makeEvents({
+    pickupCollected: [
+      { pickup: heal, playerId: player.id },
+      { pickup: ward, playerId: player.id },
+      { pickup: gold, playerId: player.id },
+      { pickup: vacuum, playerId: player.id },
+    ],
+    currencyEarned: [],
+  });
+  const world = makeWorld({ player, events, pickups: [heal, ward, gold, vacuum, gemA, gemB] });
+
+  ExperienceSystem.update({ world });
+
+  assert.equal(player.hp, 65, 'heal pickup 효과가 적용되지 않음');
+  assert.equal(player.invincibleTimer, 2.5, 'ward pickup 효과가 적용되지 않음');
+  assert.deepEqual(events.currencyEarned, [{ amount: 12 }], 'gold pickup이 currencyEarned 이벤트를 발행하지 않음');
+  assert.equal(player.xp, 0, 'vacuum pickup이 XP를 즉시 정산하면 안 됨');
+  assert.equal(gemA.pendingDestroy, false, 'vacuum 직후 XP gem이 즉시 정리되면 안 됨');
+  assert.equal(gemB.pendingDestroy, false, 'vacuum 직후 XP gem이 즉시 정리되면 안 됨');
+  assert.equal(gemA.vacuumPulled, true, 'vacuum pickup이 XP gem을 vacuumPulled 상태로 바꾸지 않음');
+  assert.equal(gemB.vacuumPulled, true, 'vacuum pickup이 맵 전체 XP gem을 vacuumPulled 상태로 바꾸지 않음');
+  assert.equal(gemA.magnetized, true, 'vacuum pickup이 XP gem의 magnetized 상태를 켜지 않음');
+  assert.equal(gemB.magnetized, true, 'vacuum pickup이 먼 XP gem의 magnetized 상태를 켜지 않음');
+});
+
+test('vacuum으로 끌려오는 XP는 플레이어에 닿을 때 경험치로 정산된다', () => {
+  if (!ExperienceSystem) return;
+  const player = makePlayer({ x: 0, y: 0, xp: 0, magnetRadius: 0 });
+  const gemA = makePickup({ id: 'xp_a', pickupType: 'xp', xpValue: 3, x: 24, y: 0, radius: 8, vacuumPulled: true, magnetized: true });
+  const gemB = makePickup({ id: 'xp_b', pickupType: 'xp', xpValue: 5, x: 0, y: 24, radius: 8, vacuumPulled: true, magnetized: true });
+  const world = makeWorld({ player, pickups: [gemA, gemB], deltaTime: 0.1 });
+
+  ExperienceSystem.update({ world });
+
+  assert.equal(player.xp, 8, 'vacuum으로 끌려온 XP가 접촉 시 정산되지 않음');
+  assert.equal(gemA.pendingDestroy, true, '플레이어에 닿은 XP gem이 정리되지 않음');
+  assert.equal(gemB.pendingDestroy, true, '플레이어에 닿은 XP gem이 정리되지 않음');
+});
+
+test('XP 픽업이 과밀하면 근처 젬들을 병합해 엔티티 수를 줄인다', () => {
+  if (!ExperienceSystem) return;
+  const player = makePlayer({ x: 9999, y: 9999, magnetRadius: 0 });
+  const pickups = Array.from({ length: 36 }, (_, index) => makePickup({
+    x: 100 + (index % 6) * 4,
+    y: 100 + Math.floor(index / 6) * 4,
+    xpValue: 1,
+    radius: 8,
+    magnetized: false,
+  }));
+  const world = makeWorld({ player, pickups });
+
+  ExperienceSystem.update({ world });
+
+  const livePickups = world.pickups.filter((pickup) => pickup.isAlive && !pickup.pendingDestroy);
+  assert.ok(livePickups.length < pickups.length, 'XP 픽업 병합이 발생하지 않음');
+  assert.ok(livePickups.some((pickup) => pickup.xpValue > 1), '병합 후 큰 XP gem이 생성되지 않음');
+});
+
 
 summary();

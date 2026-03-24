@@ -18,6 +18,13 @@ import {
 import { renderCodexWeaponTab } from './codexWeaponTab.js';
 import { renderCodexRecordsTab } from './codexRecordsTab.js';
 
+function revealCodexDetailPanel(panel, selector) {
+  const detail = /** @type {HTMLElement | null} */ (panel.querySelector(selector));
+  if (!detail) return;
+  detail.focus?.();
+  detail.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+}
+
 export function renderCodexEnemyPanel(root, { state, gameData, session }) {
   const panel = /** @type {HTMLElement | null} */ (root.querySelector('#cx-tab-enemy'));
   if (!panel) return;
@@ -56,6 +63,7 @@ export function renderCodexEnemyPanel(root, { state, gameData, session }) {
     bindCodexSelectableCards(cards, 'id', (enemyId) => {
       toggleCodexSelection(state, 'enemy', enemyId);
       refreshGrid(searchInput?.value ?? '');
+      revealCodexDetailPanel(panel, '#cx-enemy-detail-card');
     });
 
     renderDetail();
@@ -102,6 +110,7 @@ export function renderCodexWeaponPanel(root, {
   bindCodexSelectableCards(cards, 'wid', (weaponId) => {
     toggleCodexSelection(state, 'weapon', weaponId);
     renderCodexWeaponPanel(root, { state, gameData, session, onAccessoryRef });
+    revealCodexDetailPanel(panel, '#cx-weapon-detail');
   });
 
   const typeButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (panel.querySelectorAll('.cx-tf'));
@@ -163,6 +172,7 @@ export function renderCodexAccessoryPanel(root, {
   bindCodexSelectableCards(cards, 'aid', (accessoryId) => {
     toggleCodexSelection(state, 'accessory', accessoryId);
     renderCodexAccessoryPanel(root, { state, gameData, session, onWeaponRef });
+    revealCodexDetailPanel(panel, '#cx-accessory-detail');
   });
 
   const linkedWeapons = /** @type {NodeListOf<HTMLButtonElement>} */ (panel.querySelectorAll('[data-weapon-ref]'));

@@ -41,6 +41,7 @@ export const CODEX_ACCESSORY_TAB_CSS = `
   .cx-accessory-detail {
     border: 0.5px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 16px;
     background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+    scroll-margin-top: 18px;
   }
   .cx-detail-hero { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
   .cx-detail-icon {

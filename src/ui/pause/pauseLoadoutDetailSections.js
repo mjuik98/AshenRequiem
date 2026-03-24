@@ -11,7 +11,7 @@ import {
 } from './pauseLoadoutStatsSections.js';
 
 export function renderPauseLoadoutDetail(selectedItem, player, data, indexes) {
-  const { headerHtml, relationCount } = renderPauseLoadoutDetailHeader(selectedItem, player, data, indexes);
+  const { headerHtml } = renderPauseLoadoutDetailHeader(selectedItem, player, data, indexes);
   const statsHtml = selectedItem?.kind === 'weapon' && selectedItem?.source
     ? renderPauseWeaponStatsSection(selectedItem.source)
     : '';
@@ -23,7 +23,7 @@ export function renderPauseLoadoutDetail(selectedItem, player, data, indexes) {
     ${headerHtml}
     ${statsHtml}
     ${effectLevelsHtml}
-    ${renderPauseStatusBlock(selectedItem, relationCount)}
+    ${renderPauseStatusBlock(selectedItem)}
     ${renderPauseLinkedItemsSection(selectedItem, player, data, indexes)}
     ${renderPauseSynergySection(selectedItem, player, indexes)}
     ${renderPauseEvolutionSection(selectedItem, player, data, indexes)}

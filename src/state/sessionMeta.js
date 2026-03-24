@@ -4,6 +4,12 @@
  * SessionState.meta 공통 기본값과 보정 헬퍼를 제공한다.
  */
 import { unlockData } from '../data/unlockData.js';
+import {
+  getDefaultUnlockedAccessoryIds,
+  getDefaultUnlockedWeaponIds,
+  mergeUnlockedAccessoryIds,
+  mergeUnlockedWeaponIds,
+} from '../data/unlockAvailability.js';
 import { evaluateUnlocks } from '../systems/progression/unlockEvaluator.js';
 
 export function createDefaultSessionMeta() {
@@ -17,8 +23,8 @@ export function createDefaultSessionMeta() {
     accessoriesOwnedAll:   [],
     evolvedWeapons:        [],
     totalRuns:             0,
-    unlockedWeapons:       ['magic_bolt'],
-    unlockedAccessories:   [],
+    unlockedWeapons:       getDefaultUnlockedWeaponIds(),
+    unlockedAccessories:   getDefaultUnlockedAccessoryIds(),
     completedUnlocks:      [],
     selectedStartWeaponId: 'magic_bolt',
   };
@@ -47,18 +53,15 @@ export function ensureCodexMeta(session) {
     ? [...meta.evolvedWeapons]
     : [...defaults.evolvedWeapons];
   meta.totalRuns ??= defaults.totalRuns;
-  meta.unlockedWeapons = Array.isArray(meta.unlockedWeapons)
-    ? [...meta.unlockedWeapons]
-    : [...defaults.unlockedWeapons];
-  meta.unlockedAccessories = Array.isArray(meta.unlockedAccessories)
-    ? [...meta.unlockedAccessories]
-    : [...defaults.unlockedAccessories];
+  meta.unlockedWeapons = mergeUnlockedWeaponIds(
+    Array.isArray(meta.unlockedWeapons) ? meta.unlockedWeapons : defaults.unlockedWeapons,
+  );
+  meta.unlockedAccessories = mergeUnlockedAccessoryIds(
+    Array.isArray(meta.unlockedAccessories) ? meta.unlockedAccessories : defaults.unlockedAccessories,
+  );
   meta.completedUnlocks = Array.isArray(meta.completedUnlocks)
     ? [...meta.completedUnlocks]
     : [...defaults.completedUnlocks];
-  if (!Array.isArray(meta.unlockedWeapons) || meta.unlockedWeapons.length === 0) {
-    meta.unlockedWeapons = [...defaults.unlockedWeapons];
-  }
   meta.selectedStartWeaponId = typeof meta.selectedStartWeaponId === 'string'
     && meta.unlockedWeapons.includes(meta.selectedStartWeaponId)
     ? meta.selectedStartWeaponId

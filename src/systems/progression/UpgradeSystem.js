@@ -9,6 +9,7 @@
 import { shuffle } from '../../utils/random.js';
 import { applyUpgradeRuntime } from './upgradeApplyRuntime.js';
 import {
+  buildEvolutionChoicePool,
   buildUpgradeChoicePool,
 } from './upgradeChoicePool.js';
 import {
@@ -21,8 +22,19 @@ export const UpgradeSystem = {
 
   generateChoices(player, options = {}, data = {}) {
     const rng = options?.rng;
-    const picks = this._buildAvailablePool(player, options, data);
-    let result  = shuffle(picks, rng).slice(0, 3);
+    const evolutionPicks = buildEvolutionChoicePool(player, options, data);
+    const picks = this._buildAvailablePool(player, {
+      ...options,
+      excludeChoiceIds: [
+        ...(options.excludeChoiceIds ?? []),
+        ...evolutionPicks.map((choice) => choice.id),
+      ],
+    }, data);
+    let result = evolutionPicks.slice(0, 3);
+
+    if (result.length < 3) {
+      result = result.concat(shuffle(picks, rng).slice(0, 3 - result.length));
+    }
 
     // 폴백: 후보 풀이 바닥나면 회복/골드를 중복 없이 보충한다.
     if (result.length < 3) {

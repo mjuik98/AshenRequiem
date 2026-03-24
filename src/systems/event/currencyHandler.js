@@ -21,9 +21,14 @@ import { earnCurrency } from '../../state/createSessionState.js';
  * @param {import('./EventRegistry.js').EventRegistry} registry
  */
 export function registerCurrencyHandler(session, registry) {
-  if (!session || !registry) return;
+  if (!registry) return;
 
-  registry.register('currencyEarned', (event) => {
-    earnCurrency(session, event.amount ?? 0);
+  registry.register('currencyEarned', (event, world) => {
+    if (session) {
+      earnCurrency(session, event.amount ?? 0);
+    }
+    if (world) {
+      world.runCurrencyEarned = (world.runCurrencyEarned ?? 0) + (event.amount ?? 0);
+    }
   });
 }

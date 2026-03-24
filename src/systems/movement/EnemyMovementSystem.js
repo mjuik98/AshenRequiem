@@ -40,7 +40,7 @@ export function createEnemyMovementSystem() {
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
       // FIX(BUG-4): stunned 적을 그리드에서 제외
-      if (isLive(e) && e.knockbackTimer <= 0 && !e.stunned) {
+      if (isLive(e) && !e.isProp && e.knockbackTimer <= 0 && !e.stunned) {
         _grid.insert(e);
       }
     }
@@ -48,7 +48,7 @@ export function createEnemyMovementSystem() {
     for (let i = 0; i < enemies.length; i++) {
       const a = enemies[i];
       // FIX(BUG-4): a.stunned 체크
-      if (!isLive(a) || a.knockbackTimer > 0 || a.stunned) continue;
+      if (!isLive(a) || a.isProp || a.knockbackTimer > 0 || a.stunned) continue;
 
       const candidates = _grid.queryUnique(a);
 
@@ -56,7 +56,7 @@ export function createEnemyMovementSystem() {
         const b = candidates[j];
         if (a === b) continue;
         // FIX(BUG-4): b.stunned 체크
-        if (!isLive(b) || b.knockbackTimer > 0 || b.stunned) continue;
+        if (!isLive(b) || b.isProp || b.knockbackTimer > 0 || b.stunned) continue;
         if (a.id >= b.id) continue;
 
         const dSq = distanceSq(a, b);
@@ -87,6 +87,7 @@ export function createEnemyMovementSystem() {
       for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
         if (!isLive(e)) continue;
+        if (e.isProp) continue;
 
         // hitFlashTimer 감소
         if (e.hitFlashTimer > 0) {

@@ -84,6 +84,15 @@ export const enemyData = [
     behaviorId: 'circle',
     projectileConfig: { damage: 16, speed: 230, radius: 10, color: '#4dd0e1', pierce: 3 },
   },
+
+  // ── 파괴 가능한 장식물 ───────────────────────────────────────────────
+  {
+    id: 'urn_prop', name: 'Cracked Urn',
+    hp: 10, moveSpeed: 0, damage: 0, xpValue: 0, radius: 14, color: '#a1887f',
+    isProp: true,
+    propShape: 'urn',
+    propDropTableId: 'urn_basic',
+  },
 ];
 
 /** id로 적 데이터 조회 */

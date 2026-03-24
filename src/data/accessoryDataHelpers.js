@@ -14,6 +14,7 @@ const STAT_LABELS = {
   invincibleDuration: '무적 시간',
   currencyMult: '골드 획득',
   projectileLifetimeMult: '투사체 지속시간',
+  curse: '저주',
 };
 
 function formatAccessoryStatValue(stat, value) {
@@ -30,6 +31,7 @@ function formatAccessoryStatValue(stat, value) {
     case 'xpMult':
     case 'currencyMult':
     case 'projectileLifetimeMult':
+    case 'curse':
       return `+${Math.round(value * 100)}%`;
     case 'bonusProjectileCount':
       return `+${value}발`;

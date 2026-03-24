@@ -41,6 +41,7 @@ export function createWorld() {
     // ── 게임 진행 메타 ────────────────────────────────────────────────
     elapsedTime: 0,
     killCount:   0,
+    runCurrencyEarned: 0,
     bossKillCount: 0,
     playMode:    'playing',
     runOutcome:  null,

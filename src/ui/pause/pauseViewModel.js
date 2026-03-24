@@ -31,13 +31,17 @@ export function buildPauseViewIndexes(data = {}) {
 
       if (weaponById.has(id)) {
         const list = synergiesByWeaponId.get(id) ?? [];
-        list.push(synergy);
+        if (!list.some((entry) => entry?.id === synergy?.id)) {
+          list.push(synergy);
+        }
         synergiesByWeaponId.set(id, list);
       }
 
       if (accessoryById.has(id)) {
         const list = synergiesByAccessoryId.get(id) ?? [];
-        list.push(synergy);
+        if (!list.some((entry) => entry?.id === synergy?.id)) {
+          list.push(synergy);
+        }
         synergiesByAccessoryId.set(id, list);
       }
     }

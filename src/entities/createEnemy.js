@@ -11,7 +11,20 @@ import { generateId }            from '../utils/ids.js';
 import { getEnemyDataById }      from '../data/enemyData.js';
 import { assertEnemyContract }   from './validateEntity.js';
 
-export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
+function applyCurseSnapshot(enemy, curseSnapshot) {
+  if (!curseSnapshot || enemy.isProp) return;
+
+  const hpMult = curseSnapshot.enemyHpMult ?? 1;
+  const xpMult = curseSnapshot.enemyXpMult ?? 1;
+
+  enemy.maxHp = Math.max(1, Math.round(enemy.maxHp * hpMult));
+  enemy.hp = enemy.maxHp;
+  if ((enemy.xpValue ?? 0) > 0) {
+    enemy.xpValue = Math.max(1, Math.round(enemy.xpValue * xpMult));
+  }
+}
+
+export function createEnemy(enemyId = 'zombie', x = 0, y = 0, runtimeConfig = {}) {
   const data = getEnemyDataById(enemyId);
 
   if (!data) {
@@ -44,10 +57,15 @@ export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
     behaviorState:   data.behaviorState  ? data.behaviorState() : null,
     projectileConfig: data.projectileConfig ?? null,
     deathSpawn:      data.deathSpawn ?? null,
+    isProp:          data.isProp || false,
+    propDropTableId: data.propDropTableId ?? null,
+    propShape:       data.propShape ?? null,
     bossPhaseState:  null,
     isAlive:         true,
     pendingDestroy:  false,
   };
+
+  applyCurseSnapshot(enemy, runtimeConfig.curseSnapshot);
 
   // CHANGE(P2-D): 개발 모드에서 엔티티 계약 검증 (프로덕션에서 tree-shake)
   assertEnemyContract(enemy);
@@ -56,7 +74,7 @@ export function createEnemy(enemyId = 'zombie', x = 0, y = 0) {
 }
 
 export function resetEnemy(enemy, config) {
-  const { enemyId, x, y } = config;
+  const { enemyId, x, y, curseSnapshot } = config;
   const data = getEnemyDataById(enemyId);
   if (!data) {
     console.warn(`[resetEnemy] Unknown enemy id: "${enemyId}"`);
@@ -90,9 +108,13 @@ export function resetEnemy(enemy, config) {
   enemy.behaviorState    = data.behaviorState  ? data.behaviorState() : null;
   enemy.projectileConfig = data.projectileConfig ?? null;
   enemy.deathSpawn       = data.deathSpawn ?? null;
+  enemy.isProp           = data.isProp || false;
+  enemy.propDropTableId  = data.propDropTableId ?? null;
+  enemy.propShape        = data.propShape ?? null;
   enemy.bossPhaseState   = null;
   enemy.isAlive          = true;
   enemy.pendingDestroy   = false;
+  applyCurseSnapshot(enemy, curseSnapshot);
 
   return enemy;
 }

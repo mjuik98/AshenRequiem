@@ -3,6 +3,7 @@ function getTypeClass(type) {
     case 'weapon':
     case 'weapon_new':
     case 'weapon_upgrade':
+    case 'weapon_evolution':
       return 'type-weapon';
     case 'stat': return 'type-stat';
     case 'accessory': return 'type-accessory';
@@ -16,6 +17,7 @@ function getBadge(type) {
     case 'weapon': return 'WEAPON';
     case 'weapon_new': return 'NEW';
     case 'weapon_upgrade': return 'UP';
+    case 'weapon_evolution': return 'EVO';
     case 'stat': return 'STAT';
     case 'accessory': return 'RELIC';
     case 'slot': return 'SLOT';

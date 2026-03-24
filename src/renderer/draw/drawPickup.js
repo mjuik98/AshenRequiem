@@ -23,24 +23,46 @@ export function drawPickup(ctx, pickup, camera, timestamp = 0) {
     return;
   }
 
+  if (pickup.pickupType !== 'xp') {
+    _drawSpecialPickup(ctx, pickup, camera);
+    return;
+  }
+
   // ── 기존 XP 젬 렌더링 ───────────────────────────────────────────────
   const sx = pickup.x - camera.x;
   const sy = pickup.y - camera.y;
   const r  = pickup.radius || 6;
+  const glowColor = pickup.color || '#66bb6a';
 
   ctx.save();
 
-  ctx.shadowColor = pickup.color || '#66bb6a';
-  ctx.shadowBlur  = 8;
-  ctx.fillStyle   = pickup.color || '#66bb6a';
+  if (pickup.vacuumPulled) {
+    const pulse = 0.5 + 0.5 * Math.sin(timestamp * 18);
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.42 + pulse * 0.18;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.arc(sx, sy, r * (1.45 + pulse * 0.2), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-  ctx.beginPath();
-  ctx.moveTo(sx, sy - r);
-  ctx.lineTo(sx + r, sy);
-  ctx.lineTo(sx, sy + r);
-  ctx.lineTo(sx - r, sy);
-  ctx.closePath();
-  ctx.fill();
+    ctx.translate(sx, sy);
+    ctx.rotate(timestamp * 10);
+    ctx.scale(0.82, 1.18);
+    ctx.shadowColor = '#b9f6ca';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = glowColor;
+    _drawXpDiamond(ctx, 0, 0, r);
+    ctx.restore();
+    ctx.save();
+  }
+
+  ctx.shadowColor = glowColor;
+  ctx.shadowBlur  = pickup.vacuumPulled ? 12 : 8;
+  ctx.fillStyle   = glowColor;
+
+  _drawXpDiamond(ctx, sx, sy, r);
 
   ctx.fillStyle   = '#ffffff';
   ctx.globalAlpha = 0.4;
@@ -51,6 +73,68 @@ export function drawPickup(ctx, pickup, camera, timestamp = 0) {
   ctx.lineTo(sx - r * 0.2, sy - r * 0.2);
   ctx.closePath();
   ctx.fill();
+
+  ctx.restore();
+}
+
+function _drawXpDiamond(ctx, x, y, r) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.lineTo(x + r, y);
+  ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function _drawSpecialPickup(ctx, pickup, camera) {
+  const sx = pickup.x - camera.x;
+  const sy = pickup.y - camera.y;
+  const r = pickup.radius || 9;
+  const color = pickup.color || '#ffd54f';
+
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#fffde7';
+  ctx.lineWidth = 2;
+
+  switch (pickup.pickupType) {
+    case 'gold':
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    case 'heal':
+      ctx.fillRect(sx - r * 0.35, sy - r, r * 0.7, r * 2);
+      ctx.fillRect(sx - r, sy - r * 0.35, r * 2, r * 0.7);
+      break;
+    case 'ward':
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - r * 1.1);
+      ctx.lineTo(sx + r * 0.9, sy - r * 0.2);
+      ctx.lineTo(sx + r * 0.55, sy + r);
+      ctx.lineTo(sx - r * 0.55, sy + r);
+      ctx.lineTo(sx - r * 0.9, sy - r * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    case 'vacuum':
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(sx, sy, r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    default:
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fill();
+  }
 
   ctx.restore();
 }

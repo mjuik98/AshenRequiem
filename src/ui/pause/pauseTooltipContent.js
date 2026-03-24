@@ -11,6 +11,16 @@ function formatSeconds(value, digits = 1) {
   return Number.isFinite(value) ? `${value.toFixed(digits)}s` : '—';
 }
 
+function resolveDisplayedProjectileCount(weapon, player) {
+  const bonusProjs = Math.floor(player?.bonusProjectileCount ?? 0);
+
+  if (weapon?.behaviorId === 'orbit') {
+    return (weapon.orbitCount ?? 3) + bonusProjs;
+  }
+
+  return (weapon?.projectileCount ?? 1) + bonusProjs;
+}
+
 export function formatWeaponSynergyBonus(bonus) {
   if (!bonus) return '';
   if (bonus.speedMult) return `속도 ×${bonus.speedMult}`;
@@ -33,8 +43,7 @@ export function buildPauseWeaponTooltipContent({
 
   const evoData = data?.weaponEvolutionData ?? [];
   const accessoryById = indexes?.accessoryById ?? new Map();
-  const bonusProjs = player.bonusProjectileCount ?? 0;
-  const totalProj = (weapon.projectileCount ?? 1) + Math.floor(bonusProjs);
+  const totalProj = resolveDisplayedProjectileCount(weapon, player);
 
   const evoRecipe = evoData.find((recipe) => recipe.requires?.weaponId === weaponId);
   const statBits = [

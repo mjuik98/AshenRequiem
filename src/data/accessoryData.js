@@ -194,6 +194,15 @@ export const accessoryData = [
     ],
   },
   {
+    id:          'ominous_relic',
+    name:        '불길한 유물',
+    icon:        '☠',
+    description: '저주 +15%',
+    rarity:      'rare',
+    maxLevel:    5,
+    effects:     [{ stat: 'curse', value: 0.15, valuePerLevel: 0.15 }],
+  },
+  {
     id:          'persistence_charm',
     name:        '지속의 부적',
     icon:        '🕰',

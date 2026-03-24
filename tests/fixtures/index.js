@@ -48,6 +48,7 @@ export function makePlayer(overrides = {}) {
     magnetRadius:    60,
     statusEffects:   [],
     activeSynergies: [],
+    curse: 0,
     ...overrides,
   };
 }
@@ -137,6 +138,7 @@ export function makeWorld(overrides = {}) {
     elapsedTime: 0,
     deltaTime:   0.016,
     killCount:   0,
+    runCurrencyEarned: 0,
     bossKillCount: 0,
     playMode:    'playing',
     runOutcome:  null,

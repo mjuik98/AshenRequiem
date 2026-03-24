@@ -105,7 +105,7 @@ export function createCollisionSystem() {
         // FIX(BUG-I): break 제거 — 겹친 모든 적이 동시에 타격
         for (let i = 0; i < enemies.length; i++) {
           const e = enemies[i];
-          if (!isLive(e)) continue;
+          if (!isLive(e) || e.isProp) continue;
           const rSum = player.radius + e.radius;
           if (distanceSq(player, e) <= rSum * rSum) {
             events.hits.push({

@@ -58,12 +58,7 @@ export const TITLE_SCREEN_HTML = `
         </button>
       </nav>
 
-      <div class="t-hints" aria-hidden="true">
-        <span><kbd>Enter</kbd> 또는 <kbd>Space</kbd> 시작</span>
-        <span>이동: <kbd>WASD</kbd></span>
-      </div>
-
-      <p class="t-live" id="title-live" aria-live="polite">게임 시작 입력을 기다리는 중입니다.</p>
+      <p class="t-live" id="title-live" aria-live="polite">새로운 모험을 선택하세요.</p>
     </section>
   </main>
 `;
@@ -244,27 +239,13 @@ const TITLE_STYLES = `
     font-size: 11px; letter-spacing: 0.08em;
   }
 
-  .t-hints {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 10px 20px;
-    margin: 22px 0 0;
-    color: rgba(244,237,224,0.72); font-size: 12px;
-  }
-  .t-hints kbd {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 28px; padding: 4px 8px;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.05);
-    color: var(--t-ink);
-    font-family: inherit; font-size: 11px; font-weight: 700;
-    letter-spacing: 0.04em;
-  }
-
   .t-live {
-    min-height: 24px; margin: 18px 0 0;
+    min-height: 18px;
+    margin: 14px 0 0;
     font-family: "Noto Serif KR", serif;
-    font-size: 13px; color: rgba(241,209,138,0.9);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: rgba(241,209,138,0.62);
   }
 
   @keyframes t-panel-enter {

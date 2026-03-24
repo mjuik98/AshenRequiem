@@ -1,6 +1,7 @@
 import { chance, nextFloat, randomPick, randomRange } from '../../utils/random.js';
 import { GameConfig }              from '../../core/GameConfig.js';
 import { spawnEnemy }              from '../../state/spawnRequest.js';
+import { buildCurseSnapshot }      from '../../data/curseScaling.js';
 
 /**
  * SpawnSystem — 시간 기반 적 스폰 (팩토리 함수 패턴)
@@ -29,6 +30,7 @@ const BOSS_SPAWN_MULTIPLIER     = 0.45;
  */
 export function createSpawnSystem() {
   let _spawnAccumulator  = 0;
+  let _propSpawnAccumulator = 0;
   let _spawnedBossAt     = new Set();
   let _lastBossSpawnTime = -Infinity;
 
@@ -56,10 +58,30 @@ export function createSpawnSystem() {
     };
   }
 
+  function _randomAmbientPosition(player, rng) {
+    const halfWidth = GameConfig.canvasWidth * 0.75;
+    const halfHeight = GameConfig.canvasHeight * 0.75;
+    let x = 0;
+    let y = 0;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+      x = randomRange(player.x - halfWidth, player.x + halfWidth, rng);
+      y = randomRange(player.y - halfHeight, player.y + halfHeight, rng);
+      const dx = x - player.x;
+      const dy = y - player.y;
+      if ((dx * dx) + (dy * dy) >= 140 * 140) {
+        break;
+      }
+    }
+
+    return { x, y };
+  }
+
   return {
     update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode, events, rng }, data: { waveData, bossData, enemyData = [] } }) {
       if (playMode !== 'playing') return;
       if (!player?.isAlive) return;
+      const curseSnapshot = buildCurseSnapshot(player.curse ?? 0);
 
       // ── 보스 스폰 ──────────────────────────────────────────────────────
       if (bossData) {
@@ -89,8 +111,8 @@ export function createSpawnSystem() {
       const timeSinceBoss  = elapsedTime - _lastBossSpawnTime;
       const isBossActive   = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
       const effectiveRate  = isBossActive
-        ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER
-        : activeWave.spawnPerSecond;
+        ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER * curseSnapshot.spawnRateMult
+        : activeWave.spawnPerSecond * curseSnapshot.spawnRateMult;
 
       _spawnAccumulator += effectiveRate * deltaTime;
 
@@ -103,11 +125,23 @@ export function createSpawnSystem() {
         const pos     = _randomOffscreenPosition(player, rng);
         spawnQueue.push(spawnEnemy({ enemyId, x: pos.x, y: pos.y }));
       }
+
+      const propRate = activeWave.propSpawnPerSecond ?? 0;
+      if (propRate <= 0 || !activeWave.propIds?.length) return;
+
+      _propSpawnAccumulator += propRate * deltaTime;
+      while (_propSpawnAccumulator >= 1) {
+        _propSpawnAccumulator -= 1;
+        const enemyId = randomPick(activeWave.propIds, rng);
+        const pos = _randomAmbientPosition(player, rng);
+        spawnQueue.push(spawnEnemy({ enemyId, x: pos.x, y: pos.y }));
+      }
     },
 
     /** PlayScene 재시작 시 상태 초기화 */
     reset() {
       _spawnAccumulator  = 0;
+      _propSpawnAccumulator = 0;
       _spawnedBossAt     = new Set();
       _lastBossSpawnTime = -Infinity;
     },

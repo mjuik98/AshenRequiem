@@ -2,7 +2,7 @@ import { unlockData } from '../../data/unlockData.js';
 
 function countDiscoveredEnemies(session, enemyData = []) {
   const kills = session?.meta?.enemyKills ?? {};
-  const enemyIds = new Set(enemyData.map((entry) => entry?.id).filter(Boolean));
+  const enemyIds = new Set(enemyData.filter((entry) => !entry?.isProp).map((entry) => entry?.id).filter(Boolean));
   return Object.entries(kills)
     .filter(([enemyId, value]) => enemyIds.has(enemyId) && (Number(value) || 0) > 0)
     .length;
@@ -57,7 +57,7 @@ export function buildCodexDiscoverySummary({ session = null, gameData = null }) 
       icon: '☠',
       tone: 'enemy',
       discovered: countDiscoveredEnemies(session, enemyData),
-      total: enemyData.length,
+      total: enemyData.filter((enemy) => !enemy?.isProp).length,
     },
     {
       label: '무기',

@@ -94,6 +94,27 @@ test('보스 XP 젬 산개는 world.rng 기반으로 결정된다', () => {
   assert.ok(Math.abs(xpPickup.config.y - expectedY) < 1e-9, '주입된 RNG 기준 Y 위치가 아님');
 });
 
+test('breakable prop 파괴 시 전투 보상 대신 일회용 pickup을 드랍한다', async () => {
+  if (!DeathSystem) return;
+  const prop = makeEnemy({
+    enemyDataId: 'urn_prop',
+    isProp: true,
+    xpValue: 0,
+    damage: 0,
+    propDropTableId: 'urn_basic',
+  });
+  const events = makeEvents({ deaths: [{ entity: prop }] });
+  const rng = makeRng([0.95]);
+  const world = makeWorld({ enemies: [prop], events, rng, killCount: 0 });
+  const { propDropData } = await import('../src/data/propDropData.js');
+
+  DeathSystem.update({ world, data: { bossData, propDropData } });
+
+  assert.equal(world.killCount, 0, 'prop 파괴가 적 처치 수로 집계됨');
+  const drop = world.spawnQueue.find((item) => item.type === 'pickup');
+  assert.equal(drop?.config?.pickupType, 'ward', 'prop이 일회용 pickup을 드랍하지 않음');
+});
+
 // ── playMode ──────────────────────────────────────────────────────────
 
 console.log('\n[DeathSystem — 플레이어 사망]');

@@ -16,6 +16,7 @@ import { statusEffectData }    from './statusEffectData.js';
 import { weaponEvolutionData } from './weaponEvolutionData.js';
 import { weaponProgressionData } from './weaponProgressionData.js';
 import { accessoryData }       from './accessoryData.js';
+import { propDropData }        from './propDropData.js';
 
 function deepCloneValue(value, seen = new WeakMap()) {
   if (value === null || typeof value !== 'object') return value;
@@ -106,6 +107,7 @@ export const GameDataLoader = {
       weaponEvolutionData,
       weaponProgressionData,
       accessoryData,
+      propDropData,
     };
 
     const base = cloneGameData(originals);

@@ -70,7 +70,8 @@ function renderAccessoryDetail(detail) {
   }
 
   return `
-    <div class="cx-accessory-detail" id="cx-accessory-detail">
+    <div class="cx-accessory-detail" id="cx-accessory-detail" role="region" tabindex="-1" aria-label="선택한 장신구 상세 정보">
+      <div class="cx-detail-kicker">선택한 장신구</div>
       <div class="cx-detail-hero">
         <div class="cx-detail-icon">${detail.icon}</div>
         <div class="cx-detail-copy">

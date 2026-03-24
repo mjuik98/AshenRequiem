@@ -123,6 +123,15 @@ export const permanentUpgradeData = [
     effect:       { stat: 'currencyMult', valuePerLevel: 0.10 },
   },
   {
+    id:           'perm_curse',
+    name:         '불길한 계약',
+    description:  '저주 +8%',
+    icon:         '☠',
+    maxLevel:     5,
+    costPerLevel: (level) => 26 + level * 14,
+    effect:       { stat: 'curse', valuePerLevel: 0.08 },
+  },
+  {
     id:           'perm_projectile_lifetime',
     name:         '시간 연장',
     description:  '투사체 지속시간 +10%',
@@ -242,6 +251,10 @@ export function applyPermanentUpgrades(player, perm) {
 
       case 'projectileLifetimeMult':
         player.projectileLifetimeMult = (player.projectileLifetimeMult ?? 1.0) + total;
+        break;
+
+      case 'curse':
+        player.curse = (player.curse ?? 0) + total;
         break;
 
       case 'maxWeaponSlots':

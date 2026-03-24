@@ -9,7 +9,8 @@
 import { EFFECT_DEFAULTS }                      from '../../data/constants.js';
 import { transitionPlayMode, PlayMode }          from '../../state/PlayMode.js';
 import { spawnPickup, spawnEffect, spawnEnemy }  from '../../state/spawnRequest.js';
-import { nextFloat, randomRange }                from '../../utils/random.js';
+import { getPropDropTableById }                  from '../../data/propDropData.js';
+import { nextFloat, randomRange, weightedPick }  from '../../utils/random.js';
 
 export const DeathSystem = {
   update({ world, data = {} }) {
@@ -20,6 +21,11 @@ export const DeathSystem = {
       const { entity } = events.deaths[i];
 
       if (entity.type === 'enemy') {
+        if (entity.isProp) {
+          _handlePropDeath(world, entity, data?.propDropData);
+          continue;
+        }
+
         world.killCount++;
 
         if (world.events.currencyEarned) {
@@ -116,6 +122,41 @@ export const DeathSystem = {
   },
 };
 
+function _handlePropDeath(world, entity, propDropTables = null) {
+  const { spawnQueue } = world;
+  const dropTable = _getPropDropTable(entity, propDropTables);
+  const drop = weightedPick(dropTable?.drops ?? [], world.rng);
+
+  if (drop && drop.pickupType !== 'none') {
+    spawnQueue.push(spawnPickup({
+      x: entity.x,
+      y: entity.y,
+      xpValue: 0,
+      config: {
+        pickupType: drop.pickupType,
+        color: drop.color ?? '#ffd54f',
+        radius: drop.radius ?? 10,
+        currencyValue: drop.currencyValue ?? 0,
+        healValue: drop.healValue ?? 0,
+        duration: drop.duration ?? 0,
+      },
+    }));
+  }
+
+  spawnQueue.push(spawnEffect({
+    x: entity.x,
+    y: entity.y,
+    effectType: 'burst',
+    config: {
+      color: drop?.pickupType && drop.pickupType !== 'none'
+        ? (drop.color ?? '#ffd54f')
+        : (entity.color ?? '#a1887f'),
+      radius: entity.radius * 1.6,
+      duration: EFFECT_DEFAULTS.burstDuration,
+    },
+  }));
+}
+
 function _setRunOutcome(world, type) {
   if (type === 'defeat') {
     world.runOutcome = { type };
@@ -173,6 +214,13 @@ function _spawnBossXpDrop(spawnQueue, boss, totalXp, rng) {
       config:  { color: '#ef5350', radius: 8 },
     }));
   }
+}
+
+function _getPropDropTable(entity, propDropTables) {
+  if (Array.isArray(propDropTables)) {
+    return propDropTables.find((table) => table.id === entity.propDropTableId) ?? null;
+  }
+  return getPropDropTableById(entity.propDropTableId);
 }
 
 function _getXpGemColor(xpValue) {

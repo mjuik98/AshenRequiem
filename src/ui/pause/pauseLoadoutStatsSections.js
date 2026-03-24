@@ -10,30 +10,65 @@ import {
   getStatusLabel,
 } from './pauseLoadoutModel.js';
 
-function buildStatusRows(selectedItem, relationCount) {
-  if (selectedItem?.kind === 'weapon') {
-    return [
-      ['현재 위력', selectedItem.source?.damage ?? '—'],
-      ['현재 쿨다운', formatCompactNumber(selectedItem.source?.cooldown)],
-      ['연결 수', relationCount],
-    ];
-  }
-
-  if (selectedItem?.kind === 'accessory') {
-    return [
-      ['희귀도', selectedItem.source?.rarity ?? 'common'],
-      ['연결 수', relationCount],
-    ];
-  }
-
-  return [
-    ['상태', getKindLabel(selectedItem?.kind)],
-  ];
+function hasLevelProgress(selectedItem) {
+  return selectedItem?.level != null && selectedItem?.maxLevel != null;
 }
 
-export function renderPauseStatusBlock(selectedItem, relationCount) {
-  const rows = buildStatusRows(selectedItem, relationCount);
-  const levelBlockHtml = selectedItem?.level != null && selectedItem?.maxLevel != null
+function resolveWeaponRangeValue(weapon) {
+  if (!weapon) return 0;
+
+  switch (weapon.behaviorId) {
+    case 'orbit':
+      return weapon.orbitRadius ?? weapon.range ?? 0;
+    case 'laserBeam':
+      return weapon.beamLength ?? weapon.range ?? 0;
+    case 'boomerang':
+      return weapon.maxRange ?? weapon.range ?? 0;
+    default:
+      return weapon.range ?? weapon.maxRange ?? 0;
+  }
+}
+
+function resolveWeaponAreaValue(weapon) {
+  if (!weapon) return 0;
+
+  switch (weapon.behaviorId) {
+    case 'chainLightning':
+      return weapon.chainRange ?? weapon.radius ?? 0;
+    default:
+      return weapon.radius ?? 0;
+  }
+}
+
+function resolveWeaponProjectileCount(weapon) {
+  if (!weapon) return 0;
+
+  if (Number.isFinite(weapon.projectileCount)) return weapon.projectileCount;
+  if (Number.isFinite(weapon.orbitCount)) return weapon.orbitCount;
+  if (Number.isFinite(weapon.chainCount)) return weapon.chainCount;
+  if (Number.isFinite(weapon.beamSegments)) return weapon.beamSegments;
+  return 0;
+}
+
+function resolveWeaponProjectileSpeed(weapon) {
+  if (!weapon) return 0;
+  return weapon.projectileSpeed ?? 0;
+}
+
+function renderWeaponStatRow(label, value, fillWidth, color) {
+  return `
+    <div class="pv-stat-bar-row">
+      <span class="pv-stat-bar-key">${escapeHtml(label)}</span>
+      <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${fillWidth}%;background:${color}"></div></div>
+      <span class="pv-stat-bar-val">${escapeHtml(String(value))}</span>
+    </div>
+  `;
+}
+
+export function renderPauseStatusBlock(selectedItem) {
+  if (!hasLevelProgress(selectedItem)) return '';
+
+  const levelBlockHtml = hasLevelProgress(selectedItem)
     ? `
         <div class="pv-loadout-lv-block">
           <div class="pv-loadout-lv-row">
@@ -49,16 +84,8 @@ export function renderPauseStatusBlock(selectedItem, relationCount) {
 
   return `
     <div class="pv-loadout-power variant-status">
-      <h4 class="pv-loadout-section-title">현재 상태</h4>
+      <h4 class="pv-loadout-section-title">레벨 진행</h4>
       <div class="pv-loadout-progress-block">
-        <div class="pv-loadout-power-lines">
-          ${rows.map(([label, value]) => `
-            <div class="pv-loadout-power-row">
-              <span class="pv-loadout-row-label">${escapeHtml(String(label))}</span>
-              <span class="pv-loadout-row-value">${escapeHtml(String(value))}</span>
-            </div>
-          `).join('')}
-        </div>
         ${levelBlockHtml}
       </div>
     </div>
@@ -68,28 +95,28 @@ export function renderPauseStatusBlock(selectedItem, relationCount) {
 export function renderPauseWeaponStatsSection(weapon) {
   const damage = weapon.damage ?? 0;
   const cooldown = weapon.cooldown ?? 1;
-  const range = weapon.range ?? 0;
+  const range = resolveWeaponRangeValue(weapon);
+  const area = resolveWeaponAreaValue(weapon);
+  const projectileCount = resolveWeaponProjectileCount(weapon);
+  const projectileSpeed = resolveWeaponProjectileSpeed(weapon);
   const cooldownFill = Math.max(0, Math.min(100, Math.round((1 - (cooldown / 4)) * 100)));
 
   return `
     <div class="pv-loadout-stats-section">
       <h4 class="pv-loadout-section-title">스탯</h4>
-      <div class="pv-stat-bar-row">
-        <span class="pv-stat-bar-key">데미지</span>
-        <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${Math.min(100, damage * 7)}%;background:#e06060"></div></div>
-        <span class="pv-stat-bar-val">${damage}</span>
-      </div>
-      <div class="pv-stat-bar-row">
-        <span class="pv-stat-bar-key">쿨다운</span>
-        <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${cooldownFill}%;background:#7ecde8"></div></div>
-        <span class="pv-stat-bar-val">${formatSeconds(cooldown)}</span>
-      </div>
+      ${renderWeaponStatRow('데미지', damage, Math.min(100, damage * 7), '#e06060')}
+      ${renderWeaponStatRow('쿨다운', formatSeconds(cooldown), cooldownFill, '#7ecde8')}
       ${range > 0 ? `
-        <div class="pv-stat-bar-row">
-          <span class="pv-stat-bar-key">사거리</span>
-          <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${Math.min(100, Math.round(range / 5))}%;background:#6dba72"></div></div>
-          <span class="pv-stat-bar-val">${Math.round(range)}</span>
-        </div>
+        ${renderWeaponStatRow('사거리', Math.round(range), Math.min(100, Math.round(range / 5)), '#6dba72')}
+      ` : ''}
+      ${area > 0 ? `
+        ${renderWeaponStatRow('범위', Math.round(area), Math.min(100, Math.round(area / 2)), '#c08cff')}
+      ` : ''}
+      ${projectileCount > 0 ? `
+        ${renderWeaponStatRow('투사체 수', projectileCount, Math.min(100, projectileCount * 20), '#d4af6a')}
+      ` : ''}
+      ${projectileSpeed > 0 ? `
+        ${renderWeaponStatRow('발사체 속도', Math.round(projectileSpeed), Math.min(100, Math.round(projectileSpeed / 6)), '#7ecde8')}
       ` : ''}
       ${weapon.statusEffectId ? `
         <div class="pv-stat-bar-row">

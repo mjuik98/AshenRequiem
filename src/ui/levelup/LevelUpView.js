@@ -256,7 +256,7 @@ export class LevelUpView {
 }
 
 function _getTypeClass(type) {
-  if (type === 'weapon_new' || type === 'weapon_upgrade') return 'type-weapon';
+  if (type === 'weapon_new' || type === 'weapon_upgrade' || type === 'weapon_evolution') return 'type-weapon';
   if (type === 'stat') return 'type-stat';
   if (type === 'accessory') return 'type-accessory';
   if (type === 'slot') return 'type-slot';
@@ -266,6 +266,7 @@ function _getTypeClass(type) {
 function _getBadge(type) {
   if (type === 'weapon_new')     return 'NEW';
   if (type === 'weapon_upgrade') return 'UP';
+  if (type === 'weapon_evolution') return 'EVO';
   if (type === 'accessory')      return 'ITEM';
   if (type === 'slot')           return 'SLOT';
   if (type === 'stat')           return 'STAT';

@@ -75,8 +75,12 @@ test('createSessionState()의 meta 필드가 올바르다', () => {
   const s = createSessionState();
   assert.equal(typeof s.meta.currency, 'number');
   assert(typeof s.meta.permanentUpgrades === 'object');
-  assert.deepEqual(s.meta.unlockedWeapons, ['magic_bolt']);
-  assert.deepEqual(s.meta.unlockedAccessories, []);
+  assert.equal(s.meta.unlockedWeapons.includes('magic_bolt'), true);
+  assert.equal(s.meta.unlockedWeapons.includes('holy_aura'), true);
+  assert.equal(s.meta.unlockedWeapons.includes('frost_nova'), true);
+  assert.equal(s.meta.unlockedAccessories.includes('ring_of_speed'), true);
+  assert.equal(s.meta.unlockedAccessories.includes('duplicator'), true);
+  assert.equal(s.meta.unlockedAccessories.includes('persistence_charm'), false);
   assert.deepEqual(s.meta.accessoriesOwnedAll, []);
   assert.deepEqual(s.meta.completedUnlocks, []);
   assert.equal(s.meta.selectedStartWeaponId, 'magic_bolt');
@@ -174,7 +178,9 @@ test('saveSession()/loadSession()은 주입된 저장소로 round-trip 된다', 
 
   assert.equal(loaded.best.kills, 99);
   assert.equal(loaded.meta.currency, 777);
-  assert.deepEqual(loaded.meta.unlockedWeapons, ['magic_bolt', 'holy_aura']);
+  assert.equal(loaded.meta.unlockedWeapons.includes('magic_bolt'), true);
+  assert.equal(loaded.meta.unlockedWeapons.includes('holy_aura'), true);
+  assert.equal(loaded.meta.unlockedWeapons.includes('frost_nova'), true);
   assert.equal(loaded.options.quality, 'high');
   assert.equal(loaded.options.glowEnabled, false);
 

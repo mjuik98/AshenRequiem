@@ -101,6 +101,7 @@ test('Codex accessory runtime는 검색/필터 state와 상세 패널 구조를 
   assert.equal(state.accessory.effectFilter, 'utility', 'Codex accessory effect filter state가 갱신되지 않음');
   assert.equal(html.includes('id="cx-accessory-search"'), true, 'Codex accessory search input이 없음');
   assert.equal(html.includes('class="cx-accessory-detail"'), true, 'CodexView에 장신구 상세 패널이 없음');
+  assert.equal(html.includes('선택한 장신구'), true, '장신구 상세 패널 선택 헤더가 없음');
   assert.equal(html.includes('cx-discovery-hint'), true, '미발견 장신구 힌트가 없음');
   assert.equal(html.includes('data-afilter="rare"'), true, '장신구 rarity filter 버튼이 없음');
   assert.equal(html.includes('data-efilter="utility"'), true, '장신구 effect filter 버튼이 없음');
@@ -130,6 +131,8 @@ test('CodexView 무기 도감은 진화 재료 장신구 클릭 점프 구조와
   });
 
   assert.equal(html.includes('data-accessory-ref="arcane_prism"'), true, '무기 도감 진화 재료 칩 훅이 없음');
+  assert.equal(html.includes('id="cx-weapon-detail"'), true, '무기 도감 상세 패널이 없음');
+  assert.equal(html.includes('선택한 무기'), true, '무기 상세 패널 선택 헤더가 없음');
   assert.equal(isCodexWeaponUnlocked({ id: 'magic_bolt', isEvolved: false }, session), true);
   assert.equal(isCodexWeaponUnlocked({ id: 'arcane_tempest', isEvolved: true }, session), true);
   assert.equal(isCodexWeaponUnlocked({ id: 'frozen_orb', isEvolved: true }, session), false);
@@ -147,6 +150,7 @@ test('CodexView 무기 도감은 진화 재료 장신구 클릭 점프 구조와
   });
   assert.equal(evolvedCard.unlocked, true);
   assert.equal(evolvedCard.isSelected, true);
+  assert.equal(evolvedCard.recipeText.includes('magic_bolt'), false, '무기 도감 진화식이 내부 id를 그대로 노출함');
 });
 
 test('Codex 기록 helper는 업적 진행도와 도감 발견 비율을 계산한다', () => {

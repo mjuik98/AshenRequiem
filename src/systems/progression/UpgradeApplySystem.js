@@ -24,6 +24,16 @@ export const UpgradeApplySystem = {
       world.events.weaponAcquired?.push({ weaponId: pendingUpgrade.weaponId });
     }
 
+    if (pendingUpgrade.type === 'weapon_evolution') {
+      world.events.weaponEvolved?.push({
+        recipeId: pendingUpgrade.recipeId ?? pendingUpgrade.id,
+        weaponId: pendingUpgrade.weaponId,
+        evolvedWeaponId: pendingUpgrade.resultWeaponId,
+        weaponName: pendingUpgrade.name,
+        announceText: pendingUpgrade.announceText ?? `${pendingUpgrade.name}으로 진화했다!`,
+      });
+    }
+
     if (pendingUpgrade.type === 'accessory') {
       world.events.accessoryAcquired?.push({ accessoryId: pendingUpgrade.accessoryId });
     }

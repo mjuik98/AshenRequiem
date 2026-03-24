@@ -26,7 +26,9 @@
 export function registerSoundEventHandlers(soundSystem, registry) {
   if (!soundSystem || !registry) return;
   let lastDeathSfxAt = -Infinity;
+  let lastPickupSfxAt = -Infinity;
   const deathSfxCooldown = 0.08;
+  const pickupSfxCooldown = 0.05;
 
   // 적 사망 사운드 (deaths 배열의 각 항목마다 호출됨)
   registry.register('deaths', (event, world) => {
@@ -47,7 +49,11 @@ export function registerSoundEventHandlers(soundSystem, registry) {
   });
 
   // 픽업 수집 사운드
-  registry.register('pickupCollected', () => {
+  registry.register('pickupCollected', (_, world) => {
+    const now = world?.elapsedTime ?? 0;
+    if ((now - lastPickupSfxAt) < pickupSfxCooldown) return;
+
+    lastPickupSfxAt = now;
     soundSystem.play('pickup');
   });
 

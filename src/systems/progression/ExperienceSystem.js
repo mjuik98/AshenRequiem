@@ -20,32 +20,15 @@ export const ExperienceSystem = {
   update({ world: { events, player, pickups, deltaTime } }) {
     if (!player?.isAlive) return;
 
+    _mergeNearbyXpPickups(pickups);
+
     const magnetRadSq = player.magnetRadius * player.magnetRadius;
-    const speed       = PICKUP_BEHAVIOR.magnetSpeed * deltaTime;
     const xpMult      = player.xpMult ?? 1.0;
 
     // ── 1단계: pickupCollected 처리 (XP / 상자 이벤트 발행) ─────────────
     // 이 루프에서만 chestCollected를 발행한다 — 중복 방지.
     const collected = events.pickupCollected;
-    for (let i = 0; i < collected.length; i++) {
-      const pk = collected[i].pickup;
-      if (!pk.isAlive || pk.pendingDestroy) continue;
-
-      if (pk.pickupType === 'chest') {
-        // 상자: XP 없이 chestCollected 발행
-        events.chestCollected?.push({
-          pickupId: pk.id,
-          pickup:   pk,
-          playerId: player.id,
-        });
-      } else {
-        // 일반 픽업: XP 지급
-        player.xp += Math.ceil((pk.xpValue ?? 0) * xpMult);
-      }
-
-      pk.isAlive        = false;
-      pk.pendingDestroy = true;
-    }
+    let processedCount = _processCollectedPickups({ collected, startIndex: 0, events, player, pickups, xpMult });
 
     // ── 2단계: 자석 이동 (상자는 제외) ───────────────────────────────────
     for (let i = 0; i < pickups.length; i++) {
@@ -60,21 +43,110 @@ export const ExperienceSystem = {
       }
 
       if (pk.magnetized) {
+        const distSqBeforeMove = distanceSq(player, pk);
         const dx      = player.x - pk.x;
         const dy      = player.y - pk.y;
-        const distSq2 = dx * dx + dy * dy;
-        const len     = Math.sqrt(distSq2) || 1;
-        pk.x += (dx / len) * speed;
-        pk.y += (dy / len) * speed;
+        const len     = Math.sqrt(distSqBeforeMove) || 1;
+        const stepDistance = _getPickupMoveSpeed(pk, len) * deltaTime;
+        pk.x += (dx / len) * stepDistance;
+        pk.y += (dy / len) * stepDistance;
 
-        const catchRadSq = (player.radius + pk.radius) * (player.radius + pk.radius);
-        if (distSq2 < catchRadSq) {
+        const playerRadius = player.radius ?? 16;
+        const pickupRadius = pk.radius ?? 8;
+        const catchRadSq = (playerRadius + pickupRadius) * (playerRadius + pickupRadius);
+        if (distanceSq(player, pk) < catchRadSq) {
           // FIX(1): pickupCollected에만 push → 위 루프에서 XP/chest 처리
           events.pickupCollected.push({ pickup: pk, playerId: player.id });
-          pk.isAlive        = false;
-          pk.pendingDestroy = true;
         }
       }
     }
+
+    _processCollectedPickups({ collected, startIndex: processedCount, events, player, pickups, xpMult });
   },
 };
+
+function _processCollectedPickups({ collected, startIndex, events, player, pickups, xpMult }) {
+  let index = startIndex;
+  for (; index < collected.length; index++) {
+    const pk = collected[index].pickup;
+    if (!pk.isAlive || pk.pendingDestroy) continue;
+
+    if (pk.pickupType === 'chest') {
+      events.chestCollected?.push({
+        pickupId: pk.id,
+        pickup:   pk,
+        playerId: player.id,
+      });
+    } else if (pk.pickupType === 'gold') {
+      events.currencyEarned?.push({ amount: pk.currencyValue ?? 0 });
+    } else if (pk.pickupType === 'heal') {
+      const healValue = pk.healValue ?? 0;
+      player.hp = Math.min(player.maxHp ?? player.hp, player.hp + healValue);
+    } else if (pk.pickupType === 'ward') {
+      player.invincibleTimer = Math.max(player.invincibleTimer ?? 0, pk.duration ?? 0);
+    } else if (pk.pickupType === 'vacuum') {
+      _markAllXpPickupsForVacuum(pickups);
+    } else {
+      player.xp += Math.ceil((pk.xpValue ?? 0) * xpMult);
+    }
+
+    pk.isAlive = false;
+    pk.pendingDestroy = true;
+  }
+
+  return index;
+}
+
+function _markAllXpPickupsForVacuum(pickups) {
+  for (let i = 0; i < pickups.length; i++) {
+    const pickup = pickups[i];
+    if (!pickup?.isAlive || pickup.pendingDestroy) continue;
+    if (_getPickupType(pickup) !== 'xp') continue;
+    pickup.magnetized = true;
+    pickup.vacuumPulled = true;
+  }
+}
+
+function _getPickupMoveSpeed(pickup, distanceToPlayer) {
+  if (pickup?.vacuumPulled) {
+    return Math.min(720, Math.max(140, distanceToPlayer * 0.7));
+  }
+  return PICKUP_BEHAVIOR.magnetSpeed;
+}
+
+function _mergeNearbyXpPickups(pickups = []) {
+  const liveXp = pickups.filter((pickup) => pickup?.isAlive && !pickup.pendingDestroy && _getPickupType(pickup) === 'xp' && !pickup.magnetized);
+  if (liveXp.length < 24) return;
+
+  const buckets = new Map();
+  const cellSize = 24;
+
+  for (let i = 0; i < liveXp.length; i++) {
+    const pickup = liveXp[i];
+    const cellX = Math.floor(pickup.x / cellSize);
+    const cellY = Math.floor(pickup.y / cellSize);
+    const key = `${cellX}:${cellY}`;
+    const bucket = buckets.get(key);
+
+    if (!bucket) {
+      buckets.set(key, pickup);
+      continue;
+    }
+
+    bucket.xpValue += pickup.xpValue ?? 0;
+    bucket.radius = Math.min(16, 8 + Math.sqrt(bucket.xpValue ?? 1));
+    bucket.color = _getMergedXpColor(bucket.xpValue ?? 0);
+    pickup.isAlive = false;
+    pickup.pendingDestroy = true;
+  }
+}
+
+function _getMergedXpColor(xpValue) {
+  if (xpValue <= 3) return '#64b5f6';
+  if (xpValue <= 10) return '#66bb6a';
+  return '#ef5350';
+}
+
+function _getPickupType(pickup) {
+  return pickup?.pickupType ?? 'xp';
+}

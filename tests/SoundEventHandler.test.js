@@ -35,4 +35,34 @@ test('death sound playback is throttled during kill bursts', () => {
   );
 });
 
+test('vacuum burst pickup sounds are throttled into a short cadence', () => {
+  const plays = [];
+  const soundSystem = {
+    play(type) {
+      plays.push(type);
+    },
+  };
+  const registry = new EventRegistry();
+  registerSoundEventHandlers(soundSystem, registry);
+
+  const world = { elapsedTime: 8.0 };
+  registry.processAll({
+    hits: [],
+    deaths: [],
+    pickupCollected: new Array(10).fill(0).map(() => ({ pickup: { pickupType: 'xp', vacuumPulled: true } })),
+    levelUpRequested: [],
+    statusApplied: [],
+    bossPhaseChanged: [],
+    spawnRequested: [],
+    currencyEarned: [],
+    bossAnnounced: [],
+    weaponEvolved: [],
+  }, world);
+
+  assert.ok(
+    plays.filter((type) => type === 'pickup').length < 10,
+    `vacuum pickup 사운드가 획득 수만큼 모두 재생됨 (실제: ${plays.length})`,
+  );
+});
+
 summary();

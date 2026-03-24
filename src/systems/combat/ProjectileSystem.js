@@ -158,6 +158,8 @@ export const ProjectileSystem = {
           p.dirY = dy / len;
         }
 
+        p.angle = Math.atan2(p.dirY ?? 0, p.dirX ?? 1);
+
         // 이동
         const dist = p.speed * deltaTime;
         p.x += p.dirX * dist;

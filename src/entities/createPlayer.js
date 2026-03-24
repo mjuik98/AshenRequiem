@@ -12,6 +12,10 @@
  *   - projectileLifetimeMult : 투사체 지속시간 배율 (1.0 = 기본, 높을수록 오래 유지)
  */
 import { PLAYER_DEFAULTS }         from '../data/constants.js';
+import {
+  mergeUnlockedAccessoryIds,
+  mergeUnlockedWeaponIds,
+} from '../data/unlockAvailability.js';
 import { getWeaponDataById }       from '../data/weaponDataHelpers.js';
 import { generateId }              from '../utils/ids.js';
 import { createSynergyState }      from '../state/createSynergyState.js';
@@ -25,12 +29,8 @@ import { applyPermanentUpgrades }  from '../data/permanentUpgradeData.js';
  * @param {object|null} [session=null]  game.session — 영구 업그레이드 적용에 사용
  */
 export function createPlayer(x = 0, y = 0, session = null) {
-  const unlockedWeapons = Array.isArray(session?.meta?.unlockedWeapons)
-    ? [...session.meta.unlockedWeapons]
-    : ['magic_bolt'];
-  const unlockedAccessories = Array.isArray(session?.meta?.unlockedAccessories)
-    ? [...session.meta.unlockedAccessories]
-    : [];
+  const unlockedWeapons = mergeUnlockedWeaponIds(session?.meta?.unlockedWeapons);
+  const unlockedAccessories = mergeUnlockedAccessoryIds(session?.meta?.unlockedAccessories);
   const selectedStartWeaponId = session?.meta?.selectedStartWeaponId;
   const startWeaponId = unlockedWeapons.includes(selectedStartWeaponId)
     ? selectedStartWeaponId
@@ -92,6 +92,8 @@ export function createPlayer(x = 0, y = 0, session = null) {
     currencyMult:        1.0,
     /** 투사체 지속시간 배율 — 1.0 기본, 높을수록 투사체가 오래 유지됨 */
     projectileLifetimeMult: 1.0,
+    /** 저주 수치 — 높을수록 적 스폰/체력/경험치가 증가 */
+    curse:               0,
 
     isAlive:       true,
     pendingDestroy: false,

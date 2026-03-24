@@ -87,6 +87,19 @@ test('PauseView runtime helper는 로드아웃 선택과 시너지 인덱스를 
   assert.equal(view._selectedLoadoutKey, null, 'PauseView destroy reset이 선택 상태를 지우지 않음');
 });
 
+test('PauseView 시너지 인덱스는 같은 시너지를 정규화 과정에서 중복 등록하지 않는다', () => {
+  const indexes = buildPauseViewIndexes({
+    weaponData: [{ id: 'lightning_ring', name: 'Lightning Ring' }],
+    accessoryData: [],
+    synergyData: [{
+      id: 'orbital_fortress',
+      requires: ['lightning_ring', 'up_lightning_ring'],
+    }],
+  });
+
+  assert.equal(indexes.synergiesByWeaponId.get('lightning_ring')?.length, 1, '정규화된 동일 시너지가 중복 등록됨');
+});
+
 test('PauseView 스타일은 fragment CSS를 조합해 구성된다', () => {
   assert.equal(PAUSE_VIEW_CSS.includes(PAUSE_LAYOUT_CSS.trim()), true, 'pause layout fragment가 최종 CSS에 포함되지 않음');
   assert.equal(PAUSE_VIEW_CSS.includes(PAUSE_LOADOUT_CSS.trim()), true, 'pause loadout fragment가 최종 CSS에 포함되지 않음');

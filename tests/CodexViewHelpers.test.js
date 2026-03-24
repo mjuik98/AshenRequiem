@@ -60,8 +60,8 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   const weaponTab = await import('../src/ui/codex/codexWeaponTab.js');
 
   const weaponData = [
-    { id: 'magic_bolt', name: 'Magic Bolt', damage: 8, cooldown: 1.2, behaviorId: 'targetProjectile', maxLevel: 7 },
-    { id: 'arcane_tempest', name: 'Arcane Tempest', damage: 20, cooldown: 2.0, behaviorId: 'areaBurst', maxLevel: 1, isEvolved: true },
+    { id: 'magic_bolt', name: '매직 볼트', damage: 8, cooldown: 1.2, behaviorId: 'targetProjectile', maxLevel: 7, description: '기본 마탄을 발사한다.' },
+    { id: 'arcane_tempest', name: '비전 폭풍', damage: 20, cooldown: 2.0, behaviorId: 'laserBeam', maxLevel: 1, isEvolved: true, description: '집중된 광선을 발사한다.' },
   ];
   const session = {
     meta: {
@@ -79,6 +79,7 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
 
   const card = weaponTab.buildCodexWeaponCardModel({
     weapon: weaponData[1],
+    weaponData,
     session,
     weaponEvolutionData,
     selectedWeaponId: 'arcane_tempest',
@@ -86,8 +87,34 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
 
   assert.equal(card.unlocked, true);
   assert.equal(card.isSelected, true);
-  assert.equal(card.recipeText.includes('magic_bolt'), true);
+  assert.equal(card.typeLabel, '광선');
+  assert.equal(card.recipeText.includes('매직 볼트'), true);
+  assert.equal(card.recipeText.includes('magic_bolt'), false);
   assert.equal(card.recipeAccessories.length, 1);
+
+  const detail = weaponTab.buildCodexWeaponDetailModel({
+    weaponData,
+    session,
+    weaponEvolutionData,
+    accessoryData: [{ id: 'mana_core', name: '마나 코어', icon: '◈' }],
+    selectedWeaponId: 'arcane_tempest',
+  });
+
+  assert.equal(detail.name, '비전 폭풍');
+  assert.equal(detail.detailStats.some((entry) => entry.label === '공격력'), true);
+  assert.equal(detail.detailStats.some((entry) => entry.label === '공격속도'), true);
+
+  const html = weaponTab.renderCodexWeaponTab({
+    weaponData,
+    session,
+    weaponEvolutionData,
+    accessoryData: [{ id: 'mana_core', name: '마나 코어', icon: '◈' }],
+    selectedWeaponId: 'arcane_tempest',
+  });
+
+  assert.equal(html.includes('id="cx-weapon-detail"'), true);
+  assert.equal(html.includes('선택한 무기'), true);
+  assert.equal(html.includes('공격속도'), true);
 });
 
 await test('codex accessory helper derives filterable grid/detail models and discovery gating', async () => {
@@ -159,9 +186,31 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(html.includes('cx-af'), true);
   assert.equal(html.includes('cx-ef'), true);
   assert.equal(html.includes('cx-discovery-hint'), true);
+  assert.equal(html.includes('선택한 장신구'), true);
   assert.equal(typeof accessoryTab.buildCodexAccessoryGridModel, 'function');
   assert.equal(typeof accessoryTab.renderCodexAccessoryTab, 'function');
   assert.equal(accessoryStyles.CODEX_ACCESSORY_TAB_CSS.includes('.cx-accessory-grid'), true);
+});
+
+await test('codex enemy detail render exposes a clear selected-detail heading', async () => {
+  const enemyTab = await import('../src/ui/codex/codexEnemyTab.js');
+
+  const html = enemyTab.renderCodexEnemyDetail({
+    id: 'skeleton',
+    name: 'Skeleton',
+    tier: 'normal',
+    tierLabel: '일반',
+    killCount: 5,
+    borderColor: '#aaa',
+    avatarText: 'S',
+    color: '#aaa',
+    stats: { hp: 10, moveSpeed: 30, damage: 2, xpValue: 1 },
+    drops: ['경험치 젬'],
+    effects: [],
+    milestoneStates: [],
+  });
+
+  assert.equal(html.includes('선택한 적'), true);
 });
 
 await test('codex records helper packages summary, achievements, and unlock entries together', async () => {

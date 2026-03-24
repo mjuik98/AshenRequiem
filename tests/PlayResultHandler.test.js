@@ -51,25 +51,38 @@ test('런 종료 시 신규 해금을 세션 메타에 반영한다', () => {
     ].sort(),
     '달성한 해금 ID가 세션에 반영되지 않음',
   );
-  assert.deepEqual(
-    session.meta.unlockedWeapons.sort(),
-    [
-      'magic_bolt',
-      'boomerang',
-      'lightning_ring',
-      'chain_lightning',
-      'solar_ray',
-      'piercing_spear',
-      'flame_zone',
-      'crystal_shard',
-    ].sort(),
-    '무기 해금 보상이 세션에 반영되지 않음',
-  );
-  assert.deepEqual(
-    session.meta.unlockedAccessories.sort(),
-    ['arcane_prism', 'coin_pendant', 'persistence_charm', 'wind_crystal'].sort(),
-    '장신구 해금 보상이 세션에 반영되지 않음',
-  );
+  [
+    'magic_bolt',
+    'holy_aura',
+    'frost_nova',
+    'boomerang',
+    'lightning_ring',
+    'chain_lightning',
+    'solar_ray',
+    'piercing_spear',
+    'flame_zone',
+    'crystal_shard',
+  ].forEach((weaponId) => {
+    assert.equal(
+      session.meta.unlockedWeapons.includes(weaponId),
+      true,
+      `무기 해금 보상이 세션에 반영되지 않음: ${weaponId}`,
+    );
+  });
+  [
+    'ring_of_speed',
+    'duplicator',
+    'arcane_prism',
+    'coin_pendant',
+    'persistence_charm',
+    'wind_crystal',
+  ].forEach((accessoryId) => {
+    assert.equal(
+      session.meta.unlockedAccessories.includes(accessoryId),
+      true,
+      `장신구 해금 보상이 세션에 반영되지 않음: ${accessoryId}`,
+    );
+  });
   assert.equal(result.outcome, 'victory', '런 결과 반환값이 유지되지 않음');
   assert.equal(session.last.kills, 42, '기존 결과 저장 경로가 끊김');
 });
@@ -98,6 +111,60 @@ test('패배 런도 totalRuns를 1 증가시킨다', () => {
   handler.process(world);
 
   assert.equal(session.meta.totalRuns, 8, '패배 런이 totalRuns에 반영되지 않음');
+});
+
+test('런 결과는 이전 최고 기록과 무기/해금 요약을 함께 반환한다', () => {
+  const session = makeSessionState({
+    best: { kills: 30, survivalTime: 120, level: 4 },
+    meta: {
+      currency: 100,
+      enemyKills: { zombie: 900 },
+      completedUnlocks: [],
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+    },
+  });
+  const world = makeWorld({
+    killCount: 45,
+    elapsedTime: 600,
+    runCurrencyEarned: 12,
+    runOutcome: { type: 'defeat' },
+    player: makePlayer({
+      level: 6,
+      weapons: [
+        { id: 'magic_bolt', name: 'Magic Bolt', level: 3, isEvolved: false },
+        { id: 'holy_aura', name: 'Holy Aura', level: 2, isEvolved: true },
+      ],
+    }),
+  });
+
+  const handler = new PlayResultHandler(session);
+  const result = handler.process(world);
+
+  assert.equal(result.bestTime, 120, '이전 최고 생존 시간이 반환되지 않음');
+  assert.equal(result.bestLevel, 4, '이전 최고 레벨이 반환되지 않음');
+  assert.equal(result.bestKills, 30, '이전 최고 킬 수가 반환되지 않음');
+  assert.deepEqual(
+    result.weapons,
+    [
+      { name: 'Magic Bolt', level: 3, isEvolved: false },
+      { name: 'Holy Aura', level: 2, isEvolved: true },
+    ],
+    '사용 무기 요약이 결과에 포함되지 않음',
+  );
+  assert.deepEqual(
+    result.newUnlocks.sort(),
+    [
+      '관통 창 해금',
+      '바람의 수정 해금',
+      '부메랑 해금',
+      '비전 프리즘 해금',
+      '지속의 부적 해금',
+      '태양 광선 해금',
+    ].sort(),
+    '이번 런 신규 해금 rewardText가 결과에 포함되지 않음',
+  );
+  assert.equal(result.currencyEarned, 12, 'world.runCurrencyEarned 기반 획득 재화가 유지되지 않음');
 });
 
 summary();

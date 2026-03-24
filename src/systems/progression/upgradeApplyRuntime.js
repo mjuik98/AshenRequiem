@@ -44,6 +44,9 @@ export function applyAccessoryEffects(player, effects) {
       case 'projectileLifetimeMult':
         player.projectileLifetimeMult = (player.projectileLifetimeMult ?? 1.0) + effect.value;
         break;
+      case 'curse':
+        player.curse = (player.curse ?? 0) + effect.value;
+        break;
       case 'bonusProjectileCount':
         player.bonusProjectileCount = (player.bonusProjectileCount ?? 0) + effect.value;
         break;
@@ -72,6 +75,28 @@ export function applyUpgradeRuntime(player, upgrade, data = {}) {
       newWeapon.damage = Math.max(1, Math.round(newWeapon.damage * player.globalDamageMult));
     }
     player.weapons.push(newWeapon);
+    return;
+  }
+
+  if (upgrade.type === 'weapon_evolution') {
+    const evolvedDef = getWeaponDef(upgrade.resultWeaponId, data);
+    if (!evolvedDef) return;
+
+    const weaponIndex = player.weapons.findIndex((weapon) => weapon.id === upgrade.weaponId);
+    if (weaponIndex === -1) return;
+
+    const evolvedWeapon = {
+      ...evolvedDef,
+      currentCooldown: 0,
+      level: 1,
+    };
+    if (player.globalDamageMult && player.globalDamageMult !== 1) {
+      evolvedWeapon.damage = Math.max(1, Math.round((evolvedWeapon.damage ?? 1) * player.globalDamageMult));
+    }
+
+    player.weapons.splice(weaponIndex, 1, evolvedWeapon);
+    player.evolvedWeapons = player.evolvedWeapons ?? new Set();
+    player.evolvedWeapons.add(upgrade.recipeId ?? upgrade.id);
     return;
   }
 

@@ -56,6 +56,7 @@ async function loadData() {
     { waveData },
     { statusEffectData },
     { synergyData },
+    { propDropData },
   ] = await Promise.all([
     import('../src/data/enemyData.js'),
     import('../src/data/weaponData.js'),
@@ -63,16 +64,18 @@ async function loadData() {
     import('../src/data/waveData.js'),
     import('../src/data/statusEffectData.js'),
     import('../src/data/synergyData.js'),
+    import('../src/data/propDropData.js'),
   ]);
 
-  return { enemyData, weaponData, upgradeData, waveData, statusEffectData, synergyData };
+  return { enemyData, weaponData, upgradeData, waveData, statusEffectData, synergyData, propDropData };
 }
 
-function validateEnemyData(enemyData) {
+function validateEnemyData(enemyData, propDropData = []) {
   console.log('\n[enemyData]');
   checkNoDuplicateIds(enemyData, 'enemyData');
 
   const enemyIds = getIds(enemyData);
+  const propDropIds = getIds(propDropData);
   const required = ['id', 'name', 'hp', 'moveSpeed', 'damage', 'xpValue', 'radius'];
 
   for (const e of enemyData) {
@@ -92,6 +95,9 @@ function validateEnemyData(enemyData) {
       if (!enemyIds.has(e.deathSpawn.enemyId)) {
         err(`enemy "${e.id}": deathSpawn.enemyId "${e.deathSpawn.enemyId}" 존재하지 않음`);
       }
+    }
+    if (e.isProp && e.propDropTableId && !propDropIds.has(e.propDropTableId)) {
+      err(`enemy "${e.id}": propDropTableId "${e.propDropTableId}" 존재하지 않음`);
     }
   }
   ok(`총 ${enemyData.length}개 검증 완료`);
@@ -177,6 +183,11 @@ function validateWaveData(waveData, enemyData) {
         err(`wave [${w.from}~${w.to}]: enemyId "${eid}" 존재하지 않음`);
       }
     }
+    for (const propId of (w.propIds ?? [])) {
+      if (!enemyIds.has(propId)) {
+        err(`wave [${w.from}~${w.to}]: propId "${propId}" 존재하지 않음`);
+      }
+    }
   }
   ok(`총 ${waveData.length}개 검증 완료`);
 }
@@ -202,7 +213,7 @@ async function main() {
   coreReport.errors.forEach((message) => err(message.replace('[validate] ', '')));
   coreReport.warnings.forEach((message) => warn(message.replace('[validate] ', '')));
 
-  validateEnemyData(data.enemyData);
+  validateEnemyData(data.enemyData, data.propDropData);
   validateWeaponData(data.weaponData);
   validateUpgradeData(data.upgradeData);
   validateSynergyData(data.synergyData, data.upgradeData, data.weaponData);

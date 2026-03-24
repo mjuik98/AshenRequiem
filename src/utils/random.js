@@ -32,6 +32,27 @@ export function randomPick(arr, rng) {
   return arr[Math.floor(nextFloat(rng) * arr.length)];
 }
 
+export function weightedPick(entries = [], rng) {
+  let totalWeight = 0;
+  for (let i = 0; i < entries.length; i++) {
+    totalWeight += Math.max(0, Number(entries[i]?.weight) || 0);
+  }
+  if (totalWeight <= 0) return null;
+
+  const roll = nextFloat(rng) * totalWeight;
+  let cursor = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const entryWeight = Math.max(0, Number(entries[i]?.weight) || 0);
+    if (entryWeight <= 0) continue;
+    cursor += entryWeight;
+    if (roll < cursor) {
+      return entries[i];
+    }
+  }
+
+  return entries[entries.length - 1] ?? null;
+}
+
 /** Fisher-Yates 셔플 (원본 배열 복사 후 반환) */
 export function shuffle(arr, rng) {
   const a = arr.slice();

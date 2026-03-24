@@ -111,6 +111,14 @@ export const weaponProgressionData = {
     { level: 6, damageDelta: 3, description: '폭풍 구체 데미지 +3' },
     { level: 7, orbitCountDelta: 1, description: '회전 구체 수 +1' },
   ],
+  judgement_chain: [
+    { level: 2, damageDelta: 3, cooldownMult: 0.94, description: '천벌 사슬 데미지 +3, 쿨다운 6% 감소' },
+    { level: 3, chainCountDelta: 1, description: '연쇄 대상 수 +1' },
+    { level: 4, damageDelta: 3, cooldownMult: 0.94, description: '천벌 사슬 데미지 +3, 쿨다운 6% 감소' },
+    { level: 5, chainCountDelta: 1, description: '연쇄 대상 수 +1' },
+    { level: 6, damageDelta: 4, cooldownMult: 0.90, description: '천벌 사슬 데미지 +4, 쿨다운 10% 감소' },
+    { level: 7, chainCountDelta: 1, description: '연쇄 대상 수 +1' },
+  ],
   divine_shield: [
     { level: 2, damageDelta: 2, description: '신성한 방패 데미지 +2' },
     { level: 3, orbitRadiusDelta: 12, description: '방패 범위 +12px' },

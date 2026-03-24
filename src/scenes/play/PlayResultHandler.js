@@ -1,8 +1,11 @@
 /**
  * src/scenes/play/PlayResultHandler.js — 런 종료 처리 전담
  *
- * CHANGE: 이번 런 획득 재화(currencyEarned) 추적 추가
- *   생성자에서 시작 재화를 기록 → process() 시 차액으로 획득량 계산
+ * CHANGE: 결과 화면 확장 데이터 반환
+ *   - 이전 최고 기록 스냅샷
+ *   - 사용 무기 요약
+ *   - 이번 런 신규 해금 rewardText
+ *   - 기존 재화 추적 로직 유지
  */
 import { updateSessionBest } from '../../state/createSessionState.js';
 import { unlockData } from '../../data/unlockData.js';
@@ -16,8 +19,10 @@ export class PlayResultHandler {
    */
   constructor(session) {
     this._session      = session;
-    // CHANGE: 런 시작 시점의 재화 기록 (이번 런 획득량 계산용)
     this._startCurrency = session.meta.currency;
+    this._prevBestTime = session.best?.survivalTime ?? 0;
+    this._prevBestLevel = session.best?.level ?? 1;
+    this._prevBestKills = session.best?.kills ?? 0;
   }
 
   /**
@@ -27,7 +32,10 @@ export class PlayResultHandler {
    * @returns {{
    *   killCount: number, survivalTime: number, level: number,
    *   outcome: 'victory'|'defeat',
-   *   currencyEarned: number, totalCurrency: number
+   *   currencyEarned: number, totalCurrency: number,
+   *   bestTime: number, bestLevel: number, bestKills: number,
+   *   weapons: Array<{ name: string, level: number, isEvolved: boolean }>,
+   *   newUnlocks: string[]
    * }}
    */
   process(world) {
@@ -63,7 +71,19 @@ export class PlayResultHandler {
     persistSession(this._session);
 
     // CHANGE: 획득 재화 = 현재 재화 - 런 시작 재화
-    const currencyEarned = Math.max(0, this._session.meta.currency - this._startCurrency);
+    const currencyEarned = Math.max(
+      0,
+      world.runCurrencyEarned ?? 0,
+      this._session.meta.currency - this._startCurrency,
+    );
+    const weapons = (world.player?.weapons ?? []).map((weapon) => ({
+      name: weapon.name ?? weapon.id,
+      level: weapon.level ?? 1,
+      isEvolved: Boolean(weapon.isEvolved),
+    }));
+    const newUnlocks = unlockResult.newlyCompletedUnlocks
+      .map((unlockId) => unlockData.find((unlock) => unlock.id === unlockId)?.rewardText)
+      .filter(Boolean);
 
     return {
       killCount:      runResult.kills,
@@ -72,6 +92,11 @@ export class PlayResultHandler {
       outcome,
       currencyEarned,
       totalCurrency:  this._session.meta.currency,
+      bestTime:       this._prevBestTime,
+      bestLevel:      this._prevBestLevel,
+      bestKills:      this._prevBestKills,
+      weapons,
+      newUnlocks,
     };
   }
 }

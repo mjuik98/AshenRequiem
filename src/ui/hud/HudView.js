@@ -28,6 +28,8 @@ export class HudView {
           <div class="hud-right-stats">
             <span class="hud-time">0:00</span>
             <span class="hud-kills">킬: 0</span>
+            <span class="hud-gold">골드: 0</span>
+            <span class="hud-curse">저주: 0%</span>
           </div>
         </div>
       </div>
@@ -40,6 +42,8 @@ export class HudView {
     this._elLevel      = this.el.querySelector('.hud-level');
     this._elKills      = this.el.querySelector('.hud-kills');
     this._elTime       = this.el.querySelector('.hud-time');
+    this._elGold       = this.el.querySelector('.hud-gold');
+    this._elCurse      = this.el.querySelector('.hud-curse');
     this._elXpBar      = this.el.querySelector('.hud-xp-bar');
     this._elChestQueue = this.el.querySelector('#hud-chest-queue');
     this._elChestCount = this.el.querySelector('#hud-chest-count');
@@ -60,6 +64,8 @@ export class HudView {
     this._elLevel.textContent  = `Lv.${player.level}`;
     this._elKills.textContent  = `킬: ${world.killCount}`;
     this._elTime.textContent   = `${mm}:${ss}`;
+    this._elGold.textContent   = `골드: ${(world.runCurrencyEarned ?? 0).toLocaleString()}`;
+    this._elCurse.textContent  = `저주: ${Math.round((player.curse ?? 0) * 100)}%`;
     this._elXpBar.style.width  = `${xpPct}%`;
 
     // FIX(4): 상자 대기 카운터 업데이트
@@ -108,6 +114,8 @@ export class HudView {
       .hud-right-stats {
         display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
       }
+      .hud-gold { color: #ffd54f; }
+      .hud-curse { color: #ef9a9a; }
 
       /* FIX(4): 상자 대기 카운터 */
       .hud-chest-queue {

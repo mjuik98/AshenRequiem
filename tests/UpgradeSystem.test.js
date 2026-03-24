@@ -17,6 +17,7 @@ import { permanentUpgradeData } from '../src/data/permanentUpgradeData.js';
 import { weaponData } from '../src/data/weaponData.js';
 import { accessoryData } from '../src/data/accessoryData.js';
 import { weaponProgressionData } from '../src/data/weaponProgressionData.js';
+import { weaponEvolutionData } from '../src/data/weaponEvolutionData.js';
 
 // ─── UpgradeSystem import ─────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ function makeUpgradeRuntimeData(overrides = {}) {
     weaponData,
     accessoryData,
     weaponProgressionData,
+    weaponEvolutionData,
     synergyData: [],
     ...overrides,
   };
@@ -135,6 +137,24 @@ test('잠긴 weapon_new는 선택지에 등장하지 않음', () => {
   );
 });
 
+test('기본 공개 weapon_new는 세션 잠금 배열이 최소값이어도 후보에 남는다', () => {
+  if (!UpgradeSystem) return;
+  const player = makePlayer({
+    weapons: [{ id: 'magic_bolt', level: 1, currentCooldown: 0 }],
+    maxWeaponSlots: 6,
+    unlockedWeapons: ['magic_bolt'],
+  });
+  const choices = UpgradeSystem._buildAvailablePool(player, {}, makeUpgradeRuntimeData());
+  assert(
+    choices.some((choice) => choice.type === 'weapon_new' && choice.weaponId === 'holy_aura'),
+    '기본 공개 holy_aura가 후보 풀에서 사라짐',
+  );
+  assert(
+    choices.some((choice) => choice.type === 'weapon_new' && choice.weaponId === 'frost_nova'),
+    '기본 공개 frost_nova가 후보 풀에서 사라짐',
+  );
+});
+
 test('무기가 maxLevel이면 weapon_upgrade가 선택지에 등장하지 않음', () => {
   if (!UpgradeSystem) return;
   const player  = makePlayer({ weapons: [{ id: 'magic_bolt', level: 7, currentCooldown: 0 }] });
@@ -155,6 +175,20 @@ test('Lv.6 무기는 아직 weapon_upgrade 후보에 남는다', () => {
     choices.some(c => c.type === 'weapon_upgrade' && c.weaponId === 'magic_bolt'),
     'Lv.6 magic_bolt가 최종 강화 후보에서 빠짐',
   );
+});
+
+test('진화 조건을 만족한 무기는 weapon_evolution 선택지가 후보 풀 최상단에 포함된다', () => {
+  if (!UpgradeSystem) return;
+  const player = makePlayer({
+    weapons: [{ id: 'magic_bolt', level: 7, currentCooldown: 0 }],
+    accessories: [{ id: 'tome_of_power', level: 1 }],
+    evolvedWeapons: new Set(),
+  });
+  const choices = UpgradeSystem.generateChoices(player, { rng: makeRng([0.9, 0.8, 0.7, 0.6]) }, makeUpgradeRuntimeData());
+
+  assert.equal(choices[0]?.type, 'weapon_evolution', '진화 선택지가 최우선 카드로 배치되지 않음');
+  assert.equal(choices[0]?.weaponId, 'magic_bolt', '진화 선택지의 기반 무기 정보가 잘못됨');
+  assert.equal(choices[0]?.resultWeaponId, 'arcane_nova', '진화 선택지의 결과 무기 정보가 잘못됨');
 });
 
 test('같은 무기의 별도 multishot 카드가 후보에 따로 등장하지 않는다', () => {
@@ -196,6 +230,25 @@ test('잠긴 accessory는 선택지에 등장하지 않음', () => {
   assert(
     !choices.some(c => c.type === 'accessory' && c.accessoryId === 'persistence_charm'),
     '잠긴 persistence_charm이 선택지에 등장',
+  );
+});
+
+test('기본 공개 accessory는 빈 unlockedAccessories 배열에서도 후보에 남는다', () => {
+  if (!UpgradeSystem) return;
+  const player = makePlayer({
+    weapons: [{ id: 'magic_bolt', level: 1, currentCooldown: 0 }],
+    accessories: [],
+    maxAccessorySlots: 6,
+    unlockedAccessories: [],
+  });
+  const choices = UpgradeSystem._buildAvailablePool(player, {}, makeUpgradeRuntimeData());
+  assert(
+    choices.some((choice) => choice.type === 'accessory' && choice.accessoryId === 'ring_of_speed'),
+    '기본 공개 ring_of_speed가 후보 풀에서 사라짐',
+  );
+  assert(
+    choices.some((choice) => choice.type === 'accessory' && choice.accessoryId === 'duplicator'),
+    '기본 공개 duplicator가 후보 풀에서 사라짐',
   );
 });
 
