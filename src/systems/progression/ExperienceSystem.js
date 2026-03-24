@@ -16,19 +16,25 @@
 import { distanceSq }       from '../../math/Vector2.js';
 import { PICKUP_BEHAVIOR }  from '../../data/constants.js';
 
+const VACUUM_MIN_SPEED = 220;
+const VACUUM_MAX_SPEED = 960;
+const VACUUM_DISTANCE_MULT = 1.2;
+
 export const ExperienceSystem = {
-  update({ world: { events, player, pickups, deltaTime } }) {
+  update({ world }) {
+    const { events, player, pickups, deltaTime } = world;
     if (!player?.isAlive) return;
 
     _mergeNearbyXpPickups(pickups);
 
     const magnetRadSq = player.magnetRadius * player.magnetRadius;
     const xpMult      = player.xpMult ?? 1.0;
+    const hasVacuumPullInFlight = _hasActiveVacuumPull(pickups);
 
     // ── 1단계: pickupCollected 처리 (XP / 상자 이벤트 발행) ─────────────
     // 이 루프에서만 chestCollected를 발행한다 — 중복 방지.
     const collected = events.pickupCollected;
-    let processedCount = _processCollectedPickups({ collected, startIndex: 0, events, player, pickups, xpMult });
+    let processedCount = _processCollectedPickups({ world, collected, startIndex: 0, events, player, pickups, xpMult });
 
     // ── 2단계: 자석 이동 (상자는 제외) ───────────────────────────────────
     for (let i = 0; i < pickups.length; i++) {
@@ -38,7 +44,14 @@ export const ExperienceSystem = {
       // FIX(2): 상자는 자석 대상에서 완전 제외
       if (pk.pickupType === 'chest') continue;
 
+      const vacuumBlocksNormalMagnet = (
+        _getPickupType(pk) === 'xp'
+        && !pk.vacuumPulled
+        && hasVacuumPullInFlight
+      );
+
       if (!pk.magnetized && distanceSq(player, pk) <= magnetRadSq) {
+        if (vacuumBlocksNormalMagnet) continue;
         pk.magnetized = true;
       }
 
@@ -61,11 +74,11 @@ export const ExperienceSystem = {
       }
     }
 
-    _processCollectedPickups({ collected, startIndex: processedCount, events, player, pickups, xpMult });
+    _processCollectedPickups({ world, collected, startIndex: processedCount, events, player, pickups, xpMult });
   },
 };
 
-function _processCollectedPickups({ collected, startIndex, events, player, pickups, xpMult }) {
+function _processCollectedPickups({ world, collected, startIndex, events, player, pickups, xpMult }) {
   let index = startIndex;
   for (; index < collected.length; index++) {
     const pk = collected[index].pickup;
@@ -109,9 +122,13 @@ function _markAllXpPickupsForVacuum(pickups) {
 
 function _getPickupMoveSpeed(pickup, distanceToPlayer) {
   if (pickup?.vacuumPulled) {
-    return Math.min(720, Math.max(140, distanceToPlayer * 0.7));
+    return Math.min(VACUUM_MAX_SPEED, Math.max(VACUUM_MIN_SPEED, distanceToPlayer * VACUUM_DISTANCE_MULT));
   }
   return PICKUP_BEHAVIOR.magnetSpeed;
+}
+
+function _hasActiveVacuumPull(pickups = []) {
+  return pickups.some((pickup) => pickup?.isAlive && !pickup.pendingDestroy && pickup.vacuumPulled);
 }
 
 function _mergeNearbyXpPickups(pickups = []) {

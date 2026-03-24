@@ -43,7 +43,8 @@ export function chainLightning({ weapon, player, enemies, spawnQueue, events }) 
   if (alive.length === 0) return false;
 
   const range      = weapon.range      ?? 350;
-  const chainCount = weapon.chainCount ?? 3;
+  const bonus      = Math.floor(player?.bonusProjectileCount ?? 0);
+  const chainCount = Math.max(1, (weapon.chainCount ?? 3) + bonus);
   const chainRange = weapon.chainRange ?? 120;
   const damage     = weapon.damage     ?? 12;
 

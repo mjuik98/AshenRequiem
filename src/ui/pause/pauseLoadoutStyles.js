@@ -69,13 +69,11 @@ export const PAUSE_LOADOUT_CSS = `
   .pv-loadout-detail-name { margin: 0 0 6px; font-size: 22px; line-height: 1.1; color: rgba(255,255,255,0.92); }
   .pv-loadout-detail-summary, .pv-loadout-empty-msg, .pv-loadout-evolution-desc, .pv-loadout-synergy-desc { font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.58); }
   .pv-loadout-section-title { margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: rgba(255,255,255,0.42); }
-  .pv-loadout-power-lines, .pv-loadout-progress-block, .pv-loadout-link-list, .pv-loadout-synergy-list, .pv-loadout-evolution-list { display: flex; flex-direction: column; gap: 8px; }
-  .pv-loadout-progress-block { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); }
+  .pv-loadout-power-lines, .pv-loadout-link-list, .pv-loadout-synergy-list, .pv-loadout-evolution-list { display: flex; flex-direction: column; gap: 8px; }
   .variant-status { border-bottom-color: rgba(212,175,106,0.22); }
   .variant-links { border-bottom-color: rgba(126,205,232,0.18); }
   .variant-synergy { border-bottom-color: rgba(126,205,232,0.24); }
   .variant-evolution { border-bottom-color: rgba(212,175,106,0.26); }
-  .variant-status .pv-loadout-progress-block { background: linear-gradient(180deg, rgba(212,175,106,0.08), rgba(255,255,255,0.025)); border-color: rgba(212,175,106,0.12); }
   .variant-links .pv-loadout-chip-row,
   .variant-links .pv-loadout-link-list { position: relative; }
   .variant-synergy .pv-loadout-synergy-row { background: linear-gradient(180deg, rgba(126,205,232,0.09), rgba(126,205,232,0.03)); border-color: rgba(126,205,232,0.16); }

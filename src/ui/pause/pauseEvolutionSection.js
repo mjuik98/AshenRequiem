@@ -40,11 +40,6 @@ export function renderPauseEvolutionSection(selectedItem, player, data, indexes)
       `;
     }
 
-    const accessoryById = indexes?.accessoryById ?? new Map();
-    const accessoryNames = toArray(recipe?.requires?.accessoryIds)
-      .map((accessoryId) => accessoryById.get(accessoryId)?.name ?? accessoryId)
-      .filter(Boolean)
-      .join(', ');
     const resultWeapon = buildRequirementReference(recipe?.resultWeaponId, indexes);
     const resultWeaponName = resultWeapon?.item?.name ?? recipe?.resultWeaponId ?? '결과 무기';
     const requirementRefs = toArray(recipe?.requires?.accessoryIds)
@@ -66,7 +61,7 @@ export function renderPauseEvolutionSection(selectedItem, player, data, indexes)
               <span class="pv-loadout-evolution-state">${escapeHtml(resultWeaponName)}</span>
             </span>
           </div>
-          <div class="pv-loadout-evolution-desc">${escapeHtml(accessoryNames || '추가 장신구 필요')}</div>
+          ${requirementRefs.length === 0 ? `<div class="pv-loadout-evolution-desc">추가 장신구 필요</div>` : ''}
           ${requirementRefs.length > 0 ? `<div class="pv-loadout-req-chips">${requirementRefs.map((reference) => renderRequirementChip(reference, player)).join('')}</div>` : ''}
         </div>
       </section>
@@ -87,7 +82,6 @@ export function renderPauseEvolutionSection(selectedItem, player, data, indexes)
     const recipeHtml = matchedRecipes.map((recipe) => {
       const weaponReference = buildRequirementReference(recipe?.requires?.weaponId, indexes);
       const resultWeapon = buildRequirementReference(recipe?.resultWeaponId, indexes);
-      const weaponName = weaponReference?.item?.name ?? recipe?.requires?.weaponId ?? '무기';
       const resultWeaponName = resultWeapon?.item?.name ?? recipe?.resultWeaponId ?? '결과 무기';
       const isDone = player?.evolvedWeapons?.has(recipe?.id);
       return `
@@ -102,7 +96,7 @@ export function renderPauseEvolutionSection(selectedItem, player, data, indexes)
               <span class="pv-loadout-evolution-state">${escapeHtml(resultWeaponName)}</span>
             </span>
           </div>
-          <div class="pv-loadout-evolution-desc">${escapeHtml(weaponName)}</div>
+          ${weaponReference ? '' : '<div class="pv-loadout-evolution-desc">연결 무기 필요</div>'}
           ${weaponReference ? `<div class="pv-loadout-req-chips">${renderRequirementChip(weaponReference, player)}</div>` : ''}
         </div>
       `;

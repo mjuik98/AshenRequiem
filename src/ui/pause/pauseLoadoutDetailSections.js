@@ -13,7 +13,7 @@ import {
 export function renderPauseLoadoutDetail(selectedItem, player, data, indexes) {
   const { headerHtml } = renderPauseLoadoutDetailHeader(selectedItem, player, data, indexes);
   const statsHtml = selectedItem?.kind === 'weapon' && selectedItem?.source
-    ? renderPauseWeaponStatsSection(selectedItem.source)
+    ? renderPauseWeaponStatsSection(selectedItem.source, player)
     : '';
   const effectLevelsHtml = selectedItem?.kind === 'accessory' && selectedItem?.source
     ? renderPauseAccessoryStatsSection(selectedItem, indexes)

@@ -189,7 +189,12 @@ export function applyUpgradeRuntime(player, upgrade, data = {}) {
         return { stat: effect.stat, value: 1 + (effect.valuePerLevel ?? 0) };
       }
       return { stat: effect.stat, value: effect.valuePerLevel ?? 0 };
-    }).filter((effect) => effect.value !== 0 && effect.value !== 1);
+    }).filter((effect) => {
+      if (effect.stat === 'damageMult') {
+        return effect.value !== 1;
+      }
+      return effect.value !== 0;
+    });
     applyAccessoryEffects(player, levelUpEffects);
     return;
   }

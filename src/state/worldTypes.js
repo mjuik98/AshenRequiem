@@ -137,6 +137,7 @@
  * @property {number}             deltaTime
  * @property {number}             killCount
  * @property {number}             runCurrencyEarned
+ * @property {number}             bossKillCount
  * @property {'playing'|'paused'|'levelup'|'dead'} playMode
  */
 

@@ -457,6 +457,36 @@ test('accessory_upgrade: maxLevel 도달 시 더 이상 레벨업 불가', () =>
   assert.equal(player.moveSpeed, prevSpeed, 'maxLevel에서 효과가 추가 적용됨');
 });
 
+test('accessory_upgrade: duplicator 레벨업은 추가 투사체를 누적 적용한다', () => {
+  if (!UpgradeSystem) return;
+  const player = makePlayer({
+    accessories: [{ id: 'duplicator', level: 1 }],
+    maxAccessorySlots: 3,
+    bonusProjectileCount: 1,
+  });
+
+  UpgradeSystem.applyUpgrade(player,
+    { id: 'up_duplicator', type: 'accessory_upgrade', accessoryId: 'duplicator' }, [], undefined, makeUpgradeRuntimeData());
+  const acc = player.accessories.find((accessory) => accessory.id === 'duplicator');
+  assert.equal(acc.level, 2, 'duplicator 레벨이 2가 아님');
+  assert.equal(player.bonusProjectileCount, 2, 'duplicator 레벨업의 추가 투사체가 누적되지 않음');
+});
+
+test('accessory_upgrade: scattered_shot 레벨업도 추가 투사체를 누적 적용한다', () => {
+  if (!UpgradeSystem) return;
+  const player = makePlayer({
+    accessories: [{ id: 'scattered_shot', level: 1 }],
+    maxAccessorySlots: 3,
+    bonusProjectileCount: 1,
+  });
+
+  UpgradeSystem.applyUpgrade(player,
+    { id: 'up_scattered_shot', type: 'accessory_upgrade', accessoryId: 'scattered_shot' }, [], undefined, makeUpgradeRuntimeData());
+  const acc = player.accessories.find((accessory) => accessory.id === 'scattered_shot');
+  assert.equal(acc.level, 2, 'scattered_shot 레벨이 2가 아님');
+  assert.equal(player.bonusProjectileCount, 2, 'scattered_shot 레벨업의 추가 투사체가 누적되지 않음');
+});
+
 test('projectile lifetime accessory: 새 장신구 장착 시 지속시간 배율이 증가한다', () => {
   if (!UpgradeSystem) return;
   const player = makePlayer({

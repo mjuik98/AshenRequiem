@@ -114,7 +114,28 @@ test('Pause tooltip은 orbit 무기의 실제 발사 수를 orbitCount 기준으
     indexes,
   });
 
-  assert.equal(weaponTooltip.includes('투사체 5'), true, 'orbit 무기의 실제 발사 수가 tooltip에 반영되지 않음');
+  assert.equal(weaponTooltip.includes('회전체 5'), true, 'orbit 무기의 실제 발사 수가 tooltip에 반영되지 않음');
+});
+
+test('Pause tooltip은 chainLightning 무기의 실제 연쇄 수를 bonusProjectileCount까지 반영해 표시한다', () => {
+  const player = {
+    weapons: [{ id: 'chain_lightning', name: 'Chain Lightning', level: 2, damage: 14, cooldown: 0.8, behaviorId: 'chainLightning', chainCount: 3 }],
+    accessories: [],
+    bonusProjectileCount: 2,
+  };
+  const indexes = {
+    weaponById: new Map([['chain_lightning', { id: 'chain_lightning', name: 'Chain Lightning' }]]),
+    accessoryById: new Map(),
+  };
+
+  const weaponTooltip = buildPauseWeaponTooltipContent({
+    weaponId: 'chain_lightning',
+    player,
+    data: { weaponEvolutionData: [] },
+    indexes,
+  });
+
+  assert.equal(weaponTooltip.includes('연쇄 5'), true, 'chainLightning 실제 연쇄 수가 tooltip에 반영되지 않음');
 });
 
 test('결과 화면은 강화 상점 대신 메인 화면 버튼을 사용한다', () => {

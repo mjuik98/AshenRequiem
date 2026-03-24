@@ -11,14 +11,34 @@ function formatSeconds(value, digits = 1) {
   return Number.isFinite(value) ? `${value.toFixed(digits)}s` : '—';
 }
 
-function resolveDisplayedProjectileCount(weapon, player) {
+function resolveDisplayedProjectileStat(weapon, player) {
   const bonusProjs = Math.floor(player?.bonusProjectileCount ?? 0);
 
   if (weapon?.behaviorId === 'orbit') {
-    return (weapon.orbitCount ?? 3) + bonusProjs;
+    return {
+      label: '회전체',
+      value: (weapon.orbitCount ?? 3) + bonusProjs,
+    };
   }
 
-  return (weapon?.projectileCount ?? 1) + bonusProjs;
+  if (weapon?.behaviorId === 'chainLightning') {
+    return {
+      label: '연쇄',
+      value: (weapon.chainCount ?? 3) + bonusProjs,
+    };
+  }
+
+  if (weapon?.behaviorId === 'laserBeam') {
+    return {
+      label: '세그먼트',
+      value: weapon.beamSegments ?? 4,
+    };
+  }
+
+  return {
+    label: '투사체',
+    value: (weapon?.projectileCount ?? 1) + bonusProjs,
+  };
 }
 
 export function formatWeaponSynergyBonus(bonus) {
@@ -43,13 +63,13 @@ export function buildPauseWeaponTooltipContent({
 
   const evoData = data?.weaponEvolutionData ?? [];
   const accessoryById = indexes?.accessoryById ?? new Map();
-  const totalProj = resolveDisplayedProjectileCount(weapon, player);
+  const projectileStat = resolveDisplayedProjectileStat(weapon, player);
 
   const evoRecipe = evoData.find((recipe) => recipe.requires?.weaponId === weaponId);
   const statBits = [
     weapon.damage != null ? `데미지 ${weapon.damage}` : null,
     weapon.cooldown != null ? `쿨다운 ${formatSeconds(weapon.cooldown, 2)}` : null,
-    totalProj > 1 ? `투사체 ${totalProj}` : null,
+    projectileStat.value > 1 ? `${projectileStat.label} ${projectileStat.value}` : null,
   ].filter(Boolean);
   const statusLabel = weapon.statusEffectId
     ? (() => {

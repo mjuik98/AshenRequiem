@@ -40,14 +40,28 @@ function resolveWeaponAreaValue(weapon) {
   }
 }
 
-function resolveWeaponProjectileCount(weapon) {
-  if (!weapon) return 0;
+function resolveWeaponProjectileStat(weapon, player) {
+  if (!weapon) return { label: '투사체 수', value: 0 };
 
-  if (Number.isFinite(weapon.projectileCount)) return weapon.projectileCount;
-  if (Number.isFinite(weapon.orbitCount)) return weapon.orbitCount;
-  if (Number.isFinite(weapon.chainCount)) return weapon.chainCount;
-  if (Number.isFinite(weapon.beamSegments)) return weapon.beamSegments;
-  return 0;
+  const bonus = Math.floor(player?.bonusProjectileCount ?? 0);
+
+  if (Number.isFinite(weapon.orbitCount)) {
+    return { label: '회전체 수', value: weapon.orbitCount + bonus };
+  }
+
+  if (Number.isFinite(weapon.chainCount)) {
+    return { label: '연쇄 수', value: weapon.chainCount + bonus };
+  }
+
+  if (Number.isFinite(weapon.beamSegments)) {
+    return { label: '세그먼트 수', value: weapon.beamSegments };
+  }
+
+  if (Number.isFinite(weapon.projectileCount)) {
+    return { label: '투사체 수', value: weapon.projectileCount + bonus };
+  }
+
+  return { label: '투사체 수', value: 0 };
 }
 
 function resolveWeaponProjectileSpeed(weapon) {
@@ -85,19 +99,17 @@ export function renderPauseStatusBlock(selectedItem) {
   return `
     <div class="pv-loadout-power variant-status">
       <h4 class="pv-loadout-section-title">레벨 진행</h4>
-      <div class="pv-loadout-progress-block">
-        ${levelBlockHtml}
-      </div>
+      ${levelBlockHtml}
     </div>
   `;
 }
 
-export function renderPauseWeaponStatsSection(weapon) {
+export function renderPauseWeaponStatsSection(weapon, player) {
   const damage = weapon.damage ?? 0;
   const cooldown = weapon.cooldown ?? 1;
   const range = resolveWeaponRangeValue(weapon);
   const area = resolveWeaponAreaValue(weapon);
-  const projectileCount = resolveWeaponProjectileCount(weapon);
+  const projectileStat = resolveWeaponProjectileStat(weapon, player);
   const projectileSpeed = resolveWeaponProjectileSpeed(weapon);
   const cooldownFill = Math.max(0, Math.min(100, Math.round((1 - (cooldown / 4)) * 100)));
 
@@ -112,8 +124,8 @@ export function renderPauseWeaponStatsSection(weapon) {
       ${area > 0 ? `
         ${renderWeaponStatRow('범위', Math.round(area), Math.min(100, Math.round(area / 2)), '#c08cff')}
       ` : ''}
-      ${projectileCount > 0 ? `
-        ${renderWeaponStatRow('투사체 수', projectileCount, Math.min(100, projectileCount * 20), '#d4af6a')}
+      ${projectileStat.value > 0 ? `
+        ${renderWeaponStatRow(projectileStat.label, projectileStat.value, Math.min(100, projectileStat.value * 20), '#d4af6a')}
       ` : ''}
       ${projectileSpeed > 0 ? `
         ${renderWeaponStatRow('발사체 속도', Math.round(projectileSpeed), Math.min(100, Math.round(projectileSpeed / 6)), '#7ecde8')}
