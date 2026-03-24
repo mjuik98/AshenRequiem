@@ -19,6 +19,7 @@
  *   4. 상태가 있으면 팩토리 함수 → PipelineBuilder에서 직접 등록
  */
 import { WorldTickSystem }      from './core/WorldTickSystem.js';
+import { PendingEventPumpSystem } from './event/PendingEventPumpSystem.js';
 import { PlayerMovementSystem } from './movement/PlayerMovementSystem.js';
 import { EliteBehaviorSystem }  from './combat/EliteBehaviorSystem.js';
 import { WeaponSystem }         from './combat/WeaponSystem.js';
@@ -50,6 +51,7 @@ import { RenderSystem }         from './render/RenderSystem.js';
 export const SYSTEM_REGISTRY = [
   // priority 0: world 메타 동기화
   { name: 'WorldTickSystem',        system: WorldTickSystem,       priority: 0   },
+  { name: 'PendingEventPumpSystem', system: PendingEventPumpSystem, priority: 5   },
 
   // priority 20: 플레이어 이동 (상태 없음 → 싱글턴 유지)
   { name: 'PlayerMovementSystem',   system: PlayerMovementSystem,  priority: 20  },
@@ -89,6 +91,7 @@ export const SYSTEM_REGISTRY = [
 // ── 개별 re-export (테스트 코드 등 직접 import 지원) ─────────────────────
 export {
   WorldTickSystem,
+  PendingEventPumpSystem,
   PlayerMovementSystem,
   EliteBehaviorSystem,
   WeaponSystem,

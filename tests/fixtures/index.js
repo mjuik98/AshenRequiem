@@ -120,6 +120,7 @@ export function makeEvents(overrides = {}) {
     weaponEvolved:    [],
     weaponAcquired:   [],
     accessoryAcquired: [],
+    chestCollected:   [],
     ...overrides,
   };
 }
@@ -145,6 +146,7 @@ export function makeWorld(overrides = {}) {
     chestRewardQueue: 0,
     pendingLevelUpType: null,
     pendingLevelUpChoices: null,
+    pendingEventQueue: null,
     synergyState: {
       appliedSpeedMult:     1,
       appliedLifesteal:     0,

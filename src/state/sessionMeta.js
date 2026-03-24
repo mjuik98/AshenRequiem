@@ -3,14 +3,16 @@
  *
  * SessionState.meta 공통 기본값과 보정 헬퍼를 제공한다.
  */
-import { unlockData } from '../data/unlockData.js';
 import {
   getDefaultUnlockedAccessoryIds,
   getDefaultUnlockedWeaponIds,
   mergeUnlockedAccessoryIds,
   mergeUnlockedWeaponIds,
 } from '../data/unlockAvailability.js';
-import { evaluateUnlocks } from '../systems/progression/unlockEvaluator.js';
+import {
+  applyComputedSessionUnlockProgress,
+  computeSessionUnlockProgress,
+} from './unlockProgressFacade.js';
 
 export function createDefaultSessionMeta() {
   return {
@@ -76,20 +78,13 @@ export function appendUnique(base = [], additions = []) {
 
 export function reconcileSessionUnlocks(session) {
   const meta = ensureCodexMeta(session);
-  const unlockResult = evaluateUnlocks({
-    session,
-    runResult: {
-      kills: session?.best?.kills ?? 0,
-      survivalTime: session?.best?.survivalTime ?? 0,
-      level: session?.best?.level ?? 1,
-      weaponsUsed: meta.weaponsUsedAll ?? [],
-    },
-    unlockData,
+  const unlockProgress = computeSessionUnlockProgress(session, {
+    kills: session?.best?.kills ?? 0,
+    survivalTime: session?.best?.survivalTime ?? 0,
+    level: session?.best?.level ?? 1,
+    weaponsUsed: meta.weaponsUsedAll ?? [],
   });
-
-  meta.completedUnlocks = appendUnique(meta.completedUnlocks, unlockResult.newlyCompletedUnlocks);
-  meta.unlockedWeapons = appendUnique(meta.unlockedWeapons, unlockResult.newlyUnlockedWeapons);
-  meta.unlockedAccessories = appendUnique(meta.unlockedAccessories, unlockResult.newlyUnlockedAccessories);
+  applyComputedSessionUnlockProgress(session, unlockProgress);
 
   return session;
 }

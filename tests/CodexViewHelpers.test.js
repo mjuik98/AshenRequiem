@@ -58,6 +58,8 @@ await test('codex enemy helper builds filtered grid/detail models', async () => 
 
 await test('codex weapon helper partitions weapons and derives card state', async () => {
   const weaponTab = await import('../src/ui/codex/codexWeaponTab.js');
+  const weaponModel = await import('../src/ui/codex/codexWeaponModel.js');
+  const weaponRender = await import('../src/ui/codex/codexWeaponRender.js');
 
   const weaponData = [
     { id: 'magic_bolt', name: '매직 볼트', damage: 8, cooldown: 1.2, behaviorId: 'targetProjectile', maxLevel: 7, description: '기본 마탄을 발사한다.' },
@@ -72,6 +74,17 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   const weaponEvolutionData = [
     { resultWeaponId: 'arcane_tempest', requires: { weaponId: 'magic_bolt', accessoryIds: ['mana_core'] } },
   ];
+
+  assert.equal(typeof weaponModel.partitionCodexWeapons, 'function');
+  assert.equal(typeof weaponModel.buildCodexWeaponCardModel, 'function');
+  assert.equal(typeof weaponModel.buildCodexWeaponDetailModel, 'function');
+  assert.equal(typeof weaponRender.renderCodexWeaponCard, 'function');
+  assert.equal(typeof weaponRender.renderCodexWeaponDetail, 'function');
+  assert.equal(typeof weaponRender.renderCodexWeaponTab, 'function');
+  assert.equal(weaponTab.partitionCodexWeapons, weaponModel.partitionCodexWeapons);
+  assert.equal(weaponTab.buildCodexWeaponCardModel, weaponModel.buildCodexWeaponCardModel);
+  assert.equal(weaponTab.buildCodexWeaponDetailModel, weaponModel.buildCodexWeaponDetailModel);
+  assert.equal(weaponTab.renderCodexWeaponTab, weaponRender.renderCodexWeaponTab);
 
   const sections = weaponTab.partitionCodexWeapons(weaponData);
   assert.equal(sections.baseWeapons.length, 1);

@@ -13,6 +13,13 @@ export function createRng(nextFloatFn = Math.random) {
 }
 
 export function ensureRng(rng) {
+  if (typeof rng === 'function') {
+    return {
+      nextFloat() {
+        return rng();
+      },
+    };
+  }
   return rng && typeof rng.nextFloat === 'function' ? rng : mathRng;
 }
 

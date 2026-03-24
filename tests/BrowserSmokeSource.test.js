@@ -1,34 +1,35 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
 import { test, summary } from './helpers/testRunner.js';
+import {
+  projectPathExists,
+  readOptionalProjectSource,
+} from './helpers/sourceInspection.js';
 
-const runnerPath = new URL('../scripts/browser-smoke/runDeterministicSmoke.mjs', import.meta.url);
-const scenariosPath = new URL('../scripts/browser-smoke/scenarios.js', import.meta.url);
-const scenarioRunnersPath = new URL('../scripts/browser-smoke/smokeScenarioRunners.mjs', import.meta.url);
-const titleScenariosPath = new URL('../scripts/browser-smoke/smokeTitleScenarios.mjs', import.meta.url);
-const playScenariosPath = new URL('../scripts/browser-smoke/smokePlayScenarios.mjs', import.meta.url);
-const cliPathsPath = new URL('../scripts/browser-smoke/smokeCliPaths.mjs', import.meta.url);
-const cliRunnerPath = new URL('../scripts/browser-smoke/smokeCliRunner.mjs', import.meta.url);
-const cliParsersPath = new URL('../scripts/browser-smoke/smokeCliParsers.mjs', import.meta.url);
-const sessionTransportPath = new URL('../scripts/browser-smoke/smokeSessionTransport.mjs', import.meta.url);
+const runnerPath = '../scripts/browser-smoke/runDeterministicSmoke.mjs';
+const scenariosPath = '../scripts/browser-smoke/scenarios.js';
+const scenarioRunnersPath = '../scripts/browser-smoke/smokeScenarioRunners.mjs';
+const titleScenariosPath = '../scripts/browser-smoke/smokeTitleScenarios.mjs';
+const playScenariosPath = '../scripts/browser-smoke/smokePlayScenarios.mjs';
+const cliPathsPath = '../scripts/browser-smoke/smokeCliPaths.mjs';
+const cliRunnerPath = '../scripts/browser-smoke/smokeCliRunner.mjs';
+const cliParsersPath = '../scripts/browser-smoke/smokeCliParsers.mjs';
+const sessionTransportPath = '../scripts/browser-smoke/smokeSessionTransport.mjs';
 
-const runnerExists = existsSync(runnerPath);
-const scenariosExists = existsSync(scenariosPath);
-const scenarioRunnersExists = existsSync(scenarioRunnersPath);
-const titleScenariosExists = existsSync(titleScenariosPath);
-const playScenariosExists = existsSync(playScenariosPath);
-const cliPathsExists = existsSync(cliPathsPath);
-const cliRunnerExists = existsSync(cliRunnerPath);
-const cliParsersExists = existsSync(cliParsersPath);
-const sessionTransportExists = existsSync(sessionTransportPath);
-const runnerSource = runnerExists ? readFileSync(runnerPath, 'utf8') : '';
-const scenariosSource = scenariosExists ? readFileSync(scenariosPath, 'utf8') : '';
-const scenarioRunnersSource = scenarioRunnersExists ? readFileSync(scenarioRunnersPath, 'utf8') : '';
-const titleScenariosSource = titleScenariosExists ? readFileSync(titleScenariosPath, 'utf8') : '';
-const playScenariosSource = playScenariosExists ? readFileSync(playScenariosPath, 'utf8') : '';
-const cliTransportSource = existsSync(new URL('../scripts/browser-smoke/smokeCliTransport.mjs', import.meta.url))
-  ? readFileSync(new URL('../scripts/browser-smoke/smokeCliTransport.mjs', import.meta.url), 'utf8')
-  : '';
+const runnerExists = projectPathExists(runnerPath);
+const scenariosExists = projectPathExists(scenariosPath);
+const scenarioRunnersExists = projectPathExists(scenarioRunnersPath);
+const titleScenariosExists = projectPathExists(titleScenariosPath);
+const playScenariosExists = projectPathExists(playScenariosPath);
+const cliPathsExists = projectPathExists(cliPathsPath);
+const cliRunnerExists = projectPathExists(cliRunnerPath);
+const cliParsersExists = projectPathExists(cliParsersPath);
+const sessionTransportExists = projectPathExists(sessionTransportPath);
+const runnerSource = readOptionalProjectSource(runnerPath);
+const scenariosSource = readOptionalProjectSource(scenariosPath);
+const scenarioRunnersSource = readOptionalProjectSource(scenarioRunnersPath);
+const titleScenariosSource = readOptionalProjectSource(titleScenariosPath);
+const playScenariosSource = readOptionalProjectSource(playScenariosPath);
+const cliTransportSource = readOptionalProjectSource('../scripts/browser-smoke/smokeCliTransport.mjs');
 const smokeSource = `${runnerSource}\n${scenarioRunnersSource}\n${titleScenariosSource}\n${playScenariosSource}`;
 
 console.log('\n[BrowserSmokeSource]');

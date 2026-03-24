@@ -14,9 +14,6 @@ import { PlayResultHandler }            from './play/PlayResultHandler.js';
 import { createLevelUpController }      from './play/levelUpController.js';
 import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
 import {
-  recordStartingWeapons,
-} from './play/playSceneRuntime.js';
-import {
   persistPauseSceneOptions,
   runPlaySceneFrame,
   showPlaySceneResult,
@@ -24,9 +21,10 @@ import {
   togglePlayScenePause,
 } from './play/playSceneFlow.js';
 import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
-import { transitionPlayMode } from '../state/PlayMode.js';
-import { TitleScene }                   from './TitleScene.js';
-import { recordWeaponAcquired }         from '../systems/event/codexHandler.js';
+import {
+  loadPlaySceneModule,
+  loadTitleSceneModule,
+} from './sceneLoaders.js';
 import {
   applySessionOptionsToRuntime,
 } from '../state/sessionOptions.js';
@@ -87,9 +85,6 @@ export class PlayScene {
       currentDpr: 1,
       devicePixelRatio: window.devicePixelRatio || 1,
     }).dpr;
-
-    // Record initial starting weapons for Codex
-    recordStartingWeapons(this.game.session, this.world.player, recordWeaponAcquired);
 
     this._pauseWasDown    = false;
     this._isSceneChanging = false;
@@ -189,12 +184,15 @@ export class PlayScene {
       setBlocked: (value) => {
         this._isSceneChanging = value;
       },
-      restart: () => {
-        this.game.sceneManager.changeScene(new PlayScene(this.game));
+      restart: async () => {
+        const { PlayScene: NextPlayScene } = await loadPlaySceneModule();
+        this.game.sceneManager.changeScene(new NextPlayScene(this.game));
       },
-      goToTitle: () => {
+      goToTitle: async () => {
+        const { TitleScene } = await loadTitleSceneModule();
         this.game.sceneManager.changeScene(new TitleScene(this.game));
       },
+      onError: (error) => console.error('[PlayScene] 결과 화면 씬 전환 실패:', error),
     });
   }
 }

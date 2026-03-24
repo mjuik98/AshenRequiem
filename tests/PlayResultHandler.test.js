@@ -5,6 +5,13 @@ import { PlayResultHandler } from '../src/scenes/play/PlayResultHandler.js';
 
 console.log('\n[PlayResultHandler]');
 
+test('PlayResult runtime helper는 요약 계산과 세션 커밋 경계를 노출한다', async () => {
+  const playResultRuntime = await import('../src/scenes/play/playResultRuntime.js');
+
+  assert.equal(typeof playResultRuntime.buildPlayResultSummary, 'function', 'buildPlayResultSummary helper가 없음');
+  assert.equal(typeof playResultRuntime.commitPlayResultSession, 'function', 'commitPlayResultSession helper가 없음');
+});
+
 test('런 종료 시 신규 해금을 세션 메타에 반영한다', () => {
   const session = makeSessionState({
     meta: {
@@ -165,6 +172,66 @@ test('런 결과는 이전 최고 기록과 무기/해금 요약을 함께 반�
     '이번 런 신규 해금 rewardText가 결과에 포함되지 않음',
   );
   assert.equal(result.currencyEarned, 12, 'world.runCurrencyEarned 기반 획득 재화가 유지되지 않음');
+});
+
+test('PlayResult runtime helper는 요약 계산과 세션 커밋을 독립적으로 수행한다', async () => {
+  const { buildPlayResultSummary, commitPlayResultSession } = await import('../src/scenes/play/playResultRuntime.js');
+  const session = makeSessionState({
+    best: { kills: 30, survivalTime: 120, level: 4 },
+    meta: {
+      totalRuns: 5,
+      currency: 100,
+      enemyKills: { zombie: 900 },
+      completedUnlocks: [],
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+    },
+  });
+  const world = makeWorld({
+    killCount: 45,
+    elapsedTime: 600,
+    runCurrencyEarned: 12,
+    runOutcome: { type: 'defeat' },
+    player: makePlayer({
+      level: 6,
+      weapons: [
+        { id: 'magic_bolt', name: 'Magic Bolt', level: 3, isEvolved: false },
+        { id: 'holy_aura', name: 'Holy Aura', level: 2, isEvolved: true },
+      ],
+    }),
+  });
+
+  const summaryResult = buildPlayResultSummary(world, session, {
+    startCurrency: 88,
+    prevBestTime: 120,
+    prevBestLevel: 4,
+    prevBestKills: 30,
+    newUnlockRewardTexts: ['지속의 부적 해금'],
+  });
+
+  assert.equal(summaryResult.totalCurrency, 100, '요약 계산 단계가 현재 세션 재화를 유지하지 않음');
+  assert.equal(summaryResult.currencyEarned, 12, '요약 계산 단계가 획득 재화를 잘못 계산함');
+  assert.equal(session.meta.totalRuns, 5, '요약 계산 단계에서 세션을 mutate하면 안 됨');
+
+  commitPlayResultSession(session, {
+    runResult: {
+      kills: 45,
+      survivalTime: 600,
+      level: 6,
+      weaponsUsed: ['magic_bolt', 'holy_aura'],
+    },
+    unlockResult: {
+      newUnlockRewardTexts: ['지속의 부적 해금'],
+      completedUnlockIds: ['unlock_persistence_charm'],
+      unlockedWeaponIds: [],
+      unlockedAccessoryIds: ['persistence_charm'],
+    },
+  }, {
+    persistSessionImpl: () => {},
+  });
+
+  assert.equal(session.meta.totalRuns, 6, '세션 커밋 단계가 totalRuns를 증가시키지 않음');
+  assert.equal(session.meta.completedUnlocks.includes('unlock_persistence_charm'), true, '세션 커밋 단계가 해금을 반영하지 않음');
 });
 
 summary();

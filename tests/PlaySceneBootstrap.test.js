@@ -32,7 +32,6 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   const calls = [];
   const fakeSession = { options: { soundEnabled: false } };
   const fakeWorld = { tag: 'world' };
-  const fakePlayer = { id: 'player_1', weapons: [] };
   const fakeUi = {
     shown: 0,
     showHud() {
@@ -58,13 +57,13 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   const runtime = bootstrapPlaySceneRuntime({
     game: {
       session: fakeSession,
-      gameData: { weaponData: [] },
+      gameData: { weaponData: [{ id: 'magic_bolt' }] },
       input: { id: 'input' },
       canvas: { id: 'canvas' },
       renderer: { id: 'renderer' },
     },
-    createPlaySceneWorldStateImpl() {
-      calls.push(['world']);
+    createPlaySceneWorldStateImpl(options) {
+      calls.push(['world', options]);
       return fakeWorld;
     },
     normalizeSessionOptionsImpl(options) {
@@ -94,7 +93,10 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   assert.equal(runtime.ctx, fakeCtx);
   assert.deepEqual(runtime.systems, ['s1']);
   assert.equal(fakeUi.shown, 1, 'HUD가 즉시 표시되지 않음');
-  assert.deepEqual(calls[0], ['world']);
+  assert.deepEqual(calls[0], ['world', {
+    session: fakeSession,
+    gameData: { weaponData: [{ id: 'magic_bolt' }] },
+  }]);
   assert.deepEqual(calls[1], ['normalize', fakeSession.options]);
   assert.deepEqual(calls[2], ['profile']);
   assert.deepEqual(calls[3], ['context', {
@@ -107,7 +109,7 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   assert.deepEqual(calls[4], ['mount-ui']);
   assert.deepEqual(calls[5], ['ui', { id: 'ui-root' }]);
   assert.deepEqual(calls[6], ['views', 'boss-view', 'evo-view']);
-  assert.deepEqual(calls[7], ['pipeline', fakeWorld, { id: 'input' }, { weaponData: [] }]);
+  assert.deepEqual(calls[7], ['pipeline', fakeWorld, { id: 'input' }, { weaponData: [{ id: 'magic_bolt' }] }]);
 });
 
 summary();

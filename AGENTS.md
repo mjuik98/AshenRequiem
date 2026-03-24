@@ -56,33 +56,14 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 ## 4. Standard Frame Pipeline (PlayScene)
 `PlayContext.buildPipeline()`은 `PipelineBuilder`가 팩토리 시스템 인스턴스를 만들고, `SYSTEM_REGISTRY`의 상태 없는 시스템을 함께 등록해 파이프라인을 구성한다.
 
-현재 기준 등록 순서는 아래와 같다.
+구체 priority와 현재 등록 순서는 `docs/architecture-current.md`를 기준으로 본다.
+여기서는 아래 불변 규칙만 강제한다.
 
-| Priority | System | 패턴 |
-|----------|--------|------|
-| 0   | WorldTickSystem (이벤트 큐 초기화 + 시간 갱신) | singleton |
-| 10  | SpawnSystem | factory instance |
-| 20  | PlayerMovementSystem | singleton |
-| 30  | EnemyMovementSystem | factory instance (R-06) |
-| 35  | EliteBehaviorSystem | singleton |
-| 40  | WeaponSystem | singleton |
-| 50  | ProjectileSystem | singleton |
-| 60  | CollisionSystem | factory instance (R-05) |
-| 65  | StatusEffectSystem | singleton |
-| 70  | DamageSystem | singleton |
-| 75  | BossPhaseSystem | singleton |
-| 80  | DeathSystem | singleton |
-| 90  | ExperienceSystem | singleton |
-| 95  | SynergySystem | factory instance |
-| 96  | WeaponEvolutionSystem | singleton |
-| 100 | LevelSystem | singleton |
-| 101 | UpgradeApplySystem | singleton (R-19) |
-| 105 | EventRegistry.asSystem() | registry instance |
-| 108 | EffectTickSystem | singleton |
-| 110 | FlushSystem | singleton |
-| 120 | CameraSystem | singleton |
-| 125 | CullingSystem | factory instance |
-| 130 | RenderSystem | singleton |
+- 프레임 시작 메타/이벤트 큐 초기화는 가장 앞쪽 코어 시스템이 담당한다.
+- 상태를 가지는 시스템은 `PipelineBuilder`가 팩토리 인스턴스로 생성해 등록한다.
+- 상태 없는 시스템만 `SYSTEM_REGISTRY`에 singleton으로 등록한다.
+- 이벤트 소비 시스템(`EventRegistry.asSystem`) 이후 구간은 이벤트를 읽지 않는다.
+- 씬이 직접 처리하던 pending 상태(`pendingUpgrade`, run-start event 등)는 가능한 한 파이프라인 안의 전용 시스템이 소비한다.
 
 ---
 
@@ -145,6 +126,7 @@ getLiveEnemies(enemies)
 - **System은 session에 직접 접근하지 않는다** (R-14)
 - session 수정은 PipelineBuilder에 등록된 이벤트 핸들러가 담당
 - `updateSessionBest()` → `saveSession()` 체인은 PlayResultHandler에서만 호출
+- 시작 무기 선택 저장은 공용 `startLoadoutRuntime` 정규화 경로를 통해서만 수행한다. UI가 기본 시작 무기 ID를 하드코딩하면 안 된다.
 
 ### 6.3 무기 동작(Weapon/Behavior) 추가 규칙
 - `src/behaviors/weaponBehaviors/`에 별도 파일 생성

@@ -2,7 +2,7 @@
  * src/entities/createPlayer.js
  *
  * CHANGE (Phase 2): accessories[], globalDamageMult 필드 추가
- * CHANGE (Phase 3): session 파라미터 추가 → 영구 업그레이드 반영
+ * CHANGE (Phase 3): 런 초기화 해석은 scene runtime으로 분리
  * CHANGE (Phase 4): 신규 능력치 필드 추가
  *   - cooldownMult        : 무기 쿨다운 배율 (1.0 = 기본, 낮을수록 쿨다운 단축)
  *   - projectileSpeedMult : 투사체 속도 배율 (1.0 = 기본, 높을수록 빠름)
@@ -12,31 +12,21 @@
  *   - projectileLifetimeMult : 투사체 지속시간 배율 (1.0 = 기본, 높을수록 오래 유지)
  */
 import { PLAYER_DEFAULTS }         from '../data/constants.js';
-import {
-  mergeUnlockedAccessoryIds,
-  mergeUnlockedWeaponIds,
-} from '../data/unlockAvailability.js';
-import { getWeaponDataById }       from '../data/weaponDataHelpers.js';
 import { generateId }              from '../utils/ids.js';
-import { createSynergyState }      from '../state/createSynergyState.js';
-import { applyPermanentUpgrades }  from '../data/permanentUpgradeData.js';
 
 /**
  * 플레이어 엔티티 생성.
  *
  * @param {number}      [x=0]
  * @param {number}      [y=0]
- * @param {object|null} [session=null]  game.session — 영구 업그레이드 적용에 사용
+ * @param {{
+ *   startWeapons?: object[],
+ *   unlockedWeapons?: string[],
+ *   unlockedAccessories?: string[],
+ * }} [config={}]
  */
-export function createPlayer(x = 0, y = 0, session = null) {
-  const unlockedWeapons = mergeUnlockedWeaponIds(session?.meta?.unlockedWeapons);
-  const unlockedAccessories = mergeUnlockedAccessoryIds(session?.meta?.unlockedAccessories);
-  const selectedStartWeaponId = session?.meta?.selectedStartWeaponId;
-  const startWeaponId = unlockedWeapons.includes(selectedStartWeaponId)
-    ? selectedStartWeaponId
-    : 'magic_bolt';
-  const startWeapon = getWeaponDataById(startWeaponId) ?? getWeaponDataById('magic_bolt');
-
+export function createPlayer(x = 0, y = 0, config = {}) {
+  const startWeapons = (config?.startWeapons ?? []).map((weapon) => ({ ...weapon }));
   const player = {
     id:            generateId(),
     type:          'player',
@@ -50,14 +40,13 @@ export function createPlayer(x = 0, y = 0, session = null) {
     facingX:       1, facingY: 0,
     xp:            0,
     level:         1,
-    weapons:       startWeapon ? [{ ...startWeapon, currentCooldown: 0, level: 1 }] : [],
-    unlockedWeapons,
-    unlockedAccessories,
+    weapons:       startWeapons,
+    unlockedWeapons: [...(config?.unlockedWeapons ?? [])],
+    unlockedAccessories: [...(config?.unlockedAccessories ?? [])],
     invincibleTimer:    0,
     invincibleDuration: 0.5,
     lifesteal:     0,
     upgradeCounts: {},
-    synergyState:  createSynergyState(),
     statusEffects: [],
     stunned:       false,
 
@@ -102,19 +91,6 @@ export function createPlayer(x = 0, y = 0, session = null) {
     acquiredUpgrades: new Set(),
     activeSynergies:  [],
   };
-
-  // ── Phase 3: 영구 업그레이드 반영 ──────────────────────────────────
-  if (session?.meta?.permanentUpgrades) {
-    applyPermanentUpgrades(player, session.meta.permanentUpgrades);
-
-    if (player.globalDamageMult !== 1) {
-      player.weapons.forEach(w => {
-        w.damage = Math.max(1, Math.round(w.damage * player.globalDamageMult));
-      });
-    }
-
-    player.hp = player.maxHp;
-  }
 
   return player;
 }

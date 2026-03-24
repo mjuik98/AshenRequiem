@@ -1,5 +1,7 @@
+import { nextFloat } from '../../utils/random.js';
+
 function nextTitleRandom(state) {
-  return typeof state?.rng === 'function' ? state.rng() : Math.random();
+  return nextFloat(state?.rng);
 }
 
 function buildTitleBackgroundLayers(state) {

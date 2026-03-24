@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { createRunner } from './helpers/testRunner.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[TypeDocsSource]');
 
 const { test, summary } = createRunner('TypeDocsSource');
-const typesSource = readFileSync(new URL('../src/types.js', import.meta.url), 'utf8');
+const typesSource = readProjectSource('../src/types.js');
 
 test('legacy types file is reduced to a compatibility shim that points at the real SSOT modules', () => {
   assert.match(typesSource, /compatibility shim|하위 호환|deprecated/i, 'types.js가 하위 호환 shim임을 명시해야 함');

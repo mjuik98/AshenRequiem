@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { createRunner } from './helpers/testRunner.js';
+import {
+  readProjectSource,
+  resolveProjectPath,
+  stripLineComments,
+} from './helpers/sourceInspection.js';
 
 console.log('\n[AgentsRuleGuards]');
 
@@ -19,7 +23,7 @@ const FRAME_PIPELINE_SYSTEMS = [
 
 test('frame pipeline systems do not directly mutate session state', () => {
   FRAME_PIPELINE_SYSTEMS.forEach((ref) => {
-    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    const source = readProjectSource(ref);
     assert.equal(
       /services\.session|session\./.test(source),
       false,
@@ -38,7 +42,7 @@ test('spawn requests are issued through factory helpers instead of inline litera
   ];
 
   files.forEach((ref) => {
-    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    const source = readProjectSource(ref);
     assert.equal(
       /spawnQueue\.push\(\s*\{\s*type\s*:/.test(source),
       false,
@@ -48,7 +52,7 @@ test('spawn requests are issued through factory helpers instead of inline litera
 });
 
 test('production source files do not directly assign world.playMode outside PlayMode SSOT', () => {
-  const rootPath = fileURLToPath(new URL('../src', import.meta.url));
+  const rootPath = resolveProjectPath('../src');
   const files = [];
 
   function walk(dirPath) {
@@ -67,10 +71,8 @@ test('production source files do not directly assign world.playMode outside Play
   files
     .filter((filePath) => !filePath.endsWith(path.join('src', 'state', 'PlayMode.js')))
     .forEach((filePath) => {
-      const source = readFileSync(filePath, 'utf8')
-        .split('\n')
-        .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
-        .join('\n');
+      const relativeProjectPath = path.relative(rootPath, filePath).replaceAll(path.sep, '/');
+      const source = stripLineComments(readProjectSource(`../src/${relativeProjectPath}`));
       assert.equal(
         /world\.playMode\s*=(?!=)/.test(source),
         false,
@@ -80,9 +82,9 @@ test('production source files do not directly assign world.playMode outside Play
 });
 
 test('SynergySystem does not directly import synergyData and post-event systems do not read world.events', () => {
-  const synergySystemSource = readFileSync(new URL('../src/systems/progression/SynergySystem.js', import.meta.url), 'utf8');
-  const weaponEvolutionSystemSource = readFileSync(new URL('../src/systems/progression/WeaponEvolutionSystem.js', import.meta.url), 'utf8');
-  const upgradeSystemSource = readFileSync(new URL('../src/systems/progression/UpgradeSystem.js', import.meta.url), 'utf8');
+  const synergySystemSource = readProjectSource('../src/systems/progression/SynergySystem.js');
+  const weaponEvolutionSystemSource = readProjectSource('../src/systems/progression/WeaponEvolutionSystem.js');
+  const upgradeSystemSource = readProjectSource('../src/systems/progression/UpgradeSystem.js');
   const postEventFiles = [
     '../src/systems/spawn/EffectTickSystem.js',
     '../src/systems/spawn/FlushSystem.js',
@@ -100,7 +102,7 @@ test('SynergySystem does not directly import synergyData and post-event systems 
   assert.equal(/import\s+\{[^}]*getNextWeaponProgression[^}]*\}/.test(upgradeSystemSource), false, 'UpgradeSystem에 getNextWeaponProgression 직접 import fallback이 남아 있음');
 
   postEventFiles.forEach((ref) => {
-    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    const source = readProjectSource(ref);
     assert.equal(/world\.events|events\./.test(source), false, `${ref}가 post-event 구간에서 world.events를 읽고 있음`);
   });
 });
@@ -121,7 +123,7 @@ test('production entity/runtime state avoids underscore-prefixed private slots a
   ];
 
   underscoreStateFiles.forEach((ref) => {
-    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    const source = readProjectSource(ref);
     assert.equal(
       /\b(enemy|player|projectile|pickup|effect)\._[A-Za-z]/.test(source),
       false,
@@ -130,13 +132,193 @@ test('production entity/runtime state avoids underscore-prefixed private slots a
   });
 
   gameplayRandomFiles.forEach((ref) => {
-    const source = readFileSync(new URL(ref, import.meta.url), 'utf8');
+    const source = readProjectSource(ref);
     assert.equal(
       /Math\.random\(/.test(source),
       false,
       `${ref}가 gameplay RNG를 Math.random에 직접 의존하고 있음`,
     );
   });
+});
+
+test('scene and progression infrastructure stay decoupled from system internals', () => {
+  const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
+  const levelUpControllerSource = readProjectSource('../src/scenes/play/levelUpController.js');
+  const playResultHandlerSource = readProjectSource('../src/scenes/play/PlayResultHandler.js');
+  const levelUpFlowRuntimeSource = readProjectSource('../src/progression/levelUpFlowRuntime.js');
+  const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
+  const sessionMetaSource = readProjectSource('../src/state/sessionMeta.js');
+  const pipelineBuilderSource = readProjectSource('../src/core/PipelineBuilder.js');
+  const upgradeSystemSource = readProjectSource('../src/systems/progression/UpgradeSystem.js');
+  const codexHandlerSource = readProjectSource('../src/systems/event/codexHandler.js');
+  const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+  const titleLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
+  const playerSpawnRuntimeSource = readProjectSource('../src/scenes/play/playerSpawnRuntime.js');
+  const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
+  const unlockProgressRuntimeSource = readProjectSource('../src/progression/unlockProgressRuntime.js');
+  const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
+  const sessionFacadeSource = readProjectSource('../src/state/sessionFacade.js');
+  const upgradeChoicePoolSource = readProjectSource('../src/progression/upgradeChoicePool.js');
+  const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
+
+  [playSceneSource, levelUpControllerSource, playResultHandlerSource].forEach((source, index) => {
+    const label = ['PlayScene', 'levelUpController', 'PlayResultHandler'][index];
+    assert.equal(
+      /from\s+['"]\.\.\/(?:\.\.\/)?systems\/(?:event|progression)\//.test(source),
+      false,
+      `${label}가 systems 계층의 구현 모듈에 직접 결합되어 있음`,
+    );
+  });
+
+  assert.equal(
+    /registerChestRewardHandler|registerBossPhaseHandler|registerSoundEventHandlers|registerCurrencyHandler|registerBossAnnouncementHandler|registerWeaponEvolutionHandler|registerCodexHandlers/.test(pipelineBuilderSource),
+    false,
+    'PipelineBuilder가 개별 이벤트 핸들러를 직접 등록하고 있음',
+  );
+
+  assert.equal(
+    /import\s+\{[^}]*SynergySystem[^}]*\}\s+from\s+['"]\.\/SynergySystem\.js['"]/.test(upgradeSystemSource),
+    false,
+    'UpgradeSystem이 SynergySystem 객체 구현에 직접 의존하고 있음',
+  );
+
+  assert.equal(
+    /import\s+\{[^}]*UpgradeSystem[^}]*\}\s+from\s+['"]\.\.\/systems\/progression\/UpgradeSystem\.js['"]/.test(levelUpFlowRuntimeSource),
+    false,
+    'levelUpFlowRuntime가 systems 레이어의 UpgradeSystem 구현에 직접 의존하고 있음',
+  );
+
+  assert.equal(
+    /export function recordWeaponAcquired|export function recordAccessoryAcquired|export function recordEnemyEncounter/.test(codexHandlerSource),
+    false,
+    'codexHandler가 이벤트 핸들러 외부에 직접 세션 변경 helper를 노출하고 있음',
+  );
+
+  assert.equal(
+    /import\s+\{[^}]*unlockData[^}]*\}\s+from|import\s+\{[^}]*evaluateUnlocks[^}]*\}\s+from/.test(playResultHandlerSource),
+    false,
+    'PlayResultHandler가 해금 데이터/평가 구현을 직접 결합하고 있음',
+  );
+
+  assert.equal(
+    /import\s+\{[^}]*unlockData[^}]*\}\s+from|import\s+\{[^}]*evaluateUnlocks[^}]*\}\s+from/.test(sessionMetaSource),
+    false,
+    'sessionMeta가 해금 데이터/평가 구현을 직접 결합하고 있음',
+  );
+
+  assert.equal(
+    /mergeUnlockedAccessoryIds|mergeUnlockedWeaponIds|getWeaponDataById|applyPermanentUpgrades/.test(createPlayerSource),
+    false,
+    'createPlayer가 세션/데이터 해석과 영구 업그레이드 적용까지 직접 수행하고 있음',
+  );
+
+  assert.equal(
+    /flushPendingRunStartEvents/.test(playSceneSource),
+    false,
+    'PlayScene가 run-start 이벤트 주입을 파이프라인 밖에서 직접 처리하고 있음',
+  );
+
+  assert.equal(
+    titleLoadoutSource.includes("from '../../state/startLoadoutRuntime.js'"),
+    true,
+    'titleLoadout이 공용 start loadout runtime을 사용하지 않음',
+  );
+
+  assert.equal(
+    /export function getSelectedStartWeaponId/.test(titleLoadoutSource),
+    false,
+    'titleLoadout에 중복 시작 무기 선택 helper가 남아 있음',
+  );
+
+  assert.equal(
+    /canStart/.test(titleLoadoutSource),
+    true,
+    'titleLoadout이 타이틀 시작 가능 상태를 명시적으로 노출하지 않음',
+  );
+
+  assert.equal(
+    playerSpawnRuntimeSource.includes("from '../../state/startLoadoutRuntime.js'"),
+    true,
+    'playerSpawnRuntime이 공용 start loadout runtime을 사용하지 않음',
+  );
+
+  assert.equal(
+    /resolveStartLoadout\(/.test(playerSpawnRuntimeSource),
+    false,
+    'playerSpawnRuntime이 broad start loadout DTO를 그대로 재노출하고 있음',
+  );
+
+  assert.equal(
+    /resolveStartWeaponSelection/.test(titleLoadoutSource),
+    true,
+    'titleLoadout이 전용 start weapon selection helper를 사용하지 않음',
+  );
+
+  assert.equal(
+    /import\s+\{\s*getWeaponDataById\s*\}/.test(startLoadoutRuntimeSource),
+    false,
+    'startLoadoutRuntime이 주입 경계를 우회해 정적 weaponData helper를 import하고 있음',
+  );
+
+  assert.equal(
+    /mergeUnlockedAccessoryIds|mergeUnlockedWeaponIds/.test(startLoadoutRuntimeSource),
+    false,
+    'startLoadoutRuntime이 정적 unlock helper에 의존해 데이터 소스 경계를 다시 섞고 있음',
+  );
+
+  assert.equal(
+    /export function resolveStartLoadout/.test(startLoadoutRuntimeSource),
+    false,
+    'startLoadoutRuntime이 broad start loadout DTO export를 유지하고 있음',
+  );
+
+  assert.equal(
+    /mergeUnlockedAccessoryIds|mergeUnlockedWeaponIds/.test(upgradeChoicePoolSource),
+    false,
+    'upgradeChoicePool이 정적 unlock helper에 의존해 progression DI 경계를 다시 섞고 있음',
+  );
+
+  assert.equal(
+    /export function applySessionUnlockProgress/.test(unlockProgressRuntimeSource),
+    false,
+    'unlockProgressRuntime에 session-level 편의 API가 남아 있어 facade 진입점이 이중화됨',
+  );
+
+  assert.equal(
+    /pendingRunStartEvents|pendingEventQueue/.test(worldTickSystemSource),
+    false,
+    'WorldTickSystem이 run-start 이벤트 전용 책임까지 맡고 있음',
+  );
+
+  assert.equal(
+    /weaponAcquired|accessoryAcquired/.test(pendingEventPumpSystemSource),
+    false,
+    'PendingEventPumpSystem이 core/event 인프라가 아닌 도메인 이벤트명을 직접 하드코딩하고 있음',
+  );
+
+  assert.equal(
+    /_selectedWeaponId\s*=\s*'magic_bolt'|selectedWeaponId\s*=\s*'magic_bolt'/.test(titleLoadoutViewSource),
+    false,
+    'StartLoadoutView가 공용 loadout runtime 대신 하드코딩된 기본 시작 무기를 들고 있음',
+  );
+
+  assert.equal(
+    sessionFacadeSource.includes("from './startLoadoutRuntime.js'"),
+    true,
+    'sessionFacade가 공용 start loadout runtime 없이 시작 무기 선택을 그대로 저장하고 있음',
+  );
+
+  assert.equal(
+    /export function resolveSelectedStartWeaponForSave/.test(sessionFacadeSource),
+    false,
+    'sessionFacade가 외부에서 쓰지 않는 시작 무기 normalize helper를 public API로 노출하고 있음',
+  );
+
+  assert.equal(
+    /return meta\.selectedStartWeaponId;/.test(sessionFacadeSource),
+    false,
+    'sessionFacade 시작 무기 저장 API가 성공/실패 구분 없는 원시 문자열 반환을 유지하고 있음',
+  );
 });
 
 summary();

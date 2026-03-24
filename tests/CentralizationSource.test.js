@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test, summary } from './helpers/testRunner.js';
+import {
+  readProjectSource,
+  stripLineComments,
+} from './helpers/sourceInspection.js';
 import {
   SESSION_OPTION_DEFAULTS,
   applySessionOptionsToRuntime,
@@ -9,23 +12,32 @@ import {
 import { PAUSE_AUDIO_DEFAULTS } from '../src/ui/pause/pauseAudioControls.js';
 import { syncPlaySceneDevicePixelRatio } from '../src/scenes/play/playSceneFlow.js';
 
-const playSceneSource = readFileSync(new URL('../src/scenes/PlayScene.js', import.meta.url), 'utf8');
-const settingsSceneSource = readFileSync(new URL('../src/scenes/SettingsScene.js', import.meta.url), 'utf8');
-const settingsViewSource = readFileSync(new URL('../src/ui/settings/SettingsView.js', import.meta.url), 'utf8');
-const pauseViewSource = readFileSync(new URL('../src/ui/pause/PauseView.js', import.meta.url), 'utf8');
-const pauseAudioSource = readFileSync(new URL('../src/ui/pause/pauseAudioControls.js', import.meta.url), 'utf8');
-const codexSceneSource = readFileSync(new URL('../src/scenes/CodexScene.js', import.meta.url), 'utf8');
-const codexHandlerSource = readFileSync(new URL('../src/systems/event/codexHandler.js', import.meta.url), 'utf8');
-const playContextSource = readFileSync(new URL('../src/core/PlayContext.js', import.meta.url), 'utf8');
-const collisionSystemSource = readFileSync(new URL('../src/systems/combat/CollisionSystem.js', import.meta.url), 'utf8');
-const enemyMovementSystemSource = readFileSync(new URL('../src/systems/movement/EnemyMovementSystem.js', import.meta.url), 'utf8');
-const statusEffectSystemSource = readFileSync(new URL('../src/systems/combat/StatusEffectSystem.js', import.meta.url), 'utf8');
-const bossHudViewSource = readFileSync(new URL('../src/ui/boss/BossHudView.js', import.meta.url), 'utf8');
-const accessoryDataSource = readFileSync(new URL('../src/data/accessoryData.js', import.meta.url), 'utf8');
-const weaponDataSource = readFileSync(new URL('../src/data/weaponData.js', import.meta.url), 'utf8');
-const accessoryModelSource = readFileSync(new URL('../src/ui/codex/codexAccessoryModel.js', import.meta.url), 'utf8');
-const pauseLoadoutStatsSource = readFileSync(new URL('../src/ui/pause/pauseLoadoutStatsSections.js', import.meta.url), 'utf8');
-const createPlayerSource = readFileSync(new URL('../src/entities/createPlayer.js', import.meta.url), 'utf8');
+const gameSource = readProjectSource('../src/core/Game.js');
+const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
+const settingsSceneSource = readProjectSource('../src/scenes/SettingsScene.js');
+const metaShopSceneSource = readProjectSource('../src/scenes/MetaShopScene.js');
+const titleSceneRuntimeSource = readProjectSource('../src/scenes/title/titleSceneRuntime.js');
+const settingsViewSource = readProjectSource('../src/ui/settings/SettingsView.js');
+const pauseViewSource = readProjectSource('../src/ui/pause/PauseView.js');
+const pauseAudioSource = readProjectSource('../src/ui/pause/pauseAudioControls.js');
+const codexSceneSource = readProjectSource('../src/scenes/CodexScene.js');
+const codexHandlerSource = readProjectSource('../src/systems/event/codexHandler.js');
+const playContextSource = readProjectSource('../src/core/PlayContext.js');
+const collisionSystemSource = readProjectSource('../src/systems/combat/CollisionSystem.js');
+const enemyMovementSystemSource = readProjectSource('../src/systems/movement/EnemyMovementSystem.js');
+const statusEffectSystemSource = readProjectSource('../src/systems/combat/StatusEffectSystem.js');
+const bossHudViewSource = readProjectSource('../src/ui/boss/BossHudView.js');
+const accessoryDataSource = readProjectSource('../src/data/accessoryData.js');
+const weaponDataSource = readProjectSource('../src/data/weaponData.js');
+const accessoryModelSource = readProjectSource('../src/ui/codex/codexAccessoryModel.js');
+const pauseLoadoutStatsSource = readProjectSource('../src/ui/pause/pauseLoadoutStatsSections.js');
+const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
+const playerSpawnRuntimeSource = readProjectSource('../src/scenes/play/playerSpawnRuntime.js');
+const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
+const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
+const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
+const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
 
 console.log('\n[CentralizationSource]');
 
@@ -77,6 +89,31 @@ test('PlayContext는 런타임에서 사용하지 않는 AssetManager를 생성�
   assert.equal(playContextSource.includes('ctx.assets'), false, 'PlayContext가 불필요한 assets 슬롯을 유지함');
 });
 
+test('Game과 씬 전환은 정적 Scene import와 부트 AssetManager 의존을 줄인다', async () => {
+  const sceneLoaders = await import('../src/scenes/sceneLoaders.js');
+
+  assert.equal(typeof sceneLoaders.loadPlaySceneModule, 'function', 'PlayScene loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadTitleSceneModule, 'function', 'TitleScene loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadMetaShopSceneModule, 'function', 'MetaShopScene loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadSettingsSceneModule, 'function', 'SettingsScene loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadCodexSceneModule, 'function', 'CodexScene loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadPauseViewModule, 'function', 'PauseView loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadResultViewModule, 'function', 'ResultView loader helper가 없음');
+  assert.equal(typeof sceneLoaders.loadLevelUpViewModule, 'function', 'LevelUpView loader helper가 없음');
+
+  assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(playSceneSource)), false, 'PlayScene가 TitleScene을 정적 import함');
+  assert.equal(/import\s+\{\s*PlayScene\s*\}\s+from\s+'\.\.\/PlayScene\.js'/.test(stripLineComments(titleSceneRuntimeSource)), false, 'titleSceneRuntime이 PlayScene을 정적 import함');
+  assert.equal(/import\s+\{\s*MetaShopScene\s*\}\s+from\s+'\.\.\/MetaShopScene\.js'/.test(stripLineComments(titleSceneRuntimeSource)), false, 'titleSceneRuntime이 MetaShopScene을 정적 import함');
+  assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(settingsSceneSource)), false, 'SettingsScene이 TitleScene을 정적 import함');
+  assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(metaShopSceneSource)), false, 'MetaShopScene이 TitleScene을 정적 import함');
+
+  assert.equal(gameSource.includes('new AssetManager()'), false, 'Game이 부트 시 AssetManager를 생성함');
+  assert.equal(gameSource.includes('await this.assets.loadAll()'), false, 'Game이 부트 시 AssetManager.loadAll()에 의존함');
+  assert.equal(/import\s+\{\s*PauseView\s*\}\s+from/.test(stripLineComments(playUiSource)), false, 'PlayUI가 PauseView를 정적 import함');
+  assert.equal(/import\s+\{\s*ResultView\s*\}\s+from/.test(stripLineComments(playUiSource)), false, 'PlayUI가 ResultView를 정적 import함');
+  assert.equal(/import\s+\{\s*LevelUpView\s*\}\s+from/.test(stripLineComments(playUiSource)), false, 'PlayUI가 LevelUpView를 정적 import함');
+});
+
 test('PlayScene 부트스트랩과 PlayContext 런타임 생성은 전용 helper로 분리된다', async () => {
   const playSceneBootstrap = await import('../src/scenes/play/playSceneBootstrap.js');
   const playContextRuntime = await import('../src/core/playContextRuntime.js');
@@ -108,7 +145,17 @@ test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙
   assert.equal(weaponDataSource.includes('export function getWeaponDataById'), false, 'weaponData가 조회 helper를 직접 export함');
   assert.equal(accessoryModelSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Codex accessory model이 전용 accessory helper를 사용하지 않음');
   assert.equal(pauseLoadoutStatsSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Pause loadout stats가 전용 accessory helper를 사용하지 않음');
-  assert.equal(createPlayerSource.includes("from '../data/weaponDataHelpers.js'"), true, 'createPlayer가 전용 weapon helper를 사용하지 않음');
+  assert.equal(createPlayerSource.includes("from '../data/weaponDataHelpers.js'"), false, 'createPlayer가 여전히 데이터 helper에 직접 결합되어 있음');
+  assert.equal(playerSpawnRuntimeSource.includes('resolveStartLoadout('), false, 'playerSpawnRuntime이 broad start loadout DTO를 그대로 재노출하면 안 됨');
+  assert.equal(titleLoadoutSource.includes('resolveStartLoadout('), false, 'titleLoadout이 broad start loadout DTO를 그대로 재노출하면 안 됨');
+  assert.equal(titleLoadoutSource.includes('resolveStartWeaponSelection'), true, 'titleLoadout이 전용 start weapon selection helper를 사용하지 않음');
+  assert.equal(startLoadoutRuntimeSource.includes("from '../data/weaponDataHelpers.js'"), false, 'startLoadoutRuntime이 정적 weaponData helper로 폴백하면 안 됨');
+  assert.equal(startLoadoutRuntimeSource.includes("from '../data/unlockAvailability.js'"), false, 'startLoadoutRuntime이 정적 unlock helper를 통해 데이터 주입 경계를 우회하면 안 됨');
+  assert.equal(/export function resolveStartLoadout/.test(startLoadoutRuntimeSource), false, 'startLoadoutRuntime이 broad start loadout DTO export를 유지하면 안 됨');
+  assert.equal(/export function resolveStartWeaponSelection/.test(startLoadoutRuntimeSource), true, 'startLoadoutRuntime에 전용 start weapon selection helper가 필요함');
+  assert.equal(/export function getSelectedStartWeaponId/.test(titleLoadoutSource), false, 'titleLoadout에 중복 시작 무기 선택 helper가 남아 있음');
+  assert.equal(/pendingRunStartEvents|pendingEventQueue/.test(worldTickSystemSource), false, 'WorldTickSystem에 pending event 주입 책임이 남아 있음');
+  assert.equal(/weaponAcquired|accessoryAcquired/.test(pendingEventPumpSystemSource), false, 'PendingEventPumpSystem이 도메인 이벤트명을 하드코딩하면 안 됨');
 });
 
 summary();

@@ -14,6 +14,7 @@ import {
 } from '../state/sessionOptions.js';
 import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
+import { loadTitleSceneModule } from './sceneLoaders.js';
 
 export class SettingsScene {
   constructor(game) {
@@ -75,7 +76,7 @@ export class SettingsScene {
 
   /** TitleScene으로 복귀 */
   async _goToTitle() {
-    await this._nav.load(() => import('./TitleScene.js'), ({ TitleScene }) => {
+    await this._nav.load(loadTitleSceneModule, ({ TitleScene }) => {
       this.game.sceneManager.changeScene(new TitleScene(this.game));
     }, (e) => {
       console.error('[SettingsScene] TitleScene 로드 실패:', e);

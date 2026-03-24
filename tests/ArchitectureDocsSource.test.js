@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { createRunner } from './helpers/testRunner.js';
+import {
+  projectPathExists,
+  readProjectJson,
+  readProjectSource,
+} from './helpers/sourceInspection.js';
 
 console.log('\n[ArchitectureDocsSource]');
 
 const { test, summary } = createRunner('ArchitectureDocsSource');
 
-const readmeSource = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
-const agentsSource = readFileSync(new URL('../AGENTS.md', import.meta.url), 'utf8');
-const architectureSource = readFileSync(new URL('../docs/architecture-current.md', import.meta.url), 'utf8');
-const assetManagerSource = readFileSync(new URL('../src/managers/AssetManager.js', import.meta.url), 'utf8');
-const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+const readmeSource = readProjectSource('../README.md');
+const agentsSource = readProjectSource('../AGENTS.md');
+const architectureSource = readProjectSource('../docs/architecture-current.md');
+const packageJson = readProjectJson('../package.json');
 
 test('architecture snapshot tooling exposes generated docs sections and an npm script', async () => {
   const snapshotModule = await import('../scripts/architectureSnapshot.mjs');
@@ -38,11 +41,12 @@ test('README links the snapshot workflow and keeps verify command terminology al
 test('AGENTS documents the split between normative rules and current-state facts', () => {
   assert.equal(agentsSource.includes('`AGENTS.md`는 **규범 문서**다.'), true, 'AGENTS가 규범 문서 역할을 명시하지 않음');
   assert.equal(agentsSource.includes('`docs/architecture-current.md`'), true, 'AGENTS가 현재 상태 문서를 가리키지 않음');
+  assert.equal(agentsSource.includes('| 0   | WorldTickSystem'), false, 'AGENTS에 현재 파이프라인 표가 남아 있어 규범/사실 경계가 다시 섞임');
+  assert.equal(agentsSource.includes('구체 priority와 현재 등록 순서는 `docs/architecture-current.md`'), true, 'AGENTS가 현재 파이프라인 순서를 architecture-current로 위임하지 않음');
 });
 
 test('legacy MVP-only comments are removed from active runtime modules', () => {
-  assert.equal(assetManagerSource.includes('MVP 전략'), false, 'AssetManager에 초기 MVP 주석이 남아 있음');
-  assert.equal(assetManagerSource.includes('MVP에서는 SoundSystem'), false, 'AssetManager에 낡은 MVP 사운드 설명이 남아 있음');
+  assert.equal(projectPathExists('../src/managers/AssetManager.js'), false, '유휴 AssetManager가 아직 남아 있음');
 });
 
 summary();

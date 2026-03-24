@@ -11,6 +11,7 @@ import {
 } from './createSessionState.js';
 import { ensureCodexMeta } from './sessionMeta.js';
 import { mergeSessionOptions } from './sessionOptions.js';
+import { resolveSelectedStartWeaponId } from './startLoadoutRuntime.js';
 
 export function persistSession(session) {
   saveSession(session);
@@ -23,11 +24,33 @@ export function updateSessionOptionsAndSave(session, nextOptions) {
   return session.options;
 }
 
-export function setSelectedStartWeaponAndSave(session, weaponId) {
+function resolveSelectedStartWeaponSaveResult(session, weaponId, gameData = {}) {
   const meta = ensureCodexMeta(session);
-  meta.selectedStartWeaponId = weaponId;
+  const normalizedSelection = resolveSelectedStartWeaponId(gameData, session, weaponId);
+
+  if (!normalizedSelection) {
+    return {
+      saved: false,
+      selectedWeaponId: meta.selectedStartWeaponId,
+    };
+  }
+
+  return {
+    saved: normalizedSelection !== meta.selectedStartWeaponId || Boolean(weaponId),
+    selectedWeaponId: normalizedSelection,
+  };
+}
+
+export function setSelectedStartWeaponAndSave(session, weaponId, gameData = {}) {
+  const meta = ensureCodexMeta(session);
+  const result = resolveSelectedStartWeaponSaveResult(session, weaponId, gameData);
+  if (!result.saved) {
+    return result;
+  }
+
+  meta.selectedStartWeaponId = result.selectedWeaponId;
   persistSession(session);
-  return meta.selectedStartWeaponId;
+  return result;
 }
 
 export function purchasePermanentUpgradeAndSave(session, upgradeId, cost) {

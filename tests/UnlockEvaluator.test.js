@@ -4,10 +4,12 @@ import { test, summary } from './helpers/testRunner.js';
 
 let unlockData;
 let evaluateUnlocks;
+let unlockProgressRuntime;
 
 try {
   ({ unlockData } = await import('../src/data/unlockData.js'));
-  ({ evaluateUnlocks } = await import('../src/systems/progression/unlockEvaluator.js'));
+  ({ evaluateUnlocks } = await import('../src/progression/unlockEvaluator.js'));
+  unlockProgressRuntime = await import('../src/progression/unlockProgressRuntime.js');
 } catch (e) {
   console.warn('[테스트] unlock evaluator import 실패:', e.message);
 }
@@ -109,6 +111,34 @@ test('evaluateUnlocks awards expanded weapon and accessory rewards', () => {
 
   assert.ok(result.newlyUnlockedWeapons.includes('chain_lightning'), '확장 무기 해금 보상이 누락됨');
   assert.ok(result.newlyUnlockedAccessories.includes('coin_pendant'), '확장 장신구 해금 보상이 누락됨');
+});
+
+test('unlock progress runtime은 compute/apply 경계를 분리해 계산 단계에서 session을 직접 mutate하지 않는다', () => {
+  assert.equal(typeof unlockProgressRuntime.computeUnlockProgress, 'function', 'computeUnlockProgress helper가 없음');
+  assert.equal(typeof unlockProgressRuntime.applyUnlockProgress, 'function', 'applyUnlockProgress helper가 없음');
+
+  const session = makeSessionState({
+    meta: {
+      enemyKills: { zombie: 600 },
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+      completedUnlocks: [],
+    },
+  });
+  const before = JSON.stringify(session.meta);
+
+  const progress = unlockProgressRuntime.computeUnlockProgress(session, {
+    kills: 600,
+    survivalTime: 120,
+    level: 3,
+    weaponsUsed: ['magic_bolt'],
+  }, unlockData);
+
+  assert.equal(JSON.stringify(session.meta), before, 'compute 단계가 session을 직접 mutate하면 안 됨');
+  assert.ok(progress.nextUnlockedWeapons.includes('boomerang'), 'compute 단계가 다음 해금 결과를 계산하지 못함');
+
+  unlockProgressRuntime.applyUnlockProgress(session, progress);
+  assert.ok(session.meta.unlockedWeapons.includes('boomerang'), 'apply 단계가 계산된 해금 결과를 session에 반영하지 못함');
 });
 
 summary();

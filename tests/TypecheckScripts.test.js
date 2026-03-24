@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createRunner } from './helpers/testRunner.js';
+import {
+  projectPathExists,
+  readProjectJson,
+  readProjectSource,
+} from './helpers/sourceInspection.js';
 
 console.log('\n[TypecheckScripts]');
 
 const { test, summary } = createRunner('TypecheckScripts');
 
-const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const tsconfigPath = new URL('../tsconfig.typecheck.json', import.meta.url);
+const packageJson = readProjectJson('../package.json');
 
 test('package scripts expose an explicit typecheck baseline and verify runs it', () => {
   assert.equal(typeof packageJson.scripts?.typecheck, 'string', 'typecheck script가 없음');
@@ -19,9 +22,9 @@ test('package scripts expose an explicit typecheck baseline and verify runs it',
 });
 
 test('scoped typecheck config exists and enables checkJs without emitting', () => {
-  assert.equal(existsSync(tsconfigPath), true, 'tsconfig.typecheck.json 파일이 없음');
+  assert.equal(projectPathExists('../tsconfig.typecheck.json'), true, 'tsconfig.typecheck.json 파일이 없음');
 
-  const tsconfig = JSON.parse(readFileSync(tsconfigPath, 'utf8'));
+  const tsconfig = JSON.parse(readProjectSource('../tsconfig.typecheck.json'));
   assert.equal(tsconfig.compilerOptions?.allowJs, true, 'allowJs가 활성화되지 않음');
   assert.equal(tsconfig.compilerOptions?.checkJs, true, 'checkJs가 활성화되지 않음');
   assert.equal(tsconfig.compilerOptions?.noEmit, true, 'noEmit이 활성화되지 않음');

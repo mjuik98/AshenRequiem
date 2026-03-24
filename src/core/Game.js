@@ -8,7 +8,6 @@ import { CanvasRenderer }  from '../renderer/CanvasRenderer.js';
 import { TitleScene }      from '../scenes/TitleScene.js';
 import { validateGameData } from '../utils/validateGameData.js';
 import { GameDataLoader }   from '../data/GameDataLoader.js';
-import { AssetManager }     from '../managers/AssetManager.js';
 import { loadSession } from '../state/createSessionState.js';
 import { getEffectiveDevicePixelRatio } from '../state/sessionOptions.js';
 import { registerRuntimeHooks, unregisterRuntimeHooks } from './runtimeHooks.js';
@@ -32,7 +31,6 @@ export class Game {
     if ('ontouchstart' in window) {
       this.input.addAdapter(new TouchAdapter(this.canvas));
     }
-    this.assets       = new AssetManager();
     this.gameData     = GameDataLoader.loadDefault();
     this.sceneManager = new SceneManager();
     this.renderer     = new CanvasRenderer(this.canvas, this.ctx);
@@ -46,8 +44,6 @@ export class Game {
       weaponData:  this.gameData.weaponData,
       waveData:    this.gameData.waveData,
     });
-
-    await this.assets.loadAll();
 
     this.sceneManager.changeScene(new TitleScene(this));
     this._loop.start();

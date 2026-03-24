@@ -15,7 +15,7 @@ import {
   toggleCodexSelection,
   updateCodexAccessoryFilters,
 } from './codexViewState.js';
-import { renderCodexWeaponTab } from './codexWeaponTab.js';
+import { renderCodexWeaponTab } from './codexWeaponRender.js';
 import { renderCodexRecordsTab } from './codexRecordsTab.js';
 
 function revealCodexDetailPanel(panel, selector) {

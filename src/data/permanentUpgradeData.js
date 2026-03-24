@@ -198,7 +198,7 @@ export function getPermanentUpgradeById(id) {
  * 세션의 permanentUpgrades를 player 기본 스탯에 반영한다.
  */
 export function applyPermanentUpgrades(player, perm) {
-  if (!perm) return;
+  if (!player || !perm) return player;
 
   for (const [id, level] of Object.entries(perm)) {
     if (!level || level <= 0) continue;
@@ -278,4 +278,13 @@ export function applyPermanentUpgrades(player, perm) {
         break;
     }
   }
+
+  if ((player.globalDamageMult ?? 1) !== 1) {
+    player.weapons?.forEach((weapon) => {
+      weapon.damage = Math.max(1, Math.round(weapon.damage * player.globalDamageMult));
+    });
+  }
+
+  player.hp = player.maxHp;
+  return player;
 }

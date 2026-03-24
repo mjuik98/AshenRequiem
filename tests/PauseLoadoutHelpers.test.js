@@ -7,6 +7,9 @@ console.log('\n[PauseLoadoutHelpers]');
 const { test, summary } = createRunner('PauseLoadoutHelpers');
 
 let pauseLoadoutModel = null;
+let pauseLoadoutItems = null;
+let pauseLoadoutIcons = null;
+let pauseLoadoutLabels = null;
 let pauseLoadoutSections = null;
 let pauseLoadoutCards = null;
 let pauseLoadoutDetailSections = null;
@@ -20,6 +23,24 @@ try {
   pauseLoadoutModel = await import('../src/ui/pause/pauseLoadoutModel.js');
 } catch (error) {
   pauseLoadoutModel = { error };
+}
+
+try {
+  pauseLoadoutItems = await import('../src/ui/pause/pauseLoadoutItems.js');
+} catch (error) {
+  pauseLoadoutItems = { error };
+}
+
+try {
+  pauseLoadoutIcons = await import('../src/ui/pause/pauseLoadoutIcons.js');
+} catch (error) {
+  pauseLoadoutIcons = { error };
+}
+
+try {
+  pauseLoadoutLabels = await import('../src/ui/pause/pauseLoadoutLabels.js');
+} catch (error) {
+  pauseLoadoutLabels = { error };
 }
 
 try {
@@ -76,6 +97,30 @@ function getLoadoutModel() {
     pauseLoadoutModel.error?.message ?? 'src/ui/pause/pauseLoadoutModel.js가 아직 없음',
   );
   return pauseLoadoutModel;
+}
+
+function getLoadoutItems() {
+  assert.ok(
+    !pauseLoadoutItems.error,
+    pauseLoadoutItems.error?.message ?? 'src/ui/pause/pauseLoadoutItems.js가 아직 없음',
+  );
+  return pauseLoadoutItems;
+}
+
+function getLoadoutIcons() {
+  assert.ok(
+    !pauseLoadoutIcons.error,
+    pauseLoadoutIcons.error?.message ?? 'src/ui/pause/pauseLoadoutIcons.js가 아직 없음',
+  );
+  return pauseLoadoutIcons;
+}
+
+function getLoadoutLabels() {
+  assert.ok(
+    !pauseLoadoutLabels.error,
+    pauseLoadoutLabels.error?.message ?? 'src/ui/pause/pauseLoadoutLabels.js가 아직 없음',
+  );
+  return pauseLoadoutLabels;
 }
 
 function getLoadoutSections() {
@@ -144,6 +189,9 @@ function getEvolutionSection() {
 
 test('pause loadout helper modules expose model and section contracts', () => {
   const model = getLoadoutModel();
+  const items = getLoadoutItems();
+  const icons = getLoadoutIcons();
+  const labels = getLoadoutLabels();
   const sections = getLoadoutSections();
   const cards = getLoadoutCards();
   const detailSections = getLoadoutDetailSections();
@@ -153,9 +201,22 @@ test('pause loadout helper modules expose model and section contracts', () => {
   const synergySection = getSynergySection();
   const evolutionSection = getEvolutionSection();
 
+  assert.equal(typeof items.buildPauseLoadoutItems, 'function', 'buildPauseLoadoutItems가 item helper로 분리되지 않음');
+  assert.equal(typeof items.getDefaultPauseSelection, 'function', 'getDefaultPauseSelection이 item helper로 분리되지 않음');
+  assert.equal(typeof items.findSelectedItem, 'function', 'findSelectedItem이 item helper로 분리되지 않음');
+  assert.equal(typeof items.getItemDefinition, 'function', 'getItemDefinition이 item helper로 분리되지 않음');
+  assert.equal(typeof icons.getBehaviorLabel, 'function', 'getBehaviorLabel이 icon helper로 분리되지 않음');
+  assert.equal(typeof icons.getSlotIcon, 'function', 'getSlotIcon이 icon helper로 분리되지 않음');
+  assert.equal(typeof icons.buildRequirementReference, 'function', 'buildRequirementReference가 icon helper로 분리되지 않음');
+  assert.equal(typeof icons.isReferenceEquipped, 'function', 'isReferenceEquipped가 icon helper로 분리되지 않음');
+  assert.equal(typeof labels.getStatusLabel, 'function', 'getStatusLabel이 label helper로 분리되지 않음');
   assert.equal(typeof model.buildPauseLoadoutItems, 'function', 'buildPauseLoadoutItems가 model helper로 분리되지 않음');
   assert.equal(typeof model.getDefaultPauseSelection, 'function', 'getDefaultPauseSelection이 model helper로 분리되지 않음');
   assert.equal(typeof model.normalizePauseSynergyRequirementId, 'function', 'requirement 정규화 helper가 model helper로 분리되지 않음');
+  assert.equal(model.buildPauseLoadoutItems, items.buildPauseLoadoutItems, 'pauseLoadoutModel이 items helper를 재-export하지 않음');
+  assert.equal(model.getDefaultPauseSelection, items.getDefaultPauseSelection, 'pauseLoadoutModel이 items helper를 재-export하지 않음');
+  assert.equal(model.getSlotIcon, icons.getSlotIcon, 'pauseLoadoutModel이 icons helper를 재-export하지 않음');
+  assert.equal(model.getStatusLabel, labels.getStatusLabel, 'pauseLoadoutModel이 labels helper를 재-export하지 않음');
   assert.equal(typeof sections.renderPauseLoadoutPanel, 'function', 'renderPauseLoadoutPanel이 section helper로 분리되지 않음');
   assert.equal(typeof sections.renderPauseLoadoutDetail, 'function', 'detail 렌더 helper가 section helper에 없음');
   assert.equal(typeof cards.renderPauseSlotCard, 'function', 'slot card 렌더가 별도 helper로 분리되지 않음');

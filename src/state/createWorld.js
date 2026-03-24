@@ -49,6 +49,7 @@ export function createWorld() {
     // ── 업그레이드 대기열 ─────────────────────────────────────────────
     pendingUpgrade:        null,
     pendingLevelUpChoices: null,
+    pendingEventQueue:     null,
     runRerollsRemaining:   0,
     runBanishesRemaining:  0,
     banishedUpgradeIds:    [],

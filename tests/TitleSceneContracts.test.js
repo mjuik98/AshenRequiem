@@ -65,6 +65,27 @@ test('시작 무기 선택 뷰와 타이틀 로드아웃 helper는 시작 후보
   }
 });
 
+test('시작 무기 선택 뷰는 후보가 없으면 시작 버튼을 비활성화한다', () => {
+  const { document, restore } = installMockDom();
+
+  try {
+    const container = document.createElement('div');
+    const view = new StartLoadoutView(container);
+    view.show({
+      weapons: [],
+      selectedWeaponId: null,
+      canStart: false,
+      onStart: () => {},
+      onCancel: () => {},
+    });
+
+    assert.equal(view._el.innerHTML.includes('시작 가능한 기본 무기가 없습니다.'), true, '빈 후보 안내 문구가 없음');
+    assert.equal(view._el.innerHTML.includes('data-action="start" type="button" disabled'), true, '시작 버튼이 비활성화되지 않음');
+  } finally {
+    restore();
+  }
+});
+
 test('TitleScene 종료 버튼은 활성 상태이며 종료 실패 시 상태 helper가 안내 문구를 갱신한다', () => {
   const liveEl = { textContent: '' };
   const flashEl = { style: { background: '' } };

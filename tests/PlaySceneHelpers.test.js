@@ -36,6 +36,24 @@ await test('run state helper는 session 메타 기반 런 상태를 world에 적
   assert.equal(world.levelUpActionMode, 'select');
 });
 
+await test('play scene runtime helper는 시작 장비를 generic pending event queue로 큐잉한다', async () => {
+  const runtime = await import('../src/scenes/play/playSceneRuntime.js');
+  const player = makePlayer({
+    weapons: [{ id: 'magic_bolt' }],
+    accessories: [{ id: 'iron_heart' }],
+  });
+  const world = makeWorld({ player });
+
+  runtime.queueRunStartEvents(world, player);
+
+  assert.deepEqual(world.pendingEventQueue, [
+    { type: 'weaponAcquired', payload: { weaponId: 'magic_bolt' } },
+    { type: 'accessoryAcquired', payload: { accessoryId: 'iron_heart' } },
+  ]);
+  assert.deepEqual(world.events.weaponAcquired, []);
+  assert.deepEqual(world.events.accessoryAcquired, []);
+});
+
 await test('play scene runtime helper는 초기 world state 생성 계약을 제공한다', async () => {
   const bootstrap = await import('../src/scenes/play/playSceneBootstrap.js');
   const world = bootstrap.createPlaySceneWorldState({
@@ -47,11 +65,17 @@ await test('play scene runtime helper는 초기 world state 생성 계약을 제
         },
       },
     },
+    gameData: {
+      weaponData: [
+        { id: 'magic_bolt', damage: 10, cooldown: 1, behaviorId: 'targetProjectile', isEvolved: false },
+      ],
+    },
   });
 
   assert.equal(Boolean(world.player), true, 'bootstrap helper가 player를 생성하지 않음');
   assert.equal(world.runRerollsRemaining, 1);
   assert.equal(world.runBanishesRemaining, 2);
+  assert.deepEqual(world.pendingEventQueue?.[0], { type: 'weaponAcquired', payload: { weaponId: world.player.weapons[0]?.id } }, '시작 무기 이벤트가 generic queue에 적재되지 않음');
 });
 
 await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', async () => {

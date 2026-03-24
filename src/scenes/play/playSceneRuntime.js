@@ -14,9 +14,21 @@ export function applyRunSessionState(world, session) {
   return world;
 }
 
-export function recordStartingWeapons(session, player, recordWeaponAcquired) {
-  if (!player?.weapons?.length || typeof recordWeaponAcquired !== 'function') return;
-  player.weapons.forEach((weapon) => {
-    recordWeaponAcquired(session, weapon.id);
-  });
+export function queueRunStartEvents(world, player) {
+  if (!world || !player) return world;
+
+  const pendingEvents = [
+    ...(player.weapons ?? [])
+      .map((weapon) => weapon?.id)
+      .filter(Boolean)
+      .map((weaponId) => ({ type: 'weaponAcquired', payload: { weaponId } })),
+    ...(player.accessories ?? [])
+      .map((accessory) => accessory?.id)
+      .filter(Boolean)
+      .map((accessoryId) => ({ type: 'accessoryAcquired', payload: { accessoryId } })),
+  ];
+
+  world.pendingEventQueue = pendingEvents.length > 0 ? pendingEvents : null;
+
+  return world;
 }

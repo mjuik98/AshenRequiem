@@ -32,17 +32,27 @@ export function createResultSceneActions({
   setBlocked,
   restart,
   goToTitle,
+  onError = null,
 }) {
+  const runTransition = async (action) => {
+    if (isBlocked()) return false;
+    setBlocked(true);
+    try {
+      await action?.();
+      return true;
+    } catch (error) {
+      setBlocked(false);
+      onError?.(error);
+      return false;
+    }
+  };
+
   return {
     onRestart: () => {
-      if (isBlocked()) return;
-      setBlocked(true);
-      restart();
+      void runTransition(restart);
     },
     onTitle: () => {
-      if (isBlocked()) return;
-      setBlocked(true);
-      goToTitle();
+      void runTransition(goToTitle);
     },
   };
 }

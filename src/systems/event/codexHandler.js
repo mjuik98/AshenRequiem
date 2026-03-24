@@ -59,8 +59,8 @@ export function registerCodexHandlers(session, registry) {
   });
 
   registry.register('weaponAcquired', (event) => {
-      if (!event.weaponId) return;
-      recordWeaponAcquired(session, event.weaponId);
+    if (!event.weaponId) return;
+    recordWeaponAcquired(session, event.weaponId);
   });
 
   registry.register('accessoryAcquired', (event) => {
@@ -69,18 +69,7 @@ export function registerCodexHandlers(session, registry) {
   });
 }
 
-/**
- * 무기 획득 시 weaponsUsedAll 에 기록한다.
- * PlayScene 혹은 UpgradeApplySystem 에서 직접 호출해도 된다.
- *
- * 사용 예 (UpgradeApplySystem.update 등에서):
- *   import { recordWeaponAcquired } from '../systems/event/codexHandler.js';
- *   recordWeaponAcquired(session, 'magic_bolt');
- *
- * @param {object} session
- * @param {string} weaponId
- */
-export function recordWeaponAcquired(session, weaponId) {
+function recordWeaponAcquired(session, weaponId) {
   if (!session || !weaponId) return;
   ensureCodexMeta(session);
   if (!session.meta.weaponsUsedAll.includes(weaponId)) {
@@ -88,29 +77,10 @@ export function recordWeaponAcquired(session, weaponId) {
   }
 }
 
-export function recordAccessoryAcquired(session, accessoryId) {
+function recordAccessoryAcquired(session, accessoryId) {
   if (!session || !accessoryId) return;
   ensureCodexMeta(session);
   if (!session.meta.accessoriesOwnedAll.includes(accessoryId)) {
     session.meta.accessoriesOwnedAll.push(accessoryId);
-  }
-}
-
-/**
- * 적과 첫 조우 시 발견 목록에 추가한다.
- * (처치 없이 발견만 해도 도감에 표시하고 싶을 때 사용)
- *
- * 사용 예 (CollisionSystem 또는 SpawnSystem에서):
- *   import { recordEnemyEncounter } from '../systems/event/codexHandler.js';
- *   recordEnemyEncounter(session, enemy.enemyDataId);
- *
- * @param {object} session
- * @param {string} enemyDataId
- */
-export function recordEnemyEncounter(session, enemyDataId) {
-  if (!session || !enemyDataId) return;
-  ensureCodexMeta(session);
-  if (!session.meta.enemiesEncountered.includes(enemyDataId)) {
-    session.meta.enemiesEncountered.push(enemyDataId);
   }
 }

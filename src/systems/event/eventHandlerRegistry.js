@@ -1,36 +1,50 @@
-/**
- * src/systems/event/eventHandlerRegistry.js — 이벤트 핸들러 등록 레지스트리 (P3)
- */
+import { registerBossAnnouncementHandler } from './bossAnnouncementHandler.js';
+import { registerBossPhaseHandler } from './bossPhaseHandler.js';
+import { registerChestRewardHandler } from './chestRewardHandler.js';
+import { registerCodexHandlers } from './codexHandler.js';
+import { registerCurrencyHandler } from './currencyHandler.js';
+import { registerWeaponEvolutionHandler } from './weaponEvolutionHandler.js';
+import { registerSoundEventHandlers } from '../sound/soundEventHandler.js';
 
-/** @type {Array<(services: object, registry: import('./EventRegistry.js').EventRegistry, session: object) => void>} */
-const _handlers = [];
+export const DEFAULT_EVENT_HANDLER_REGISTRATIONS = Object.freeze([
+  {
+    id: 'chest-reward',
+    register: ({ registry }) => registerChestRewardHandler(registry),
+  },
+  {
+    id: 'boss-phase',
+    register: ({ services, registry }) => registerBossPhaseHandler(services, registry),
+  },
+  {
+    id: 'sound-events',
+    register: ({ services, registry }) => registerSoundEventHandlers(services.soundSystem, registry),
+  },
+  {
+    id: 'currency',
+    register: ({ session, registry }) => registerCurrencyHandler(session, registry),
+  },
+  {
+    id: 'boss-announcement',
+    register: ({ services, registry }) => registerBossAnnouncementHandler(services, registry),
+  },
+  {
+    id: 'weapon-evolution',
+    register: ({ services, registry }) => registerWeaponEvolutionHandler(services, registry),
+  },
+  {
+    id: 'codex',
+    register: ({ session, registry }) => registerCodexHandlers(session, registry),
+  },
+]);
 
-/**
- * 이벤트 핸들러 등록 함수를 레지스트리에 추가한다.
- *
- * @param {(services: object, registry: object, session: object) => void} registerFn
- */
-export function addEventHandler(registerFn) {
-  if (typeof registerFn !== 'function') {
-    console.warn('[eventHandlerRegistry] registerFn은 함수여야 합니다.');
-    return;
+export function registerEventHandlers(registrations, services, registry, session) {
+  if (!registry) return;
+
+  for (const entry of registrations ?? []) {
+    entry?.register?.({ services, registry, session });
   }
-  _handlers.push(registerFn);
 }
 
-/**
- * 등록된 모든 핸들러 등록 함수 목록을 반환한다.
- * PipelineBuilder._registerEventHandlers()에서 순회하여 일괄 실행한다.
- *
- * @returns {Array<Function>}
- */
-export function getEventHandlers() {
-  return _handlers.slice();
-}
-
-/**
- * 레지스트리를 초기화한다. (테스트 격리용)
- */
-export function clearEventHandlers() {
-  _handlers.length = 0;
+export function registerDefaultEventHandlers(services, registry, session) {
+  registerEventHandlers(DEFAULT_EVENT_HANDLER_REGISTRATIONS, services, registry, session);
 }

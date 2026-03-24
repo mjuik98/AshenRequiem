@@ -65,8 +65,14 @@ test('session facade와 play result handler는 저장소 기반 세션 갱신을
     const options = updateSessionOptionsAndSave(session, { showFps: true });
     assert.equal(options.showFps, true);
 
-    const selected = setSelectedStartWeaponAndSave(session, 'fire_orb');
-    assert.equal(selected, 'fire_orb');
+    session.meta.unlockedWeapons = ['magic_bolt', 'boomerang'];
+    const selected = setSelectedStartWeaponAndSave(session, 'boomerang', {
+      weaponData: [
+        { id: 'magic_bolt', isEvolved: false },
+        { id: 'boomerang', isEvolved: false },
+      ],
+    });
+    assert.deepEqual(selected, { saved: true, selectedWeaponId: 'boomerang' });
 
     const purchased = purchasePermanentUpgradeAndSave(session, 'perm_hp', 10);
     assert.equal(purchased, true);

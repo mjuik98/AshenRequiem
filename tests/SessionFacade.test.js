@@ -80,10 +80,61 @@ await test('setSelectedStartWeaponAndSave()는 시작 무기를 기록하고 저
       selectedStartWeaponId: 'magic_bolt',
     },
   });
-  setSelectedStartWeaponAndSave(session, 'boomerang');
+  const result = setSelectedStartWeaponAndSave(session, 'boomerang', {
+    weaponData: [
+      { id: 'magic_bolt', isEvolved: false },
+      { id: 'boomerang', isEvolved: false },
+    ],
+  });
 
+  assert.deepEqual(result, { saved: true, selectedWeaponId: 'boomerang' });
   assert.equal(session.meta.selectedStartWeaponId, 'boomerang');
   assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedStartWeaponId":"boomerang"/);
+});
+
+await test('setSelectedStartWeaponAndSave()는 잠긴 시작 무기 선택을 공용 loadout 규칙으로 보정한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState({
+    meta: {
+      unlockedWeapons: ['magic_bolt'],
+      selectedStartWeaponId: 'magic_bolt',
+    },
+  });
+  const result = setSelectedStartWeaponAndSave(session, 'fire_orb', {
+    weaponData: [
+      { id: 'magic_bolt', isEvolved: false },
+      { id: 'fire_orb', isEvolved: false },
+    ],
+    unlockData: [
+      { id: 'unlock_fire_orb', targetType: 'weapon', targetId: 'fire_orb' },
+    ],
+  });
+
+  assert.deepEqual(result, { saved: true, selectedWeaponId: 'magic_bolt' });
+  assert.equal(session.meta.selectedStartWeaponId, 'magic_bolt');
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedStartWeaponId":"magic_bolt"/);
+});
+
+await test('setSelectedStartWeaponAndSave()는 시작 후보가 없으면 저장하지 않고 실패 결과를 반환한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState({
+    meta: {
+      unlockedWeapons: ['magic_bolt'],
+      selectedStartWeaponId: 'magic_bolt',
+    },
+  });
+  const result = setSelectedStartWeaponAndSave(session, 'magic_bolt', {
+    weaponData: [],
+    unlockData: [],
+  });
+
+  assert.deepEqual(result, { saved: false, selectedWeaponId: 'magic_bolt' });
+  assert.equal(session.meta.selectedStartWeaponId, 'magic_bolt');
+  assert.equal(storage.getItem('ashenRequiem_session'), null);
 });
 
 await test('purchasePermanentUpgradeAndSave()는 성공 시에만 저장한다', async () => {

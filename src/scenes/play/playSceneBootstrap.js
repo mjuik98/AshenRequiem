@@ -6,18 +6,29 @@ import { mountUI } from '../../ui/dom/mountUI.js';
 import { PlayUI } from './PlayUI.js';
 import {
   applyRunSessionState,
+  queueRunStartEvents,
   shouldEnablePipelineProfiling,
 } from './playSceneRuntime.js';
+import {
+  applyPlayerPermanentUpgrades,
+  resolvePlayerSpawnState,
+} from './playerSpawnRuntime.js';
 
 export function createPlaySceneWorldState({
   session,
+  gameData = {},
   createWorldImpl = createWorld,
   createPlayerImpl = createPlayer,
   applyRunSessionStateImpl = applyRunSessionState,
+  resolvePlayerSpawnStateImpl = resolvePlayerSpawnState,
+  applyPlayerPermanentUpgradesImpl = applyPlayerPermanentUpgrades,
 } = {}) {
   const world = createWorldImpl();
-  world.player = createPlayerImpl(0, 0, session);
+  const playerSpawnState = resolvePlayerSpawnStateImpl(session, gameData);
+  world.player = createPlayerImpl(0, 0, playerSpawnState);
+  applyPlayerPermanentUpgradesImpl(world.player, playerSpawnState.permanentUpgrades);
   applyRunSessionStateImpl(world, session);
+  queueRunStartEvents(world, world.player);
   return world;
 }
 
@@ -31,8 +42,8 @@ export function bootstrapPlaySceneRuntime({
   createPlayUiImpl = (container) => new PlayUI(container),
 } = {}) {
   const session = game?.session ?? null;
-  const world = createPlaySceneWorldStateImpl({ session });
   const gameData = game?.gameData ?? {};
+  const world = createPlaySceneWorldStateImpl({ session, gameData });
   const options = normalizeSessionOptionsImpl(session?.options);
   const ctx = createPlayContextImpl({
     canvas: game?.canvas,

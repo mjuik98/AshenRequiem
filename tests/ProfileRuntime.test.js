@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { createRunner } from './helpers/testRunner.js';
 import { getProfilePresetIds } from '../scripts/profileRuntime.js';
+import { readProjectJson } from './helpers/sourceInspection.js';
 
 console.log('\n[ProfileRuntime]');
 
@@ -70,7 +70,7 @@ test('profile script can fail verification when an asserted budget is exceeded',
 });
 
 test('package verify script exposes a dedicated profile budget check', () => {
-  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const pkg = readProjectJson('../package.json');
   assert.equal(typeof pkg.scripts['profile:check'], 'string', 'profile:check 스크립트가 없음');
   assert.equal(typeof pkg.scripts['verify:fast'], 'string', 'verify:fast 스크립트가 없음');
   assert.equal(typeof pkg.scripts['verify:ci'], 'string', 'verify:ci 스크립트가 없음');

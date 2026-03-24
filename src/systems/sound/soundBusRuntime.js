@@ -1,3 +1,5 @@
+import { nextFloat } from '../../utils/random.js';
+
 export function clampSoundValue(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -6,13 +8,9 @@ export function clampSoundUnit(value) {
   return clampSoundValue(Number(value) || 0, 0, 1);
 }
 
-function nextSoundRandom(rng) {
-  return typeof rng === 'function' ? rng() : Math.random();
-}
-
 export function randomSoundSpread(amount, rng) {
   if (!amount) return 0;
-  return (nextSoundRandom(rng) * 2 - 1) * amount;
+  return (nextFloat(rng) * 2 - 1) * amount;
 }
 
 export function disconnectSoundNodes(...nodes) {

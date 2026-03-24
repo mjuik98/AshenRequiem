@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { createRunner } from './helpers/testRunner.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[TestRunnerContract]');
 
 const { test, summary } = createRunner('TestRunnerContract');
-const runTestsSource = readFileSync(new URL('../scripts/runTests.js', import.meta.url), 'utf8');
+const runTestsSource = readProjectSource('../scripts/runTests.js');
 
 test('createRunner.test returns a promise for async test bodies', async () => {
   const runner = createRunner('AsyncContract');
