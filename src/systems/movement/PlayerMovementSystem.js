@@ -16,7 +16,9 @@
 import { getSlowMultiplier } from '../../utils/entityUtils.js';
 
 export const PlayerMovementSystem = {
-  update({ input, world: { player, deltaTime } }) {
+  update({ input, world, dt }) {
+    const player = world.entities.player;
+    const deltaTime = dt ?? world.runtime.deltaTime;
     if (!player?.isAlive) return;
 
     let dirX = 0;

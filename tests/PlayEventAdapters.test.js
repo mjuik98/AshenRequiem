@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import { createRunner } from './helpers/testRunner.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
+
+console.log('\n[PlayEventAdapters]');
+
+const { test, summary } = createRunner('PlayEventAdapters');
+
+let adapterApi = null;
+
+try {
+  adapterApi = await import('../src/adapters/play/playEventAdapters.js');
+} catch (error) {
+  adapterApi = { error };
+}
+
+test('play event adapter 모듈은 handler group을 계층별로 노출한다', () => {
+  assert.ok(!adapterApi.error, adapterApi.error?.message ?? 'playEventAdapters.js가 아직 없음');
+  assert.equal(Array.isArray(adapterApi.PLAY_WORLD_EVENT_ADAPTERS), true);
+  assert.equal(Array.isArray(adapterApi.PLAY_SOUND_EVENT_ADAPTERS), true);
+  assert.equal(Array.isArray(adapterApi.PLAY_SESSION_EVENT_ADAPTERS), true);
+  assert.equal(Array.isArray(adapterApi.PLAY_PRESENTATION_EVENT_ADAPTERS), true);
+  assert.equal(Array.isArray(adapterApi.PLAY_DEFAULT_EVENT_ADAPTERS), true);
+  assert.equal(adapterApi.PLAY_DEFAULT_EVENT_ADAPTERS.length >= 6, true);
+});
+
+test('event handler registry는 adapter group을 조합하는 얇은 facade로 유지된다', () => {
+  const source = readProjectSource('../src/systems/event/eventHandlerRegistry.js');
+
+  assert.equal(source.includes("from '../../adapters/play/playEventAdapters.js'"), true, 'event handler registry가 play adapter group을 import해야 함');
+  assert.equal(source.includes('registerBossAnnouncementHandler'), false, 'event handler registry가 개별 adapter 구현을 직접 import하면 안 됨');
+  assert.equal(source.includes('registerCurrencyHandler'), false, 'event handler registry가 개별 adapter 구현을 직접 import하면 안 됨');
+});
+
+summary();

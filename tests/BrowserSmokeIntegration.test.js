@@ -83,11 +83,17 @@ await test('package.json은 smoke 실행과 전체 verify 스크립트를 노출
 
 await test('browser smoke scenario registry는 title codex/settings 흐름을 포함한다', async () => {
   assert.equal(typeof SCENARIOS.title_codex, 'object', 'title_codex 시나리오가 등록되지 않음');
+  assert.equal(typeof SCENARIOS.title_meta_shop, 'object', 'title_meta_shop 시나리오가 등록되지 않음');
   assert.equal(typeof SCENARIOS.title_settings, 'object', 'title_settings 시나리오가 등록되지 않음');
+  assert.equal(typeof SCENARIOS.title_settings_persist, 'object', 'title_settings_persist 시나리오가 등록되지 않음');
   const ids = getScenarioIds({ includeExperimental: true });
   assert.equal(ids.includes('title_codex'), true);
+  assert.equal(ids.includes('title_meta_shop'), true);
   assert.equal(ids.includes('title_settings'), true);
+  assert.equal(ids.includes('title_settings_persist'), true);
   assert.equal(SCENARIOS.title_codex.stepNames.includes('accessory'), true, 'title_codex 시나리오가 장신구 도감 흐름을 포함하지 않음');
+  assert.equal(SCENARIOS.title_meta_shop.stepNames.includes('purchase'), true, 'title_meta_shop 시나리오가 구매 흐름을 포함하지 않음');
+  assert.equal(SCENARIOS.title_settings_persist.stepNames.includes('persist'), true, 'title_settings_persist 시나리오가 저장 검증을 포함하지 않음');
 });
 
 await test('smoke wrapper child 종료 helper는 close 이벤트와 timeout 모두 처리한다', async () => {

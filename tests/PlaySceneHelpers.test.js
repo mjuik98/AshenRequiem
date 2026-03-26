@@ -20,7 +20,7 @@ async function test(name, fn) {
 
 await test('run state helper는 session 메타 기반 런 상태를 world에 적용한다', async () => {
   const runtime = await import('../src/scenes/play/playSceneRuntime.js');
-  const world = makeWorld({ player: makePlayer() });
+  const world = makeWorld({ entities: { player: makePlayer() } });
   runtime.applyRunSessionState(world, {
     meta: {
       permanentUpgrades: {
@@ -30,10 +30,10 @@ await test('run state helper는 session 메타 기반 런 상태를 world에 적
     },
   });
 
-  assert.equal(world.runRerollsRemaining, 2);
-  assert.equal(world.runBanishesRemaining, 1);
-  assert.deepEqual(world.banishedUpgradeIds, []);
-  assert.equal(world.levelUpActionMode, 'select');
+  assert.equal(world.progression.runRerollsRemaining, 2);
+  assert.equal(world.progression.runBanishesRemaining, 1);
+  assert.deepEqual(world.progression.banishedUpgradeIds, []);
+  assert.equal(world.progression.levelUpActionMode, 'select');
 });
 
 await test('play scene runtime helper는 시작 장비를 generic pending event queue로 큐잉한다', async () => {
@@ -42,16 +42,16 @@ await test('play scene runtime helper는 시작 장비를 generic pending event 
     weapons: [{ id: 'magic_bolt' }],
     accessories: [{ id: 'iron_heart' }],
   });
-  const world = makeWorld({ player });
+  const world = makeWorld({ entities: { player } });
 
   runtime.queueRunStartEvents(world, player);
 
-  assert.deepEqual(world.pendingEventQueue, [
+  assert.deepEqual(world.progression.pendingEventQueue, [
     { type: 'weaponAcquired', payload: { weaponId: 'magic_bolt' } },
     { type: 'accessoryAcquired', payload: { accessoryId: 'iron_heart' } },
   ]);
-  assert.deepEqual(world.events.weaponAcquired, []);
-  assert.deepEqual(world.events.accessoryAcquired, []);
+  assert.deepEqual(world.queues.events.weaponAcquired, []);
+  assert.deepEqual(world.queues.events.accessoryAcquired, []);
 });
 
 await test('play scene runtime helper는 초기 world state 생성 계약을 제공한다', async () => {
@@ -72,15 +72,15 @@ await test('play scene runtime helper는 초기 world state 생성 계약을 제
     },
   });
 
-  assert.equal(Boolean(world.player), true, 'bootstrap helper가 player를 생성하지 않음');
-  assert.equal(world.runRerollsRemaining, 1);
-  assert.equal(world.runBanishesRemaining, 2);
-  assert.deepEqual(world.pendingEventQueue?.[0], { type: 'weaponAcquired', payload: { weaponId: world.player.weapons[0]?.id } }, '시작 무기 이벤트가 generic queue에 적재되지 않음');
+  assert.equal(Boolean(world.entities.player), true, 'bootstrap helper가 player를 생성하지 않음');
+  assert.equal(world.progression.runRerollsRemaining, 1);
+  assert.equal(world.progression.runBanishesRemaining, 2);
+  assert.deepEqual(world.progression.pendingEventQueue?.[0], { type: 'weaponAcquired', payload: { weaponId: world.entities.player.weapons[0]?.id } }, '시작 무기 이벤트가 generic queue에 적재되지 않음');
 });
 
 await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', async () => {
   const overlays = await import('../src/scenes/play/playSceneOverlays.js');
-  const world = makeWorld({ playMode: 'playing' });
+  const world = makeWorld({ run: { playMode: 'playing' } });
   const transitions = [];
   let pauseHidden = 0;
 
@@ -91,7 +91,7 @@ await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', asyn
     isBlocked: () => false,
     transitionPlayMode: (_, mode) => {
       transitions.push(mode);
-      world.playMode = mode;
+      world.run.playMode = mode;
     },
     hidePause: () => {
       pauseHidden += 1;
@@ -104,7 +104,7 @@ await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', asyn
   assert.equal(pauseHidden, 1);
 
   config.onForfeit();
-  assert.equal(world.runOutcome.type, 'defeat');
+  assert.equal(world.run.runOutcome.type, 'defeat');
   assert.equal(transitions.at(-1), 'dead');
 });
 

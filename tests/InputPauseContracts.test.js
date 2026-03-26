@@ -9,7 +9,10 @@ console.log('\n[InputPauseContracts]');
 
 test('ESC 모달 overlay config는 메인메뉴 콜백을 직접 노출하지 않는다', () => {
   const config = createPauseOverlayConfig({
-    world: { player: null },
+    world: {
+      entities: { player: null },
+      run: { runOutcome: null },
+    },
     data: {},
     session: {},
     isBlocked: () => false,

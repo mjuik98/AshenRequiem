@@ -42,9 +42,27 @@ export function createPlaywrightSessionTransport(sessionId, {
     });
   }
 
+  async function runGlobal(args, options = {}) {
+    return runCommand(args, {
+      cwd,
+      env,
+      timeoutMs: options.timeoutMs ?? timeoutMs,
+      pipeOutput: options.pipeOutput ?? false,
+    });
+  }
+
   return {
     sessionId,
     run,
+    async close() {
+      try {
+        await run(['close'], { timeoutMs: Math.min(timeoutMs, 5_000) });
+        return true;
+      } catch {
+        await runGlobal(['kill-all'], { timeoutMs: Math.min(timeoutMs, 5_000) }).catch(() => {});
+        return false;
+      }
+    },
     async open(url) {
       await run(['open', url], { timeoutMs: Math.max(timeoutMs, 30_000) });
     },

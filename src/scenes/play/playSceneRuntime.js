@@ -1,16 +1,16 @@
+import { hasRuntimeQueryFlag } from '../../adapters/browser/runtimeEnv.js';
+
 export function shouldEnablePipelineProfiling(host = globalThis) {
   if (!host) return false;
   if (host.__ASHEN_PROFILE_PIPELINE__ === true) return true;
-
-  const search = host.location?.search ?? '';
-  return new URLSearchParams(search).has('profilePipeline');
+  return hasRuntimeQueryFlag('profilePipeline', host);
 }
 
 export function applyRunSessionState(world, session) {
-  world.runRerollsRemaining = session?.meta?.permanentUpgrades?.reroll_charge ?? 0;
-  world.runBanishesRemaining = session?.meta?.permanentUpgrades?.banish_charge ?? 0;
-  world.banishedUpgradeIds = [];
-  world.levelUpActionMode = 'select';
+  world.progression.runRerollsRemaining = session?.meta?.permanentUpgrades?.reroll_charge ?? 0;
+  world.progression.runBanishesRemaining = session?.meta?.permanentUpgrades?.banish_charge ?? 0;
+  world.progression.banishedUpgradeIds = [];
+  world.progression.levelUpActionMode = 'select';
   return world;
 }
 
@@ -28,7 +28,7 @@ export function queueRunStartEvents(world, player) {
       .map((accessoryId) => ({ type: 'accessoryAcquired', payload: { accessoryId } })),
   ];
 
-  world.pendingEventQueue = pendingEvents.length > 0 ? pendingEvents : null;
+  world.progression.pendingEventQueue = pendingEvents.length > 0 ? pendingEvents : null;
 
   return world;
 }

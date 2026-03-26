@@ -21,7 +21,7 @@ const settingsViewSource = readProjectSource('../src/ui/settings/SettingsView.js
 const pauseViewSource = readProjectSource('../src/ui/pause/PauseView.js');
 const pauseAudioSource = readProjectSource('../src/ui/pause/pauseAudioControls.js');
 const codexSceneSource = readProjectSource('../src/scenes/CodexScene.js');
-const codexHandlerSource = readProjectSource('../src/systems/event/codexHandler.js');
+const codexHandlerSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
 const playContextSource = readProjectSource('../src/core/PlayContext.js');
 const collisionSystemSource = readProjectSource('../src/systems/combat/CollisionSystem.js');
 const enemyMovementSystemSource = readProjectSource('../src/systems/movement/EnemyMovementSystem.js');
@@ -34,17 +34,21 @@ const pauseLoadoutStatsSource = readProjectSource('../src/ui/pause/pauseLoadoutS
 const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
 const playerSpawnRuntimeSource = readProjectSource('../src/scenes/play/playerSpawnRuntime.js');
 const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+const titleLoadoutFlowSource = readProjectSource('../src/scenes/title/titleLoadoutFlow.js');
 const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
 const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
 const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
 const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
+const playResultHandlerSource = readProjectSource('../src/scenes/play/PlayResultHandler.js');
+const playSceneFlowSource = readProjectSource('../src/scenes/play/playSceneFlow.js');
 
 console.log('\n[CentralizationSource]');
 
 test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
   assert.equal(playSceneSource.includes('applySessionOptionsToRuntime'), true, 'PlayScene이 공통 옵션 적용 헬퍼를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), true, 'SettingsScene이 공통 옵션 저장 facade를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('applySessionOptionsToRuntime'), true, 'SettingsScene이 공통 옵션 적용 헬퍼를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('saveSettingsAndApplyRuntime'), true, 'SettingsScene이 settings application service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), false, 'SettingsScene이 세션 저장 facade를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('applySessionOptionsToRuntime'), false, 'SettingsScene이 옵션 적용 helper를 직접 import하면 안 됨');
   assert.equal(settingsViewSource.includes('SESSION_OPTION_DEFAULTS'), true, 'SettingsView가 공통 옵션 기본값을 사용하지 않음');
   assert.equal(pauseViewSource.includes('PAUSE_AUDIO_DEFAULTS'), true, 'PauseView가 공통 pause 오디오 기본값 helper를 사용하지 않음');
   assert.equal(pauseAudioSource.includes('SESSION_OPTION_DEFAULTS'), true, 'Pause audio helper가 공통 옵션 기본값을 사용하지 않음');
@@ -80,7 +84,7 @@ test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => 
   );
   assert.equal(playSceneSource.includes('GameDataLoader.clone(this.game.gameData)'), false, 'PlayScene이 여전히 gameData 전체 복제를 수행함');
   assert.equal(playSceneSource.includes('GameDataLoader.loadDefault()'), false, 'PlayScene이 여전히 loadDefault를 직접 호출함');
-  assert.equal(codexSceneSource.includes('this.game.gameData'), true, 'CodexScene이 Game.gameData를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('prepareCodexSceneState'), true, 'CodexScene이 codex application service를 사용하지 않음');
   assert.equal(codexSceneSource.includes('GameDataLoader.loadDefault()'), false, 'CodexScene이 여전히 loadDefault를 직접 호출함');
 });
 
@@ -134,9 +138,20 @@ test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {
 });
 
 test('Codex 메타 초기화는 단일 헬퍼로 중앙화된다', () => {
-  assert.equal(codexSceneSource.includes('ensureCodexMeta'), true, 'CodexScene이 공통 Codex 메타 헬퍼를 사용하지 않음');
-  assert.equal(codexSceneSource.includes('reconcileSessionUnlocks'), true, 'CodexScene이 기존 누적 해금 보정 헬퍼를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('prepareCodexSceneState'), true, 'CodexScene이 codex application service를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('ensureCodexMeta'), false, 'CodexScene이 Codex 메타 헬퍼를 직접 import하면 안 됨');
+  assert.equal(codexSceneSource.includes('reconcileSessionUnlocks'), false, 'CodexScene이 unlock 보정 helper를 직접 import하면 안 됨');
   assert.equal(codexHandlerSource.includes('ensureCodexMeta'), true, 'codexHandler가 공통 Codex 메타 헬퍼를 사용하지 않음');
+});
+
+test('메타 씬은 app 계층 service를 통해 세션 규칙을 호출한다', () => {
+  assert.equal(metaShopSceneSource.includes('purchaseMetaShopUpgrade'), true, 'MetaShopScene이 meta shop application service를 사용하지 않음');
+  assert.equal(metaShopSceneSource.includes('purchasePermanentUpgradeAndSave'), false, 'MetaShopScene이 세션 facade를 직접 import하면 안 됨');
+  assert.equal(metaShopSceneSource.includes('getPermanentUpgradeById'), false, 'MetaShopScene이 업그레이드 데이터 조회를 직접 수행하면 안 됨');
+  assert.equal(titleLoadoutFlowSource.includes('createTitleLoadoutApplicationService'), true, 'titleLoadoutFlow가 title loadout application service를 사용하지 않음');
+  assert.equal(titleLoadoutFlowSource.includes('setSelectedStartWeaponAndSave'), false, 'titleLoadoutFlow가 session facade를 직접 import하면 안 됨');
+  assert.equal(playResultHandlerSource.includes('createPlayResultApplicationService'), true, 'PlayResultHandler가 play result application service를 사용하지 않음');
+  assert.equal(playSceneFlowSource.includes('processPlayResult('), false, 'playSceneFlow가 play result domain을 직접 호출하면 안 됨');
 });
 
 test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙화된다', () => {
@@ -152,7 +167,12 @@ test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙
   assert.equal(startLoadoutRuntimeSource.includes("from '../data/weaponDataHelpers.js'"), false, 'startLoadoutRuntime이 정적 weaponData helper로 폴백하면 안 됨');
   assert.equal(startLoadoutRuntimeSource.includes("from '../data/unlockAvailability.js'"), false, 'startLoadoutRuntime이 정적 unlock helper를 통해 데이터 주입 경계를 우회하면 안 됨');
   assert.equal(/export function resolveStartLoadout/.test(startLoadoutRuntimeSource), false, 'startLoadoutRuntime이 broad start loadout DTO export를 유지하면 안 됨');
-  assert.equal(/export function resolveStartWeaponSelection/.test(startLoadoutRuntimeSource), true, 'startLoadoutRuntime에 전용 start weapon selection helper가 필요함');
+  assert.equal(
+    /resolveStartWeaponSelection/.test(startLoadoutRuntimeSource)
+    && startLoadoutRuntimeSource.includes("from '../domain/meta/loadout/startLoadoutDomain.js'"),
+    true,
+    'startLoadoutRuntime이 domain start weapon selection helper를 재노출해야 함',
+  );
   assert.equal(/export function getSelectedStartWeaponId/.test(titleLoadoutSource), false, 'titleLoadout에 중복 시작 무기 선택 helper가 남아 있음');
   assert.equal(/pendingRunStartEvents|pendingEventQueue/.test(worldTickSystemSource), false, 'WorldTickSystem에 pending event 주입 책임이 남아 있음');
   assert.equal(/weaponAcquired|accessoryAcquired/.test(pendingEventPumpSystemSource), false, 'PendingEventPumpSystem이 도메인 이벤트명을 하드코딩하면 안 됨');

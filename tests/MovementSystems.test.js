@@ -42,7 +42,7 @@ console.log('\n[PlayerMovementSystem]');
 
 test('입력 방향으로 플레이어 이동', () => {
   const player = makePlayer({ x: 0, y: 0, moveSpeed: 200 });
-  const world  = makeWorld({ player });
+  const world  = makeWorld({ entities: { player } });
   const input  = makeInput({ moveX: 1, moveY: 0 });
   PlayerMovementSystem.update({ dt: 0.016, input, world });
   assert.ok(player.x > 0, `x가 양수여야 함 (실제: ${player.x})`);
@@ -50,7 +50,7 @@ test('입력 방향으로 플레이어 이동', () => {
 
 test('입력 없으면 플레이어 정지', () => {
   const player = makePlayer({ x: 0, y: 0 });
-  const world  = makeWorld({ player });
+  const world  = makeWorld({ entities: { player } });
   const input  = makeInput({ moveX: 0, moveY: 0 });
   PlayerMovementSystem.update({ dt: 0.016, input, world });
   assert.equal(player.x, 0, `이동이 없어야 함 (실제: ${player.x})`);
@@ -59,7 +59,7 @@ test('입력 없으면 플레이어 정지', () => {
 
 test('유휴 상태에서는 getDirection()을 호출하지 않고 raw axis만으로 빠르게 종료한다', () => {
   const player = makePlayer({ x: 0, y: 0 });
-  const world = makeWorld({ player });
+  const world = makeWorld({ entities: { player } });
   const input = {
     moveX: 0,
     moveY: 0,
@@ -78,7 +78,7 @@ test('유휴 상태에서는 getDirection()을 호출하지 않고 raw axis만�
 
 test('입력 객체에 direction API가 없어도 유휴 경로에서 안전하게 동작한다', () => {
   const player = makePlayer({ x: 0, y: 0 });
-  const world = makeWorld({ player });
+  const world = makeWorld({ entities: { player } });
   const input = {};
 
   assert.doesNotThrow(() => {
@@ -88,7 +88,7 @@ test('입력 객체에 direction API가 없어도 유휴 경로에서 안전하�
 
 test('isAlive=false 플레이어는 이동하지 않음', () => {
   const player = makePlayer({ x: 0, y: 0, isAlive: false });
-  const world  = makeWorld({ player });
+  const world  = makeWorld({ entities: { player } });
   const input  = makeInput({ moveX: 1, moveY: 0 });
   PlayerMovementSystem.update({ dt: 0.016, input, world });
   assert.equal(player.x, 0, '죽은 플레이어가 이동함');
@@ -96,7 +96,7 @@ test('isAlive=false 플레이어는 이동하지 않음', () => {
 
 test('raw axis만 있는 입력도 대각선 정규화를 유지하며 이동한다', () => {
   const player = makePlayer({ x: 0, y: 0, moveSpeed: 100 });
-  const world = makeWorld({ player, deltaTime: 1 });
+  const world = makeWorld({ entities: { player }, runtime: { deltaTime: 1 } });
   const input = {
     moveX: 1,
     moveY: 1,
@@ -125,7 +125,7 @@ test('적이 플레이어 방향으로 이동', () => {
   const sys    = createEnemyMovementSystem();
   const player = makePlayer({ x: 0,   y: 0 });
   const enemy  = makeEnemy ({ x: 100, y: 0, moveSpeed: 80 });
-  const world  = makeWorld({ player, enemies: [enemy] });
+  const world  = makeWorld({ entities: { player, enemies: [enemy] } });
   sys.update({ dt: 0.016, world });
   assert.ok(enemy.x < 100, `적이 플레이어 쪽으로 이동해야 함 (실제: ${enemy.x})`);
 });
@@ -134,7 +134,7 @@ test('isAlive=false 적은 이동하지 않음', () => {
   const sys    = createEnemyMovementSystem();
   const player = makePlayer({ x: 0,   y: 0 });
   const enemy  = makeEnemy ({ x: 100, y: 0, isAlive: false });
-  const world  = makeWorld({ player, enemies: [enemy] });
+  const world  = makeWorld({ entities: { player, enemies: [enemy] } });
   sys.update({ dt: 0.016, world });
   assert.equal(enemy.x, 100, '죽은 적이 이동함');
 });
@@ -144,7 +144,7 @@ test('인스턴스 간 상태 격리 — 한 인스턴스의 내부 그리드가
   const sysB = createEnemyMovementSystem();
   const player = makePlayer({ x: 0, y: 0 });
   const enemy  = makeEnemy ({ x: 50, y: 0, moveSpeed: 80 });
-  const world  = makeWorld({ player, enemies: [enemy] });
+  const world  = makeWorld({ entities: { player, enemies: [enemy] } });
 
   // sysA 실행 후 sysB도 독립적으로 실행 가능해야 함
   assert.doesNotThrow(() => {

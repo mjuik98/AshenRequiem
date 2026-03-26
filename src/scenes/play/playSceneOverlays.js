@@ -8,7 +8,7 @@ export function createPauseOverlayConfig({
   onOptionsChange,
 }) {
   return {
-    player: world.player,
+    player: world.entities.player,
     data,
     world,
     session,
@@ -19,7 +19,7 @@ export function createPauseOverlayConfig({
     },
     onForfeit: () => {
       if (!world || isBlocked()) return;
-      world.runOutcome = { type: 'defeat' };
+      world.run.runOutcome = { type: 'defeat' };
       hidePause();
       transitionPlayMode(world, 'dead');
     },

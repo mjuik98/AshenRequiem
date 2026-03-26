@@ -1,4 +1,4 @@
-import { Game } from './core/Game.js';
+import { bootstrapBrowserGame } from './app/bootstrap/bootstrapBrowserGame.js';
 
-const game = new Game();
+const game = bootstrapBrowserGame();
 game.start();

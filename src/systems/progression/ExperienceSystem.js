@@ -22,7 +22,10 @@ const VACUUM_DISTANCE_MULT = 1.2;
 
 export const ExperienceSystem = {
   update({ world }) {
-    const { events, player, pickups, deltaTime } = world;
+    const events = world.queues.events;
+    const player = world.entities.player;
+    const pickups = world.entities.pickups;
+    const deltaTime = world.runtime.deltaTime;
     if (!player?.isAlive) return;
 
     _mergeNearbyXpPickups(pickups);

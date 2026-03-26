@@ -2,7 +2,7 @@ import { applyPermanentUpgrades as applyPermanentUpgradesToPlayer } from '../../
 import {
   buildPlayerStartWeapons,
   resolveUnlockedLoadoutIds,
-} from '../../state/startLoadoutRuntime.js';
+} from '../../domain/meta/loadout/startLoadoutDomain.js';
 
 export function resolvePlayerSpawnState(session = null, gameData = {}) {
   const { unlockedWeapons, unlockedAccessories } = resolveUnlockedLoadoutIds(gameData, session);

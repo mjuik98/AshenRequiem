@@ -22,18 +22,18 @@ console.log('\n[ProgressionRuntime]');
 
 test('level up runtime는 현재 빌드와 연결된 선택지에 진화/시너지 힌트와 아이콘을 붙인다', () => {
   const world = makeWorld({
-    player: makePlayer({
+    entities: { player: makePlayer({
       weapons: [{ id: 'magic_bolt', level: 7, currentCooldown: 0 }],
       accessories: [{ id: 'iron_heart', level: 1 }],
       acquiredUpgrades: new Set(['up_magic_bolt']),
-    }),
-    pendingLevelUpChoices: [
+    }) },
+    progression: { pendingLevelUpChoices: [
       { id: 'get_tome_of_power', type: 'accessory', accessoryId: 'tome_of_power', name: '마력의 고서', description: '데미지 증가' },
       { id: 'get_boomerang', type: 'weapon_new', weaponId: 'boomerang', name: '부메랑', description: '부메랑 투척' },
       { id: 'evolution_arcane_nova', type: 'weapon_evolution', weaponId: 'magic_bolt', resultWeaponId: 'arcane_nova', name: '아케인 노바' },
     ],
     pendingLevelUpType: 'levelup',
-    levelUpActionMode: 'select',
+    levelUpActionMode: 'select' },
   });
 
   const overlay = buildLevelUpOverlayState(world, {
@@ -64,13 +64,13 @@ test('level up runtime는 현재 빌드와 연결된 선택지에 진화/시너�
 
 test('level up runtime는 리롤/봉인 시 world 상태만 갱신한다', () => {
   const world = makeWorld({
-    player: makePlayer({
+    entities: { player: makePlayer({
       weapons: [{ id: 'magic_bolt', level: 1, currentCooldown: 0 }],
       maxWeaponSlots: 2,
       unlockedWeapons: ['magic_bolt', 'test_blade'],
-    }),
-    playMode: 'levelup',
-    pendingLevelUpChoices: [
+    }) },
+    run: { playMode: 'levelup' },
+    progression: { pendingLevelUpChoices: [
       { id: 'get_magic_bolt', type: 'weapon_new', weaponId: 'magic_bolt', name: 'Magic Bolt' },
       { id: 'stat_heal', type: 'stat', effect: { stat: 'hp', value: 25 }, name: '치유' },
       { id: 'stat_gold', type: 'stat', effect: { stat: 'currency', value: 25 }, name: '골드' },
@@ -79,7 +79,7 @@ test('level up runtime는 리롤/봉인 시 world 상태만 갱신한다', () =>
     runRerollsRemaining: 1,
     runBanishesRemaining: 1,
     banishedUpgradeIds: [],
-    levelUpActionMode: 'select',
+    levelUpActionMode: 'select' },
   });
   const data = {
     upgradeData: [
@@ -97,16 +97,16 @@ test('level up runtime는 리롤/봉인 시 world 상태만 갱신한다', () =>
   };
 
   rerollLevelUpChoice(world, 0, data);
-  assert.equal(world.pendingLevelUpChoices[0]?.id, 'get_test_blade');
-  assert.equal(world.runRerollsRemaining, 0);
+  assert.equal(world.progression.pendingLevelUpChoices[0]?.id, 'get_test_blade');
+  assert.equal(world.progression.runRerollsRemaining, 0);
 
   const transitionCalls = [];
-  world.levelUpActionMode = 'banish';
+  world.progression.levelUpActionMode = 'banish';
   banishLevelUpChoice(world, 0, data, {
     transitionPlayMode: (_, mode) => transitionCalls.push(mode),
   });
-  assert.equal(world.runBanishesRemaining, 0);
-  assert.deepEqual(world.banishedUpgradeIds, ['get_test_blade']);
+  assert.equal(world.progression.runBanishesRemaining, 0);
+  assert.deepEqual(world.progression.banishedUpgradeIds, ['get_test_blade']);
   assert.equal(transitionCalls.length, 0, '선택지가 남아 있으면 즉시 play mode를 바꾸면 안 됨');
 });
 
@@ -117,7 +117,7 @@ test('synergy runtime는 system 객체 없이도 시너지 보너스를 멱등�
     upgradeCounts: { fireBolt: 1, iceSpear: 1, darkMagic: 1 },
     activeSynergies: [],
   });
-  const world = makeWorld({ player });
+  const world = makeWorld({ entities: { player } });
   const synergyData = [
     {
       id: 'fireAndIce',
@@ -131,11 +131,11 @@ test('synergy runtime는 system 객체 없이도 시너지 보너스를 멱등�
     },
   ];
 
-  applySynergies({ player, synergyData, synergyState: world.synergyState });
+  applySynergies({ player, synergyData, synergyState: world.progression.synergyState });
   const firstSpeed = player.moveSpeed;
   const firstLifesteal = player.lifesteal;
 
-  applySynergies({ player, synergyData, synergyState: world.synergyState });
+  applySynergies({ player, synergyData, synergyState: world.progression.synergyState });
 
   assert.equal(player.moveSpeed, firstSpeed);
   assert.equal(player.lifesteal, firstLifesteal);

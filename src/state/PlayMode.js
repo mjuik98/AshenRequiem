@@ -4,9 +4,9 @@
  * 개선 P3-8: playMode 변경 책임이 여러 시스템에 분산된 문제 해결
  *
  * Before:
- *   world.playMode = 'levelup'       (LevelSystem.js)
- *   worldState.playMode = 'dead'     (DeathSystem.js)
- *   this.world.playMode = 'playing'  (PlayScene.js)
+ *   world.run.playMode = 'levelup'   (LevelSystem.js)
+ *   world.run.playMode = 'dead'      (DeathSystem.js)
+ *   this.world.run.playMode = 'playing'  (PlayScene.js)
  *   → 허용된 전이가 어디에도 문서화되지 않음
  *   → 잘못된 전이(예: 'dead' → 'levelup')가 감지되지 않음
  *
@@ -50,22 +50,23 @@ const ALLOWED_TRANSITIONS = {
  * 허용되지 않은 전이는 개발 환경에서 경고 후 그대로 적용한다(hard fail 없음).
  * 프로덕션 환경에서의 복원력을 위해 경고만 출력하고 전이는 수행한다.
  *
- * @param {{ playMode: string }} world
+ * @param {{ run: { playMode: string } }} world
  * @param {string} nextMode  PlayMode 상수 중 하나
  */
 export function transitionPlayMode(world, nextMode) {
-  const allowed = ALLOWED_TRANSITIONS[world.playMode];
+  const currentMode = world?.run?.playMode;
+  const allowed = ALLOWED_TRANSITIONS[currentMode];
 
   if (!allowed) {
     console.warn(
-      `[PlayMode] 알 수 없는 현재 상태: "${world.playMode}"`,
+      `[PlayMode] 알 수 없는 현재 상태: "${currentMode}"`,
     );
   } else if (!allowed.includes(nextMode)) {
     console.warn(
-      `[PlayMode] 허용되지 않은 전이: "${world.playMode}" → "${nextMode}"`,
+      `[PlayMode] 허용되지 않은 전이: "${currentMode}" → "${nextMode}"`,
       `허용 전이: [${allowed.join(', ')}]`,
     );
   }
 
-  world.playMode = nextMode;
+  world.run.playMode = nextMode;
 }

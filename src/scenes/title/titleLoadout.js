@@ -1,4 +1,4 @@
-import { resolveStartWeaponSelection } from '../../state/startLoadoutRuntime.js';
+import { resolveStartWeaponSelection } from '../../domain/meta/loadout/startLoadoutDomain.js';
 
 export function getAvailableStartWeapons(gameData, session) {
   return resolveStartWeaponSelection(gameData, session).availableStartWeapons;

@@ -1,4 +1,4 @@
-import { setSelectedStartWeaponAndSave } from '../../state/sessionFacade.js';
+import { createTitleLoadoutApplicationService } from '../../app/title/titleLoadoutApplicationService.js';
 import { loadPlaySceneModule } from '../sceneLoaders.js';
 import { buildTitleLoadoutConfig } from './titleLoadout.js';
 
@@ -21,7 +21,9 @@ export async function openTitleStartLoadout(scene, {
   pulseFlash,
   buildTitleLoadoutConfigImpl = buildTitleLoadoutConfig,
   ensureTitleLoadoutViewImpl = ensureTitleLoadoutView,
-  setSelectedStartWeaponAndSaveImpl = setSelectedStartWeaponAndSave,
+  createTitleLoadoutServiceImpl = (game) => createTitleLoadoutApplicationService(game, {
+    createPlaySceneImpl,
+  }),
   createPlaySceneImpl = async (game) => {
     const { PlayScene } = await loadPlaySceneModule();
     return new PlayScene(game);
@@ -40,8 +42,9 @@ export async function openTitleStartLoadout(scene, {
         return;
       }
 
-      const saveResult = setSelectedStartWeaponAndSaveImpl(scene.game.session, weaponId, scene.game.gameData);
-      if (!saveResult?.saved) {
+      const titleLoadoutService = createTitleLoadoutServiceImpl(scene.game);
+      const startResult = titleLoadoutService.startRun(weaponId);
+      if (!startResult?.saved) {
         setMessage('시작 가능한 기본 무기가 없습니다.');
         return;
       }
@@ -49,7 +52,7 @@ export async function openTitleStartLoadout(scene, {
       pulseFlash();
       setMessage('씬 전환 중…');
       setTimeoutFn(() => {
-        const nextScene = createPlaySceneImpl(scene.game);
+        const nextScene = startResult.nextScene;
         if (nextScene && typeof nextScene.then === 'function') {
           void nextScene.then((resolvedScene) => {
             scene.game.sceneManager.changeScene(resolvedScene);

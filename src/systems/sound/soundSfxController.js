@@ -20,9 +20,10 @@ import {
   scheduleBeepVoice,
   scheduleChordVoice,
 } from './soundVoices.js';
+import { getNowSeconds } from '../../adapters/browser/runtimeEnv.js';
 
 function canPlaySoundEffect(target, type, def) {
-  const now = performance.now() / 1000;
+  const now = getNowSeconds();
   const canPlay = canPlaySoundType(type, {
     def,
     nowSeconds: now,

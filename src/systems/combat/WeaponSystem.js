@@ -23,7 +23,12 @@ import { getWeaponBehavior } from '../../behaviors/weaponBehaviorRegistry.js';
 
 export const WeaponSystem = {
   // FIX: world 구조분해에 events 추가
-  update({ world: { player, enemies, deltaTime, spawnQueue, events } }) {
+  update({ world }) {
+    const player = world.entities.player;
+    const enemies = world.entities.enemies;
+    const deltaTime = world.runtime.deltaTime;
+    const spawnQueue = world.queues.spawnQueue;
+    const events = world.queues.events;
     if (!player?.isAlive) return;
 
     // 플레이어 배율 캐싱 (매 프레임 반복 접근 최적화)
@@ -110,4 +115,3 @@ function _makeEffectiveWeapon(weapon, projSpeedMult, projSizeMult) {
 
   return eff;
 }
-

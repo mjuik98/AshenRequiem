@@ -10,7 +10,11 @@ import { chance } from '../../utils/random.js';
  *   - 기존 Fix들 유지 (BUG-8 무적 시간 가드, BUG-LIFESTEAL 등)
  */
 export const DamageSystem = {
-  update({ world: { events, player, spawnQueue, rng } }) {
+  update({ world }) {
+    const events = world.queues.events;
+    const player = world.entities.player;
+    const spawnQueue = world.queues.spawnQueue;
+    const rng = world.runtime.rng;
     const hits = events.hits;
     let damageTextCount = 0;
 

@@ -40,10 +40,20 @@ export class PlayUI {
     this._pendingResultArgs = null;
     this._pendingLevelUpConfig = null;
 
+    this._pauseViewClass = null;
+    this._resultViewClass = null;
+    this._levelUpViewClass = null;
+
+    this._pauseModulePromise = null;
+    this._resultModulePromise = null;
+    this._levelUpModulePromise = null;
+
     this._pauseViewPromise = null;
     this._resultViewPromise = null;
     this._levelUpViewPromise = null;
     this._destroyed = false;
+
+    this._preloadOverlayModules();
   }
 
   // ── HUD ──────────────────────────────────────────────────────────────
@@ -52,8 +62,8 @@ export class PlayUI {
   hideHud() { this._hud.hide(); }
 
   update(world) {
-    this._hud.update(world.player, world);
-    this._bossHud.update(world.enemies);
+    this._hud.update(world.entities.player, world);
+    this._bossHud.update(world.entities.enemies);
   }
 
   // ── 보스 등장 / 진화 연출 ─────────────────────────────────────────────
@@ -70,6 +80,9 @@ export class PlayUI {
       if (!pauseView || this._destroyed || !this._pauseVisible) return false;
       pauseView.show(this._pendingPauseConfig);
       return true;
+    }).catch((error) => {
+      console.error('[PlayUI] PauseView 로드 실패:', error);
+      return false;
     });
   }
 
@@ -90,6 +103,9 @@ export class PlayUI {
       if (!levelUpView || this._destroyed || !this._levelUpVisible) return false;
       levelUpView.show(this._pendingLevelUpConfig);
       return true;
+    }).catch((error) => {
+      console.error('[PlayUI] LevelUpView 로드 실패:', error);
+      return false;
     });
   }
 
@@ -113,6 +129,9 @@ export class PlayUI {
       if (!resultView || this._destroyed || !this._resultVisible) return false;
       resultView.show(...this._pendingResultArgs);
       return true;
+    }).catch((error) => {
+      console.error('[PlayUI] ResultView 로드 실패:', error);
+      return false;
     });
   }
 
@@ -135,15 +154,77 @@ export class PlayUI {
     ].forEach(view => view?.destroy());
   }
 
+  _preloadOverlayModules() {
+    this._loadPauseViewClass().catch(() => null);
+    this._loadResultViewClass().catch(() => null);
+    this._loadLevelUpViewClass().catch(() => null);
+  }
+
+  _loadPauseViewClass() {
+    if (this._pauseViewClass) return Promise.resolve(this._pauseViewClass);
+    if (this._pauseModulePromise) return this._pauseModulePromise;
+
+    this._pauseModulePromise = this._loadPauseViewModule()
+      .then(({ PauseView }) => {
+        this._pauseViewClass = PauseView;
+        return PauseView;
+      })
+      .catch((error) => {
+        this._pauseModulePromise = null;
+        throw error;
+      });
+
+    return this._pauseModulePromise;
+  }
+
+  _loadResultViewClass() {
+    if (this._resultViewClass) return Promise.resolve(this._resultViewClass);
+    if (this._resultModulePromise) return this._resultModulePromise;
+
+    this._resultModulePromise = this._loadResultViewModule()
+      .then(({ ResultView }) => {
+        this._resultViewClass = ResultView;
+        return ResultView;
+      })
+      .catch((error) => {
+        this._resultModulePromise = null;
+        throw error;
+      });
+
+    return this._resultModulePromise;
+  }
+
+  _loadLevelUpViewClass() {
+    if (this._levelUpViewClass) return Promise.resolve(this._levelUpViewClass);
+    if (this._levelUpModulePromise) return this._levelUpModulePromise;
+
+    this._levelUpModulePromise = this._loadLevelUpViewModule()
+      .then(({ LevelUpView }) => {
+        this._levelUpViewClass = LevelUpView;
+        return LevelUpView;
+      })
+      .catch((error) => {
+        this._levelUpModulePromise = null;
+        throw error;
+      });
+
+    return this._levelUpModulePromise;
+  }
+
   _ensurePauseView() {
     if (this._pause) return Promise.resolve(this._pause);
     if (this._pauseViewPromise) return this._pauseViewPromise;
 
-    this._pauseViewPromise = this._loadPauseViewModule().then(({ PauseView }) => {
-      if (this._destroyed) return null;
-      this._pause = new PauseView(this._container);
-      return this._pause;
-    });
+    this._pauseViewPromise = this._loadPauseViewClass()
+      .then((PauseView) => {
+        if (this._destroyed) return null;
+        this._pause = new PauseView(this._container);
+        return this._pause;
+      })
+      .catch((error) => {
+        this._pauseViewPromise = null;
+        throw error;
+      });
     return this._pauseViewPromise;
   }
 
@@ -151,11 +232,16 @@ export class PlayUI {
     if (this._result) return Promise.resolve(this._result);
     if (this._resultViewPromise) return this._resultViewPromise;
 
-    this._resultViewPromise = this._loadResultViewModule().then(({ ResultView }) => {
-      if (this._destroyed) return null;
-      this._result = new ResultView(this._container);
-      return this._result;
-    });
+    this._resultViewPromise = this._loadResultViewClass()
+      .then((ResultView) => {
+        if (this._destroyed) return null;
+        this._result = new ResultView(this._container);
+        return this._result;
+      })
+      .catch((error) => {
+        this._resultViewPromise = null;
+        throw error;
+      });
     return this._resultViewPromise;
   }
 
@@ -163,11 +249,16 @@ export class PlayUI {
     if (this._levelUp) return Promise.resolve(this._levelUp);
     if (this._levelUpViewPromise) return this._levelUpViewPromise;
 
-    this._levelUpViewPromise = this._loadLevelUpViewModule().then(({ LevelUpView }) => {
-      if (this._destroyed) return null;
-      this._levelUp = new LevelUpView(this._container);
-      return this._levelUp;
-    });
+    this._levelUpViewPromise = this._loadLevelUpViewClass()
+      .then((LevelUpView) => {
+        if (this._destroyed) return null;
+        this._levelUp = new LevelUpView(this._container);
+        return this._levelUp;
+      })
+      .catch((error) => {
+        this._levelUpViewPromise = null;
+        throw error;
+      });
     return this._levelUpViewPromise;
   }
 }

@@ -42,19 +42,19 @@ test('pendingDestroy=true 적이 enemies 배열에서 제거된다', () => {
   if (!FlushSystem) return;
   const dead  = makeEnemy({ pendingDestroy: true,  isAlive: false });
   const alive = makeEnemy({ pendingDestroy: false, isAlive: true  });
-  const world = makeWorld({ enemies: [dead, alive] });
+  const world = makeWorld({ entities: { enemies: [dead, alive] } });
   FlushSystem.update({ world, services: {} });
-  assert.ok(!world.enemies.includes(dead),  '제거 대상 적이 남아있음');
-  assert.ok( world.enemies.includes(alive), '살아있는 적이 제거됨');
+  assert.ok(!world.entities.enemies.includes(dead),  '제거 대상 적이 남아있음');
+  assert.ok( world.entities.enemies.includes(alive), '살아있는 적이 제거됨');
 });
 
 test('pendingDestroy=false 적은 보존된다', () => {
   if (!FlushSystem) return;
   const e1 = makeEnemy({ pendingDestroy: false });
   const e2 = makeEnemy({ pendingDestroy: false });
-  const world = makeWorld({ enemies: [e1, e2] });
+  const world = makeWorld({ entities: { enemies: [e1, e2] } });
   FlushSystem.update({ world, services: {} });
-  assert.equal(world.enemies.length, 2, '살아있는 적이 제거됨');
+  assert.equal(world.entities.enemies.length, 2, '살아있는 적이 제거됨');
 });
 
 // ── 투사체 ───────────────────────────────────────────────────────────────
@@ -63,10 +63,10 @@ test('pendingDestroy=true 투사체가 projectiles에서 제거된다', () => {
   if (!FlushSystem) return;
   const dead  = makeProjectile({ pendingDestroy: true,  isAlive: false });
   const alive = makeProjectile({ pendingDestroy: false, isAlive: true  });
-  const world = makeWorld({ projectiles: [dead, alive] });
+  const world = makeWorld({ entities: { projectiles: [dead, alive] } });
   FlushSystem.update({ world, services: {} });
-  assert.ok(!world.projectiles.includes(dead),  '제거 대상 투사체가 남아있음');
-  assert.ok( world.projectiles.includes(alive), '살아있는 투사체가 제거됨');
+  assert.ok(!world.entities.projectiles.includes(dead),  '제거 대상 투사체가 남아있음');
+  assert.ok( world.entities.projectiles.includes(alive), '살아있는 투사체가 제거됨');
 });
 
 // ── 픽업 ─────────────────────────────────────────────────────────────────
@@ -75,10 +75,10 @@ test('pendingDestroy=true 픽업이 pickups에서 제거된다', () => {
   if (!FlushSystem) return;
   const dead  = makePickup({ pendingDestroy: true });
   const alive = makePickup({ pendingDestroy: false });
-  const world = makeWorld({ pickups: [dead, alive] });
+  const world = makeWorld({ entities: { pickups: [dead, alive] } });
   FlushSystem.update({ world, services: {} });
-  assert.ok(!world.pickups.includes(dead),  '제거 대상 픽업이 남아있음');
-  assert.ok( world.pickups.includes(alive), '살아있는 픽업이 제거됨');
+  assert.ok(!world.entities.pickups.includes(dead),  '제거 대상 픽업이 남아있음');
+  assert.ok( world.entities.pickups.includes(alive), '살아있는 픽업이 제거됨');
 });
 
 // ── 이펙트 ───────────────────────────────────────────────────────────────
@@ -87,17 +87,19 @@ test('isAlive=false 이펙트가 effects에서 제거된다', () => {
   if (!FlushSystem) return;
   const dead  = makeEffect({ isAlive: false });
   const alive = makeEffect({ isAlive: true  });
-  const world = makeWorld({ effects: [dead, alive] });
+  const world = makeWorld({ entities: { effects: [dead, alive] } });
   FlushSystem.update({ world, services: {} });
-  assert.ok(!world.effects.includes(dead),  '제거 대상 이펙트가 남아있음');
-  assert.ok( world.effects.includes(alive), '살아있는 이펙트가 제거됨');
+  assert.ok(!world.entities.effects.includes(dead),  '제거 대상 이펙트가 남아있음');
+  assert.ok( world.entities.effects.includes(alive), '살아있는 이펙트가 제거됨');
 });
 
 // ── 빈 배열 ──────────────────────────────────────────────────────────────
 
 test('빈 배열로 호출해도 에러 없음', () => {
   if (!FlushSystem) return;
-  const world = makeWorld({ enemies: [], projectiles: [], pickups: [], effects: [] });
+  const world = makeWorld({
+    entities: { enemies: [], projectiles: [], pickups: [], effects: [] },
+  });
   assert.doesNotThrow(() => FlushSystem.update({ world, services: {} }));
 });
 
@@ -106,11 +108,11 @@ test('빈 배열로 호출해도 에러 없음', () => {
 test('spawnQueue 항목이 처리된 후 비워진다', () => {
   if (!FlushSystem) return;
   const newEnemy = makeEnemy();
-  const world    = makeWorld({ spawnQueue: [{ type: 'enemy', entity: newEnemy }] });
+  const world    = makeWorld({ queues: { spawnQueue: [{ type: 'enemy', entity: newEnemy }] } });
   FlushSystem.update({ world, services: {} });
   // FlushSystem이 spawnQueue를 처리한다면 비워져야 함
   // 구현에 따라 다를 수 있으므로 에러 없음을 최소 보장
-  assert.ok(Array.isArray(world.spawnQueue));
+  assert.ok(Array.isArray(world.queues.spawnQueue));
 });
 
 summary();

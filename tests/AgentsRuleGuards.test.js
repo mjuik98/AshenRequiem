@@ -51,7 +51,7 @@ test('spawn requests are issued through factory helpers instead of inline litera
   });
 });
 
-test('production source files do not directly assign world.playMode outside PlayMode SSOT', () => {
+test('production source files do not directly assign world.run.playMode outside PlayMode SSOT', () => {
   const rootPath = resolveProjectPath('../src');
   const files = [];
 
@@ -74,14 +74,14 @@ test('production source files do not directly assign world.playMode outside Play
       const relativeProjectPath = path.relative(rootPath, filePath).replaceAll(path.sep, '/');
       const source = stripLineComments(readProjectSource(`../src/${relativeProjectPath}`));
       assert.equal(
-        /world\.playMode\s*=(?!=)/.test(source),
+        /world\.run\.playMode\s*=(?!=)/.test(source),
         false,
-        `${filePath}에 world.playMode 직접 대입이 남아 있음`,
+        `${filePath}에 world.run.playMode 직접 대입이 남아 있음`,
       );
     });
 });
 
-test('SynergySystem does not directly import synergyData and post-event systems do not read world.events', () => {
+test('SynergySystem does not directly import synergyData and post-event systems do not read world.queues.events', () => {
   const synergySystemSource = readProjectSource('../src/systems/progression/SynergySystem.js');
   const weaponEvolutionSystemSource = readProjectSource('../src/systems/progression/WeaponEvolutionSystem.js');
   const upgradeSystemSource = readProjectSource('../src/systems/progression/UpgradeSystem.js');
@@ -103,7 +103,7 @@ test('SynergySystem does not directly import synergyData and post-event systems 
 
   postEventFiles.forEach((ref) => {
     const source = readProjectSource(ref);
-    assert.equal(/world\.events|events\./.test(source), false, `${ref}가 post-event 구간에서 world.events를 읽고 있음`);
+    assert.equal(/world\.queues\.events|events\./.test(source), false, `${ref}가 post-event 구간에서 world.queues.events를 읽고 있음`);
   });
 });
 
@@ -219,7 +219,7 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    titleLoadoutSource.includes("from '../../state/startLoadoutRuntime.js'"),
+    titleLoadoutSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
     true,
     'titleLoadout이 공용 start loadout runtime을 사용하지 않음',
   );
@@ -237,7 +237,7 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    playerSpawnRuntimeSource.includes("from '../../state/startLoadoutRuntime.js'"),
+    playerSpawnRuntimeSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
     true,
     'playerSpawnRuntime이 공용 start loadout runtime을 사용하지 않음',
   );
@@ -304,8 +304,15 @@ test('scene and progression infrastructure stay decoupled from system internals'
 
   assert.equal(
     sessionFacadeSource.includes("from './startLoadoutRuntime.js'"),
+    false,
+    'sessionFacade가 compatibility shim startLoadoutRuntime에 직접 의존하면 안 됨',
+  );
+
+  assert.equal(
+    sessionFacadeSource.includes("from '../domain/meta/loadout/startLoadoutDomain.js'")
+      || sessionFacadeSource.includes("from './domain/meta/loadout/startLoadoutDomain.js'"),
     true,
-    'sessionFacade가 공용 start loadout runtime 없이 시작 무기 선택을 그대로 저장하고 있음',
+    'sessionFacade가 실제 start loadout domain 모듈을 직접 사용하지 않음',
   );
 
   assert.equal(

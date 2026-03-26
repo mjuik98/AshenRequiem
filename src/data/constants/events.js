@@ -1,21 +1,14 @@
 /**
  * src/data/constants/events.js — 이벤트 타입 목록 (단일 진실의 원천)
  *
- * CHANGE: chestCollected 추가 — 상자 획득 이벤트
+ * payload shape는 eventContracts.js가 소유하고, 이 모듈은 타입 목록만 재노출한다.
  */
 
-export const EVENT_TYPES = [
-  'hits',
-  'deaths',
-  'pickupCollected',
-  'levelUpRequested',
-  'statusApplied',
-  'bossPhaseChanged',
-  'bossSpawned',
-  'spawnRequested',
-  'currencyEarned',
-  'weaponEvolved',
-  'weaponAcquired',
-  'accessoryAcquired',
-  'chestCollected',   // ← NEW: 상자 획득 시 발행
-];
+import {
+  PLAY_EVENT_CONTRACTS,
+  PLAY_EVENT_TYPES,
+  getPlayEventContract,
+} from './eventContracts.js';
+
+export const EVENT_TYPES = PLAY_EVENT_TYPES;
+export { PLAY_EVENT_CONTRACTS, getPlayEventContract };

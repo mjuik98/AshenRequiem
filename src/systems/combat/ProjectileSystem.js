@@ -32,7 +32,11 @@
  *   FIX(BUG-C): 귀환 중 player가 null이면 무한 이동 방지
  */
 export const ProjectileSystem = {
-  update({ world: { projectiles, player, enemies = [], deltaTime } }) {
+  update({ world, dt }) {
+    const projectiles = world.entities.projectiles;
+    const player = world.entities.player;
+    const enemies = world.entities.enemies ?? [];
+    const deltaTime = dt ?? world.runtime.deltaTime;
     for (let i = 0; i < projectiles.length; i++) {
       const p = projectiles[i];
       if (!p.isAlive || p.pendingDestroy) continue;

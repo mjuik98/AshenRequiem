@@ -133,19 +133,19 @@ export const PROFILE_PRESETS = Object.freeze({
       maxPerFrameMs: 1.0,
     }),
     buildWorld(world) {
-      world.enemies = Array.from({ length: 24 }, (_, index) => createProfileEnemy(
+      world.entities.enemies = Array.from({ length: 24 }, (_, index) => createProfileEnemy(
         index,
         (index % 6) * 60 - 150,
         Math.floor(index / 6) * 60 - 120,
       ));
-      world.projectiles = Array.from({ length: 16 }, (_, index) => createProfileProjectile(
+      world.entities.projectiles = Array.from({ length: 16 }, (_, index) => createProfileProjectile(
         index,
         -80 + (index * 10),
         -40 + ((index % 4) * 20),
         120,
         0,
       ));
-      world.pickups = Array.from({ length: 8 }, (_, index) => createProfilePickup(index, index * 18, 24));
+      world.entities.pickups = Array.from({ length: 8 }, (_, index) => createProfilePickup(index, index * 18, 24));
       return world;
     },
     buildData() {
@@ -254,11 +254,11 @@ export const PROFILE_SYSTEM_LOADERS = [
 
 export function makeHeadlessProfileWorld() {
   const world = createWorld();
-  world.player = createPlayer(0, 0, null);
-  world.playMode = 'playing';
-  world.deltaTime = PROFILE_SIM_DT;
-  world.elapsedTime = 0;
-  world.rng = createRng(() => 0.5);
+  world.entities.player = createPlayer(0, 0, null);
+  world.run.playMode = 'playing';
+  world.runtime.deltaTime = PROFILE_SIM_DT;
+  world.run.elapsedTime = 0;
+  world.runtime.rng = createRng(() => 0.5);
   return world;
 }
 

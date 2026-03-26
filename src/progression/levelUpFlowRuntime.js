@@ -60,44 +60,44 @@ export function decorateLevelUpChoices(choices, player, data) {
 }
 
 export function buildLevelUpOverlayState(world, data) {
-  const choices = world?.pendingLevelUpChoices ?? [];
+  const choices = world?.progression?.pendingLevelUpChoices ?? [];
   if (choices.length === 0) return null;
 
-  const isChest = world.pendingLevelUpType === 'chest';
+  const isChest = world.progression.pendingLevelUpType === 'chest';
 
   return {
-    choices: decorateLevelUpChoices(choices, world.player, data),
+    choices: decorateLevelUpChoices(choices, world.entities.player, data),
     title: isChest ? '📦 상자 보상!' : '⬆ LEVEL UP',
-    rerollsRemaining: world.runRerollsRemaining ?? 0,
-    banishesRemaining: world.runBanishesRemaining ?? 0,
-    banishMode: world.levelUpActionMode === 'banish',
+    rerollsRemaining: world.progression.runRerollsRemaining ?? 0,
+    banishesRemaining: world.progression.runBanishesRemaining ?? 0,
+    banishMode: world.progression.levelUpActionMode === 'banish',
   };
 }
 
 export function resumeFromLevelUp(world, transition = transitionPlayMode) {
   if (!world) return false;
-  world.levelUpActionMode = 'select';
+  world.progression.levelUpActionMode = 'select';
   transition(world, PlayMode.PLAYING);
   return true;
 }
 
 export function selectLevelUpChoice(world, selectedUpgrade, { transition = transitionPlayMode } = {}) {
   if (!world) return false;
-  world.levelUpActionMode = 'select';
-  world.pendingUpgrade = selectedUpgrade;
+  world.progression.levelUpActionMode = 'select';
+  world.progression.pendingUpgrade = selectedUpgrade;
   transition(world, PlayMode.PLAYING);
   return true;
 }
 
 export function rerollLevelUpChoice(world, index, data) {
-  if (!world || (world.runRerollsRemaining ?? 0) <= 0) return false;
+  if (!world || (world.progression.runRerollsRemaining ?? 0) <= 0) return false;
 
-  const currentChoices = world.pendingLevelUpChoices ?? [];
+  const currentChoices = world.progression.pendingLevelUpChoices ?? [];
   const nextChoices = replaceUpgradeChoiceAtIndex(
-    world.player,
+    world.entities.player,
     currentChoices,
     index,
-    { banishedUpgradeIds: world.banishedUpgradeIds ?? [], rng: world.rng },
+    { banishedUpgradeIds: world.progression.banishedUpgradeIds ?? [], rng: world.runtime.rng },
     data,
   );
 
@@ -105,22 +105,22 @@ export function rerollLevelUpChoice(world, index, data) {
     return false;
   }
 
-  world.runRerollsRemaining = Math.max(0, (world.runRerollsRemaining ?? 0) - 1);
-  world.pendingLevelUpChoices = nextChoices.filter(Boolean);
+  world.progression.runRerollsRemaining = Math.max(0, (world.progression.runRerollsRemaining ?? 0) - 1);
+  world.progression.pendingLevelUpChoices = nextChoices.filter(Boolean);
   return true;
 }
 
 export function toggleLevelUpBanishMode(world) {
   if (!world) return false;
 
-  const canEnter = (world.runBanishesRemaining ?? 0) > 0;
-  if (world.levelUpActionMode === 'banish') {
-    world.levelUpActionMode = 'select';
+  const canEnter = (world.progression.runBanishesRemaining ?? 0) > 0;
+  if (world.progression.levelUpActionMode === 'banish') {
+    world.progression.levelUpActionMode = 'select';
   } else if (canEnter) {
-    world.levelUpActionMode = 'banish';
+    world.progression.levelUpActionMode = 'banish';
   }
 
-  return world.levelUpActionMode;
+  return world.progression.levelUpActionMode;
 }
 
 export function banishLevelUpChoice(
@@ -129,18 +129,18 @@ export function banishLevelUpChoice(
   data,
   { transitionPlayMode: transition = transitionPlayMode } = {},
 ) {
-  if (!world || (world.runBanishesRemaining ?? 0) <= 0) return false;
+  if (!world || (world.progression.runBanishesRemaining ?? 0) <= 0) return false;
 
-  const currentChoices = world.pendingLevelUpChoices ?? [];
+  const currentChoices = world.progression.pendingLevelUpChoices ?? [];
   const targetChoice = currentChoices[index];
   if (!targetChoice) return false;
 
-  const nextBanishedIds = [...new Set([...(world.banishedUpgradeIds ?? []), targetChoice.id])];
+  const nextBanishedIds = [...new Set([...(world.progression.banishedUpgradeIds ?? []), targetChoice.id])];
   const replacedChoices = replaceUpgradeChoiceAtIndex(
-    world.player,
+    world.entities.player,
     currentChoices,
     index,
-    { banishedUpgradeIds: nextBanishedIds, rng: world.rng },
+    { banishedUpgradeIds: nextBanishedIds, rng: world.runtime.rng },
     data,
   );
   const nextChoices = [...replacedChoices];
@@ -149,12 +149,12 @@ export function banishLevelUpChoice(
     nextChoices.splice(index, 1);
   }
 
-  world.runBanishesRemaining = Math.max(0, (world.runBanishesRemaining ?? 0) - 1);
-  world.banishedUpgradeIds = nextBanishedIds;
-  world.levelUpActionMode = 'select';
-  world.pendingLevelUpChoices = nextChoices.filter((choice) => choice && !nextBanishedIds.includes(choice.id));
+  world.progression.runBanishesRemaining = Math.max(0, (world.progression.runBanishesRemaining ?? 0) - 1);
+  world.progression.banishedUpgradeIds = nextBanishedIds;
+  world.progression.levelUpActionMode = 'select';
+  world.progression.pendingLevelUpChoices = nextChoices.filter((choice) => choice && !nextBanishedIds.includes(choice.id));
 
-  if ((world.pendingLevelUpChoices?.length ?? 0) === 0) {
+  if ((world.progression.pendingLevelUpChoices?.length ?? 0) === 0) {
     transition(world, PlayMode.PLAYING);
     return 'playing';
   }

@@ -31,7 +31,7 @@ export function runPlaySceneFrame({
   dpr,
 }) {
   if (!world || !pipeline || !pipelineCtx) return false;
-  world.deltaTime = dt;
+  world.runtime.deltaTime = dt;
   pipelineCtx.dt = dt;
   pipelineCtx.dpr = dpr;
   pipeline.run(pipelineCtx);
@@ -50,7 +50,7 @@ export function togglePlayScenePause({
 }) {
   if (!world || isBlocked()) return false;
 
-  if (world.playMode === PlayMode.PLAYING) {
+  if (world.run.playMode === PlayMode.PLAYING) {
     transition(world, PlayMode.PAUSED);
     ui?.showPause?.(createPauseOverlayConfig({
       world,
@@ -64,7 +64,7 @@ export function togglePlayScenePause({
     return 'paused';
   }
 
-  if (world.playMode === PlayMode.PAUSED) {
+  if (world.run.playMode === PlayMode.PAUSED) {
     transition(world, PlayMode.PLAYING);
     ui?.hidePause?.();
     return 'resumed';

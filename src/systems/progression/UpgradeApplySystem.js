@@ -9,23 +9,23 @@ import { UpgradeSystem } from './UpgradeSystem.js';
 
 export const UpgradeApplySystem = {
   update({ world, data }) {
-    if (!world.pendingUpgrade || !world.player) return;
-    const pendingUpgrade = world.pendingUpgrade;
+    if (!world.progression.pendingUpgrade || !world.entities.player) return;
+    const pendingUpgrade = world.progression.pendingUpgrade;
 
     UpgradeSystem.applyUpgrade(
-      world.player,
+      world.entities.player,
       pendingUpgrade,
       data?.synergyData,
-      world.synergyState,
+      world.progression.synergyState,
       data,
     );
 
     if (pendingUpgrade.type === 'weapon_new') {
-      world.events.weaponAcquired?.push({ weaponId: pendingUpgrade.weaponId });
+      world.queues.events.weaponAcquired?.push({ weaponId: pendingUpgrade.weaponId });
     }
 
     if (pendingUpgrade.type === 'weapon_evolution') {
-      world.events.weaponEvolved?.push({
+      world.queues.events.weaponEvolved?.push({
         recipeId: pendingUpgrade.recipeId ?? pendingUpgrade.id,
         weaponId: pendingUpgrade.weaponId,
         evolvedWeaponId: pendingUpgrade.resultWeaponId,
@@ -35,15 +35,15 @@ export const UpgradeApplySystem = {
     }
 
     if (pendingUpgrade.type === 'accessory') {
-      world.events.accessoryAcquired?.push({ accessoryId: pendingUpgrade.accessoryId });
+      world.queues.events.accessoryAcquired?.push({ accessoryId: pendingUpgrade.accessoryId });
     }
 
     if (pendingUpgrade.type === 'stat' && pendingUpgrade.effect?.stat === 'currency') {
-      world.events.currencyEarned?.push({ amount: pendingUpgrade.effect.value ?? 0 });
+      world.queues.events.currencyEarned?.push({ amount: pendingUpgrade.effect.value ?? 0 });
     }
 
-    world.pendingUpgrade        = null;
-    world.pendingLevelUpChoices = null;
-    world.pendingLevelUpType    = null;  // ← NEW: 원인 초기화
+    world.progression.pendingUpgrade = null;
+    world.progression.pendingLevelUpChoices = null;
+    world.progression.pendingLevelUpType = null;
   },
 };

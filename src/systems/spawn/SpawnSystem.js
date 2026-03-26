@@ -78,7 +78,14 @@ export function createSpawnSystem() {
   }
 
   return {
-    update({ world: { elapsedTime, player, spawnQueue, deltaTime, playMode, events, rng }, data: { waveData, bossData, enemyData = [] } }) {
+    update({ world, data: { waveData, bossData, enemyData = [] } }) {
+      const elapsedTime = world.run.elapsedTime;
+      const player = world.entities.player;
+      const spawnQueue = world.queues.spawnQueue;
+      const deltaTime = world.runtime.deltaTime;
+      const playMode = world.run.playMode;
+      const events = world.queues.events;
+      const rng = world.runtime.rng;
       if (playMode !== 'playing') return;
       if (!player?.isAlive) return;
       const curseSnapshot = buildCurseSnapshot(player.curse ?? 0);

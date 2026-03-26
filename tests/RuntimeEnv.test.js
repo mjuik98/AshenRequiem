@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { createRunner } from './helpers/testRunner.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
+
+console.log('\n[RuntimeEnv]');
+
+const { test, summary } = createRunner('RuntimeEnv');
+
+let envApi = null;
+
+try {
+  envApi = await import('../src/adapters/browser/runtimeEnv.js');
+} catch (error) {
+  envApi = { error };
+}
+
+test('runtime env adapter는 browser global 접근 헬퍼를 노출한다', () => {
+  assert.ok(!envApi.error, envApi.error?.message ?? 'runtimeEnv.js가 아직 없음');
+  assert.equal(typeof envApi.getDevicePixelRatio, 'function');
+  assert.equal(typeof envApi.getViewportSize, 'function');
+  assert.equal(typeof envApi.getNowMs, 'function');
+  assert.equal(typeof envApi.getNowSeconds, 'function');
+  assert.equal(typeof envApi.hasRuntimeQueryFlag, 'function');
+
+  assert.equal(envApi.getDevicePixelRatio({ devicePixelRatio: 2 }, 1), 2);
+  assert.deepEqual(envApi.getViewportSize({ innerWidth: 640, innerHeight: 360 }), { width: 640, height: 360 });
+  assert.equal(envApi.hasRuntimeQueryFlag('debugRuntime', { location: { search: '?debugRuntime&x=1' } }), true);
+});
+
+test('high-coupling runtime modules는 shared runtime env adapter를 사용한다', () => {
+  const runtimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
+  const playSceneRuntimeSource = readProjectSource('../src/scenes/play/playSceneRuntime.js');
+  const renderSystemSource = readProjectSource('../src/systems/render/RenderSystem.js');
+  const drawEffectSource = readProjectSource('../src/renderer/draw/drawEffect.js');
+  const gameLoopSource = readProjectSource('../src/core/GameLoop.js');
+
+  assert.equal(runtimeHooksSource.includes("from '../adapters/browser/runtimeEnv.js'"), true, 'runtimeHooks가 runtime env adapter를 사용하지 않음');
+  assert.equal(playSceneRuntimeSource.includes("from '../../adapters/browser/runtimeEnv.js'"), true, 'playSceneRuntime이 runtime env adapter를 사용하지 않음');
+  assert.equal(renderSystemSource.includes("from '../../adapters/browser/runtimeEnv.js'"), true, 'RenderSystem이 runtime env adapter를 사용하지 않음');
+  assert.equal(drawEffectSource.includes("from '../../adapters/browser/runtimeEnv.js'"), true, 'drawEffect가 runtime env adapter를 사용하지 않음');
+  assert.equal(gameLoopSource.includes("from '../adapters/browser/runtimeEnv.js'"), true, 'GameLoop가 runtime env adapter를 사용하지 않음');
+  assert.equal(drawEffectSource.includes('window.devicePixelRatio'), false, 'drawEffect에 직접 window.devicePixelRatio가 남아 있음');
+  assert.equal(renderSystemSource.includes('performance.now()'), false, 'RenderSystem에 직접 performance.now가 남아 있음');
+});
+
+summary();

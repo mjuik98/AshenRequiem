@@ -14,7 +14,9 @@ import { nextFloat, randomRange, weightedPick }  from '../../utils/random.js';
 
 export const DeathSystem = {
   update({ world, data = {} }) {
-    const { events, spawnQueue, rng } = world;
+    const events = world.queues.events;
+    const spawnQueue = world.queues.spawnQueue;
+    const rng = world.runtime.rng;
     const totalBosses = Array.isArray(data?.bossData) ? data.bossData.length : Infinity;
 
     for (let i = 0; i < events.deaths.length; i++) {
@@ -26,15 +28,15 @@ export const DeathSystem = {
           continue;
         }
 
-        world.killCount++;
+        world.run.killCount++;
 
-        if (world.events.currencyEarned) {
-          const reward = _calcCurrencyReward(entity, world.player);
-          world.events.currencyEarned.push({ amount: reward });
+        if (world.queues.events.currencyEarned) {
+          const reward = _calcCurrencyReward(entity, world.entities.player);
+          world.queues.events.currencyEarned.push({ amount: reward });
         }
 
         if (entity.isBoss) {
-          world.bossKillCount = (world.bossKillCount ?? 0) + 1;
+          world.run.bossKillCount = (world.run.bossKillCount ?? 0) + 1;
         }
 
         // deathSpawn (슬라임 분열 등)
@@ -104,9 +106,9 @@ export const DeathSystem = {
           }
         }));
 
-        if (entity.isBoss && world.bossKillCount >= totalBosses) {
+        if (entity.isBoss && world.run.bossKillCount >= totalBosses) {
           _setRunOutcome(world, 'victory');
-          if (world.playMode !== PlayMode.DEAD) {
+          if (world.run.playMode !== PlayMode.DEAD) {
             transitionPlayMode(world, PlayMode.DEAD);
           }
         }
@@ -114,7 +116,7 @@ export const DeathSystem = {
 
       if (entity.type === 'player') {
         _setRunOutcome(world, 'defeat');
-        if (world.playMode !== PlayMode.DEAD) {
+        if (world.run.playMode !== PlayMode.DEAD) {
           transitionPlayMode(world, PlayMode.DEAD);
         }
       }
@@ -123,9 +125,9 @@ export const DeathSystem = {
 };
 
 function _handlePropDeath(world, entity, propDropTables = null) {
-  const { spawnQueue } = world;
+  const spawnQueue = world.queues.spawnQueue;
   const dropTable = _getPropDropTable(entity, propDropTables);
-  const drop = weightedPick(dropTable?.drops ?? [], world.rng);
+  const drop = weightedPick(dropTable?.drops ?? [], world.runtime.rng);
 
   if (drop && drop.pickupType !== 'none') {
     spawnQueue.push(spawnPickup({
@@ -159,12 +161,12 @@ function _handlePropDeath(world, entity, propDropTables = null) {
 
 function _setRunOutcome(world, type) {
   if (type === 'defeat') {
-    world.runOutcome = { type };
+    world.run.runOutcome = { type };
     return;
   }
 
-  if (!world.runOutcome) {
-    world.runOutcome = { type };
+  if (!world.run.runOutcome) {
+    world.run.runOutcome = { type };
   }
 }
 

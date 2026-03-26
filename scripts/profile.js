@@ -70,13 +70,13 @@ async function runProfile() {
 
   for (let frame = 0; frame < FRAME_COUNT; frame += 1) {
     ctx.dt = PROFILE_SIM_DT;
-    ctx.world.deltaTime = PROFILE_SIM_DT;
-    ctx.world.elapsedTime += PROFILE_SIM_DT;
+    ctx.world.runtime.deltaTime = PROFILE_SIM_DT;
+    ctx.world.run.elapsedTime += PROFILE_SIM_DT;
 
-    for (const queue of Object.values(ctx.world.events)) {
+    for (const queue of Object.values(ctx.world.queues.events)) {
       queue.length = 0;
     }
-    ctx.world.spawnQueue.length = 0;
+    ctx.world.queues.spawnQueue.length = 0;
 
     for (const { name, system } of systems) {
       const startedAt = performance.now();

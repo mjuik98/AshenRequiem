@@ -92,6 +92,10 @@ function closePage(sessionId) {
   cleanupSmokeSessionProcesses(escapeRegExp(sessionId));
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function summarize(results) {
   return {
     outputRoot: OUTPUT_ROOT,
@@ -128,7 +132,10 @@ async function main() {
       process.exitCode = 1;
     }
   } finally {
-    closePage(sessionId);
+    await Promise.race([
+      transport.close?.().catch(() => {}),
+      sleep(1000),
+    ]);
   }
 }
 

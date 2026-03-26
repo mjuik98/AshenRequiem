@@ -5,10 +5,10 @@
  */
 export const BossPhaseSystem = {
   update({ world, data: { bossData } }) {
-    if (!bossData || !world.events.bossPhaseChanged) return;
+    if (!bossData || !world.queues.events.bossPhaseChanged) return;
 
-    for (let i = 0; i < world.enemies.length; i++) {
-      const enemy = world.enemies[i];
+    for (let i = 0; i < world.entities.enemies.length; i++) {
+      const enemy = world.entities.enemies[i];
       if (!enemy.isAlive || enemy.pendingDestroy || !enemy.isBoss) continue;
 
       // FIX(BUG-6): enemy.enemyId → enemy.enemyDataId
@@ -36,7 +36,7 @@ export const BossPhaseSystem = {
         if (hpRatio <= phase.hpThreshold) {
           triggered[pi] = true;
 
-          world.events.bossPhaseChanged.push({
+          world.queues.events.bossPhaseChanged.push({
             enemy,
             enemyId:       enemy.enemyDataId,  // FIX: enemyDataId 사용
             phaseIndex:    pi,

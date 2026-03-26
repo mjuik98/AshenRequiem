@@ -8,7 +8,7 @@
 
 import { Pipeline }  from './Pipeline.js';
 import { SYSTEM_REGISTRY } from '../systems/index.js';
-import { PIPELINE_FACTORY_SYSTEMS } from './architectureSnapshot.js';
+import { PLAY_PIPELINE_FACTORY_SYSTEMS } from './playPipelineManifest.js';
 import { registerDefaultEventHandlers } from '../systems/event/eventHandlerRegistry.js';
 
 export class PipelineBuilder {
@@ -36,7 +36,7 @@ export class PipelineBuilder {
    * Pipeline을 생성하고 모든 시스템과 이벤트 핸들러를 등록한다.
    */
   build(world, input, data = {}) {
-    for (const spec of PIPELINE_FACTORY_SYSTEMS) {
+    for (const spec of PLAY_PIPELINE_FACTORY_SYSTEMS) {
       this[spec.slot] = spec.create();
     }
 
@@ -80,7 +80,7 @@ export class PipelineBuilder {
 
   /** @private */
   _registerSystems(pipeline) {
-    for (const spec of PIPELINE_FACTORY_SYSTEMS) {
+    for (const spec of PLAY_PIPELINE_FACTORY_SYSTEMS) {
       pipeline.register(this[spec.slot], { priority: spec.priority });
     }
     pipeline.register(this._eventRegistry.asSystem(), { priority: 105 });

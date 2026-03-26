@@ -1,15 +1,11 @@
-import { processPlayResult } from './playResultRuntime.js';
+import { createPlayResultApplicationService } from '../../app/play/playResultApplicationService.js';
 
 export class PlayResultHandler {
   /**
    * @param {import('../../state/createSessionState.js').SessionState} session
    */
   constructor(session) {
-    this._session      = session;
-    this._startCurrency = session.meta.currency;
-    this._prevBestTime = session.best?.survivalTime ?? 0;
-    this._prevBestLevel = session.best?.level ?? 1;
-    this._prevBestKills = session.best?.kills ?? 0;
+    this._service = createPlayResultApplicationService(session);
   }
 
   /**
@@ -26,11 +22,6 @@ export class PlayResultHandler {
    * }}
    */
   process(world) {
-    return processPlayResult(world, this._session, {
-      startCurrency: this._startCurrency,
-      prevBestTime: this._prevBestTime,
-      prevBestLevel: this._prevBestLevel,
-      prevBestKills: this._prevBestKills,
-    });
+    return this._service.process(world);
   }
 }

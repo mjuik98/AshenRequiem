@@ -26,7 +26,7 @@ export function createCullingSystem() {
 
   return {
     update({ world }) {
-      const camera = world.camera;
+      const camera = world.presentation.camera;
       const cMinX  = camera.x - RENDER.CULL_MARGIN;
       const cMaxX  = camera.x + GameConfig.canvasWidth  + RENDER.CULL_MARGIN;
       const cMinY  = camera.y - RENDER.CULL_MARGIN;
@@ -35,28 +35,28 @@ export function createCullingSystem() {
       clearBuffers();
 
       // 1. 적
-      for (const e of world.enemies) {
+      for (const e of world.entities.enemies) {
         if (!e.isAlive || e.pendingDestroy) continue;
         if (e.x < cMinX || e.x > cMaxX || e.y < cMinY || e.y > cMaxY) continue;
         visible.enemies.push(e);
       }
 
       // 2. 투사체
-      for (const p of world.projectiles) {
+      for (const p of world.entities.projectiles) {
         if (!p.isAlive || p.pendingDestroy) continue;
         if (p.x < cMinX || p.x > cMaxX || p.y < cMinY || p.y > cMaxY) continue;
         visible.projectiles.push(p);
       }
 
       // 3. 픽업
-      for (const pk of world.pickups) {
+      for (const pk of world.entities.pickups) {
         if (!pk.isAlive || pk.pendingDestroy) continue;
         if (pk.x < cMinX || pk.x > cMaxX || pk.y < cMinY || pk.y > cMaxY) continue;
         visible.pickups.push(pk);
       }
 
       // 4. 이펙트 (분리 로직 포함)
-      for (const e of world.effects) {
+      for (const e of world.entities.effects) {
         if (!e.isAlive) continue;
 
         // levelFlash 등 특수 이펙트는 컬링 제외 (항상 표시)

@@ -84,10 +84,8 @@ test('session facade와 play result handler는 저장소 기반 세션 갱신을
     const handler = new PlayResultHandler(session);
     session.meta.currency = 123;
     const result = handler.process(makeWorld({
-      killCount: 44,
-      elapsedTime: 180,
-      player: { level: 7, weapons: [{ id: 'magic_bolt' }] },
-      runOutcome: { type: 'victory' },
+      run: { killCount: 44, elapsedTime: 180, runOutcome: { type: 'victory' } },
+      entities: { player: { level: 7, weapons: [{ id: 'magic_bolt' }] } },
     }));
 
     assert.equal(result.killCount, 44);

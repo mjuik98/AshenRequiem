@@ -32,9 +32,9 @@ export class EventRegistry {
   // ── 비우기 ────────────────────────────────────────────────────────────
 
   /**
-   * world.events의 모든 큐를 비운다.
+   * world.queues.events의 모든 큐를 비운다.
    * WorldTickSystem(priority 0)이 프레임 시작 시 호출한다.
-   * @param {object} events  world.events
+   * @param {object} events  world.queues.events
    */
   clearAll(events) {
     for (const type of EVENT_TYPES) {
@@ -48,7 +48,7 @@ export class EventRegistry {
    * 등록된 핸들러를 실행한다.
    *
    * CHANGE(P1): clearAll() 제거 — WorldTickSystem(priority 0)이 초기화 단독 담당.
-   * @param {object} events  world.events
+   * @param {object} events  world.queues.events
    * @param {object} world
    */
   processAll(events, world) {
@@ -66,7 +66,7 @@ export class EventRegistry {
   // ── 빈 이벤트 객체 생성 ────────────────────────────────────────────────
 
   /**
-   * world.events 초기값을 생성한다.
+   * world.queues.events 초기값을 생성한다.
    * @returns {object}
    */
   createEmptyEvents() {
@@ -83,7 +83,7 @@ export class EventRegistry {
    */
   asSystem() {
     return {
-      update: ({ world }) => this.processAll(world.events, world),
+      update: ({ world }) => this.processAll(world.queues.events, world),
     };
   }
 

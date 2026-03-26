@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Simplified, larger flame body -->
+  <path
+    d="M16,4 C8,12 6,20 12,26 C14,28 18,28 20,26 C26,20 24,12 16,4Z"
+    fill="#d4af6a"
+  />
+
+  <!-- Bright Core -->
+  <path
+    d="M16,12 C12,17 11,21 14,24 C15,25 17,25 18,24 C21,21 20,17 16,12Z"
+    fill="#f1d18a"
+  />
+</svg>

@@ -17,9 +17,13 @@ function runTests() {
     });
 
     const world = {
-      projectiles: [proj],
-      player: { x: 0, y: 0 },
-      deltaTime: 0.4, // travel 40
+      entities: {
+        projectiles: [proj],
+        player: { x: 0, y: 0 },
+      },
+      runtime: {
+        deltaTime: 0.4, // travel 40
+      },
     };
 
     // 1st update: Distance = 40 (less than 50)
@@ -42,7 +46,7 @@ function runTests() {
     // 3rd update: Distance = 30 
     // Currently, proj.x is 80. It needs to move to < 20 to be destroyed by player.
     // Let's give it distance 70 to reach player.
-    world.deltaTime = 0.7; // distance + 70
+    world.runtime.deltaTime = 0.7; // distance + 70
     ProjectileSystem.update({ world });
     // proj.x becomes 10. distSq = 100 < 400.
     // So it triggers the player catch condition: p.distanceTraveled = p.maxRange.
@@ -55,7 +59,7 @@ function runTests() {
     assert.ok(Math.abs(proj.angle - Math.PI) < 0.001, '귀환 중 부메랑 각도가 플레이어 방향으로 갱신되지 않음');
     
     // 4th update: Catching the boomerang
-    world.deltaTime = 0.01; 
+    world.runtime.deltaTime = 0.01; 
     ProjectileSystem.update({ world });
     assert.strictEqual(proj.isAlive, false, 'Should be dead (caught by player)');
     assert.strictEqual(proj.pendingDestroy, true);

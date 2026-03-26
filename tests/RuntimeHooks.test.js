@@ -33,19 +33,27 @@ test('활성화된 runtime hook은 안정적인 debug host에서 snapshot과 제
           isResultVisible: () => false,
         },
         world: {
-          playMode: 'playing',
-          elapsedTime: 12.5,
-          killCount: 3,
-          player: {
-            hp: 100,
-            maxHp: 100,
-            level: 4,
-            weapons: [{ id: 'solar_ray' }],
-            accessories: [{ id: 'arcane_prism' }],
+          run: {
+            playMode: 'playing',
+            elapsedTime: 12.5,
+            killCount: 3,
+            runCurrencyEarned: 0,
+            runOutcome: null,
           },
-          runRerollsRemaining: 2,
-          runBanishesRemaining: 1,
-          pendingLevelUpChoices: [{ id: 'up_solar_ray_plus' }],
+          entities: {
+            player: {
+              hp: 100,
+              maxHp: 100,
+              level: 4,
+              weapons: [{ id: 'solar_ray' }],
+              accessories: [{ id: 'arcane_prism' }],
+            },
+          },
+          progression: {
+            runRerollsRemaining: 2,
+            runBanishesRemaining: 1,
+            pendingLevelUpChoices: [{ id: 'up_solar_ray_plus' }],
+          },
         },
       },
     },
@@ -81,6 +89,7 @@ test('unregisterRuntimeHooks는 등록한 전역 훅을 제거한다', () => {
 test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 노출한다', () => {
   let pauseOpened = false;
   let resultOpened = false;
+  let resultArgs = null;
   const game = { sceneManager: { currentScene: null } };
   game.sceneManager.currentScene = {
     sceneId: 'PlayScene',
@@ -89,13 +98,21 @@ test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 �
       isLevelUpVisible: () => false,
       isResultVisible: () => resultOpened,
       showPause: () => { pauseOpened = true; },
-      showResult: () => { resultOpened = true; },
+      showResult: (...args) => {
+        resultOpened = true;
+        resultArgs = args;
+      },
     },
     _gameData: {},
     world: {
-      elapsedTime: 17,
-      killCount: 9,
-      player: { level: 3, weapons: [], accessories: [] },
+      run: {
+        elapsedTime: 17,
+        killCount: 9,
+        runOutcome: null,
+      },
+      entities: {
+        player: { level: 3, weapons: [], accessories: [] },
+      },
     },
   };
   registerRuntimeHooks(game, { enabled: true });
@@ -104,6 +121,8 @@ test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 �
     assert.equal(globalThis.__ASHEN_DEBUG__?.getGame(), game);
     assert.equal(globalThis.__ASHEN_DEBUG__?.openPauseOverlay(), true);
     assert.equal(globalThis.__ASHEN_DEBUG__?.openResultOverlay(), true);
+    assert.equal(typeof resultArgs?.[1], 'function', 'debug result overlay가 restart callback을 전달하지 않음');
+    assert.equal(typeof resultArgs?.[2], 'function', 'debug result overlay가 title callback을 전달하지 않음');
   } finally {
     unregisterRuntimeHooks();
   }

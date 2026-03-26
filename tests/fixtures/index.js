@@ -126,35 +126,73 @@ export function makeEvents(overrides = {}) {
 }
 
 export function makeWorld(overrides = {}) {
-  return {
-    player:      makePlayer(),
-    enemies:     [],
+  const entities = {
+    player: makePlayer(),
+    enemies: [],
     projectiles: [],
-    effects:     [],
-    pickups:     [],
-    events:      makeEvents(),
-    spawnQueue:  [],
-    camera:      { x: 0, y: 0 },
-    rng:         makeRng(),
+    effects: [],
+    pickups: [],
+  };
+  const queues = {
+    events: makeEvents(),
+    spawnQueue: [],
+  };
+  const presentation = {
+    camera: { x: 0, y: 0 },
+  };
+  const runtime = {
+    rng: makeRng(),
+    deltaTime: 0.016,
+  };
+  const run = {
     elapsedTime: 0,
-    deltaTime:   0.016,
-    killCount:   0,
+    killCount: 0,
     runCurrencyEarned: 0,
     bossKillCount: 0,
-    playMode:    'playing',
-    runOutcome:  null,
+    playMode: 'playing',
+    runOutcome: null,
+  };
+  const progression = {
     chestRewardQueue: 0,
     pendingLevelUpType: null,
     pendingLevelUpChoices: null,
     pendingEventQueue: null,
+    pendingUpgrade: null,
+    runRerollsRemaining: 0,
+    runBanishesRemaining: 0,
+    banishedUpgradeIds: [],
+    levelUpActionMode: 'select',
     synergyState: {
-      appliedSpeedMult:     1,
-      appliedLifesteal:     0,
+      appliedSpeedMult: 1,
+      appliedLifesteal: 0,
       appliedWeaponBonuses: {},
-      activeSynergies:      [],
+      activeSynergies: [],
     },
-    ...overrides,
   };
+
+  const world = {
+    entities,
+    queues,
+    presentation,
+    runtime,
+    run,
+    progression,
+  };
+
+  if (overrides.entities) Object.assign(world.entities, overrides.entities);
+  if (overrides.queues) Object.assign(world.queues, overrides.queues);
+  if (overrides.presentation) Object.assign(world.presentation, overrides.presentation);
+  if (overrides.runtime) Object.assign(world.runtime, overrides.runtime);
+  if (overrides.run) Object.assign(world.run, overrides.run);
+  if (overrides.progression) Object.assign(world.progression, overrides.progression);
+
+  const containerKeys = new Set(['entities', 'queues', 'presentation', 'runtime', 'run', 'progression']);
+  for (const [key, value] of Object.entries(overrides)) {
+    if (containerKeys.has(key)) continue;
+    throw new Error(`makeWorld는 ownership container override만 지원함: ${key}`);
+  }
+
+  return world;
 }
 
 export function makeBoss(overrides = {}) {
@@ -222,20 +260,14 @@ export function makeSessionState(overrides = {}) {
 }
 
 export function makeSynergyWorld(playerOverrides = {}) {
-  return {
+  return makeWorld({
     player: makePlayer({
-      weapons:          [],
+      weapons: [],
       acquiredUpgrades: new Set(),
-      upgradeCounts:    {},
+      upgradeCounts: {},
       ...playerOverrides,
     }),
-    synergyState: {
-      appliedSpeedMult:     1,
-      appliedLifesteal:     0,
-      appliedWeaponBonuses: {},
-      activeSynergies:      [],
-    },
-  };
+  });
 }
 
 export function makeWeapon(overrides = {}) {

@@ -72,11 +72,20 @@ test('profile script can fail verification when an asserted budget is exceeded',
 test('package verify script exposes a dedicated profile budget check', () => {
   const pkg = readProjectJson('../package.json');
   assert.equal(typeof pkg.scripts['profile:check'], 'string', 'profile:check 스크립트가 없음');
+  assert.equal(typeof pkg.scripts['check:boundaries'], 'string', 'check:boundaries 스크립트가 없음');
   assert.equal(typeof pkg.scripts['verify:fast'], 'string', 'verify:fast 스크립트가 없음');
   assert.equal(typeof pkg.scripts['verify:ci'], 'string', 'verify:ci 스크립트가 없음');
   assert.equal(pkg.scripts.verify, 'npm run verify:fast', '기본 verify는 빠른 로컬 기준선으로 연결돼야 함');
   assert.equal(pkg.scripts['verify:fast'].includes('npm run profile:check'), true, 'verify:fast에 profile:check가 연결되지 않음');
+  assert.equal(pkg.scripts['verify:fast'].includes('npm run check:boundaries'), true, 'verify:fast에 check:boundaries가 연결되지 않음');
   assert.equal(pkg.scripts['verify:ci'].includes('npm run test:smoke'), true, 'verify:ci는 smoke baseline을 포함해야 함');
+});
+
+test('boundary check script exposes a CLI-checkable architecture guard', async () => {
+  const boundaries = await import('../scripts/checkBoundaries.js');
+
+  assert.equal(typeof boundaries.collectBoundaryViolations, 'function');
+  assert.equal(typeof boundaries.main, 'function');
 });
 
 summary();

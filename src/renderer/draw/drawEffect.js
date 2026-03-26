@@ -15,6 +15,7 @@
 
 import { getEffectDraw } from './drawEffectRegistry.js';
 import { drawPickup }    from './drawPickup.js';  // 픽업은 별도 파일 유지
+import { getDevicePixelRatio } from '../../adapters/browser/runtimeEnv.js';
 
 /**
  * 단일 effect를 그린다.
@@ -27,7 +28,7 @@ import { drawPickup }    from './drawPickup.js';  // 픽업은 별도 파일 유
 export function drawEffect(ctx, effect, camera, dpr) {
   if (!effect.isAlive) return;
 
-  const _dpr = dpr || window.devicePixelRatio || 1;
+  const _dpr = dpr || getDevicePixelRatio();
 
   ctx.save();
 

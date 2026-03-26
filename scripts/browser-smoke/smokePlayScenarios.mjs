@@ -168,8 +168,11 @@ export async function runResultScreenScenario(url, artifactDir, transport) {
     resultUi,
     assertions: {
       resultVisible: state?.ui?.resultVisible === true,
-      hasGameOver: typeof resultUi?.title === 'string' && resultUi.title.includes('GAME OVER'),
+      hasOutcomeTitle: typeof resultUi?.title === 'string'
+        && ['DEFEAT', 'VICTORY'].includes(resultUi.title),
       hasRestartButton: typeof resultUi?.restart === 'string' && resultUi.restart.includes('다시 시작'),
+      hasTitleButton: typeof resultUi?.titleButton === 'string'
+        && resultUi.titleButton.includes('메인 화면으로'),
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);

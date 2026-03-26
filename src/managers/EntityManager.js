@@ -10,8 +10,8 @@
  *           → flushDestroy()가 in-place 정리로 전환 (새 배열 할당 제거)
  *
  * 사용 원칙:
- *   - System은 world.enemies.push() / splice()를 직접 호출하지 않는다.
- *   - 생성: world.spawnQueue.push(entity)
+ *   - System은 world.entities.enemies.push() / splice()를 직접 호출하지 않는다.
+ *   - 생성: world.queues.spawnQueue.push(entity)
  *   - 삭제: entity.pendingDestroy = true
  *   - 프레임 끝(FlushSystem)에서 EntityManager.flush(world)가 일괄 처리
  */
@@ -31,10 +31,10 @@ export const EntityManager = {
   // 조회
   // ─────────────────────────────────────────────
 
-  getLiveEnemies(world)     { return getLiveEnemies(world.enemies); },
-  getLiveProjectiles(world) { return getLiveProjectiles(world.projectiles); },
-  getLivePickups(world)     { return getLivePickups(world.pickups); },
-  getLiveEffects(world)     { return getLiveEffects(world.effects); },
+  getLiveEnemies(world)     { return getLiveEnemies(world.entities.enemies); },
+  getLiveProjectiles(world) { return getLiveProjectiles(world.entities.projectiles); },
+  getLivePickups(world)     { return getLivePickups(world.entities.pickups); },
+  getLiveEffects(world)     { return getLiveEffects(world.entities.effects); },
 
   // ─────────────────────────────────────────────
   // 스폰 큐 처리 (FlushSystem 전용)
@@ -42,8 +42,8 @@ export const EntityManager = {
 
   flushSpawn(world, pools = {}) {
     const { projectilePool, effectPool, enemyPool, pickupPool } = pools;
-    const curseSnapshot = buildCurseSnapshot(world.player?.curse ?? 0);
-    for (const req of world.spawnQueue) {
+    const curseSnapshot = buildCurseSnapshot(world.entities.player?.curse ?? 0);
+    for (const req of world.queues.spawnQueue) {
       let entity = req.entity;
 
       switch (req.type) {
@@ -54,25 +54,25 @@ export const EntityManager = {
               curseSnapshot,
             });
           }
-          if (entity) world.enemies.push(entity);
+          if (entity) world.entities.enemies.push(entity);
           break;
         case 'projectile':
           if (!entity && projectilePool) entity = projectilePool.acquire(req.config);
-          if (entity) world.projectiles.push(entity);
+          if (entity) world.entities.projectiles.push(entity);
           break;
         case 'pickup':
           if (!entity && pickupPool) entity = pickupPool.acquire(req.config);
-          if (entity) world.pickups.push(entity);
+          if (entity) world.entities.pickups.push(entity);
           break;
         case 'effect':
           if (!entity && effectPool) entity = effectPool.acquire(req.config);
-          if (entity) world.effects.push(entity);
+          if (entity) world.entities.effects.push(entity);
           break;
         default:
           console.warn('[EntityManager] 알 수 없는 spawnQueue 타입:', req.type);
       }
     }
-    world.spawnQueue.length = 0;
+    world.queues.spawnQueue.length = 0;
   },
 
   // ─────────────────────────────────────────────
@@ -87,10 +87,10 @@ export const EntityManager = {
   flushDestroy(world, pools = {}) {
     const { projectilePool, effectPool, enemyPool, pickupPool } = pools;
 
-    compactWithPool(world.enemies,     enemyPool);
-    compactWithPool(world.projectiles, projectilePool);
-    compactWithPool(world.pickups,     pickupPool);
-    compactWithPool(world.effects,     effectPool);
+    compactWithPool(world.entities.enemies, enemyPool);
+    compactWithPool(world.entities.projectiles, projectilePool);
+    compactWithPool(world.entities.pickups, pickupPool);
+    compactWithPool(world.entities.effects, effectPool);
   },
 
   flush(world, pools = {}) {
@@ -114,9 +114,9 @@ export const EntityManager = {
         }
       }
     };
-    check('enemies',     world.enemies);
-    check('projectiles', world.projectiles);
-    check('pickups',     world.pickups);
-    check('effects',     world.effects);
+    check('enemies', world.entities.enemies);
+    check('projectiles', world.entities.projectiles);
+    check('pickups', world.entities.pickups);
+    check('effects', world.entities.effects);
   },
 };

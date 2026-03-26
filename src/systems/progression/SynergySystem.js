@@ -4,13 +4,13 @@ import { applySynergies } from '../../progression/synergyRuntime.js';
 export function createSynergySystem() {
   return {
     update({ world, data }) {
-      if (!world?.player || !data?.synergyData) return;
+      if (!world?.entities?.player || !data?.synergyData) return;
 
-      world.synergyState ??= createSynergyState();
+      world.progression.synergyState ??= createSynergyState();
       applySynergies({
-        player: world.player,
+        player: world.entities.player,
         synergyData: data.synergyData,
-        synergyState: world.synergyState,
+        synergyState: world.progression.synergyState,
       });
     },
 

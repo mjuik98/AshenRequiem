@@ -30,7 +30,7 @@ test('profile runtime은 headless context 기본값을 제공하고 PlayScene pr
 
   assert.equal(PROFILE_TARGET_FPS, 60);
   assert.equal(PROFILE_WARN_THRESHOLD > 0, true);
-  assert.equal(ctx.world.playMode, 'playing');
+  assert.equal(ctx.world.run.playMode, 'playing');
   assert.equal(ctx.preset, 'baseline');
   assert.equal(ctx.dt, 1 / PROFILE_TARGET_FPS);
   assert.equal(typeof budget?.maxPerFrameMs, 'number');

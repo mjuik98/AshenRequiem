@@ -81,7 +81,12 @@ export function createEnemyMovementSystem() {
   }
 
   return {
-    update({ world: { player, enemies, deltaTime, spawnQueue, rng } }) {
+    update({ world, dt }) {
+      const player = world.entities.player;
+      const enemies = world.entities.enemies;
+      const deltaTime = dt ?? world.runtime.deltaTime;
+      const spawnQueue = world.queues.spawnQueue;
+      const rng = world.runtime.rng;
       if (!isLive(player)) return;
 
       for (let i = 0; i < enemies.length; i++) {

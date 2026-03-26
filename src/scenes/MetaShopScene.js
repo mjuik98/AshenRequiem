@@ -5,9 +5,8 @@
  *   onBack 콜백 → TitleScene으로 복귀
  */
 import { MetaShopView }            from '../ui/metashop/MetaShopView.js';
-import { getPermanentUpgradeById } from '../data/permanentUpgradeData.js';
 import { mountUI }                 from '../ui/dom/mountUI.js';
-import { purchasePermanentUpgradeAndSave } from '../state/sessionFacade.js';
+import { purchaseMetaShopUpgrade } from '../app/meta/metaShopApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { loadTitleSceneModule } from './sceneLoaders.js';
 
@@ -46,16 +45,9 @@ export class MetaShopScene {
   // ── 내부 처리 ──────────────────────────────────────────────────────
 
   _handlePurchase(upgradeId) {
-    const def = getPermanentUpgradeById(upgradeId);
-    if (!def) return;
+    const result = purchaseMetaShopUpgrade(this.game.session, upgradeId);
 
-    const currentLevel = this.game.session.meta.permanentUpgrades[upgradeId] ?? 0;
-    if (currentLevel >= def.maxLevel) return;
-
-    const cost = def.costPerLevel(currentLevel);
-    const success = purchasePermanentUpgradeAndSave(this.game.session, upgradeId, cost);
-
-    if (success) {
+    if (result.success) {
       this._view.refresh(this.game.session);
     }
   }

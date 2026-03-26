@@ -9,10 +9,7 @@
  */
 import { SettingsView }    from '../ui/settings/SettingsView.js';
 import { mountUI }         from '../ui/dom/mountUI.js';
-import {
-  applySessionOptionsToRuntime,
-} from '../state/sessionOptions.js';
-import { updateSessionOptionsAndSave } from '../state/sessionFacade.js';
+import { saveSettingsAndApplyRuntime } from '../app/meta/settingsApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { loadTitleSceneModule } from './sceneLoaders.js';
 
@@ -60,15 +57,11 @@ export class SettingsScene {
    */
   _handleSave(newOpts) {
     if (this._nav.isNavigating()) return;
-    updateSessionOptionsAndSave(this.game.session, newOpts);
-
-    // DPR 변경 즉시 적용
-    if (typeof this.game._resizeCanvas === 'function') {
-      this.game._resizeCanvas();
-    }
-
-    applySessionOptionsToRuntime(this.game.session.options, {
+    saveSettingsAndApplyRuntime({
+      session: this.game.session,
+      nextOptions: newOpts,
       renderer: this.game.renderer,
+      resizeCanvas: this.game._resizeCanvas?.bind(this.game),
     });
 
     this._goToTitle();

@@ -13,7 +13,9 @@
  *   priority 120: CameraSystem     → camera.x/y 위치 계산 (width/height 읽음)
  */
 export const CameraSystem = {
-  update({ world: { player, camera } }) {
+  update({ world }) {
+    const player = world.entities.player;
+    const camera = world.presentation.camera;
     if (!player) return;
 
     // P3: camera 메타 미설정 방어 (WorldTickSystem 실행 순서 이상 감지용)

@@ -80,6 +80,69 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
   return summary;
 }
 
+export async function runTitleMetaShopScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  await transport.open(withDebugRuntime(url));
+  await transport.pollEval(
+    `Boolean(document.querySelector('[data-action="shop"]'))`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  await transport.evalJson(`window.__ASHEN_DEBUG__ ? ((window.__ASHEN_DEBUG__.getGame().session.meta.currency = 999), (window.__ASHEN_DEBUG__.getGame().session.meta.permanentUpgrades = window.__ASHEN_DEBUG__.getGame().session.meta.permanentUpgrades || {}), true) : false`);
+  const shopClicked = await transport.clickByText('Meta Shop');
+  if (!shopClicked) {
+    throw new Error('Failed to click Meta Shop button');
+  }
+
+  const state = await transport.pollEval(
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.scene === 'MetaShopScene',
+    5000,
+    200,
+  );
+
+  const [shopRootVisible, enabledButtons, currencyLabel] = await transport.evalJson(`[Boolean(document.querySelector('.ms-root')), document.querySelectorAll('.ms-buy-btn:not([disabled])').length, document.querySelector('.ms-currency-value')?.textContent?.trim() ?? '']`);
+  const shopUiBefore = {
+    rootVisible: shopRootVisible,
+    enabledButtons,
+    currencyLabel,
+  };
+
+  const purchasedUpgradeId = await transport.evalJson(`document.querySelector('.ms-buy-btn:not([disabled])')?.dataset?.id ?? null`);
+  await transport.evalJson(`document.querySelector('.ms-buy-btn:not([disabled])') ? (document.querySelector('.ms-buy-btn:not([disabled])').click(), true) : false`);
+
+  const persistedSession = await transport.pollEval(
+    `JSON.parse(localStorage.getItem('ashenRequiem_session') || 'null')`,
+    (value) => Boolean(value?.meta),
+    5000,
+    200,
+  );
+
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'title_meta_shop',
+    state,
+    shopUiBefore,
+    purchasedUpgradeId,
+    persistedSession: {
+      currency: persistedSession?.meta?.currency ?? null,
+      level: purchasedUpgradeId ? persistedSession?.meta?.permanentUpgrades?.[purchasedUpgradeId] ?? 0 : 0,
+    },
+    assertions: {
+      scene: state?.scene === 'MetaShopScene',
+      rootVisible: shopUiBefore.rootVisible === true,
+      hasEnabledPurchase: shopUiBefore.enabledButtons >= 1,
+      purchaseRecorded: typeof purchasedUpgradeId === 'string' && purchasedUpgradeId.length > 0,
+      persistedCurrencySpent: typeof persistedSession?.meta?.currency === 'number' && persistedSession.meta.currency < 999,
+      persistedUpgradeLevel: !purchasedUpgradeId || (persistedSession?.meta?.permanentUpgrades?.[purchasedUpgradeId] ?? 0) >= 1,
+    },
+  };
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
 export async function runTitleSettingsScenario(url, artifactDir, transport) {
   ensureScenarioDir(artifactDir);
 
@@ -114,6 +177,69 @@ export async function runTitleSettingsScenario(url, artifactDir, transport) {
       rootVisible: settingsUi.rootVisible === true,
       hasSaveButton: typeof settingsUi.saveLabel === 'string'
         && settingsUi.saveLabel.includes('저장하고 닫기'),
+    },
+  };
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+export async function runTitleSettingsPersistScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  await transport.open(withDebugRuntime(url));
+  await transport.pollEval(
+    `Boolean(document.querySelector('[data-action="settings"]'))`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  const settingsClicked = await transport.clickByText('Settings');
+  if (!settingsClicked) {
+    throw new Error('Failed to click Settings button');
+  }
+
+  await transport.pollEval(
+    `Boolean(document.querySelector('.sv-root'))`,
+    (value) => value === true,
+    5000,
+    200,
+  );
+
+  const changed = await transport.evalJson(`Boolean(document.querySelector('.sv-slider[data-key="masterVolume"]')) && Boolean(document.querySelector('.sv-switch[data-key="soundEnabled"]')) && Boolean(document.querySelector('.sv-btn-primary'))`);
+  if (changed) {
+    await transport.evalJson(`document.querySelector('.sv-slider[data-key="masterVolume"]').value = '72', document.querySelector('.sv-slider[data-key="masterVolume"]').dispatchEvent(new Event('input', { bubbles: true })), true`);
+    await transport.evalJson(`document.querySelector('.sv-switch[data-key="soundEnabled"]')?.getAttribute('aria-checked') !== 'false' ? (document.querySelector('.sv-switch[data-key="soundEnabled"]').click(), true) : true`);
+    await transport.evalJson(`document.querySelector('.sv-btn-primary') ? (document.querySelector('.sv-btn-primary').click(), true) : false`);
+  }
+
+  const state = await transport.pollEval(
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.scene === 'TitleScene',
+    5000,
+    200,
+  );
+
+  const persistedSession = await transport.pollEval(
+    `JSON.parse(localStorage.getItem('ashenRequiem_session') || 'null')`,
+    (value) => typeof value?.options?.masterVolume === 'number',
+    5000,
+    200,
+  );
+
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'title_settings_persist',
+    state,
+    changed,
+    persistedOptions: {
+      masterVolume: persistedSession?.options?.masterVolume ?? null,
+      soundEnabled: persistedSession?.options?.soundEnabled ?? null,
+    },
+    assertions: {
+      changed: changed === true,
+      returnedToTitle: state?.scene === 'TitleScene',
+      masterVolumePersisted: persistedSession?.options?.masterVolume === 72,
+      soundTogglePersisted: persistedSession?.options?.soundEnabled === false,
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);

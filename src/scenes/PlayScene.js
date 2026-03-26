@@ -10,7 +10,7 @@
  * - 비동기 import 레이스 방지용 플래그 추가
  * - devicePixelRatio 변화를 추적해 렌더 파이프라인에 반영
  */
-import { PlayResultHandler }            from './play/PlayResultHandler.js';
+import { createPlayResultApplicationService } from '../app/play/playResultApplicationService.js';
 import { createLevelUpController }      from './play/levelUpController.js';
 import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
 import {
@@ -63,7 +63,7 @@ export class PlayScene {
     // CHANGE(Settings): 볼륨·품질 설정 반영
     this._applySessionOptions();
 
-    this._resultHandler = new PlayResultHandler(this.game.session);
+    this._resultHandler = createPlayResultApplicationService(this.game.session);
     this._levelUpController = createLevelUpController({
       getWorld: () => this.world,
       getData: () => this._gameData,
@@ -124,7 +124,7 @@ export class PlayScene {
     }
     this._pauseWasDown = pauseDown;
 
-    if (this._uiState.tick(this.world.playMode)) return;
+    if (this._uiState.tick(this.world.run.playMode)) return;
 
     runPlaySceneFrame({
       world: this.world,

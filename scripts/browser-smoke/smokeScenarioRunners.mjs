@@ -1,6 +1,8 @@
 import {
   runTitleCodexScenario,
+  runTitleMetaShopScenario,
   runTitleSettingsScenario,
+  runTitleSettingsPersistScenario,
   runTitleToPlayScenario,
 } from './smokeTitleScenarios.mjs';
 import {
@@ -12,7 +14,9 @@ import {
 const RUNNERS = {
   title_to_play: runTitleToPlayScenario,
   title_codex: runTitleCodexScenario,
+  title_meta_shop: runTitleMetaShopScenario,
   title_settings: runTitleSettingsScenario,
+  title_settings_persist: runTitleSettingsPersistScenario,
   pause_overlay: runPauseOverlayScenario,
   pause_layout: runPauseLayoutScenario,
   result_screen: runResultScreenScenario,

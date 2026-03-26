@@ -22,7 +22,9 @@ import { ELITE_BEHAVIOR } from '../../data/constants.js';
  */
 
 export const EliteBehaviorSystem = {
-  update({ world: { enemies, player, deltaTime } }) {
+  update({ world }) {
+    const enemies = world.entities.enemies;
+    const player = world.entities.player;
     if (!player?.isAlive) return;
 
     for (let i = 0; i < enemies.length; i++) {

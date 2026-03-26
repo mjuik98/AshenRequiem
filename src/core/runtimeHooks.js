@@ -1,3 +1,5 @@
+import { hasRuntimeQueryFlag } from '../adapters/browser/runtimeEnv.js';
+
 function getHookHost() {
   return typeof globalThis !== 'undefined' ? globalThis : null;
 }
@@ -7,9 +9,7 @@ function shouldEnableRuntimeHooks(options = {}, host = getHookHost()) {
   if (options.enabled === false) return false;
   if (!host) return false;
   if (host.__ASHEN_DEBUG_RUNTIME__ === true) return true;
-
-  const search = host.location?.search ?? '';
-  return new URLSearchParams(search).has('debugRuntime');
+  return hasRuntimeQueryFlag('debugRuntime', host);
 }
 
 function getSceneName(scene) {
@@ -31,22 +31,22 @@ function buildSnapshot(game) {
 
   return {
     scene: getSceneName(scene),
-    playMode: world.playMode ?? null,
-    elapsedTime: world.elapsedTime ?? 0,
-    killCount: world.killCount ?? 0,
-    runCurrencyEarned: world.runCurrencyEarned ?? 0,
-    player: world.player
+    playMode: world.run.playMode ?? null,
+    elapsedTime: world.run.elapsedTime ?? 0,
+    killCount: world.run.killCount ?? 0,
+    runCurrencyEarned: world.run.runCurrencyEarned ?? 0,
+    player: world.entities.player
       ? {
-          hp: world.player.hp ?? 0,
-          maxHp: world.player.maxHp ?? 0,
-          level: world.player.level ?? 1,
-          weapons: (world.player.weapons ?? []).map((weapon) => weapon.id),
-          accessories: (world.player.accessories ?? []).map((accessory) => accessory.id),
+          hp: world.entities.player.hp ?? 0,
+          maxHp: world.entities.player.maxHp ?? 0,
+          level: world.entities.player.level ?? 1,
+          weapons: (world.entities.player.weapons ?? []).map((weapon) => weapon.id),
+          accessories: (world.entities.player.accessories ?? []).map((accessory) => accessory.id),
         }
       : null,
-    rerollsRemaining: world.runRerollsRemaining ?? null,
-    banishesRemaining: world.runBanishesRemaining ?? null,
-    pendingLevelUpChoices: (world.pendingLevelUpChoices ?? []).map((choice) => choice?.id).filter(Boolean),
+    rerollsRemaining: world.progression.runRerollsRemaining ?? null,
+    banishesRemaining: world.progression.runBanishesRemaining ?? null,
+    pendingLevelUpChoices: (world.progression.pendingLevelUpChoices ?? []).map((choice) => choice?.id).filter(Boolean),
     ui: {
       pauseVisible: ui?.isPaused?.() ?? false,
       levelUpVisible: ui?.isLevelUpVisible?.() ?? false,
@@ -62,7 +62,7 @@ function openPauseOverlay(game) {
   if (!ui?.showPause || !world) return false;
 
   ui.showPause({
-    player: world.player,
+    player: world.entities.player,
     data: scene?._gameData ?? game?.gameData ?? {},
     world,
     session: game?.session ?? null,
@@ -81,14 +81,14 @@ function openResultOverlay(game, overrides = {}) {
   if (!ui?.showResult || !world) return false;
 
   ui.showResult({
-    survivalTime: world.elapsedTime ?? 0,
-    level: world.player?.level ?? 1,
-    killCount: world.killCount ?? 0,
-    outcome: world.runOutcome?.type ?? 'defeat',
+    survivalTime: world.run.elapsedTime ?? 0,
+    level: world.entities.player?.level ?? 1,
+    killCount: world.run.killCount ?? 0,
+    outcome: world.run.runOutcome?.type ?? 'defeat',
     currencyEarned: overrides.currencyEarned ?? 0,
     totalCurrency: overrides.totalCurrency ?? game?.session?.meta?.currency ?? 0,
     ...overrides,
-  }, null, null);
+  }, overrides.onRestart ?? (() => {}), overrides.onTitle ?? (() => {}));
 
   return ui?.isResultVisible?.() ?? true;
 }

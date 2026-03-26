@@ -29,7 +29,12 @@ import { isLive }                from '../../utils/entityUtils.js';
 import { chance }                from '../../utils/random.js';
 
 export const StatusEffectSystem = {
-  update({ world: { enemies, player, deltaTime, events, rng } }) {
+  update({ world }) {
+    const enemies = world.entities.enemies;
+    const player = world.entities.player;
+    const deltaTime = world.runtime.deltaTime;
+    const events = world.queues.events;
+    const rng = world.runtime.rng;
     if (events.hits?.length > 0) {
       this.applyFromHits({ hits: events.hits, events, rng });
     }

@@ -52,34 +52,36 @@ if (FlushSystem) {
   test('pendingDestroy 적은 world.enemies에서 제거된다', () => {
     const alive = makeEnemy({ isAlive: true,  pendingDestroy: false });
     const dead  = makeEnemy({ isAlive: false, pendingDestroy: true  });
-    const world = makeWorld({ enemies: [alive, dead] });
+    const world = makeWorld({ entities: { enemies: [alive, dead] } });
     FlushSystem.update({ world, services: makeServices() });
-    assert.equal(world.enemies.length, 1, '죽은 적이 제거되지 않음');
-    assert.equal(world.enemies[0].id, alive.id, '살아있는 적이 잘못 제거됨');
+    assert.equal(world.entities.enemies.length, 1, '죽은 적이 제거되지 않음');
+    assert.equal(world.entities.enemies[0].id, alive.id, '살아있는 적이 잘못 제거됨');
   });
 
   test('isAlive=false 이펙트가 world.effects에서 제거된다', () => {
     const alive = makeEffect({ isAlive: true,  pendingDestroy: false });
     const dead  = makeEffect({ isAlive: false, pendingDestroy: true  });
-    const world = makeWorld({ effects: [alive, dead] });
+    const world = makeWorld({ entities: { effects: [alive, dead] } });
     FlushSystem.update({ world, services: makeServices() });
-    assert.equal(world.effects.length, 1, '죽은 이펙트가 제거되지 않음');
+    assert.equal(world.entities.effects.length, 1, '죽은 이펙트가 제거되지 않음');
   });
 
   test('살아있는 엔티티는 보존된다', () => {
     const a = makeEnemy({ isAlive: true, pendingDestroy: false });
     const b = makeEnemy({ isAlive: true, pendingDestroy: false });
-    const world = makeWorld({ enemies: [a, b] });
+    const world = makeWorld({ entities: { enemies: [a, b] } });
     FlushSystem.update({ world, services: makeServices() });
-    assert.equal(world.enemies.length, 2, '살아있는 엔티티가 잘못 제거됨');
+    assert.equal(world.entities.enemies.length, 2, '살아있는 엔티티가 잘못 제거됨');
   });
 
   test('spawnQueue가 처리 후 비워진다', () => {
     const world = makeWorld({
-      spawnQueue: [{ type: 'enemy', config: { enemyId: 'slime', x: 0, y: 0 } }],
+      queues: {
+        spawnQueue: [{ type: 'enemy', config: { enemyId: 'slime', x: 0, y: 0 } }],
+      },
     });
     FlushSystem.update({ world, services: makeServices() });
-    assert.equal(world.spawnQueue.length, 0, 'spawnQueue가 비워지지 않음');
+    assert.equal(world.queues.spawnQueue.length, 0, 'spawnQueue가 비워지지 않음');
   });
 }
 
@@ -89,11 +91,11 @@ if (SpawnSystem) {
   console.log('\n[SpawnSystem 테스트 시작]');
 
   test('playMode !== "playing" 이면 스폰 없음', () => {
-    const world = makeWorld({ playMode: 'paused' });
+    const world = makeWorld({ run: { playMode: 'paused' } });
     const data  = { waveData: [] };
     const spawnSystem = new SpawnSystem();
     spawnSystem.update({ world, data, services: makeServices() });
-    assert.equal(world.spawnQueue.length, 0, 'paused 중에 스폰 발생');
+    assert.equal(world.queues.spawnQueue.length, 0, 'paused 중에 스폰 발생');
   });
 }
 

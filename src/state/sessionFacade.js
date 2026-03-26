@@ -9,9 +9,9 @@ import {
   purchasePermanentUpgrade,
   saveSession,
 } from './createSessionState.js';
+import { resolveSelectedStartWeaponId } from '../domain/meta/loadout/startLoadoutDomain.js';
 import { ensureCodexMeta } from './sessionMeta.js';
 import { mergeSessionOptions } from './sessionOptions.js';
-import { resolveSelectedStartWeaponId } from './startLoadoutRuntime.js';
 
 export function persistSession(session) {
   saveSession(session);

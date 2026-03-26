@@ -127,7 +127,7 @@ export const weaponData = [
   {
     id: 'arcane_nova', name: '비전 폭발',
     icon: '✷',
-    description: '360도 전방향 마법 폭발 — 마법탄의 최종 진화',
+    description: '전방향 마법 폭발 — 마법탄의 최종 진화',
     damage: 8, cooldown: 1.2, projectileSpeed: 340, range: 460,
     radius: 7, pierce: 2, projectileColor: '#e040fb',
     projectileCount: 8,
@@ -138,7 +138,7 @@ export const weaponData = [
   {
     id: 'storm_crown', name: '폭풍의 왕관',
     icon: '♛',
-    description: '5개 고속 번개 구체 회전 — 번개의 고리의 최종 진화',
+    description: '고속 번개 구체 회전 — 번개의 고리의 최종 진화',
     damage: 6, cooldown: 2.5, radius: 11, pierce: 999,
     projectileColor: '#00e5ff',
     behaviorId: 'orbit', maxLevel: 7,
@@ -149,7 +149,7 @@ export const weaponData = [
   {
     id: 'judgement_chain', name: '천벌 사슬',
     icon: '⛧',
-    description: '더 많은 적 사이를 번개가 연속 도약하며 강하게 타격한다',
+    description: '적 사이를 번개가 연속 도약하며 강하게 타격한다 — 연쇄 번개의 최종 진화',
     damage: 18, cooldown: 1.25, range: 420,
     chainCount: 5, chainRange: 160, radius: 14,
     projectileColor: '#d7b8ff',
@@ -193,7 +193,7 @@ export const weaponData = [
   {
     id: 'helios_lance', name: '헬리오스 랜스',
     icon: '☄',
-    description: '더 길고 뜨거운 관통 레이저를 연속으로 그린다',
+    description: '더 길고 뜨거운 관통 레이저를 연속으로 그린다 — 태양 광선의 최종 진화',
     damage: 6, cooldown: 0.95, range: 360, radius: 18,
     beamLength: 340, beamSegments: 5, beamLifetime: 0.20,
     pierce: 999, projectileColor: '#ffd54f',
@@ -203,7 +203,7 @@ export const weaponData = [
   {
     id: 'astral_pike', name: '아스트랄 파이크',
     icon: '✶',
-    description: '별빛 창을 연속으로 발사해 전열을 관통한다',
+    description: '별빛 창을 연속으로 발사해 전열을 관통한다 — 관통 창의 최종 진화',
     damage: 14, cooldown: 0.75, projectileSpeed: 520, range: 640,
     radius: 9, pierce: 7, spread: 0.06, projectileColor: '#f4a261',
     projectileCount: 2,
@@ -213,7 +213,7 @@ export const weaponData = [
   {
     id: 'inferno_field', name: '인페르노 필드',
     icon: '♨',
-    description: '넓은 화염 지대를 남겨 적을 빠르게 태운다',
+    description: '넓은 화염 지대를 남겨 적을 빠르게 태운다 — 화염 지대의 최종 진화',
     damage: 6, cooldown: 1.15, range: 320, radius: 56,
     zoneDuration: 2.7, zoneTickInterval: 0.25,
     pierce: 999, projectileColor: '#ff5722',
@@ -223,7 +223,7 @@ export const weaponData = [
   {
     id: 'plague_marsh', name: '플레그 마시',
     icon: '☠',
-    description: '거대한 역병 늪으로 적을 약화시키고 침식한다',
+    description: '거대한 역병 늪으로 적을 약화시키고 침식한다 — 독성 늪의 최종 진화',
     damage: 4, cooldown: 1.35, range: 300, radius: 60,
     zoneDuration: 3.2, zoneTickInterval: 0.32,
     pierce: 999, projectileColor: '#8bc34a',
@@ -234,7 +234,7 @@ export const weaponData = [
   {
     id: 'prism_volley', name: '프리즘 볼리',
     icon: '❖',
-    description: '다수의 수정 파편이 더 멀리, 더 많이 튕긴다',
+    description: '다수의 수정 파편이 더 멀리, 더 많이 튕긴다 — 수정 파편의 최종 진화',
     damage: 8, cooldown: 0.82, projectileSpeed: 360, range: 440,
     radius: 7, pierce: 6, bounceCount: 5, projectileColor: '#90caf9',
     projectileCount: 2,
@@ -244,7 +244,7 @@ export const weaponData = [
   {
     id: 'seraph_disc', name: '세라프 디스크',
     icon: '✪',
-    description: '성광 원환이 적들 사이를 안정적으로 순회한다',
+    description: '성광 원환이 적들 사이를 안정적으로 순회한다 — 성광 탄환의 최종 진화',
     damage: 7, cooldown: 0.72, projectileSpeed: 340, range: 420,
     radius: 11, pierce: 5, bounceCount: 4, projectileColor: '#fff8d6',
     projectileCount: 2,

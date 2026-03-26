@@ -28,7 +28,7 @@ test('쿨다운 감소 — 0.016s dt 경과 시 currentCooldown 감소', () => {
   if (!WeaponSystem) return;
   const weapon = makeWeapon({ cooldown: 1.0, currentCooldown: 0.5, behaviorId: 'targetProjectile' });
   const player = makePlayer({ weapons: [weapon] });
-  const world  = makeWorld({ player, enemies: [makeEnemy()] });
+  const world  = makeWorld({ entities: { player, enemies: [makeEnemy()] } });
   WeaponSystem.update({ dt: 0.016, world, data: {}, services: {} });
   assert.ok(weapon.currentCooldown < 0.5, `currentCooldown이 줄어들지 않음 (실제: ${weapon.currentCooldown})`);
 });
@@ -37,9 +37,9 @@ test('쿨다운이 0이면 발사 시도 후 쿨다운이 리셋됨', () => {
   if (!WeaponSystem) return;
   const weapon = makeWeapon({ cooldown: 1.0, currentCooldown: 0, behaviorId: 'targetProjectile' });
   const player = makePlayer({ weapons: [weapon] });
-  const world  = makeWorld({ player, enemies: [makeEnemy({ x: 10, y: 0 })] });
+  const world  = makeWorld({ entities: { player, enemies: [makeEnemy({ x: 10, y: 0 })] } });
   WeaponSystem.update({ dt: 0.016, world, data: {}, services: {} });
-  const fired = weapon.currentCooldown > 0 || world.spawnQueue.length > 0;
+  const fired = weapon.currentCooldown > 0 || world.queues.spawnQueue.length > 0;
   assert.ok(fired, '발사 또는 쿨다운 리셋이 발생하지 않음');
 });
 
@@ -48,7 +48,7 @@ test('Phase 4: cooldownMult 적용 — 발사 후 리셋 시 배율 반영', () 
   // cooldown 1.0, mult 0.5 → 리셋 시 0.5가 되어야 함
   const weapon = makeWeapon({ cooldown: 1.0, currentCooldown: 0, behaviorId: 'targetProjectile' });
   const player = makePlayer({ weapons: [weapon], cooldownMult: 0.5 });
-  const world  = makeWorld({ player, enemies: [makeEnemy({ x: 10, y: 0 })] });
+  const world  = makeWorld({ entities: { player, enemies: [makeEnemy({ x: 10, y: 0 })] } });
   
   // update({ world }) 구조로 변경됨 (R-14 이후)
   WeaponSystem.update({ world });
@@ -70,15 +70,15 @@ test('projectileLifetimeMult 적용 — 직선 투사체의 비행 지속 거리
     weapons: [weapon],
     projectileLifetimeMult: 1.5,
   });
-  const world  = makeWorld({ player, enemies: [makeEnemy({ x: 10, y: 0 })] });
+  const world  = makeWorld({ entities: { player, enemies: [makeEnemy({ x: 10, y: 0 })] } });
 
   WeaponSystem.update({ world });
 
-  assert.equal(world.spawnQueue.length > 0, true, '투사체가 생성되지 않음');
+  assert.equal(world.queues.spawnQueue.length > 0, true, '투사체가 생성되지 않음');
   assert.equal(
-    world.spawnQueue[0].config.maxRange,
+    world.queues.spawnQueue[0].config.maxRange,
     600,
-    `직선 투사체 maxRange가 지속시간 배율만큼 증가하지 않음 (실제: ${world.spawnQueue[0].config.maxRange})`,
+    `직선 투사체 maxRange가 지속시간 배율만큼 증가하지 않음 (실제: ${world.queues.spawnQueue[0].config.maxRange})`,
   );
 });
 
@@ -100,15 +100,15 @@ test('projectileLifetimeMult 적용 — orbit 무기의 maxLifetime이 증가한
     weapons: [weapon],
     projectileLifetimeMult: 1.5,
   });
-  const world = makeWorld({ player, enemies: [makeEnemy({ x: 10, y: 0 })] });
+  const world = makeWorld({ entities: { player, enemies: [makeEnemy({ x: 10, y: 0 })] } });
 
   WeaponSystem.update({ world });
 
-  assert.equal(world.spawnQueue.length > 0, true, 'orbit 투사체가 생성되지 않음');
+  assert.equal(world.queues.spawnQueue.length > 0, true, 'orbit 투사체가 생성되지 않음');
   assert.equal(
-    Number(world.spawnQueue[0].config.maxLifetime.toFixed(2)),
+    Number(world.queues.spawnQueue[0].config.maxLifetime.toFixed(2)),
     3.06,
-    `orbit 투사체 maxLifetime 증가 불일치 (실제: ${world.spawnQueue[0].config.maxLifetime})`,
+    `orbit 투사체 maxLifetime 증가 불일치 (실제: ${world.queues.spawnQueue[0].config.maxLifetime})`,
   );
 });
 
@@ -117,9 +117,9 @@ test('isAlive=false 플레이어는 무기 발사 없음', () => {
   if (!WeaponSystem) return;
   const weapon = makeWeapon({ cooldown: 1.0, currentCooldown: 0 });
   const player = makePlayer({ weapons: [weapon], isAlive: false });
-  const world  = makeWorld({ player, enemies: [makeEnemy()] });
+  const world  = makeWorld({ entities: { player, enemies: [makeEnemy()] } });
   WeaponSystem.update({ dt: 0.016, world, data: {}, services: {} });
-  assert.equal(world.spawnQueue.length, 0, '죽은 플레이어가 무기 발사함');
+  assert.equal(world.queues.spawnQueue.length, 0, '죽은 플레이어가 무기 발사함');
 });
 
 // ── 구조 검증 ─────────────────────────────────────────────────────────

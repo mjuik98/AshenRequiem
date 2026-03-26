@@ -5,8 +5,8 @@
  */
 export const PendingEventPumpSystem = {
   update({ world }) {
-    const pendingEventQueue = world?.pendingEventQueue;
-    const events = world?.events;
+    const pendingEventQueue = world?.progression?.pendingEventQueue;
+    const events = world?.queues?.events;
     if (!Array.isArray(pendingEventQueue) || !events) return;
 
     for (const pendingEvent of pendingEventQueue) {
@@ -16,6 +16,6 @@ export const PendingEventPumpSystem = {
       events[eventType].push({ ...(pendingEvent?.payload ?? {}) });
     }
 
-    world.pendingEventQueue = null;
+    world.progression.pendingEventQueue = null;
   },
 };

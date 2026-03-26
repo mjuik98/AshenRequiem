@@ -11,10 +11,20 @@ export const SCENARIOS = {
     artifactDir: `${OUTPUT_ROOT}/title-codex`,
     stepNames: ['title', 'codex', 'accessory'],
   },
+  title_meta_shop: {
+    id: 'title_meta_shop',
+    artifactDir: `${OUTPUT_ROOT}/title-meta-shop`,
+    stepNames: ['title', 'shop', 'purchase'],
+  },
   title_settings: {
     id: 'title_settings',
     artifactDir: `${OUTPUT_ROOT}/title-settings`,
     stepNames: ['title', 'settings'],
+  },
+  title_settings_persist: {
+    id: 'title_settings_persist',
+    artifactDir: `${OUTPUT_ROOT}/title-settings-persist`,
+    stepNames: ['title', 'settings', 'persist'],
   },
   pause_overlay: {
     id: 'pause_overlay',

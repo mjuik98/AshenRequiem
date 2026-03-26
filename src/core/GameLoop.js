@@ -1,4 +1,5 @@
 import { GameConfig } from './GameConfig.js';
+import { getNowMs } from '../adapters/browser/runtimeEnv.js';
 
 /** GameLoop — requestAnimationFrame 기반 게임 루프 */
 export class GameLoop {
@@ -10,7 +11,7 @@ export class GameLoop {
   }
 
   start() {
-    this._lastTime = performance.now();
+    this._lastTime = getNowMs();
     this._rafId    = requestAnimationFrame(this._bound);
   }
 

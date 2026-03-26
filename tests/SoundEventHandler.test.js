@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { EventRegistry } from '../src/systems/event/EventRegistry.js';
-import { registerSoundEventHandlers } from '../src/systems/sound/soundEventHandler.js';
+import { registerSoundEventHandlers } from '../src/adapters/play/events/soundEventAdapter.js';
 import { test, summary } from './helpers/testRunner.js';
 
 console.log('\n[SoundEventHandler]');
@@ -15,7 +15,7 @@ test('death sound playback is throttled during kill bursts', () => {
   const registry = new EventRegistry();
   registerSoundEventHandlers(soundSystem, registry);
 
-  const world = { elapsedTime: 12.0 };
+  const world = { run: { elapsedTime: 12.0 } };
   registry.processAll({
     hits: [],
     deaths: new Array(8).fill(0).map(() => ({ entity: { type: 'enemy' } })),
@@ -45,7 +45,7 @@ test('vacuum burst pickup sounds are throttled into a short cadence', () => {
   const registry = new EventRegistry();
   registerSoundEventHandlers(soundSystem, registry);
 
-  const world = { elapsedTime: 8.0 };
+  const world = { run: { elapsedTime: 8.0 } };
   registry.processAll({
     hits: [],
     deaths: [],

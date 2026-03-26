@@ -56,7 +56,13 @@
  * @property {object[]}     levelUpRequested
  * @property {object[]}     statusApplied
  * @property {object[]}     bossPhaseChanged
+ * @property {object[]}     bossSpawned
  * @property {object[]}     spawnRequested
+ * @property {object[]}     currencyEarned
+ * @property {object[]}     weaponEvolved
+ * @property {object[]}     weaponAcquired
+ * @property {object[]}     accessoryAcquired
+ * @property {object[]}     chestCollected
  */
 
 // ─────────────────────────────────────────────────────────────

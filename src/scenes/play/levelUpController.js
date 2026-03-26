@@ -43,7 +43,7 @@ export function createLevelUpController({
   function select(selectedUpgrade, index) {
     const world = getCurrentWorld();
     if (!world || isBlocked()) return;
-    if (world.levelUpActionMode === 'banish') {
+    if (world.progression.levelUpActionMode === 'banish') {
       const outcome = banishLevelUpChoice(world, index, getCurrentData());
       if (outcome !== 'playing') show();
       return;

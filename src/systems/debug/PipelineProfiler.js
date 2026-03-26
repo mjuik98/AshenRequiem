@@ -1,6 +1,8 @@
 /**
  * PipelineProfiler — 시스템별 프레임 타임 프로파일러
  */
+import { getNowMs } from '../../adapters/browser/runtimeEnv.js';
+
 export class PipelineProfiler {
   constructor() {
     this._stats    = new Map();
@@ -11,13 +13,13 @@ export class PipelineProfiler {
   }
 
   begin(name) {
-    this._starts.set(name, performance.now());
+    this._starts.set(name, getNowMs());
   }
 
   end(name) {
     const start = this._starts.get(name);
     if (start === undefined) return;
-    const elapsed = performance.now() - start;
+    const elapsed = getNowMs() - start;
     this._starts.delete(name);
 
     let window = this._windows.get(name);
@@ -41,7 +43,7 @@ export class PipelineProfiler {
         pipeline._sorted = true;
       }
 
-      const frameStart = performance.now();
+      const frameStart = getNowMs();
 
       for (let i = 0; i < pipeline._entries.length; i++) {
         const entry = pipeline._entries[i];
@@ -56,7 +58,7 @@ export class PipelineProfiler {
         profiler.end(name);
       }
 
-      profiler._frameTotal = performance.now() - frameStart;
+      profiler._frameTotal = getNowMs() - frameStart;
     };
   }
 

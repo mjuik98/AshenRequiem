@@ -1,5 +1,6 @@
 import { GameConfig }  from '../../core/GameConfig.js';
 import { RENDER }       from '../../data/constants.js';
+import { getNowSeconds } from '../../adapters/browser/runtimeEnv.js';
 
 /**
  * RenderSystem — 렌더링 순서 제어
@@ -17,7 +18,7 @@ export const RenderSystem = {
   update({ world, services, dpr = 1 }) {
     const renderer = services.renderer;
     const culling  = services.cullingSystem;
-    const camera   = world.camera;
+    const camera   = world.presentation.camera;
 
     if (!renderer || !culling) return;
 
@@ -26,10 +27,10 @@ export const RenderSystem = {
     renderer.clear();
     renderer.drawBackground(camera);
 
-    const lowQuality = world.projectiles.length > RENDER.GLOW_THRESHOLD;
+    const lowQuality = world.entities.projectiles.length > RENDER.GLOW_THRESHOLD;
     renderer.setQuality(lowQuality);
 
-    const timestamp = performance.now() / 1000;
+    const timestamp = getNowSeconds();
 
     // ── 픽업 ────────────────────────────────────────────────────────────
     renderer.drawPickups(visible.pickups, camera, timestamp);
@@ -44,8 +45,8 @@ export const RenderSystem = {
     renderer.drawProjectiles(visible.projectiles, camera, lowQuality);
 
     // ── 플레이어 ────────────────────────────────────────────────────────
-    if (world.player?.isAlive) {
-      renderer.drawPlayer(world.player, camera);
+    if (world.entities.player?.isAlive) {
+      renderer.drawPlayer(world.entities.player, camera);
     }
 
     // ── 데미지 텍스트 — 최상단 레이어 ───────────────────────────────────

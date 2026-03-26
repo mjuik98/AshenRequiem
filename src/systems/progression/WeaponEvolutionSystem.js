@@ -11,9 +11,9 @@ import { logRuntimeInfo } from '../../utils/runtimeLogger.js';
 
 export const WeaponEvolutionSystem = {
   update({ world, data }) {
-    if (!world?.player) return;
+    if (!world?.entities?.player) return;
 
-    const player = world.player;
+    const player = world.entities.player;
     if (!player.evolvedWeapons) {
       player.evolvedWeapons = new Set();
       logRuntimeInfo('WeaponEvolutionSystem', '진화 추적 상태 초기화');

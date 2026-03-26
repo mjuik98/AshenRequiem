@@ -117,10 +117,12 @@ test('openTitleStartLoadout는 시작 불가 상태에서 저장과 씬 전환�
       onCancel: callbacks.onCancel,
       onStart: callbacks.onStart,
     }),
-    setSelectedStartWeaponAndSaveImpl: (...args) => {
-      saves.push(args);
-      return { saved: false, selectedWeaponId: 'magic_bolt' };
-    },
+    createTitleLoadoutServiceImpl: () => ({
+      startRun: (...args) => {
+        saves.push(args);
+        return { saved: false, selectedWeaponId: 'magic_bolt', nextScene: null };
+      },
+    }),
     createPlaySceneImpl: () => ({ id: 'play-scene' }),
     setTimeoutFn: (callback) => {
       callback();
@@ -166,10 +168,12 @@ test('openTitleStartLoadout는 시작 가능 상태에서 저장 후 PlayScene�
       onCancel: callbacks.onCancel,
       onStart: callbacks.onStart,
     }),
-    setSelectedStartWeaponAndSaveImpl: (...args) => {
-      saves.push(args);
-      return { saved: true, selectedWeaponId: 'magic_bolt' };
-    },
+    createTitleLoadoutServiceImpl: () => ({
+      startRun: (...args) => {
+        saves.push(args);
+        return { saved: true, selectedWeaponId: 'magic_bolt', nextScene: { id: 'play-scene' } };
+      },
+    }),
     createPlaySceneImpl: () => ({ id: 'play-scene' }),
     setTimeoutFn: (callback) => {
       callback();

@@ -37,7 +37,12 @@ export function createCollisionSystem() {
 
   return {
     update({ world }) {
-      const { player, enemies, projectiles, pickups, events, camera } = world;
+      const player = world.entities.player;
+      const enemies = world.entities.enemies;
+      const projectiles = world.entities.projectiles;
+      const pickups = world.entities.pickups;
+      const events = world.queues.events;
+      const camera = world.presentation.camera;
       if (!isLive(player)) return;
 
       const bounds = getCullBounds(camera, COLLISION_CULL_MARGIN);

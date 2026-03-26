@@ -10,14 +10,15 @@ export const WorldTickSystem = {
     // ── 1. 이벤트 큐 초기화 (프레임 시작) ────────────────────────────────
     // EventRegistry.asSystem(105)이 소비 후 클리어하지만, 
     // 프레임 시작 시 다시 한 번 초기화하여 안정성을 보장한다. (R-21)
-    const { events, camera } = world;
+    const events = world.queues.events;
+    const camera = world.presentation.camera;
     for (let i = 0; i < EVENT_TYPES.length; i++) {
       events[EVENT_TYPES[i]].length = 0;
     }
 
     // ── 2. 프레임 시간 갱신 ───────────────────────────────────────────────
-    world.deltaTime    = dt ?? 0;
-    world.elapsedTime += world.deltaTime;
+    world.runtime.deltaTime = dt ?? 0;
+    world.run.elapsedTime += world.runtime.deltaTime;
 
     // ── 3. camera 메타 — SSOT ───────────────────────────────────────────
     camera.width  = GameConfig.canvasWidth;
