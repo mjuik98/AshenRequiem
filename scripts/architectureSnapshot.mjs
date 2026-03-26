@@ -19,6 +19,10 @@ export function getVerifyBaselineSnapshot(rootDir = ROOT) {
   const workflowSource = readFileSync(join(rootDir, '.github', 'workflows', 'verify.yml'), 'utf8');
 
   return {
+    lint: packageJson.scripts.lint,
+    lintArchitecture: packageJson.scripts['lint:architecture'],
+    lintEslint: packageJson.scripts['lint:eslint'],
+    checkArchitectureDocs: packageJson.scripts['check:architecture-docs'],
     verify: packageJson.scripts.verify,
     verifyFast: packageJson.scripts['verify:fast'],
     verifyCi: packageJson.scripts['verify:ci'],
@@ -55,6 +59,10 @@ export function renderArchitectureSnapshotSections(snapshot) {
   const verifySection = [
     '## Generated Verification Snapshot',
     '',
+    `- \`npm run lint\`: \`${snapshot.verify.lint}\``,
+    `- \`npm run lint:architecture\`: \`${snapshot.verify.lintArchitecture}\``,
+    `- \`npm run lint:eslint\`: \`${snapshot.verify.lintEslint}\``,
+    `- \`npm run check:architecture-docs\`: \`${snapshot.verify.checkArchitectureDocs}\``,
     `- \`npm run verify\`: \`${snapshot.verify.verify}\``,
     `- \`npm run verify:fast\`: \`${snapshot.verify.verifyFast}\``,
     `- \`npm run verify:ci\`: \`${snapshot.verify.verifyCi}\``,

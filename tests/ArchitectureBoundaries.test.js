@@ -49,6 +49,9 @@ test('src 내부 모듈은 compatibility shim 경로 대신 실 소유 모듈을
     const source = readFileSync(filePath, 'utf8');
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/createWorld\.js['"]/.test(source), false, `${filePath}가 createWorld shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/startLoadoutRuntime\.js['"]/.test(source), false, `${filePath}가 startLoadoutRuntime shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*scenes\/play\/playerSpawnRuntime\.js['"]/.test(source), false, `${filePath}가 playerSpawnRuntime wrapper에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*scenes\/play\/playSceneFlow\.js['"]/.test(source), false, `${filePath}가 playSceneFlow wrapper에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*progression\/levelUpFlowRuntime\.js['"]/.test(source), false, `${filePath}가 levelUpFlowRuntime wrapper에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*systems\/event\/(?:currencyHandler|codexHandler|bossPhaseHandler|bossAnnouncementHandler|chestRewardHandler|weaponEvolutionHandler)\.js['"]/.test(source), false, `${filePath}가 event handler shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*systems\/sound\/soundEventHandler\.js['"]/.test(source), false, `${filePath}가 sound event shim에 직접 의존하면 안 됨`);
   });

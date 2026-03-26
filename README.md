@@ -88,17 +88,36 @@ npm run validate
 # scoped checkJs 기반 타입 검증
 npm run typecheck
 
+# 아키텍처 lint baseline (import 경계 + 문서 drift)
+npm run lint
+
+# 문서 drift만 빠르게 검사
+npm run check:architecture-docs
+
+# wrapper inventory snapshot 재생성
+npm run compatibility:wrappers
+
 # 전체 단위 테스트 실행 (Node.js Test Runner)
 npm test
 
-# 빌드 후 실제 브라우저에서 deterministic smoke 실행
+# 빌드 후 실제 브라우저에서 core deterministic smoke 실행
 npm run test:smoke
 
-# 로컬 빠른 기준선: typecheck + profile budget + unit test + build
+# 전체 deterministic smoke 실행
+npm run test:smoke:full
+
+# 이미 build된 dist를 재사용하는 smoke 실행
+npm run smoke:core:prebuilt
+npm run smoke:full:prebuilt
+
+# 로컬 빠른 기준선: typecheck + profile budget + lint + unit test + build
 npm run verify
 
-# CI 기준선: verify + browser smoke
+# CI 기준선: single build + core browser smoke
 npm run verify:ci
+
+# 확장 smoke suite 수동 실행
+npm run test:smoke:full
 
 # 파이프라인 성능 요약(JSON)
 npm run profile:json
@@ -106,3 +125,6 @@ npm run profile:json
 # 파이프라인 성능 예산 검사
 npm run profile:check
 ```
+
+deterministic smoke 산출물은 `output/web-game/deterministic-smoke-core/`와 `output/web-game/deterministic-smoke-full/`로 분리된다.
+CI/extended smoke는 prebuilt smoke 스크립트를 사용해 동일 `dist`를 재사용한다.

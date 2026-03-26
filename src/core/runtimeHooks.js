@@ -1,4 +1,5 @@
 import { hasRuntimeQueryFlag } from '../adapters/browser/runtimeEnv.js';
+import { PlayMode, transitionPlayMode } from '../state/PlayMode.js';
 
 function getHookHost() {
   return typeof globalThis !== 'undefined' ? globalThis : null;
@@ -61,6 +62,9 @@ function openPauseOverlay(game) {
   const world = scene?.world ?? null;
   if (!ui?.showPause || !world) return false;
 
+  ui.hideLevelUp?.();
+  ui.hideResult?.();
+
   ui.showPause({
     player: world.entities.player,
     data: scene?._gameData ?? game?.gameData ?? {},
@@ -80,6 +84,9 @@ function openResultOverlay(game, overrides = {}) {
   const world = scene?.world ?? null;
   if (!ui?.showResult || !world) return false;
 
+  ui.hidePause?.();
+  ui.hideLevelUp?.();
+
   ui.showResult({
     survivalTime: world.run.elapsedTime ?? 0,
     level: world.entities.player?.level ?? 1,
@@ -91,6 +98,36 @@ function openResultOverlay(game, overrides = {}) {
   }, overrides.onRestart ?? (() => {}), overrides.onTitle ?? (() => {}));
 
   return ui?.isResultVisible?.() ?? true;
+}
+
+function openLevelUpOverlay(game, overrides = {}) {
+  const scene = game?.sceneManager?.currentScene ?? null;
+  const world = scene?.world ?? null;
+  const controller = scene?._levelUpController ?? null;
+  const player = world?.entities?.player ?? null;
+  if (!world || !controller?.show || !player) return false;
+
+  scene?._ui?.hidePause?.();
+  scene?._ui?.hideResult?.();
+  world.run ??= {};
+  world.progression ??= {};
+  world.run.playMode ??= PlayMode.PLAYING;
+  player.weapons = [{ id: 'flame_zone', level: 1, currentCooldown: 0 }];
+  player.accessories = [{ id: 'iron_heart', level: 2 }];
+  world.progression.pendingLevelUpChoices = overrides.choices ?? [
+    { id: 'up_flame_zone', type: 'weapon_upgrade', weaponId: 'flame_zone', name: '화염 지대', description: '지속 화염 피해가 강화됩니다.' },
+    { id: 'up_iron_heart', type: 'accessory_upgrade', accessoryId: 'iron_heart', name: '강철 심장', description: '생존력이 한 단계 더 올라갑니다.' },
+    { id: 'get_boomerang', type: 'weapon_new', weaponId: 'boomerang', name: '부메랑', description: '회전하며 돌아오는 부메랑을 던집니다.' },
+    { id: 'get_tome_of_power', type: 'accessory', accessoryId: 'tome_of_power', name: '마력의 고서', description: '모든 무기 데미지가 상승합니다.' },
+    { id: 'evolution_arcane_nova', type: 'weapon_evolution', weaponId: 'magic_bolt', resultWeaponId: 'arcane_nova', name: '아케인 노바', description: '비전 폭발 무기로 진화합니다.' },
+  ];
+  world.progression.pendingLevelUpType = 'levelup';
+  world.progression.levelUpActionMode = 'select';
+  world.progression.runRerollsRemaining = overrides.rerollsRemaining ?? 1;
+  world.progression.runBanishesRemaining = overrides.banishesRemaining ?? 1;
+  transitionPlayMode(world, PlayMode.LEVELUP);
+  controller.show();
+  return scene?._ui?.isLevelUpVisible?.() ?? true;
 }
 
 function buildDebugHost(game) {
@@ -106,6 +143,9 @@ function buildDebugHost(game) {
     },
     openPauseOverlay() {
       return openPauseOverlay(game);
+    },
+    openLevelUpOverlay(overrides = {}) {
+      return openLevelUpOverlay(game, overrides);
     },
     openResultOverlay(overrides = {}) {
       return openResultOverlay(game, overrides);

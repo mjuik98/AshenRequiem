@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { makePlayer, makeSessionState, makeWorld } from './fixtures/index.js';
 import { test, summary } from './helpers/testRunner.js';
-import { PlayResultHandler } from '../src/scenes/play/PlayResultHandler.js';
+import {
+  PlayResultHandler,
+  createPlayResultHandler,
+  processPlayResult,
+} from '../src/scenes/play/PlayResultHandler.js';
 
 console.log('\n[PlayResultHandler]');
 
@@ -10,6 +14,16 @@ test('PlayResult runtime helper는 요약 계산과 세션 커밋 경계를 노�
 
   assert.equal(typeof playResultRuntime.buildPlayResultSummary, 'function', 'buildPlayResultSummary helper가 없음');
   assert.equal(typeof playResultRuntime.commitPlayResultSession, 'function', 'commitPlayResultSession helper가 없음');
+});
+
+test('PlayResultHandler facade는 thin helper export를 함께 노출한다', () => {
+  const session = makeSessionState();
+  const world = makeWorld({ entities: { player: makePlayer({ weapons: [] }) } });
+
+  const handler = createPlayResultHandler(session);
+
+  assert.equal(handler instanceof PlayResultHandler, true, 'factory helper가 PlayResultHandler를 반환하지 않음');
+  assert.equal(typeof processPlayResult(session, world), 'object', 'function facade가 결과 객체를 반환하지 않음');
 });
 
 test('런 종료 시 신규 해금을 세션 메타에 반영한다', () => {

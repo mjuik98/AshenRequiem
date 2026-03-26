@@ -10,7 +10,7 @@ import {
   getEffectiveDevicePixelRatio,
 } from '../src/state/sessionOptions.js';
 import { PAUSE_AUDIO_DEFAULTS } from '../src/ui/pause/pauseAudioControls.js';
-import { syncPlaySceneDevicePixelRatio } from '../src/scenes/play/playSceneFlow.js';
+import { syncPlaySceneDevicePixelRatio } from '../src/app/play/playSceneFlowService.js';
 
 const gameSource = readProjectSource('../src/core/Game.js');
 const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
@@ -41,6 +41,10 @@ const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/Pen
 const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
 const playResultHandlerSource = readProjectSource('../src/scenes/play/PlayResultHandler.js');
 const playSceneFlowSource = readProjectSource('../src/scenes/play/playSceneFlow.js');
+const levelUpFlowRuntimeSource = readProjectSource('../src/progression/levelUpFlowRuntime.js');
+const playSceneAppFlowSource = readProjectSource('../src/app/play/playSceneFlowService.js');
+const playerSpawnAppSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
+const levelUpAppFlowSource = readProjectSource('../src/app/play/levelUpFlowService.js');
 
 console.log('\n[CentralizationSource]');
 
@@ -128,6 +132,16 @@ test('PlayScene 부트스트랩과 PlayContext 런타임 생성은 전용 helper
   assert.equal(typeof playContextRuntime.createPlayContextServices, 'function', 'PlayContext services helper가 없음');
   assert.equal(playSceneSource.includes('bootstrapPlaySceneRuntime'), true, 'PlayScene이 bootstrap helper를 사용하지 않음');
   assert.equal(playContextSource.includes('createPlayContextRuntimeState'), true, 'PlayContext가 runtime helper를 사용하지 않음');
+});
+
+test('play orchestration helper는 app/play 소유 모듈로 이동하고 기존 경로는 호환 re-export만 남긴다', () => {
+  assert.equal(playSceneSource.includes("from '../app/play/playSceneFlowService.js'"), true, 'PlayScene이 app/play flow service를 직접 사용하지 않음');
+  assert.equal(/export\s+\{[^}]*runPlaySceneFrame/.test(playSceneFlowSource), true, 'playSceneFlow wrapper가 app service를 re-export하지 않음');
+  assert.equal(playerSpawnAppSource.includes('resolvePlayerSpawnState'), true, 'playerSpawn application service가 없음');
+  assert.equal(playerSpawnRuntimeSource.includes("from '../../app/play/playerSpawnApplicationService.js'"), true, 'playerSpawnRuntime wrapper가 app service를 re-export하지 않음');
+  assert.equal(levelUpAppFlowSource.includes('decorateLevelUpChoices'), true, 'level up flow app service가 없음');
+  assert.equal(levelUpFlowRuntimeSource.includes("from '../app/play/levelUpFlowService.js'"), true, 'levelUpFlowRuntime wrapper가 app service를 re-export하지 않음');
+  assert.equal(playSceneAppFlowSource.includes('showPlaySceneResult'), true, 'playScene flow app service가 결과 orchestration을 소유하지 않음');
 });
 
 test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {

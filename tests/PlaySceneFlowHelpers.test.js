@@ -8,7 +8,7 @@ import {
   showPlaySceneResult,
   syncPlaySceneDevicePixelRatio,
   togglePlayScenePause,
-} from '../src/scenes/play/playSceneFlow.js';
+} from '../src/app/play/playSceneFlowService.js';
 
 const { test, summary } = createRunner('PlaySceneFlowHelpers');
 

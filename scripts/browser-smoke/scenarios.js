@@ -1,52 +1,93 @@
-export const OUTPUT_ROOT = 'output/web-game/deterministic-smoke';
+export const OUTPUT_ROOTS = {
+  core: 'output/web-game/deterministic-smoke-core',
+  full: 'output/web-game/deterministic-smoke-full',
+};
 
 export const SCENARIOS = {
   title_to_play: {
     id: 'title_to_play',
-    artifactDir: `${OUTPUT_ROOT}/title-to-play`,
+    artifactSlug: 'title-to-play',
+    suite: 'core',
     stepNames: ['title', 'play'],
   },
   title_codex: {
     id: 'title_codex',
-    artifactDir: `${OUTPUT_ROOT}/title-codex`,
+    artifactSlug: 'title-codex',
+    suite: 'extended',
     stepNames: ['title', 'codex', 'accessory'],
   },
   title_meta_shop: {
     id: 'title_meta_shop',
-    artifactDir: `${OUTPUT_ROOT}/title-meta-shop`,
+    artifactSlug: 'title-meta-shop',
+    suite: 'core',
     stepNames: ['title', 'shop', 'purchase'],
   },
   title_settings: {
     id: 'title_settings',
-    artifactDir: `${OUTPUT_ROOT}/title-settings`,
+    artifactSlug: 'title-settings',
+    suite: 'extended',
     stepNames: ['title', 'settings'],
   },
   title_settings_persist: {
     id: 'title_settings_persist',
-    artifactDir: `${OUTPUT_ROOT}/title-settings-persist`,
+    artifactSlug: 'title-settings-persist',
+    suite: 'core',
     stepNames: ['title', 'settings', 'persist'],
   },
   pause_overlay: {
     id: 'pause_overlay',
-    artifactDir: `${OUTPUT_ROOT}/pause-overlay`,
+    artifactSlug: 'pause-overlay',
+    suite: 'core',
     stepNames: ['play', 'pause'],
+  },
+  levelup_overlay: {
+    id: 'levelup_overlay',
+    artifactSlug: 'levelup-overlay',
+    suite: 'core',
+    stepNames: ['play', 'levelup'],
   },
   pause_layout: {
     id: 'pause_layout',
-    artifactDir: `${OUTPUT_ROOT}/pause-layout`,
+    artifactSlug: 'pause-layout',
+    suite: 'extended',
     stepNames: ['play', 'pause', 'responsive'],
     experimental: true,
   },
   result_screen: {
     id: 'result_screen',
-    artifactDir: `${OUTPUT_ROOT}/result-screen`,
+    artifactSlug: 'result-screen',
+    suite: 'core',
     stepNames: ['play', 'result'],
   },
 };
 
+export function getOutputRootForRun({
+  scenarioId = null,
+  suite = 'core',
+  all = false,
+} = {}) {
+  if (all) return OUTPUT_ROOTS.full;
+  if (scenarioId) {
+    return SCENARIOS[scenarioId]?.suite === 'core'
+      ? OUTPUT_ROOTS.core
+      : OUTPUT_ROOTS.full;
+  }
+  return suite === 'core' ? OUTPUT_ROOTS.core : OUTPUT_ROOTS.full;
+}
+
+export function resolveScenarioArtifactDir(scenarioId, options = {}) {
+  const scenario = SCENARIOS[scenarioId];
+  if (!scenario) {
+    throw new Error(`Unknown scenario: ${scenarioId}`);
+  }
+  return `${getOutputRootForRun({ ...options, scenarioId })}/${scenario.artifactSlug}`;
+}
+
 export function getScenarioIds(options = {}) {
+  const suite = options.suite ?? null;
   const includeExperimental = options.includeExperimental ?? false;
   return Object.values(SCENARIOS)
+    .filter((scenario) => suite == null || scenario.suite === suite)
     .filter((scenario) => includeExperimental || scenario.experimental !== true)
     .map((scenario) => scenario.id);
 }

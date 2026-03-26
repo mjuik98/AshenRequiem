@@ -3,7 +3,7 @@ import { createPlayer } from '../../entities/createPlayer.js';
 import {
   applyPlayerPermanentUpgrades,
   resolvePlayerSpawnState,
-} from '../../scenes/play/playerSpawnRuntime.js';
+} from './playerSpawnApplicationService.js';
 import {
   applyRunSessionState,
   queueRunStartEvents,

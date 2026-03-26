@@ -13,6 +13,15 @@ export class StartLoadoutView {
     this._weapons = [];
     this._onStart = null;
     this._onCancel = null;
+    this._windowRef = globalThis.window;
+    this._onKeyDown = (event) => {
+      if (this._el.style.display === 'none') return;
+      if (event?.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
+      if (event?.key !== 'Escape' && event?.code !== 'Escape') return;
+      event?.preventDefault?.();
+      this.hide();
+      this._onCancel?.();
+    };
     ensureStartLoadoutStyles();
     container.appendChild(this._el);
   }
@@ -25,16 +34,20 @@ export class StartLoadoutView {
     this._canStart = Boolean(canStart && this._selectedWeaponId);
     this._onStart = onStart;
     this._onCancel = onCancel;
+    this._windowRef?.removeEventListener('keydown', this._onKeyDown);
+    this._windowRef?.addEventListener('keydown', this._onKeyDown);
     this._render();
     this._el.style.display = 'flex';
   }
 
   hide() {
+    this._windowRef?.removeEventListener('keydown', this._onKeyDown);
     this._el.style.display = 'none';
     this._el.innerHTML = '';
   }
 
   destroy() {
+    this._windowRef?.removeEventListener('keydown', this._onKeyDown);
     this._el.remove();
   }
 

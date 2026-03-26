@@ -1,7 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { OUTPUT_ROOT, SCENARIOS, getScenarioIds } from './scenarios.js';
+import {
+  getOutputRootForRun,
+  resolveScenarioArtifactDir,
+  SCENARIOS,
+  getScenarioIds,
+} from './scenarios.js';
 import { createPlaywrightSessionTransport } from './smokeCliTransport.mjs';
 import { runSmokeScenario } from './smokeScenarioRunners.mjs';
 
@@ -13,6 +18,7 @@ function parseArgs(argv) {
     url: null,
     scenario: null,
     all: false,
+    suite: 'core',
   };
 
   for (let index = 2; index < argv.length; index += 1) {
@@ -26,6 +32,10 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === '--all') {
       args.all = true;
+      args.suite = null;
+    } else if (arg === '--suite' && next) {
+      args.suite = next;
+      index += 1;
     }
   }
 
@@ -33,8 +43,8 @@ function parseArgs(argv) {
     throw new Error('--url is required');
   }
 
-  if (!args.all && !args.scenario) {
-    throw new Error('--scenario or --all is required');
+  if (!args.all && !args.scenario && !args.suite) {
+    throw new Error('--scenario, --suite, or --all is required');
   }
 
   return args;
@@ -96,9 +106,9 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function summarize(results) {
+function summarize(results, outputRoot) {
   return {
-    outputRoot: OUTPUT_ROOT,
+    outputRoot,
     results,
     allPassed: results.every((result) => Object.values(result.assertions ?? {}).every(Boolean)),
   };
@@ -106,26 +116,37 @@ function summarize(results) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  if (!OUTPUT_ROOT.startsWith(OUTPUT_PATH_PREFIX)) {
+  const outputRoot = getOutputRootForRun({
+    scenarioId: args.scenario,
+    suite: args.suite,
+    all: args.all,
+  });
+  if (!outputRoot.startsWith(OUTPUT_PATH_PREFIX)) {
     throw new Error(`Smoke output must stay under ${OUTPUT_PATH_PREFIX}`);
   }
-  ensureDir(OUTPUT_ROOT);
+  ensureDir(outputRoot);
   cleanupSmokeSessionProcesses(escapeRegExp(SMOKE_SESSION_PREFIX));
-  const sessionId = buildSessionId(args.all ? 'all' : args.scenario);
+  const sessionId = buildSessionId(args.all ? 'all' : (args.scenario ?? args.suite ?? 'core'));
   const transport = createPlaywrightSessionTransport(sessionId);
 
   try {
-    const scenarioIds = args.all ? getScenarioIds() : [args.scenario];
+    const scenarioIds = args.all
+      ? getScenarioIds()
+      : (args.scenario ? [args.scenario] : getScenarioIds({ suite: args.suite }));
     const results = [];
     for (const scenarioId of scenarioIds) {
       const scenario = SCENARIOS[scenarioId];
       if (!scenario) {
         throw new Error(`Unknown scenario: ${scenarioId}`);
       }
-      results.push(await runSmokeScenario(args.url, scenarioId, scenario.artifactDir, transport));
+      const artifactDir = resolveScenarioArtifactDir(scenarioId, {
+        suite: args.suite,
+        all: args.all,
+      });
+      results.push(await runSmokeScenario(args.url, scenarioId, artifactDir, transport));
     }
-    const summary = summarize(results);
-    writeJson(path.join(OUTPUT_ROOT, 'summary.json'), summary);
+    const summary = summarize(results, outputRoot);
+    writeJson(path.join(outputRoot, 'summary.json'), summary);
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
 
     if (!summary.allPassed) {

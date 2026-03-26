@@ -45,5 +45,10 @@ export class ResultView {
     }
   }
 
+  hide() {
+    this.el.style.display = 'none';
+    this.el.innerHTML = '';
+  }
+
   destroy() { this.el.remove(); }
 }

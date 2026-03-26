@@ -29,6 +29,12 @@ test('GameApp과 BrowserGameShell은 분리된 entrypoint를 노출한다', () =
   assert.equal(typeof bootstrapApi.bootstrapBrowserGame, 'function');
 });
 
+test('Game facade는 thin helper export를 함께 노출한다', async () => {
+  const gameApi = await import('../src/core/Game.js');
+  assert.equal(typeof gameApi.Game, 'function');
+  assert.equal(typeof gameApi.createGame, 'function', 'Game facade helper export가 없음');
+});
+
 test('Game는 shell/app 조합 facade로 축소된다', () => {
   const source = readProjectSource('../src/core/Game.js');
 

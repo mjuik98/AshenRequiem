@@ -134,6 +134,47 @@ export async function runPauseLayoutScenario(url, artifactDir, transport) {
   return summary;
 }
 
+export async function runLevelUpOverlayScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  await bootToPlay(url, transport);
+  const levelUpOpened = await transport.evalJson('window.__ASHEN_DEBUG__?.openLevelUpOverlay?.() ?? false');
+  if (levelUpOpened !== true) {
+    throw new Error('Level up overlay did not open');
+  }
+  const state = await transport.pollEval(
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.ui?.levelUpVisible === true,
+    3000,
+    150,
+  );
+  const overlayUi = {
+    progression: await transport.evalJson(`document.querySelector('.card-progression')?.textContent?.trim() ?? ''`),
+    current: await transport.evalJson(`document.querySelector('.card-current-text')?.textContent?.trim() ?? ''`),
+    preview: await transport.evalJson(`document.querySelector('.card-preview-text')?.textContent?.trim() ?? ''`),
+    discovery: await transport.evalJson(`document.querySelector('.card-discovery-chip')?.textContent?.trim() ?? ''`),
+    relatedHintCount: await transport.evalJson(`document.querySelectorAll('.card-related-chip').length`),
+  };
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'levelup_overlay',
+    levelUpOpened,
+    state,
+    overlayUi,
+    assertions: {
+      levelUpVisible: state?.ui?.levelUpVisible === true,
+      onlyLevelUpVisible: state?.ui?.pauseVisible === false && state?.ui?.resultVisible === false,
+      hasProgression: overlayUi.progression === 'Lv 1 → Lv 2',
+      hasCurrent: overlayUi.current === '적 위치에 화염 장판을 깔아 지속 피해를 준다',
+      hasPreview: overlayUi.preview === '화염 지대 데미지 +1',
+      hasDiscovery: overlayUi.discovery === '도감 신규',
+      noFalseRelationHints: overlayUi.relatedHintCount === 0,
+    },
+  };
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
 export async function runResultScreenScenario(url, artifactDir, transport) {
   ensureScenarioDir(artifactDir);
 

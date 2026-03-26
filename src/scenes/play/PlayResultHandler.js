@@ -1,11 +1,19 @@
 import { createPlayResultApplicationService } from '../../app/play/playResultApplicationService.js';
 
+export function createPlayResultHandler(session, options) {
+  return new PlayResultHandler(session, options);
+}
+
+export function processPlayResult(session, world, { createServiceImpl = createPlayResultApplicationService } = {}) {
+  return createServiceImpl(session).process(world);
+}
+
 export class PlayResultHandler {
   /**
    * @param {import('../../state/createSessionState.js').SessionState} session
    */
-  constructor(session) {
-    this._service = createPlayResultApplicationService(session);
+  constructor(session, { createServiceImpl = createPlayResultApplicationService } = {}) {
+    this._service = createServiceImpl(session);
   }
 
   /**

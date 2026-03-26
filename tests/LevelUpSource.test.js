@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { makePlayer, makeWorld } from './fixtures/index.js';
 import { buildLevelUpCardMarkup, buildLevelUpHeaderMarkup } from '../src/ui/levelup/levelUpContent.js';
+import { LEVEL_UP_VIEW_CSS } from '../src/ui/levelup/levelUpViewStyles.js';
 import { createLevelUpController } from '../src/scenes/play/levelUpController.js';
 
 console.log('\n[LevelUp Source]');
@@ -59,6 +60,48 @@ test('진화 카드 마크업은 별도 시각 강조와 결과 무기 아이콘
   assert.equal(cardHtml.includes('type-evolution'), true, '진화 카드 전용 클래스가 없음');
   assert.equal(cardHtml.includes('card-badge-evolution'), true, '진화 카드 배지 강조 클래스가 없음');
   assert.equal(cardHtml.includes('☄'), true, '진화 카드 아이콘이 렌더되지 않음');
+});
+
+test('강화 카드 마크업은 레벨 진행 라인과 도감 신규 칩을 별도 메타 영역에 렌더한다', () => {
+  const cardHtml = buildLevelUpCardMarkup({
+    upgrade: {
+      id: 'up_flame_zone',
+      name: '화염 지대',
+      description: '지속 화염 피해가 강화됩니다.',
+      type: 'weapon_upgrade',
+      icon: '🔥',
+      levelLabel: 'Lv 1 → Lv 2',
+      currentLabel: '현재 효과',
+      currentText: '적 위치에 화염 장판을 깔아 지속 피해를 준다',
+      previewLabel: '다음 Lv 효과',
+      previewText: '화염 지대 데미지 +1',
+      discoveryLabel: '도감 신규',
+    },
+    index: 0,
+    rerollsRemaining: 1,
+    banishMode: false,
+  });
+
+  assert.equal(cardHtml.includes('card-progression'), true, '레벨 진행 메타 라인이 렌더되지 않음');
+  assert.equal(cardHtml.includes('Lv 1 → Lv 2'), true, '강화 카드에 레벨 진행 문구가 없음');
+  assert.equal(cardHtml.includes('card-comparison'), true, '현재/다음 효과 비교 블록 래퍼가 없음');
+  assert.equal(cardHtml.includes('card-current-label'), true, '현재 효과 라벨 스타일 훅이 없음');
+  assert.equal(cardHtml.includes('card-current-text'), true, '현재 효과 텍스트 스타일 훅이 없음');
+  assert.equal(cardHtml.includes('현재 효과'), true, '현재 효과 라벨이 렌더되지 않음');
+  assert.equal(cardHtml.includes('적 위치에 화염 장판을 깔아 지속 피해를 준다'), true, '현재 효과 설명이 렌더되지 않음');
+  assert.equal(cardHtml.includes('card-preview-label'), true, '다음 레벨 효과 라벨 스타일 훅이 없음');
+  assert.equal(cardHtml.includes('card-preview-text'), true, '다음 레벨 효과 텍스트 스타일 훅이 없음');
+  assert.equal(cardHtml.includes('다음 Lv 효과'), true, '다음 레벨 효과 라벨이 렌더되지 않음');
+  assert.equal(cardHtml.includes('화염 지대 데미지 +1'), true, '다음 레벨 효과 설명이 렌더되지 않음');
+  assert.equal(cardHtml.includes('card-discovery-chip'), true, '도감 신규 칩 스타일 훅이 없음');
+  assert.equal(cardHtml.includes('도감 신규'), true, '도감 신규 텍스트가 렌더되지 않음');
+});
+
+test('level up styles는 비교 블록과 모바일 단일 열 레이아웃을 포함한다', () => {
+  assert.equal(LEVEL_UP_VIEW_CSS.includes('.card-comparison'), true, '비교 블록 스타일이 없음');
+  assert.equal(LEVEL_UP_VIEW_CSS.includes('.card-detail-block'), true, '현재/다음 효과 블록 스타일이 없음');
+  assert.equal(LEVEL_UP_VIEW_CSS.includes('@media (max-width: 900px)'), true, '모바일 반응형 media query가 없음');
+  assert.equal(LEVEL_UP_VIEW_CSS.includes('grid-template-columns: 1fr;'), true, '모바일에서 비교 블록이 한 열로 내려오지 않음');
 });
 
 test('level up controller는 선택과 카드별 리롤/봉인 토글 콜백을 분리해 노출한다', () => {

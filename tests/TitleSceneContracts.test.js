@@ -86,6 +86,38 @@ test('시작 무기 선택 뷰는 후보가 없으면 시작 버튼을 비활성
   }
 });
 
+test('시작 무기 선택 뷰에서 ESC는 취소 버튼과 같은 경로로 타이틀로 복귀한다', () => {
+  const { document, window, restore } = installMockDom();
+  let cancelCount = 0;
+
+  try {
+    const container = document.createElement('div');
+    const view = new StartLoadoutView(container);
+    view.show({
+      weapons: [
+        { id: 'magic_bolt', name: 'Magic Bolt', behaviorId: 'targetProjectile', description: '기본 투사체' },
+      ],
+      selectedWeaponId: 'magic_bolt',
+      canStart: true,
+      onStart: () => {},
+      onCancel: () => {
+        cancelCount += 1;
+      },
+    });
+
+    window.dispatch('keydown', {
+      key: 'Escape',
+      code: 'Escape',
+      preventDefault() {},
+    });
+
+    assert.equal(cancelCount, 1, 'ESC 입력이 취소 콜백을 호출하지 않음');
+    assert.equal(view._el.style.display, 'none', 'ESC 입력 후 시작 무기 선택 뷰가 닫히지 않음');
+  } finally {
+    restore();
+  }
+});
+
 test('TitleScene 종료 버튼은 활성 상태이며 종료 실패 시 상태 helper가 안내 문구를 갱신한다', () => {
   const liveEl = { textContent: '' };
   const flashEl = { style: { background: '' } };

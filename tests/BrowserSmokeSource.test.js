@@ -63,6 +63,7 @@ test('scenario 정의는 title/play/pause/result 흐름 이름을 가진다', ()
   assert.equal(scenariosSource.includes('title_to_play'), true, 'title_to_play 시나리오가 없음');
   assert.equal(scenariosSource.includes('title_meta_shop'), true, 'title_meta_shop 시나리오가 없음');
   assert.equal(scenariosSource.includes('pause_overlay'), true, 'pause_overlay 시나리오가 없음');
+  assert.equal(scenariosSource.includes('levelup_overlay'), true, 'levelup_overlay 시나리오가 없음');
   assert.equal(scenariosSource.includes('pause_layout'), true, 'pause_layout 시나리오가 없음');
   assert.equal(scenariosSource.includes('result_screen'), true, 'result_screen 시나리오가 없음');
   assert.equal(scenariosSource.includes('title_settings_persist'), true, 'title_settings_persist 시나리오가 없음');
@@ -184,6 +185,34 @@ test('result screen smoke는 현재 결과 UI 계약을 검증한다', () => {
     smokeSource.includes('.result-title-btn'),
     true,
     'result screen smoke가 메인 화면 버튼을 확인하지 않음',
+  );
+});
+
+test('level up smoke는 레벨 진행, 다음 레벨 효과, 도감 신규 칩을 검증한다', () => {
+  assert.equal(
+    smokeSource.includes('openLevelUpOverlay'),
+    true,
+    'level up smoke가 debug host level-up overlay helper를 사용하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('.card-progression'),
+    true,
+    'level up smoke가 레벨 진행 라인을 확인하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('.card-preview-text'),
+    true,
+    'level up smoke가 다음 레벨 효과 텍스트를 확인하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('.card-current-text'),
+    true,
+    'level up smoke가 현재 효과 텍스트를 확인하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('.card-discovery-chip'),
+    true,
+    'level up smoke가 도감 신규 칩을 확인하지 않음',
   );
 });
 

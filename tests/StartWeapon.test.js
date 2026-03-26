@@ -4,7 +4,7 @@ import { createPlayer } from '../src/entities/createPlayer.js';
 import {
   applyPlayerPermanentUpgrades,
   resolvePlayerSpawnState,
-} from '../src/scenes/play/playerSpawnRuntime.js';
+} from '../src/app/play/playerSpawnApplicationService.js';
 
 console.log('\n[StartWeapon]');
 

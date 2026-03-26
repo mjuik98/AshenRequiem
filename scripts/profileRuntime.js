@@ -1,4 +1,4 @@
-import { createWorld } from '../src/state/createWorld.js';
+import { createPlayWorld as createWorld } from '../src/domain/play/state/createPlayWorld.js';
 import { createPlayer } from '../src/entities/createPlayer.js';
 import { createRng } from '../src/utils/random.js';
 

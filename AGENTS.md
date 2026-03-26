@@ -29,6 +29,10 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
    - 상태 없는 시스템은 singleton으로 둘 수 있지만, module-level static state를 새로 도입하면 안 된다.
 5. **테스트 전용 메서드 금지 (R-시리즈)**
    - `_testWithData` 등 테스트를 위한 우회 메서드를 프로덕션 코드에 노출하지 않는다.
+6. **아키텍처 경계는 edit-time + verify-time 이중 가드로 유지한다**
+   - edit-time: `lint:eslint`의 `no-restricted-imports` 규칙으로 `domain -> presentation/browser`, `scene -> systems`, compatibility wrapper direct import를 막는다.
+   - verify-time: `check:boundaries`와 `check:architecture-docs`가 resolved import 경계와 문서 drift를 최종 판정한다.
+   - 새 compatibility wrapper를 추가하거나 disposition이 바뀌면 `docs/compatibility-wrappers.md`와 관련 스크립트 snapshot을 함께 갱신한다.
 
 ---
 

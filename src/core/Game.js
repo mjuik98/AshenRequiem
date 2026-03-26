@@ -1,6 +1,10 @@
 import { GameApp } from '../app/GameApp.js';
 import { createBrowserGameShell } from '../adapters/browser/BrowserGameShell.js';
 
+export function createGame(options) {
+  return new Game(options);
+}
+
 /** Game — 게임 최상위 진입점 */
 export class Game {
   constructor({

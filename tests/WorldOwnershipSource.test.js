@@ -18,7 +18,7 @@ const expectations = [
     mustExclude: ['world.runRerollsRemaining', 'world.pendingEventQueue'],
   },
   {
-    ref: '../src/scenes/play/playSceneFlow.js',
+    ref: '../src/app/play/playSceneFlowService.js',
     mustInclude: ['world.runtime.deltaTime', 'world.run.playMode'],
     mustExclude: ['world.deltaTime', 'world.playMode'],
   },

@@ -8,6 +8,7 @@ import {
   getProfileBudget,
   loadProfileSystems,
 } from '../scripts/profileRuntime.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
 
 const { test, summary } = createRunner('ProfileSource');
 
@@ -36,6 +37,13 @@ test('profile runtime은 headless context 기본값을 제공하고 PlayScene pr
   assert.equal(typeof budget?.maxPerFrameMs, 'number');
   assert.equal(shouldEnablePipelineProfiling({ location: { search: '' } }), false);
   assert.equal(shouldEnablePipelineProfiling({ __ASHEN_PROFILE_PIPELINE__: true }), true);
+});
+
+test('profile runtime은 createWorld shim 대신 domain play world 생성기를 직접 사용한다', () => {
+  const source = readProjectSource('../scripts/profileRuntime.js');
+
+  assert.equal(source.includes("from '../src/state/createWorld.js'"), false, 'profileRuntime이 createWorld shim을 직접 import하면 안 됨');
+  assert.equal(source.includes("from '../src/domain/play/state/createPlayWorld.js'"), true, 'profileRuntime이 domain play world 생성기를 직접 import해야 함');
 });
 
 summary();

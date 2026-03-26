@@ -146,6 +146,7 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const levelUpControllerSource = readProjectSource('../src/scenes/play/levelUpController.js');
   const playResultHandlerSource = readProjectSource('../src/scenes/play/PlayResultHandler.js');
   const levelUpFlowRuntimeSource = readProjectSource('../src/progression/levelUpFlowRuntime.js');
+  const levelUpFlowServiceSource = readProjectSource('../src/app/play/levelUpFlowService.js');
   const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
   const sessionMetaSource = readProjectSource('../src/state/sessionMeta.js');
   const pipelineBuilderSource = readProjectSource('../src/core/PipelineBuilder.js');
@@ -154,6 +155,7 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
   const titleLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
   const playerSpawnRuntimeSource = readProjectSource('../src/scenes/play/playerSpawnRuntime.js');
+  const playerSpawnServiceSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
   const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
   const unlockProgressRuntimeSource = readProjectSource('../src/progression/unlockProgressRuntime.js');
   const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
@@ -186,6 +188,18 @@ test('scene and progression infrastructure stay decoupled from system internals'
     /import\s+\{[^}]*UpgradeSystem[^}]*\}\s+from\s+['"]\.\.\/systems\/progression\/UpgradeSystem\.js['"]/.test(levelUpFlowRuntimeSource),
     false,
     'levelUpFlowRuntime가 systems 레이어의 UpgradeSystem 구현에 직접 의존하고 있음',
+  );
+
+  assert.equal(
+    levelUpFlowRuntimeSource.includes("from '../app/play/levelUpFlowService.js'"),
+    true,
+    'levelUpFlowRuntime wrapper가 app level up flow service를 재노출하지 않음',
+  );
+
+  assert.equal(
+    /import\s+\{[^}]*UpgradeSystem[^}]*\}\s+from\s+['"]\.\.\/\.\.\/systems\/progression\/UpgradeSystem\.js['"]/.test(levelUpFlowServiceSource),
+    false,
+    'levelUpFlowService가 systems 레이어의 UpgradeSystem 구현에 직접 의존하고 있음',
   );
 
   assert.equal(
@@ -237,7 +251,13 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    playerSpawnRuntimeSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
+    playerSpawnRuntimeSource.includes("from '../../app/play/playerSpawnApplicationService.js'"),
+    true,
+    'playerSpawnRuntime wrapper가 app player spawn service를 재노출하지 않음',
+  );
+
+  assert.equal(
+    playerSpawnServiceSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
     true,
     'playerSpawnRuntime이 공용 start loadout runtime을 사용하지 않음',
   );

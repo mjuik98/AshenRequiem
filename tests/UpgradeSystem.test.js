@@ -41,7 +41,7 @@ try {
 let resolvePlayerSpawnState;
 let applyPlayerPermanentUpgrades;
 try {
-  ({ resolvePlayerSpawnState, applyPlayerPermanentUpgrades } = await import('../src/scenes/play/playerSpawnRuntime.js'));
+  ({ resolvePlayerSpawnState, applyPlayerPermanentUpgrades } = await import('../src/app/play/playerSpawnApplicationService.js'));
 } catch {
   console.warn('[테스트] playerSpawnRuntime import 실패 — projectile lifetime 영구 업그레이드 검증 스킵');
   resolvePlayerSpawnState = null;

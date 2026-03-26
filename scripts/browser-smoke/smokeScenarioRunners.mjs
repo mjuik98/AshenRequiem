@@ -6,6 +6,7 @@ import {
   runTitleToPlayScenario,
 } from './smokeTitleScenarios.mjs';
 import {
+  runLevelUpOverlayScenario,
   runPauseLayoutScenario,
   runPauseOverlayScenario,
   runResultScreenScenario,
@@ -18,6 +19,7 @@ const RUNNERS = {
   title_settings: runTitleSettingsScenario,
   title_settings_persist: runTitleSettingsPersistScenario,
   pause_overlay: runPauseOverlayScenario,
+  levelup_overlay: runLevelUpOverlayScenario,
   pause_layout: runPauseLayoutScenario,
   result_screen: runResultScreenScenario,
 };

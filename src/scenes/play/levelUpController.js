@@ -5,7 +5,7 @@ import {
   resumeFromLevelUp,
   selectLevelUpChoice,
   toggleLevelUpBanishMode,
-} from '../../progression/levelUpFlowRuntime.js';
+} from '../../app/play/levelUpFlowService.js';
 
 export function createLevelUpController({
   getWorld,

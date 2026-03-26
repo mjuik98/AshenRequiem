@@ -11,15 +11,15 @@
  * - devicePixelRatio 변화를 추적해 렌더 파이프라인에 반영
  */
 import { createPlayResultApplicationService } from '../app/play/playResultApplicationService.js';
-import { createLevelUpController }      from './play/levelUpController.js';
-import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
 import {
   persistPauseSceneOptions,
   runPlaySceneFrame,
   showPlaySceneResult,
   syncPlaySceneDevicePixelRatio,
   togglePlayScenePause,
-} from './play/playSceneFlow.js';
+} from '../app/play/playSceneFlowService.js';
+import { createLevelUpController }      from './play/levelUpController.js';
+import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
 import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
 import {
   loadPlaySceneModule,
@@ -66,7 +66,10 @@ export class PlayScene {
     this._resultHandler = createPlayResultApplicationService(this.game.session);
     this._levelUpController = createLevelUpController({
       getWorld: () => this.world,
-      getData: () => this._gameData,
+      getData: () => ({
+        ...this._gameData,
+        session: this.game.session,
+      }),
       isBlocked: () => this._isSceneChanging,
       showLevelUp: (config) => this._ui.showLevelUp(config),
     });

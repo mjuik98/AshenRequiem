@@ -1,4 +1,10 @@
 import { unlockData } from '../../data/unlockData.js';
+import {
+  getDiscoveredAccessoryIds,
+  getDiscoveredCodexWeaponIds,
+  isAccessoryDiscovered,
+  isCodexWeaponDiscovered,
+} from '../../domain/meta/codex/codexDiscoveryDomain.js';
 
 function countDiscoveredEnemies(session, enemyData = []) {
   const kills = session?.meta?.enemyKills ?? {};
@@ -9,15 +15,12 @@ function countDiscoveredEnemies(session, enemyData = []) {
 }
 
 function countDiscoveredWeapons(session, weaponData = []) {
-  const unlocked = new Set([
-    ...(session?.meta?.weaponsUsedAll ?? []),
-    ...(session?.meta?.evolvedWeapons ?? []),
-  ]);
+  const unlocked = getDiscoveredCodexWeaponIds(session);
   return weaponData.filter((weapon) => unlocked.has(weapon?.id)).length;
 }
 
 function countDiscoveredAccessories(session, accessoryData = []) {
-  const unlocked = new Set(session?.meta?.accessoriesOwnedAll ?? []);
+  const unlocked = getDiscoveredAccessoryIds(session);
   return accessoryData.filter((accessory) => unlocked.has(accessory?.id)).length;
 }
 
@@ -36,14 +39,11 @@ export function countCodexDiscovered(session) {
 }
 
 export function isCodexWeaponUnlocked(weapon, session) {
-  const owned = new Set(session?.meta?.weaponsUsedAll ?? []);
-  const evolvedOwned = new Set(session?.meta?.evolvedWeapons ?? []);
-  return weapon?.isEvolved ? evolvedOwned.has(weapon.id) : owned.has(weapon.id);
+  return isCodexWeaponDiscovered(session, weapon);
 }
 
 export function isCodexAccessoryUnlocked(accessory, session) {
-  const owned = new Set(session?.meta?.accessoriesOwnedAll ?? []);
-  return owned.has(accessory?.id);
+  return isAccessoryDiscovered(session, accessory?.id);
 }
 
 export function buildCodexDiscoverySummary({ session = null, gameData = null }) {

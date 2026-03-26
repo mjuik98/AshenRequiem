@@ -72,14 +72,16 @@ export const LEVEL_UP_VIEW_CSS = `
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
-    width: 188px;
+    width: 204px;
   }
   .levelup-card {
     position: relative;
-    width: 100%; padding: 22px 16px 18px;
-    background: linear-gradient(180deg, rgba(22,27,36,0.98), rgba(12,16,24,0.98));
+    width: 100%; padding: 24px 18px 18px;
+    background:
+      radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 38%),
+      linear-gradient(180deg, rgba(22,27,36,0.98), rgba(12,16,24,0.98));
     border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 16px; cursor: pointer;
+    border-radius: 18px; cursor: pointer;
     transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
     text-align: left;
     overflow: hidden;
@@ -156,21 +158,94 @@ export const LEVEL_UP_VIEW_CSS = `
   .type-evolution .card-icon { color: #fff2b0; background: rgba(245,212,124,0.14); border-color: rgba(245,212,124,0.28); }
 
   .card-name {
-    font-size: 15px; font-weight: 800; color: #ffd54f; margin-bottom: 8px; line-height: 1.25;
+    font-size: 16px; font-weight: 800; color: #ffd54f; margin-bottom: 8px; line-height: 1.25;
   }
   .type-stat     .card-name { color: #a5d6a7; }
   .type-accessory .card-name { color: #ce93d8; }
   .type-slot     .card-name { color: #90caf9; }
   .type-evolution .card-name { color: #ffe08a; }
 
+  .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+  .card-progression,
+  .card-discovery-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 23px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+  }
+  .card-progression {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: rgba(241, 245, 247, 0.88);
+  }
+  .card-discovery-chip {
+    border: 1px solid rgba(126,205,232,0.28);
+    background: rgba(126,205,232,0.12);
+    color: #bfe7f5;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
   .card-desc {
     font-size: 11px; color: rgba(236,239,241,0.72); line-height: 1.55; min-height: 52px;
+  }
+  .card-comparison {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .card-detail-block {
+    margin-bottom: 10px;
+    padding: 10px 11px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .card-detail-block:last-child {
+    margin-bottom: 0;
+  }
+  .card-detail-current {
+    border-color: rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018));
+  }
+  .card-detail-next {
+    border-color: rgba(245, 212, 124, 0.16);
+    background: linear-gradient(180deg, rgba(245,212,124,0.08), rgba(255,255,255,0.018));
+  }
+  .card-current-label,
+  .card-preview-label {
+    margin-bottom: 5px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(207,216,220,0.62);
+  }
+  .card-current-text,
+  .card-preview-text {
+    font-size: 11px;
+    line-height: 1.45;
+    color: rgba(245, 244, 232, 0.92);
+  }
+  .card-current-text {
+    color: rgba(226, 232, 240, 0.86);
   }
   .card-related-hints {
     margin-top: 10px;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
   }
   .card-related-chip {
@@ -209,6 +284,22 @@ export const LEVEL_UP_VIEW_CSS = `
   .card-reroll-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+  @media (max-width: 900px) {
+    .levelup-overlay {
+      padding: 20px 14px;
+      justify-content: flex-start;
+      overflow-y: auto;
+    }
+    .levelup-cards {
+      gap: 12px;
+    }
+    .levelup-card-shell {
+      width: min(100%, 320px);
+    }
+    .card-comparison {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 

@@ -3,10 +3,12 @@ function getTypeClass(type) {
     case 'weapon':
     case 'weapon_new':
     case 'weapon_upgrade':
+      return 'type-weapon';
     case 'weapon_evolution':
       return 'type-weapon type-evolution';
-    case 'stat': return 'type-stat';
+    case 'accessory_upgrade':
     case 'accessory': return 'type-accessory';
+    case 'stat': return 'type-stat';
     case 'slot': return 'type-slot';
     default: return '';
   }
@@ -20,9 +22,19 @@ function getBadge(type) {
     case 'weapon_evolution': return 'EVO';
     case 'stat': return 'STAT';
     case 'accessory': return 'RELIC';
+    case 'accessory_upgrade': return 'UP';
     case 'slot': return 'SLOT';
     default: return '';
   }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 export function buildLevelUpHeaderMarkup({
@@ -63,6 +75,12 @@ export function buildLevelUpCardMarkup({
   const badge = getBadge(upgrade?.type);
   const rerollDisabled = rerollsRemaining <= 0 || banishMode;
   const relatedHints = Array.isArray(upgrade?.relatedHints) ? upgrade.relatedHints : [];
+  const levelLabel = upgrade?.levelLabel ?? '';
+  const currentLabel = upgrade?.currentLabel ?? '';
+  const currentText = upgrade?.currentText ?? '';
+  const previewLabel = upgrade?.previewLabel ?? '';
+  const previewText = upgrade?.previewText ?? '';
+  const discoveryLabel = upgrade?.discoveryLabel ?? '';
   const icon = upgrade?.icon ?? (upgrade?.type === 'weapon_evolution' ? '✦' : upgrade?.type === 'accessory' || upgrade?.type === 'accessory_upgrade' ? '◆' : upgrade?.type === 'slot' ? '⬒' : upgrade?.type === 'stat' ? '✚' : '⚔');
   const badgeClass = upgrade?.type === 'weapon_evolution' ? ' card-badge-evolution' : '';
 
@@ -71,11 +89,33 @@ export function buildLevelUpCardMarkup({
       <div class="levelup-card ${typeClass}${banishMode ? ' is-banish-mode' : ''}">
         ${badge ? `<div class="card-badge${badgeClass}">${badge}</div>` : ''}
         <div class="card-icon" aria-hidden="true">${icon}</div>
-        <div class="card-name">${upgrade?.name ?? ''}</div>
-        <div class="card-desc">${upgrade?.description ?? ''}</div>
+        <div class="card-name">${escapeHtml(upgrade?.name ?? '')}</div>
+        ${levelLabel || discoveryLabel ? `
+          <div class="card-meta-row">
+            ${levelLabel ? `<span class="card-progression">${escapeHtml(levelLabel)}</span>` : ''}
+            ${discoveryLabel ? `<span class="card-discovery-chip">${escapeHtml(discoveryLabel)}</span>` : ''}
+          </div>
+        ` : ''}
+        ${currentText || previewText ? `
+          <div class="card-comparison">
+            ${currentText ? `
+              <div class="card-detail-block card-detail-current">
+                ${currentLabel ? `<div class="card-current-label">${escapeHtml(currentLabel)}</div>` : ''}
+                <div class="card-current-text">${escapeHtml(currentText)}</div>
+              </div>
+            ` : ''}
+            ${previewText ? `
+              <div class="card-detail-block card-detail-next">
+                ${previewLabel ? `<div class="card-preview-label">${escapeHtml(previewLabel)}</div>` : ''}
+                <div class="card-preview-text">${escapeHtml(previewText)}</div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+        <div class="card-desc">${escapeHtml(upgrade?.description ?? '')}</div>
         ${relatedHints.length > 0 ? `
           <div class="card-related-hints">
-            ${relatedHints.map((hint) => `<span class="card-related-chip">${hint}</span>`).join('')}
+            ${relatedHints.map((hint) => `<span class="card-related-chip">${escapeHtml(hint)}</span>`).join('')}
           </div>
         ` : ''}
         ${upgrade?.type === 'slot' ? '<div class="card-slot-hint">슬롯 확장</div>' : ''}

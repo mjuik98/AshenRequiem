@@ -56,7 +56,10 @@ export function hasSynergyRelation(choice, player, synergyData = []) {
     const matchesChoice = requirements.some((requirement) => candidateTokens.has(requirement));
     if (!matchesChoice) return false;
 
-    return requirements.some((requirement) => !candidateTokens.has(requirement) && ownedTokens.has(requirement));
+    const hasOtherOwnedRequirement = requirements.some((requirement) => !candidateTokens.has(requirement) && ownedTokens.has(requirement));
+    if (!hasOtherOwnedRequirement) return false;
+
+    return requirements.every((requirement) => candidateTokens.has(requirement) || ownedTokens.has(requirement));
   });
 }
 

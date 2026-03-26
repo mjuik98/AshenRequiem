@@ -88,6 +88,61 @@ test('PlayUI는 pause/result/level-up overlay를 lazy import해도 요청된 vis
   }
 });
 
+test('PlayUI는 overlay 인스턴스가 아직 없거나 숨겨져 있으면 visible 상태를 false로 보고한다', async () => {
+  const { document, restore } = installMockDom();
+
+  try {
+    const { PlayUI } = await import('../src/scenes/play/PlayUI.js');
+
+    class StubResultView {
+      constructor() {
+        this.el = { style: { display: 'none' } };
+      }
+      show() {
+        this.el.style.display = 'flex';
+      }
+      hide() {
+        this.el.style.display = 'none';
+      }
+      destroy() {}
+    }
+
+    class StubLevelUpView {
+      constructor() {
+        this.el = { style: { display: 'none' } };
+      }
+      show() {
+        this.el.style.display = 'flex';
+      }
+      hide() {
+        this.el.style.display = 'none';
+      }
+      destroy() {}
+    }
+
+    const ui = new PlayUI(document.createElement('div'), {
+      loadPauseViewModule: async () => ({ PauseView: class { isVisible() { return false; } destroy() {} } }),
+      loadResultViewModule: async () => ({ ResultView: StubResultView }),
+      loadLevelUpViewModule: async () => ({ LevelUpView: StubLevelUpView }),
+    });
+
+    assert.equal(ui.isLevelUpVisible(), false, 'level-up overlay가 생성 전인데 visible=true로 보이면 안 됨');
+    assert.equal(ui.isResultVisible(), false, 'result overlay가 생성 전인데 visible=true로 보이면 안 됨');
+
+    await ui.showLevelUp({ title: 'Level Up' });
+    assert.equal(ui.isLevelUpVisible(), true, '표시된 level-up overlay는 visible=true여야 함');
+    ui.hideLevelUp();
+    assert.equal(ui.isLevelUpVisible(), false, '숨긴 level-up overlay는 visible=false여야 함');
+
+    await ui.showResult({ killCount: 1 }, () => {}, null);
+    assert.equal(ui.isResultVisible(), true, '표시된 result overlay는 visible=true여야 함');
+    ui.hideResult();
+    assert.equal(ui.isResultVisible(), false, '숨긴 result overlay는 visible=false여야 함');
+  } finally {
+    restore();
+  }
+});
+
 test('PlayUI는 overlay 모듈을 선행 로드해 런 도중 늦은 fetch 실패를 피한다', async () => {
   const { document, restore } = installMockDom();
 

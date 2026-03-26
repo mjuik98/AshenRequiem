@@ -116,7 +116,7 @@ export class PlayUI {
   }
 
   isLevelUpVisible() {
-    return this._levelUpVisible || this._levelUp?.el?.style.display !== 'none';
+    return this._levelUpVisible || this._isOverlayElementVisible(this._levelUp);
   }
 
   // ── 결과 화면 ─────────────────────────────────────────────────────────
@@ -135,8 +135,21 @@ export class PlayUI {
     });
   }
 
+  hideResult() {
+    this._resultVisible = false;
+    this._pendingResultArgs = null;
+    if (this._result?.hide) {
+      this._result.hide();
+      return;
+    }
+    if (this._result?.el?.style) {
+      this._result.el.style.display = 'none';
+      this._result.el.innerHTML = '';
+    }
+  }
+
   isResultVisible() {
-    return this._resultVisible || this._result?.el?.style.display !== 'none';
+    return this._resultVisible || this._isOverlayElementVisible(this._result);
   }
 
   // ── 생명주기 ──────────────────────────────────────────────────────────
@@ -260,5 +273,10 @@ export class PlayUI {
         throw error;
       });
     return this._levelUpViewPromise;
+  }
+
+  _isOverlayElementVisible(view) {
+    const display = view?.el?.style?.display;
+    return typeof display === 'string' ? display !== 'none' : false;
   }
 }

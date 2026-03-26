@@ -32,6 +32,8 @@ function parseArgs(argv) {
     port: DEFAULT_PORT,
     scenario: null,
     all: false,
+    suite: 'core',
+    skipBuild: false,
   };
 
   for (let index = 2; index < argv.length; index += 1) {
@@ -48,12 +50,18 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === '--all') {
       args.all = true;
+      args.suite = null;
+    } else if (value === '--suite' && next) {
+      args.suite = next;
+      index += 1;
+    } else if (value === '--skip-build') {
+      args.skipBuild = true;
     } else if (value === '--debug-smoke') {
       continue;
     }
   }
 
-  if (!args.all && !args.scenario) {
+  if (!args.all && !args.scenario && !args.suite) {
     args.all = true;
   }
 
@@ -142,11 +150,21 @@ async function findAvailablePort(startPort, host, attempts = 10) {
   throw new Error(`Unable to find available preview port near ${startPort}`);
 }
 
-export async function runSmokeAgainstPreview(options = {}) {
+export async function runSmokeAgainstPreview(
+  options = {},
+  {
+    ensureViteCliFn = ensureViteCli,
+    findAvailablePortFn = findAvailablePort,
+    runCommandFn = runCommand,
+    spawnCommandFn = spawnCommand,
+    waitForPreviewReadyFn = waitForPreviewReady,
+    stopChildProcessFn = stopChildProcess,
+  } = {},
+) {
   const host = options.host ?? DEFAULT_HOST;
-  const port = await findAvailablePort(options.port ?? DEFAULT_PORT, host);
+  const port = await findAvailablePortFn(options.port ?? DEFAULT_PORT, host);
   const url = `http://${host}:${port}`;
-  const viteCli = ensureViteCli();
+  const viteCli = ensureViteCliFn();
   const smokeArgs = [
     path.join('scripts', 'browser-smoke', 'runDeterministicSmoke.mjs'),
     '--url',
@@ -155,17 +173,21 @@ export async function runSmokeAgainstPreview(options = {}) {
 
   if (options.all !== false) {
     smokeArgs.push('--all');
+  } else if (options.suite) {
+    smokeArgs.push('--suite', options.suite);
   } else if (options.scenario) {
     smokeArgs.push('--scenario', options.scenario);
   }
 
   debugLog('smoke:start', { url });
-  await runCommand(process.execPath, [viteCli, 'build'], {
-    shell: false,
-    timeoutMs: BUILD_TIMEOUT_MS,
-  });
+  if (options.skipBuild !== true) {
+    await runCommandFn(process.execPath, [viteCli, 'build'], {
+      shell: false,
+      timeoutMs: BUILD_TIMEOUT_MS,
+    });
+  }
 
-  const preview = spawnCommand(process.execPath, [
+  const preview = spawnCommandFn(process.execPath, [
     viteCli,
     'preview',
     '--host',
@@ -180,16 +202,16 @@ export async function runSmokeAgainstPreview(options = {}) {
 
   try {
     debugLog('preview:spawned', { pid: preview.pid });
-    await waitForPreviewReady(preview, url);
+    await waitForPreviewReadyFn(preview, url);
     debugLog('preview:ready', { pid: preview.pid });
-    await runCommand(process.execPath, smokeArgs, {
+    await runCommandFn(process.execPath, smokeArgs, {
       shell: false,
       timeoutMs: SMOKE_TIMEOUT_MS,
     });
     debugLog('smoke:completed');
   } finally {
     debugLog('preview:stopping', { pid: preview.pid });
-    await stopChildProcess(preview, { env: process.env });
+    await stopChildProcessFn(preview, { env: process.env });
     debugLog('preview:stopped', { pid: preview.pid, handles: getActiveHandleSummary() });
   }
 }

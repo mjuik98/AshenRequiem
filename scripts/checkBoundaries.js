@@ -7,9 +7,12 @@ const SRC_DIR = path.join(ROOT_DIR, 'src');
 
 const SOURCE_EXTENSIONS = new Set(['.js', '.mjs']);
 
-const SHIM_IMPORT_PATTERNS = [
+export const SHIM_IMPORT_PATTERNS = [
   'state/createWorld.js',
   'state/startLoadoutRuntime.js',
+  'scenes/play/playerSpawnRuntime.js',
+  'scenes/play/playSceneFlow.js',
+  'progression/levelUpFlowRuntime.js',
   'systems/sound/soundEventHandler.js',
   'systems/event/bossAnnouncementHandler.js',
   'systems/event/bossPhaseHandler.js',
@@ -19,6 +22,13 @@ const SHIM_IMPORT_PATTERNS = [
   'systems/event/weaponEvolutionHandler.js',
   'core/Game.js',
   'scenes/play/PlayResultHandler.js',
+];
+
+const REPO_INTERNAL_PREFIXES = ['src/', 'tests/', 'scripts/'];
+const MIGRATED_WRAPPER_PATTERNS = [
+  'scenes/play/playerSpawnRuntime.js',
+  'scenes/play/playSceneFlow.js',
+  'progression/levelUpFlowRuntime.js',
 ];
 
 const DOMAIN_FORBIDDEN_SEGMENTS = [
@@ -83,6 +93,22 @@ function collectSourceImports() {
   });
 }
 
+function collectRepoImports() {
+  return ['src', 'tests', 'scripts'].flatMap((rootSegment) => {
+    const baseDir = path.join(ROOT_DIR, rootSegment);
+    if (!fs.existsSync(baseDir)) return [];
+    return walkFiles(baseDir).flatMap((filePath) => {
+      const source = fs.readFileSync(filePath, 'utf8');
+      const relPath = toProjectRelative(filePath);
+      return extractImports(source).map((specifier) => ({
+        sourceFile: relPath,
+        specifier,
+        targetFile: resolveImportTarget(filePath, specifier),
+      }));
+    });
+  });
+}
+
 function findShimViolations(imports) {
   return imports
     .filter(({ sourceFile, targetFile }) => (
@@ -121,12 +147,26 @@ function findSceneToSystemsViolations(imports) {
     }));
 }
 
+function findMigratedWrapperViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => REPO_INTERNAL_PREFIXES.some((prefix) => sourceFile.startsWith(prefix)))
+    .filter(({ targetFile }) => MIGRATED_WRAPPER_PATTERNS.some((pattern) => targetFile.endsWith(pattern)))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'migrated-wrapper',
+      sourceFile,
+      targetFile,
+      message: `migrated wrapper import is forbidden outside public compatibility usage: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 export function collectBoundaryViolations() {
-  const imports = collectSourceImports();
+  const sourceImports = collectSourceImports();
+  const repoImports = collectRepoImports();
   return [
-    ...findShimViolations(imports),
-    ...findDomainViolations(imports),
-    ...findSceneToSystemsViolations(imports),
+    ...findShimViolations(sourceImports),
+    ...findDomainViolations(sourceImports),
+    ...findSceneToSystemsViolations(sourceImports),
+    ...findMigratedWrapperViolations(repoImports),
   ];
 }
 

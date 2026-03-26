@@ -8,6 +8,11 @@ import {
   countCodexDiscovered,
   isCodexWeaponUnlocked,
 } from '../src/ui/codex/codexRecords.js';
+import {
+  isAccessoryDiscovered,
+  isEvolutionDiscovered,
+  isWeaponDiscovered,
+} from '../src/domain/meta/codex/codexDiscoveryDomain.js';
 import { renderCodexAccessoryTab } from '../src/ui/codex/codexAccessoryRender.js';
 import { buildCodexRecordsModel } from '../src/ui/codex/codexRecordsTab.js';
 import {
@@ -136,6 +141,9 @@ test('CodexView 무기 도감은 진화 재료 장신구 클릭 점프 구조와
   assert.equal(isCodexWeaponUnlocked({ id: 'magic_bolt', isEvolved: false }, session), true);
   assert.equal(isCodexWeaponUnlocked({ id: 'arcane_tempest', isEvolved: true }, session), true);
   assert.equal(isCodexWeaponUnlocked({ id: 'frozen_orb', isEvolved: true }, session), false);
+  assert.equal(isWeaponDiscovered(session, 'magic_bolt'), true);
+  assert.equal(isEvolutionDiscovered(session, 'arcane_tempest'), true);
+  assert.equal(isAccessoryDiscovered(makeSessionState({ meta: { accessoriesOwnedAll: ['arcane_prism'] } }), 'arcane_prism'), true);
 
   const groups = partitionCodexWeapons(weaponData);
   assert.equal(groups.baseWeapons.length, 1);
