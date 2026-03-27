@@ -96,10 +96,27 @@ test('meta shop model and markup keep purchase availability and shared footer co
 
   assert.equal(Array.isArray(viewModel.cards), true, 'MetaShop 카드 모델 배열이 없음');
   assert.equal(viewModel.cards.some((entry) => entry.canAfford), true, '구매 가능 카드가 계산되지 않음');
+  assert.equal(viewModel.selectedCard?.id, 'perm_hp', '첫 구매 가능 카드가 기본 선택되지 않음');
+  assert.equal(Array.isArray(viewModel.availableCards), true, '구매 가능 카드 섹션이 계산되지 않음');
+  assert.equal(Array.isArray(viewModel.completedCards), true, '완료 카드 섹션이 계산되지 않음');
 
   const html = markupApi.renderMetaShopMarkup(viewModel);
+  assert.equal(html.includes('ms-detail-panel'), true, 'MetaShop 상세 패널 markup이 없음');
   assert.equal(html.includes('ms-grid'), true, 'MetaShop grid markup이 없음');
   assert.equal(html.includes('ms-back-btn'), true, 'MetaShop footer back button이 없음');
+});
+
+test('meta shop model falls back to the first unfinished card when nothing is affordable', () => {
+  const modelApi = getMetaShopModel();
+
+  const viewModel = modelApi.buildMetaShopViewModel(makeSessionState({
+    meta: {
+      currency: 0,
+      permanentUpgrades: {},
+    },
+  }));
+
+  assert.equal(viewModel.selectedCard?.id, 'perm_hp', '구매 불가 상태에서 첫 미완료 카드가 선택되지 않음');
 });
 
 test('MetaShopView orchestrates helper output and binds purchase/back events', () => {
@@ -128,6 +145,33 @@ test('MetaShopView orchestrates helper output and binds purchase/back events', (
     assert.equal(view.el.innerHTML.includes('ms-grid'), true, 'MetaShopView가 helper markup을 렌더링하지 않음');
     assert.equal(purchases.length > 0, true, 'MetaShopView가 purchase event를 연결하지 않음');
     assert.deepEqual(backs, ['back'], 'MetaShopView가 back event를 연결하지 않음');
+  } finally {
+    restore();
+  }
+});
+
+test('MetaShopView keeps the selected upgrade across refresh when it still exists', () => {
+  const View = getMetaShopView();
+  const { document, restore } = installMockDom();
+
+  try {
+    const container = document.createElement('div');
+    const view = new View(container);
+    const session = makeSessionState({
+      meta: {
+        currency: 999,
+        permanentUpgrades: {},
+      },
+    });
+
+    view.show(session, () => {}, () => {});
+
+    const selectButtons = view.el.querySelectorAll('.ms-select-btn');
+    selectButtons[1]?.click();
+    view.refresh(session);
+
+    assert.equal(view._selectedUpgradeId, 'perm_speed', 'refresh 이후 선택 업그레이드가 유지되지 않음');
+    assert.equal(view.el.innerHTML.includes('is-selected'), true, '선택 카드 상태가 markup에 반영되지 않음');
   } finally {
     restore();
   }

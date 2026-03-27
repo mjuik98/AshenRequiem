@@ -6,7 +6,27 @@ import {
 export function renderMetaShopMarkup({
   currency = 0,
   cards = [],
+  selectedCard = null,
+  availableCards = cards,
+  completedCards = [],
 } = {}) {
+  const activeCard = selectedCard ?? availableCards[0] ?? completedCards[0] ?? null;
+  const renderCard = (card) => `
+    <article class="ms-card ${card.isMaxed ? 'is-maxed' : ''} ${card.canAfford ? 'can-afford' : ''} ${card.isSelected ? 'is-selected' : ''}">
+      <button class="ms-select-btn" data-select-id="${card.id}" type="button" aria-pressed="${card.isSelected ? 'true' : 'false'}">
+        <span class="ms-card-icon">${card.icon}</span>
+        <span class="ms-card-copy">
+          <span class="ms-card-topline">
+            <span class="ms-card-name">${card.name}</span>
+            <span class="ms-status-badge is-${card.status}">${card.statusLabel}</span>
+          </span>
+          <span class="ms-card-level">${card.levelLabel}</span>
+          <span class="ms-card-cost">${card.nextCostLabel}</span>
+        </span>
+      </button>
+    </article>
+  `;
+
   return `
     <div class="ms-panel ss-panel">
 
@@ -27,32 +47,67 @@ export function renderMetaShopMarkup({
         <span class="ms-currency-value">💰 ${currency}</span>
       </div>
 
-      <div class="ms-grid">
-        ${cards.map((card) => `
-          <div class="ms-card ${card.isMaxed ? 'is-maxed' : ''} ${card.canAfford ? 'can-afford' : ''}">
-            <div class="ms-card-icon">${card.icon}</div>
-            <div class="ms-card-body">
-              <div class="ms-card-name">${card.name}</div>
-              <div class="ms-card-desc">${card.description}</div>
-              <div class="ms-progress-row">
-                <div class="ms-pips">
-                  ${Array.from({ length: card.maxLevel }, (_, index) => `
-                    <span class="ms-pip ${index < card.currentLevel ? 'filled' : ''}"></span>
-                  `).join('')}
+      <section class="ms-detail-panel">
+        ${activeCard ? `
+          <div class="ms-detail-head">
+            <div class="ms-detail-title-wrap">
+              <div class="ms-detail-icon">${activeCard.icon}</div>
+              <div>
+                <div class="ms-detail-title-row">
+                  <h2 class="ms-detail-title">${activeCard.name}</h2>
+                  <span class="ms-status-badge is-${activeCard.status}">${activeCard.statusLabel}</span>
                 </div>
-                <span class="ms-level-label">${card.isMaxed ? 'MAX' : `${card.currentLevel}/${card.maxLevel}`}</span>
+                <p class="ms-detail-desc">${activeCard.description}</p>
               </div>
             </div>
-            <button
-              class="ms-buy-btn"
-              data-id="${card.id}"
-              ${card.canAfford ? '' : 'disabled'}
-            >
-              ${card.isMaxed ? '완료' : `💰 ${card.cost}`}
-            </button>
+            <div class="ms-detail-level">${activeCard.levelLabel}</div>
           </div>
-        `).join('')}
-      </div>
+
+          <div class="ms-detail-stats">
+            <div class="ms-detail-stat">
+              <span class="ms-detail-label">현재 효과</span>
+              <strong class="ms-detail-value">${activeCard.currentEffectText}</strong>
+            </div>
+            <div class="ms-detail-stat">
+              <span class="ms-detail-label">다음 레벨</span>
+              <strong class="ms-detail-value">${activeCard.nextEffectText}</strong>
+            </div>
+            <div class="ms-detail-stat">
+              <span class="ms-detail-label">남은 레벨</span>
+              <strong class="ms-detail-value">${activeCard.remainingLevels}</strong>
+            </div>
+            <div class="ms-detail-stat">
+              <span class="ms-detail-label">구매 후 잔액</span>
+              <strong class="ms-detail-value">${activeCard.isMaxed ? '완료' : `💰 ${activeCard.postPurchaseCurrency}`}</strong>
+            </div>
+          </div>
+
+          <button
+            class="ms-buy-btn ms-detail-buy-btn"
+            data-id="${activeCard.id}"
+            type="button"
+            ${activeCard.canAfford ? '' : 'disabled'}
+          >
+            ${activeCard.isMaxed ? '완료' : activeCard.canAfford ? `${activeCard.nextCostLabel} 구매` : `${activeCard.nextCostLabel} 필요`}
+          </button>
+        ` : ''}
+      </section>
+
+      <section class="ms-section">
+        <div class="ms-section-heading">구매 후보</div>
+        <div class="ms-grid">
+          ${availableCards.map(renderCard).join('')}
+        </div>
+      </section>
+
+      ${completedCards.length > 0 ? `
+        <section class="ms-section is-completed">
+          <div class="ms-section-heading">완료한 강화</div>
+          <div class="ms-grid ms-grid-completed">
+            ${completedCards.map(renderCard).join('')}
+          </div>
+        </section>
+      ` : ''}
 
       ${renderSubscreenFooter({
         footerClass: 'ms-footer',

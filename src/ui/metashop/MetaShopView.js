@@ -8,6 +8,7 @@ export class MetaShopView {
     this.el.className = 'ms-root ss-root';
     this._onPurchase = null;
     this._onBack     = null;
+    this._selectedUpgradeId = null;
     ensureMetaShopStyles();
     container.appendChild(this.el);
 
@@ -37,17 +38,28 @@ export class MetaShopView {
   // ── 내부 렌더 ──────────────────────────────────────────────────────
 
   _render(session) {
-    const viewModel = buildMetaShopViewModel(session);
+    const viewModel = buildMetaShopViewModel(session, {
+      selectedUpgradeId: this._selectedUpgradeId,
+    });
+    this._selectedUpgradeId = viewModel.selectedCard?.id ?? null;
     this.el.innerHTML = renderMetaShopMarkup(viewModel);
 
-    // 구매 버튼 이벤트
-    this.el.querySelectorAll('.ms-buy-btn:not([disabled])').forEach(btn => {
+    const selectionCards = [...(viewModel.availableCards ?? []), ...(viewModel.completedCards ?? [])];
+    this.el.querySelectorAll('.ms-select-btn').forEach((btn, index) => {
+      const card = selectionCards[index];
+      if (!card) return;
       btn.addEventListener('click', () => {
-        if (this._onPurchase) this._onPurchase(btn.dataset.id);
+        this._selectedUpgradeId = card.id;
+        this._render(session);
       });
     });
 
-    // 메인화면 복귀 버튼 이벤트
+    this.el.querySelectorAll('.ms-buy-btn:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (this._onPurchase) this._onPurchase(btn.dataset.id || this._selectedUpgradeId);
+      });
+    });
+
     this.el.querySelector('.ms-back-btn').addEventListener('click', () => {
       if (this._onBack) this._onBack();
     });
