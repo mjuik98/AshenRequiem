@@ -1,10 +1,62 @@
-import { unlockData } from '../../data/unlockData.js';
 import {
   getDiscoveredAccessoryIds,
   getDiscoveredCodexWeaponIds,
   isAccessoryDiscovered,
   isCodexWeaponDiscovered,
 } from '../../domain/meta/codex/codexDiscoveryDomain.js';
+import { buildUnlockGuideEntries } from '../../domain/meta/progression/unlockGuidanceDomain.js';
+import { buildRunAnalytics } from '../../domain/meta/progression/runAnalyticsDomain.js';
+import { getArchetypeById } from '../../data/archetypeData.js';
+import { getRiskRelicById } from '../../data/riskRelicData.js';
+
+function humanizeId(value) {
+  if (typeof value !== 'string' || value.length === 0) return null;
+  return value
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function resolveNamedEntry(id, entries = []) {
+  if (!id) {
+    return { id: null, name: '-', icon: '—' };
+  }
+
+  const matched = (entries ?? []).find((entry) => entry?.id === id) ?? null;
+  return {
+    id,
+    name: matched?.name ?? humanizeId(id) ?? id,
+    icon: matched?.icon ?? '—',
+  };
+}
+
+function buildFavoriteLoadoutPresentation(analytics, gameData = null) {
+  const favorite = analytics?.favoriteLoadout ?? {};
+  const weapon = resolveNamedEntry(favorite.weaponId, gameData?.weaponData ?? []);
+  const accessory = resolveNamedEntry(favorite.accessoryId, gameData?.accessoryData ?? []);
+  const archetype = favorite.archetypeId
+    ? getArchetypeById(favorite.archetypeId)
+    : null;
+  const relic = favorite.riskRelicId
+    ? getRiskRelicById(favorite.riskRelicId)
+    : null;
+
+  return {
+    weaponId: weapon.id,
+    weaponName: weapon.name,
+    weaponIcon: weapon.icon,
+    accessoryId: accessory.id,
+    accessoryName: accessory.name,
+    accessoryIcon: accessory.icon,
+    archetypeId: favorite.archetypeId ?? null,
+    archetypeName: archetype?.name ?? (humanizeId(favorite.archetypeId) ?? '-'),
+    archetypeIcon: archetype?.icon ?? '—',
+    riskRelicId: favorite.riskRelicId ?? null,
+    riskRelicName: relic?.name ?? (humanizeId(favorite.riskRelicId) ?? '-'),
+    riskRelicIcon: relic?.icon ?? '—',
+  };
+}
 
 function countDiscoveredEnemies(session, enemyData = []) {
   const kills = session?.meta?.enemyKills ?? {};
@@ -85,7 +137,7 @@ export function buildCodexDiscoverySummary({ session = null, gameData = null }) 
   };
 }
 
-export function buildCodexRecordSummary(session) {
+export function buildCodexRecordSummary(session, gameData = null) {
   const best = session?.best ?? {};
   const meta = session?.meta ?? {};
   const kills = Object.values(meta.enemyKills ?? {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
@@ -93,6 +145,9 @@ export function buildCodexRecordSummary(session) {
   const bossKills = (meta.killedBosses ?? []).length;
   const currency = meta.currency ?? 0;
   const survivalSec = best.survivalTime ?? 0;
+  const recentRuns = Array.isArray(meta.recentRuns) ? meta.recentRuns.slice(0, 5) : [];
+  const analytics = buildRunAnalytics(meta);
+  const favoriteLoadout = buildFavoriteLoadoutPresentation(analytics, gameData);
 
   return {
     best,
@@ -101,6 +156,9 @@ export function buildCodexRecordSummary(session) {
     totalRuns,
     bossKills,
     currency,
+    recentRuns,
+    analytics,
+    favoriteLoadout,
     survivalSec,
     mm: Math.floor(survivalSec / 60),
     ss: String(Math.floor(survivalSec % 60)).padStart(2, '0'),
@@ -148,58 +206,6 @@ export function buildCodexAchievements(session, gameData) {
   ];
 }
 
-export function buildCodexUnlockEntries(session, entries = unlockData) {
-  const meta = session?.meta ?? {};
-  const best = session?.best ?? {};
-  const completedUnlocks = new Set(meta.completedUnlocks ?? []);
-  const totalKills = Object.values(meta.enemyKills ?? {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
-  const bossKills = (meta.killedBosses ?? []).length;
-  const weaponsUsed = new Set(meta.weaponsUsedAll ?? []);
-  const evolvedWeapons = new Set(meta.evolvedWeapons ?? []);
-
-  return entries.map((unlock) => {
-    const done = completedUnlocks.has(unlock.id);
-    let pct = 0;
-    let progressText = '';
-    const conditionValue = Number(unlock.conditionValue) || 0;
-
-    switch (unlock.conditionType) {
-      case 'total_kills_gte':
-        pct = Math.min(100, totalKills / conditionValue * 100);
-        progressText = `${totalKills} / ${conditionValue}`;
-        break;
-      case 'survival_time_gte': {
-        const bestTime = best.survivalTime ?? 0;
-        pct = Math.min(100, bestTime / conditionValue * 100);
-        progressText = `${Math.floor(bestTime)} / ${conditionValue}초`;
-        break;
-      }
-      case 'boss_kills_gte':
-        pct = Math.min(100, bossKills / conditionValue * 100);
-        progressText = `${bossKills} / ${conditionValue}`;
-        break;
-      case 'weapon_owned_once': {
-        const owned = weaponsUsed.has(unlock.conditionValue);
-        pct = owned ? 100 : 0;
-        progressText = owned ? '달성' : String(unlock.conditionValue);
-        break;
-      }
-      case 'weapon_evolved_once': {
-        const evolved = evolvedWeapons.has(unlock.conditionValue);
-        pct = evolved ? 100 : 0;
-        progressText = evolved ? '달성' : String(unlock.conditionValue);
-        break;
-      }
-      default:
-        progressText = '-';
-    }
-
-    return {
-      ...unlock,
-      done,
-      pct: done ? 100 : pct,
-      progressText: done ? '완료' : progressText,
-      icon: unlock.targetType === 'weapon' ? '🗡' : '🜂',
-    };
-  });
+export function buildCodexUnlockEntries(session, entries) {
+  return buildUnlockGuideEntries(session, entries);
 }

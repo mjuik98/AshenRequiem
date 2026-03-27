@@ -2,7 +2,7 @@ function getTotalKills(session) {
   return Object.values(session?.meta?.enemyKills ?? {}).reduce((sum, value) => sum + value, 0);
 }
 
-function isUnlockSatisfied(unlock, session, runResult) {
+function evaluatePrimitiveCondition(unlock, session, runResult) {
   const conditionValue = unlock.conditionValue;
   const meta = session?.meta ?? {};
 
@@ -18,9 +18,31 @@ function isUnlockSatisfied(unlock, session, runResult) {
         || (runResult?.weaponsUsed ?? []).includes(conditionValue);
     case 'weapon_evolved_once':
       return (meta.evolvedWeapons ?? []).includes(conditionValue);
+    case 'currency_earned_gte':
+      return (runResult?.currencyEarned ?? 0) >= conditionValue;
+    case 'curse_gte':
+      return (runResult?.highestCurse ?? 0) >= conditionValue;
+    case 'ascension_clear_gte':
+      return (runResult?.ascensionCleared ?? -1) >= conditionValue
+        || (meta.highestAscensionCleared ?? -1) >= conditionValue;
     default:
       return false;
   }
+}
+
+function isUnlockSatisfied(unlock, session, runResult) {
+  if (!unlock) return false;
+
+  if (unlock.conditionType === 'all_of' || unlock.conditionType === 'any_of') {
+    const conditions = Array.isArray(unlock.conditions) ? unlock.conditions : [];
+    if (conditions.length === 0) return false;
+    if (unlock.conditionType === 'all_of') {
+      return conditions.every((condition) => isUnlockSatisfied(condition, session, runResult));
+    }
+    return conditions.some((condition) => isUnlockSatisfied(condition, session, runResult));
+  }
+
+  return evaluatePrimitiveCondition(unlock, session, runResult);
 }
 
 export function evaluateUnlocks({ session, runResult, unlockData }) {

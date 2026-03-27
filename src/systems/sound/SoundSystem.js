@@ -50,10 +50,13 @@ import { playSoundEffect } from './soundSfxController.js';
  * - destroy()
  */
 export class SoundSystem {
-  constructor() {
+  constructor({ nowSeconds, createAudioContext, rng } = {}) {
     Object.assign(this, createSoundSystemState({
       sfxDefs: cloneSoundSfxDefs(),
       bgmDefs: cloneSoundBgmDefs(),
+      nowSeconds,
+      createAudioContext,
+      rng,
     }));
   }
 

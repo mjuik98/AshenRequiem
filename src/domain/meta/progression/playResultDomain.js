@@ -1,58 +1,60 @@
-import { updateSessionBest } from '../../../state/createSessionState.js';
-import { ensureCodexMeta } from '../../../state/sessionMeta.js';
-import { persistSession } from '../../../state/sessionFacade.js';
-import {
-  applyComputedSessionUnlockProgress,
-  computeSessionUnlockProgress,
-} from '../../../state/unlockProgressFacade.js';
+import { buildRunAnalytics } from './runAnalyticsDomain.js';
 
-function appendUnique(base = [], additions = []) {
-  return [...new Set([...(base ?? []), ...(additions ?? [])])];
-}
-
-function normalizeUnlockProgress(session, unlockResult = {}) {
-  if (
-    Array.isArray(unlockResult?.nextCompletedUnlocks)
-    || Array.isArray(unlockResult?.nextUnlockedWeapons)
-    || Array.isArray(unlockResult?.nextUnlockedAccessories)
-  ) {
-    return {
-      ...unlockResult,
-      nextCompletedUnlocks: [...(unlockResult.nextCompletedUnlocks ?? [])],
-      nextUnlockedWeapons: [...(unlockResult.nextUnlockedWeapons ?? [])],
-      nextUnlockedAccessories: [...(unlockResult.nextUnlockedAccessories ?? [])],
-      newUnlockRewardTexts: [...(unlockResult.newUnlockRewardTexts ?? [])],
-    };
-  }
-
-  const completedUnlockIds = unlockResult.completedUnlockIds ?? unlockResult.newlyCompletedUnlocks ?? [];
-  const unlockedWeaponIds = unlockResult.unlockedWeaponIds ?? unlockResult.newlyUnlockedWeapons ?? [];
-  const unlockedAccessoryIds = unlockResult.unlockedAccessoryIds ?? unlockResult.newlyUnlockedAccessories ?? [];
-
-  return {
-    ...unlockResult,
-    nextCompletedUnlocks: appendUnique(session?.meta?.completedUnlocks, completedUnlockIds),
-    nextUnlockedWeapons: appendUnique(session?.meta?.unlockedWeapons, unlockedWeaponIds),
-    nextUnlockedAccessories: appendUnique(session?.meta?.unlockedAccessories, unlockedAccessoryIds),
-    newUnlockRewardTexts: [...(unlockResult.newUnlockRewardTexts ?? [])],
-  };
-}
-
-function buildRunResult(world) {
+export function buildRunResult(world) {
   return {
     kills: world.run.killCount,
     survivalTime: world.run.elapsedTime,
     level: world.entities.player?.level ?? 1,
     weaponsUsed: (world.entities.player?.weapons ?? []).map((weapon) => weapon.id),
+    accessoriesUsed: (world.entities.player?.accessories ?? []).map((accessory) => accessory.id),
+    currencyEarned: world.run.runCurrencyEarned ?? 0,
+    highestCurse: world.entities.player?.curse ?? 0,
+    ascensionLevel: world.run.ascensionLevel ?? 0,
+    ascensionCleared: world.run.runOutcome?.type === 'victory' ? (world.run.ascensionLevel ?? 0) : null,
+    outcome: world.run.runOutcome?.type ?? 'defeat',
+    bossKillCount: world.run.bossKillCount ?? 0,
+    archetypeId: world.run.archetypeId ?? 'vanguard',
+    archetypeName: world.run.archetype?.name ?? world.run.archetypeId ?? 'vanguard',
+    riskRelicId: world.run.riskRelicId ?? null,
+    riskRelicName: world.run.riskRelic?.name ?? world.run.riskRelicId ?? null,
+    stageId: world.run.stageId ?? 'ash_plains',
+    stageName: world.run.stage?.name ?? world.run.stageId ?? 'ash_plains',
+    seedMode: world.run.seedMode ?? 'none',
+    seedLabel: world.run.seedLabel ?? '',
+    deathCause: world.run.lastDamageSource?.label ?? world.run.lastDamageSource?.attackerId ?? null,
   };
 }
 
-function buildWeaponSummary(world) {
+export function buildWeaponSummary(world) {
   return (world.entities.player?.weapons ?? []).map((weapon) => ({
     name: weapon.name ?? weapon.id,
     level: weapon.level ?? 1,
     isEvolved: Boolean(weapon.isEvolved),
   }));
+}
+
+export function buildRecentRunEntry(world, runResult) {
+  return {
+    recordedAt: Date.now(),
+    outcome: runResult.outcome,
+    stageId: runResult.stageId,
+    stageName: runResult.stageName,
+    survivalTime: runResult.survivalTime,
+    killCount: runResult.kills,
+    level: runResult.level,
+    currencyEarned: runResult.currencyEarned,
+    highestCurse: runResult.highestCurse ?? 0,
+    ascensionLevel: runResult.ascensionLevel ?? world.run.ascensionLevel ?? 0,
+    archetypeId: runResult.archetypeId ?? world.run.archetypeId ?? 'vanguard',
+    archetypeName: runResult.archetypeName ?? world.run.archetype?.name ?? world.run.archetypeId ?? 'vanguard',
+    riskRelicId: runResult.riskRelicId ?? world.run.riskRelicId ?? null,
+    riskRelicName: runResult.riskRelicName ?? world.run.riskRelic?.name ?? world.run.riskRelicId ?? null,
+    seedMode: runResult.seedMode ?? world.run.seedMode ?? 'none',
+    seedLabel: runResult.seedLabel ?? '',
+    weaponIds: [...(runResult.weaponsUsed ?? [])],
+    accessoryIds: [...(runResult.accessoriesUsed ?? [])],
+    deathCause: runResult.deathCause ?? null,
+  };
 }
 
 export function buildPlayResultSummary(world, session, {
@@ -61,6 +63,7 @@ export function buildPlayResultSummary(world, session, {
   prevBestLevel = 1,
   prevBestKills = 0,
   newUnlockRewardTexts = [],
+  nextGoals = [],
 } = {}) {
   const runResult = buildRunResult(world);
   const currencyEarned = Math.max(
@@ -68,6 +71,7 @@ export function buildPlayResultSummary(world, session, {
     world.run.runCurrencyEarned ?? 0,
     (session?.meta?.currency ?? 0) - startCurrency,
   );
+  const analytics = buildRunAnalytics(session?.meta ?? {});
 
   return {
     killCount: runResult.kills,
@@ -79,41 +83,17 @@ export function buildPlayResultSummary(world, session, {
     bestTime: prevBestTime,
     bestLevel: prevBestLevel,
     bestKills: prevBestKills,
+    ascensionLevel: world.run.ascensionLevel ?? 0,
+    archetypeName: world.run.archetype?.name ?? world.run.archetypeId ?? 'vanguard',
+    riskRelicName: world.run.riskRelic?.name ?? world.run.riskRelicId ?? null,
+    stageName: world.run.stage?.name ?? world.run.stageId ?? 'ash_plains',
+    seedLabel: world.run.seedLabel ?? '',
+    deathCause: world.run.lastDamageSource?.label ?? world.run.lastDamageSource?.attackerId ?? null,
+    highestAscensionCleared: session?.meta?.highestAscensionCleared ?? 0,
     weapons: buildWeaponSummary(world),
     newUnlocks: [...(newUnlockRewardTexts ?? [])],
+    nextGoals: [...(nextGoals ?? [])],
+    recentRuns: [...(session?.meta?.recentRuns ?? [])].slice(0, 5),
+    analytics,
   };
-}
-
-export function commitPlayResultSession(session, { runResult, unlockResult } = {}, {
-  ensureCodexMetaImpl = ensureCodexMeta,
-  updateSessionBestImpl = updateSessionBest,
-  applyComputedSessionUnlockProgressImpl = applyComputedSessionUnlockProgress,
-  computeSessionUnlockProgressImpl = computeSessionUnlockProgress,
-  persistSessionImpl = persistSession,
-} = {}) {
-  ensureCodexMetaImpl(session);
-  session.meta.totalRuns = (session.meta.totalRuns ?? 0) + 1;
-  updateSessionBestImpl(session, runResult);
-  const unlockProgress = normalizeUnlockProgress(
-    session,
-    unlockResult ?? computeSessionUnlockProgressImpl(session, runResult),
-  );
-  applyComputedSessionUnlockProgressImpl(session, unlockProgress);
-  persistSessionImpl(session);
-  return unlockProgress;
-}
-
-export function processPlayResult(world, session, runtimeState = {}, deps = {}) {
-  const runResult = buildRunResult(world);
-  const unlockProgress = commitPlayResultSession(session, {
-    runResult,
-  }, deps);
-
-  return buildPlayResultSummary(world, session, {
-    startCurrency: runtimeState.startCurrency,
-    prevBestTime: runtimeState.prevBestTime,
-    prevBestLevel: runtimeState.prevBestLevel,
-    prevBestKills: runtimeState.prevBestKills,
-    newUnlockRewardTexts: unlockProgress?.newUnlockRewardTexts,
-  });
 }

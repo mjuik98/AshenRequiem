@@ -9,8 +9,10 @@ import { makePlayer, makeWorld } from './fixtures/index.js';
 import { test, summary }        from './helpers/testRunner.js';
 
 let createSynergySystem;
+let synergyData;
 try {
   ({ createSynergySystem } = await import('../src/systems/progression/SynergySystem.js'));
+  ({ synergyData } = await import('../src/data/synergyData.js'));
 } catch (e) {
   console.warn('[테스트] SynergySystem import 실패 — 스킵:', e.message);
   process.exit(0);
@@ -111,6 +113,19 @@ test('world.player가 null이어도 에러 없음', () => {
   const sys = createSynergySystem();
   assert.doesNotThrow(() =>
     sys.applyAll({ player: null, synergyData: [] })
+  );
+});
+
+test('실제 synergyData는 신규 late-game 시너지 조합을 포함한다', () => {
+  assert.equal(
+    synergyData.some((entry) => entry.id === 'plague_engine'),
+    true,
+    'late-game 늪/화염 조합 시너지가 아직 정의되지 않음',
+  );
+  assert.equal(
+    synergyData.some((entry) => entry.id === 'sunblessed_arc'),
+    true,
+    '태양 광선/번개 계열 시너지가 아직 정의되지 않음',
   );
 });
 

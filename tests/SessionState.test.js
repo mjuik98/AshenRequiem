@@ -58,7 +58,7 @@ function makeMemoryStorage() {
 
 test('createSessionState()는 현재 세션 버전을 반환한다', () => {
   const s = createSessionState();
-  assert.equal(s._version, 5);
+  assert.equal(s._version, 8);
 });
 
 test('createSessionState()의 best 필드명이 올바르다 (kills/survivalTime/level)', () => {
@@ -84,6 +84,14 @@ test('createSessionState()의 meta 필드가 올바르다', () => {
   assert.deepEqual(s.meta.accessoriesOwnedAll, []);
   assert.deepEqual(s.meta.completedUnlocks, []);
   assert.equal(s.meta.selectedStartWeaponId, 'magic_bolt');
+  assert.equal(s.meta.selectedStartAccessoryId, null);
+  assert.equal(s.meta.selectedArchetypeId, 'vanguard');
+  assert.equal(s.meta.selectedRiskRelicId, null);
+  assert.equal(s.meta.selectedStageId, 'ash_plains');
+  assert.equal(s.meta.selectedSeedMode, 'none');
+  assert.equal(s.meta.selectedSeedText, '');
+  assert.deepEqual(s.meta.recentRuns, []);
+  assert.equal(s.activeRun, null);
 });
 
 // ── updateSessionBest ─────────────────────────────────────────────────────
@@ -159,7 +167,7 @@ test('loadSession(): localStorage에 없을 때 기본값을 반환한다 (Node 
   if (typeof localStorage === 'undefined') return; // Node 환경에서는 localStorage 없음
   localStorage.removeItem('ashenRequiem_session');
   const s = loadSession();
-  assert.equal(s._version, 5);
+  assert.equal(s._version, 8);
   assert.equal(s.best.kills, 0);
 });
 
@@ -169,8 +177,19 @@ test('saveSession()/loadSession()은 주입된 저장소로 round-trip 된다', 
 
   const session = makeSessionState({
     best: { kills: 99, survivalTime: 123, level: 8 },
-    meta: { currency: 777, unlockedWeapons: ['magic_bolt', 'holy_aura'] },
+    meta: {
+      currency: 777,
+      unlockedWeapons: ['magic_bolt', 'holy_aura'],
+      selectedStartAccessoryId: 'ring_of_speed',
+      selectedArchetypeId: 'spellweaver',
+      selectedRiskRelicId: 'glass_censer',
+      selectedStageId: 'ember_hollow',
+      selectedSeedMode: 'custom',
+      selectedSeedText: 'ashen-seed',
+      recentRuns: [{ outcome: 'victory', stageId: 'ember_hollow', seedLabel: 'ashen-seed' }],
+    },
     options: { quality: 'high', glowEnabled: false },
+    activeRun: { elapsedTime: 90, seedLabel: 'ashen-seed', stageId: 'ember_hollow' },
   });
 
   saveSession(session);
@@ -181,8 +200,37 @@ test('saveSession()/loadSession()은 주입된 저장소로 round-trip 된다', 
   assert.equal(loaded.meta.unlockedWeapons.includes('magic_bolt'), true);
   assert.equal(loaded.meta.unlockedWeapons.includes('holy_aura'), true);
   assert.equal(loaded.meta.unlockedWeapons.includes('frost_nova'), true);
+  assert.equal(loaded.meta.selectedStartAccessoryId, 'ring_of_speed');
+  assert.equal(loaded.meta.selectedArchetypeId, 'spellweaver');
+  assert.equal(loaded.meta.selectedRiskRelicId, 'glass_censer');
+  assert.equal(loaded.meta.selectedStageId, 'ember_hollow');
+  assert.equal(loaded.meta.selectedSeedMode, 'custom');
+  assert.equal(loaded.meta.selectedSeedText, 'ashen-seed');
+  assert.deepEqual(loaded.meta.recentRuns, [{ outcome: 'victory', stageId: 'ember_hollow', seedLabel: 'ashen-seed' }]);
+  assert.deepEqual(loaded.activeRun, { elapsedTime: 90, seedLabel: 'ashen-seed', stageId: 'ember_hollow' });
   assert.equal(loaded.options.quality, 'high');
   assert.equal(loaded.options.glowEnabled, false);
+
+  resetSessionStorage();
+});
+
+test('loadSession()은 primary save가 손상되어도 backup 슬롯으로 복구한다', () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const healthy = makeSessionState({
+    best: { kills: 13, survivalTime: 210, level: 7 },
+    meta: { currency: 345 },
+  });
+
+  storage.setItem('ashenRequiem_session', '{broken json');
+  storage.setItem('ashenRequiem_session_backup', JSON.stringify(healthy));
+
+  const loaded = loadSession();
+
+  assert.equal(loaded.best.kills, 13);
+  assert.equal(loaded.meta.currency, 345);
+  assert.equal(typeof storage.getItem('ashenRequiem_session_corrupt'), 'string', '손상된 primary snapshot이 보존되지 않음');
 
   resetSessionStorage();
 });
@@ -192,7 +240,7 @@ test('loadSession()은 기존 누적 기록으로 누락된 해금을 복구한�
   setSessionStorage(storage);
 
   storage.setItem('ashenRequiem_session', JSON.stringify({
-    _version: 5,
+    _version: 6,
     best: { kills: 4000, survivalTime: 0, level: 1 },
     meta: {
       currency: 0,
@@ -207,8 +255,14 @@ test('loadSession()은 기존 누적 기록으로 누락된 해금을 복구한�
       unlockedAccessories: [],
       completedUnlocks: [],
       selectedStartWeaponId: 'magic_bolt',
+      selectedStartAccessoryId: null,
+      selectedStageId: 'ash_plains',
+      selectedSeedMode: 'none',
+      selectedSeedText: '',
+      recentRuns: [],
     },
     options: {},
+    activeRun: null,
   }));
 
   const loaded = loadSession();

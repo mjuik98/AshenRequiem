@@ -80,6 +80,10 @@ export const DamageSystem = {
       // 플레이어 피격 무적 (BUG-8 FIX 유지)
       if (target.type === 'player') {
         target.invincibleTimer = target.invincibleDuration ?? 0.5;
+        world.run.lastDamageSource = {
+          attackerId: hit.attackerId ?? null,
+          label: hit.projectile?.weapon?.name ?? hit.projectile?.weapon?.id ?? hit.attackerId ?? 'unknown',
+        };
       }
 
       // 사망 판정

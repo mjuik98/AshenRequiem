@@ -28,7 +28,7 @@ test('domain namespace entrypoints expose play world, loadout, and play result A
   assert.equal(typeof playWorldApi.createPlayWorld, 'function');
   assert.equal(typeof loadoutApi.resolveStartWeaponSelection, 'function');
   assert.equal(typeof loadoutApi.buildPlayerStartWeapons, 'function');
-  assert.equal(typeof playResultApi.processPlayResult, 'function');
+  assert.equal(typeof playResultApi.buildRunResult, 'function');
   assert.equal(typeof playResultApi.buildPlayResultSummary, 'function');
 });
 

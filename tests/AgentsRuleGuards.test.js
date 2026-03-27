@@ -160,6 +160,8 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const unlockProgressRuntimeSource = readProjectSource('../src/progression/unlockProgressRuntime.js');
   const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
   const sessionFacadeSource = readProjectSource('../src/state/sessionFacade.js');
+  const sessionPersistenceServiceSource = readProjectSource('../src/app/session/sessionPersistenceService.js');
+  const loadoutSelectionWriteServiceSource = readProjectSource('../src/app/session/loadoutSelectionWriteService.js');
   const upgradeChoicePoolSource = readProjectSource('../src/progression/upgradeChoicePool.js');
   const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
 
@@ -329,10 +331,33 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    sessionFacadeSource.includes("from '../domain/meta/loadout/startLoadoutDomain.js'")
-      || sessionFacadeSource.includes("from './domain/meta/loadout/startLoadoutDomain.js'"),
+    sessionFacadeSource.includes("from '../app/session/sessionPersistenceService.js'"),
     true,
-    'sessionFacade가 실제 start loadout domain 모듈을 직접 사용하지 않음',
+    'sessionFacade가 session persistence app service를 재노출하지 않음',
+  );
+
+  assert.equal(
+    sessionFacadeSource.includes("from '../app/session/loadoutSelectionWriteService.js'"),
+    true,
+    'sessionFacade가 loadout selection write app service를 재노출하지 않음',
+  );
+
+  assert.equal(
+    loadoutSelectionWriteServiceSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
+    true,
+    'loadoutSelectionWriteService가 실제 start loadout domain 모듈을 사용하지 않음',
+  );
+
+  assert.equal(
+    /saveSession|purchasePermanentUpgrade/.test(loadoutSelectionWriteServiceSource),
+    false,
+    'loadoutSelectionWriteService가 persistence primitive에 직접 결합하고 있음',
+  );
+
+  assert.equal(
+    /from '\.\.\/\.\.\/state\/createSessionState\.js'/.test(sessionPersistenceServiceSource),
+    true,
+    'sessionPersistenceService가 createSessionState persistence primitive를 직접 사용하지 않음',
   );
 
   assert.equal(

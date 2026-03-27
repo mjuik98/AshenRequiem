@@ -1,4 +1,4 @@
-import { processPlayResult } from '../../domain/meta/progression/playResultDomain.js';
+import { processPlayResult } from './playResultSessionService.js';
 
 export function capturePlayResultRuntimeState(session) {
   return {

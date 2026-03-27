@@ -177,4 +177,42 @@ test('적 사망 시 session.meta.currency 누적', () => {
   );
 });
 
+test('Ascension 보상 modifier는 적 처치 재화를 증가시킨다', () => {
+  if (!DeathSystem) return;
+  const enemy = makeEnemy({ currencyValue: 5 });
+  const events = makeEvents({ deaths: [{ entity: enemy }] });
+  const world = makeWorld({
+    entities: { enemies: [enemy], player: makePlayer({ currencyMult: 1 }) },
+    queues: { events },
+    run: { ascension: { level: 3, rewardMult: 1.4 } },
+  });
+
+  run(world);
+
+  assert.equal(
+    world.queues.events.currencyEarned[0]?.amount,
+    7,
+    'Ascension reward multiplier가 currency reward에 반영되지 않음',
+  );
+});
+
+test('Stage 보상 modifier는 적 처치 재화를 증가시킨다', () => {
+  if (!DeathSystem) return;
+  const enemy = makeEnemy({ currencyValue: 5 });
+  const events = makeEvents({ deaths: [{ entity: enemy }] });
+  const world = makeWorld({
+    entities: { enemies: [enemy], player: makePlayer({ currencyMult: 1 }) },
+    queues: { events },
+    run: { stage: { id: 'ember_hollow', rewardMult: 1.2 } },
+  });
+
+  run(world);
+
+  assert.equal(
+    world.queues.events.currencyEarned[0]?.amount,
+    6,
+    'Stage reward multiplier가 currency reward에 반영되지 않음',
+  );
+});
+
 summary();

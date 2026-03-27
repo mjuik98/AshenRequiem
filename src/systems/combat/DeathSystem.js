@@ -31,7 +31,7 @@ export const DeathSystem = {
         world.run.killCount++;
 
         if (world.queues.events.currencyEarned) {
-          const reward = _calcCurrencyReward(entity, world.entities.player);
+          const reward = _calcCurrencyReward(entity, world.entities.player, world.run.ascension, world.run.stage);
           world.queues.events.currencyEarned.push({ amount: reward });
         }
 
@@ -231,10 +231,12 @@ function _getXpGemColor(xpValue) {
   return '#ef5350';
 }
 
-export function _calcCurrencyReward(enemy, player) {
+export function _calcCurrencyReward(enemy, player, ascension = null, stage = null) {
   const base = enemy.currencyValue ?? 1;
   const mult = player?.currencyMult ?? 1;
-  if (enemy.isBoss)  return Math.round(base * 20 * mult);
-  if (enemy.isElite) return Math.round(base * 5  * mult);
-  return Math.round(base * mult);
+  const ascensionRewardMult = ascension?.rewardMult ?? 1;
+  const stageRewardMult = stage?.rewardMult ?? 1;
+  if (enemy.isBoss)  return Math.round(base * 20 * mult * ascensionRewardMult * stageRewardMult);
+  if (enemy.isElite) return Math.round(base * 5  * mult * ascensionRewardMult * stageRewardMult);
+  return Math.round(base * mult * ascensionRewardMult * stageRewardMult);
 }

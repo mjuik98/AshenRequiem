@@ -25,6 +25,14 @@ export const TITLE_SCREEN_HTML = `
           <span class="t-btn-badge">▶</span>
         </button>
 
+        <button class="t-btn" id="title-continue" data-action="continue" type="button" disabled>
+          <span class="t-btn-left">
+            <span class="t-btn-label">Continue</span>
+            <span class="t-btn-meta">이어할 런이 없습니다</span>
+          </span>
+          <span class="t-btn-badge">↺</span>
+        </button>
+
         <button class="t-btn" id="title-shop" data-action="shop" type="button">
           <span class="t-btn-left">
             <span class="t-btn-label">Meta Shop</span>
@@ -215,6 +223,12 @@ const TITLE_STYLES = `
       linear-gradient(180deg, rgba(241,209,138,0.06), rgba(255,255,255,0)),
       rgba(10,7,16,0.76);
     box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+  }
+  .t-btn:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.2);
   }
   .t-btn:focus-visible { outline: 2px solid var(--t-focus); outline-offset: 3px; }
 

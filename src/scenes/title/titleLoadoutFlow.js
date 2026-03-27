@@ -36,14 +36,14 @@ export async function openTitleStartLoadout(scene, {
     onCancel: () => {
       setMessage('게임 시작 입력을 기다리는 중입니다.');
     },
-    onStart: (weaponId) => {
+    onStart: (weaponId, runOptions) => {
       if (!loadoutConfig.canStart || !weaponId) {
         setMessage('시작 가능한 기본 무기가 없습니다.');
         return;
       }
 
       const titleLoadoutService = createTitleLoadoutServiceImpl(scene.game);
-      const startResult = titleLoadoutService.startRun(weaponId);
+      const startResult = titleLoadoutService.startRun(weaponId, runOptions);
       if (!startResult?.saved) {
         setMessage('시작 가능한 기본 무기가 없습니다.');
         return;

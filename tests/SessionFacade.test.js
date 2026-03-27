@@ -5,6 +5,12 @@ let setSessionStorage;
 let resetSessionStorage;
 let updateSessionOptionsAndSave;
 let setSelectedStartWeaponAndSave;
+let setSelectedAscensionAndSave;
+let setSelectedStartAccessoryAndSave;
+let setSelectedArchetypeAndSave;
+let setSelectedRiskRelicAndSave;
+let setSelectedStageAndSave;
+let setRunSeedSelectionAndSave;
 let purchasePermanentUpgradeAndSave;
 
 try {
@@ -15,6 +21,12 @@ try {
   ({
     updateSessionOptionsAndSave,
     setSelectedStartWeaponAndSave,
+    setSelectedAscensionAndSave,
+    setSelectedStartAccessoryAndSave,
+    setSelectedArchetypeAndSave,
+    setSelectedRiskRelicAndSave,
+    setSelectedStageAndSave,
+    setRunSeedSelectionAndSave,
     purchasePermanentUpgradeAndSave,
   } = await import('../src/state/sessionFacade.js'));
 } catch (e) {
@@ -135,6 +147,100 @@ await test('setSelectedStartWeaponAndSave()는 시작 후보가 없으면 저장
   assert.deepEqual(result, { saved: false, selectedWeaponId: 'magic_bolt' });
   assert.equal(session.meta.selectedStartWeaponId, 'magic_bolt');
   assert.equal(storage.getItem('ashenRequiem_session'), null);
+});
+
+await test('setSelectedAscensionAndSave()는 Ascension 선택을 저장한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState({
+    meta: {
+      selectedAscensionLevel: 0,
+    },
+  });
+  const result = setSelectedAscensionAndSave(session, 3);
+
+  assert.deepEqual(result, { saved: true, selectedAscensionLevel: 3 });
+  assert.equal(session.meta.selectedAscensionLevel, 3);
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedAscensionLevel":3/);
+});
+
+await test('setSelectedStartAccessoryAndSave()는 시작 장신구 선택을 저장한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState({
+    meta: {
+      unlockedAccessories: ['ring_of_speed', 'iron_heart'],
+      selectedStartAccessoryId: null,
+    },
+  });
+  const result = setSelectedStartAccessoryAndSave(session, 'iron_heart', {
+    accessoryData: [
+      { id: 'ring_of_speed' },
+      { id: 'iron_heart' },
+    ],
+  });
+
+  assert.deepEqual(result, { saved: true, selectedStartAccessoryId: 'iron_heart' });
+  assert.equal(session.meta.selectedStartAccessoryId, 'iron_heart');
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedStartAccessoryId":"iron_heart"/);
+});
+
+await test('setSelectedArchetypeAndSave()와 setSelectedRiskRelicAndSave()는 새 로드아웃 선택을 저장한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState();
+  const archetype = setSelectedArchetypeAndSave(session, 'spellweaver', {
+    archetypeData: [{ id: 'vanguard' }, { id: 'spellweaver' }],
+  });
+  const relic = setSelectedRiskRelicAndSave(session, 'glass_censer', {
+    riskRelicData: [{ id: 'glass_censer' }, { id: 'blood_price' }],
+  });
+
+  assert.deepEqual(archetype, { saved: true, selectedArchetypeId: 'spellweaver' });
+  assert.deepEqual(relic, { saved: true, selectedRiskRelicId: 'glass_censer' });
+  assert.equal(session.meta.selectedArchetypeId, 'spellweaver');
+  assert.equal(session.meta.selectedRiskRelicId, 'glass_censer');
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedArchetypeId":"spellweaver"/);
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedRiskRelicId":"glass_censer"/);
+});
+
+await test('setSelectedStageAndSave()는 유효한 스테이지 선택을 저장한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState();
+  const result = setSelectedStageAndSave(session, 'ember_hollow');
+
+  assert.deepEqual(result, { saved: true, selectedStageId: 'ember_hollow' });
+  assert.equal(session.meta.selectedStageId, 'ember_hollow');
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedStageId":"ember_hollow"/);
+});
+
+await test('setRunSeedSelectionAndSave()는 custom/daily 시드 모드를 저장한다', async () => {
+  const storage = makeMemoryStorage();
+  setSessionStorage(storage);
+
+  const session = makeSessionState();
+  const result = setRunSeedSelectionAndSave(session, {
+    seedMode: 'custom',
+    seedText: 'ashen-seed',
+  });
+
+  assert.deepEqual(result, { saved: true, selectedSeedMode: 'custom', selectedSeedText: 'ashen-seed' });
+  assert.equal(session.meta.selectedSeedMode, 'custom');
+  assert.equal(session.meta.selectedSeedText, 'ashen-seed');
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedSeedMode":"custom"/);
+  assert.match(storage.getItem('ashenRequiem_session') ?? '', /"selectedSeedText":"ashen-seed"/);
+
+  const daily = setRunSeedSelectionAndSave(session, {
+    seedMode: 'daily',
+  });
+  assert.deepEqual(daily, { saved: true, selectedSeedMode: 'daily', selectedSeedText: '' });
+  assert.equal(session.meta.selectedSeedMode, 'daily');
+  assert.equal(session.meta.selectedSeedText, '');
 });
 
 await test('purchasePermanentUpgradeAndSave()는 성공 시에만 저장한다', async () => {

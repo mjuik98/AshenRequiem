@@ -13,6 +13,7 @@ import {
   applyComputedSessionUnlockProgress,
   computeSessionUnlockProgress,
 } from './unlockProgressFacade.js';
+import { normalizeAscensionLevel } from '../data/ascensionData.js';
 
 export function createDefaultSessionMeta() {
   return {
@@ -29,6 +30,15 @@ export function createDefaultSessionMeta() {
     unlockedAccessories:   getDefaultUnlockedAccessoryIds(),
     completedUnlocks:      [],
     selectedStartWeaponId: 'magic_bolt',
+    selectedStartAccessoryId: null,
+    selectedArchetypeId:   'vanguard',
+    selectedRiskRelicId:   null,
+    selectedStageId: 'ash_plains',
+    selectedSeedMode: 'none',
+    selectedSeedText: '',
+    recentRuns:            [],
+    selectedAscensionLevel: 0,
+    highestAscensionCleared: 0,
   };
 }
 
@@ -64,10 +74,37 @@ export function ensureCodexMeta(session) {
   meta.completedUnlocks = Array.isArray(meta.completedUnlocks)
     ? [...meta.completedUnlocks]
     : [...defaults.completedUnlocks];
+  meta.selectedStartAccessoryId = typeof meta.selectedStartAccessoryId === 'string'
+    && meta.unlockedAccessories.includes(meta.selectedStartAccessoryId)
+    ? meta.selectedStartAccessoryId
+    : null;
+  meta.selectedArchetypeId = typeof meta.selectedArchetypeId === 'string'
+    ? meta.selectedArchetypeId
+    : defaults.selectedArchetypeId;
+  meta.selectedRiskRelicId = typeof meta.selectedRiskRelicId === 'string'
+    ? meta.selectedRiskRelicId
+    : defaults.selectedRiskRelicId;
+  meta.selectedStageId = typeof meta.selectedStageId === 'string'
+    ? meta.selectedStageId
+    : defaults.selectedStageId;
+  meta.selectedSeedMode = typeof meta.selectedSeedMode === 'string'
+    ? meta.selectedSeedMode
+    : defaults.selectedSeedMode;
+  meta.selectedSeedText = typeof meta.selectedSeedText === 'string'
+    ? meta.selectedSeedText
+    : defaults.selectedSeedText;
+  meta.recentRuns = Array.isArray(meta.recentRuns)
+    ? [...meta.recentRuns]
+    : [...defaults.recentRuns];
   meta.selectedStartWeaponId = typeof meta.selectedStartWeaponId === 'string'
     && meta.unlockedWeapons.includes(meta.selectedStartWeaponId)
     ? meta.selectedStartWeaponId
     : meta.unlockedWeapons[0] ?? defaults.selectedStartWeaponId;
+  meta.selectedAscensionLevel = normalizeAscensionLevel(meta.selectedAscensionLevel ?? defaults.selectedAscensionLevel);
+  meta.highestAscensionCleared = Math.max(
+    0,
+    normalizeAscensionLevel(meta.highestAscensionCleared ?? defaults.highestAscensionCleared),
+  );
 
   return meta;
 }

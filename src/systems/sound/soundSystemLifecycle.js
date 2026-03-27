@@ -1,20 +1,16 @@
 import { createSoundGraph, disconnectSoundGraph } from './soundGraph.js';
 import { resetSoundSystemRuntime } from './soundSystemState.js';
 
-function defaultAudioContextFactory() {
-  const AudioCtx = globalThis.window?.AudioContext || globalThis.window?.webkitAudioContext;
-  return AudioCtx ? new AudioCtx() : null;
-}
-
 export function initSoundSystemContext(target, {
-  createAudioContext = defaultAudioContextFactory,
+  createAudioContext = target?._createAudioContext,
   createGraph = createSoundGraph,
   warn = (...args) => console.warn(...args),
 } = {}) {
   if (target._ctx) return target._ctx;
 
   try {
-    const ctx = createAudioContext();
+    const factory = typeof createAudioContext === 'function' ? createAudioContext : (() => null);
+    const ctx = factory();
     if (!ctx) {
       throw new Error('AudioContext unsupported');
     }

@@ -67,6 +67,25 @@ function renderCurrency(earned, total) {
   `;
 }
 
+function renderAscension(stats) {
+  const level = stats.ascensionLevel ?? 0;
+  const highest = stats.highestAscensionCleared ?? 0;
+
+  return `
+    <p class="result-section-title">Ascension</p>
+    <div class="result-currency-row">
+      <div>
+        <div class="result-currency-label">이번 런</div>
+        <div class="result-currency-earn">A${escapeHtml(String(level))}</div>
+      </div>
+      <div class="result-currency-total-wrap">
+        <div class="result-currency-label">최고 클리어</div>
+        <div class="result-currency-total">A${escapeHtml(String(highest))}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderUnlocks(unlocks) {
   const chips = unlocks.map((unlock) => `
     <div class="result-unlock-chip">⚡ ${escapeHtml(unlock)}</div>
@@ -76,6 +95,65 @@ function renderUnlocks(unlocks) {
     <div class="result-divider"></div>
     <p class="result-section-title">이번 런 해금</p>
     <div class="result-unlocks">${chips}</div>
+  `;
+}
+
+function renderNextGoals(nextGoals = []) {
+  if (!nextGoals?.length) return '';
+
+  const chips = nextGoals.map((goal) => `
+    <div class="result-unlock-chip">
+      ${escapeHtml(goal.icon ?? '✦')} ${escapeHtml(goal.title ?? '')}
+      ${goal.progressText ? ` · ${escapeHtml(goal.progressText)}` : ''}
+    </div>
+  `).join('');
+
+  return `
+    <div class="result-divider"></div>
+    <p class="result-section-title">다음 목표</p>
+    <div class="result-unlocks">${chips}</div>
+  `;
+}
+
+function renderRunContext(stats) {
+  const parts = [
+    stats.archetypeName ? `Archetype ${stats.archetypeName}` : null,
+    stats.riskRelicName ? `Relic ${stats.riskRelicName}` : null,
+    stats.stageName ?? null,
+    stats.seedLabel ? `Seed ${stats.seedLabel}` : null,
+    stats.outcome === 'defeat' && stats.deathCause ? `마지막 타격 ${stats.deathCause}` : null,
+  ].filter(Boolean);
+
+  if (parts.length === 0) return '';
+
+  return `
+    <div class="result-divider"></div>
+    <p class="result-section-title">런 컨텍스트</p>
+    <div class="result-unlocks">
+      ${parts.map((part) => `<div class="result-unlock-chip">${escapeHtml(part)}</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderRecentRuns(recentRuns = []) {
+  if (!recentRuns.length) return '';
+
+  const rows = recentRuns.slice(0, 5).map((run) => {
+    const minutes = Math.floor((run.survivalTime ?? 0) / 60);
+    const seconds = String(Math.floor((run.survivalTime ?? 0) % 60)).padStart(2, '0');
+    return `
+      <div class="result-weapon-chip">
+        <span class="result-weapon-name">${escapeHtml(run.stageName ?? run.stageId ?? 'Unknown Stage')}</span>
+        <span class="result-weapon-lv">${escapeHtml(`${minutes}:${seconds}`)}</span>
+        <span class="result-weapon-evo">${run.outcome === 'victory' ? '승리' : '패배'}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="result-divider"></div>
+    <p class="result-section-title">최근 런</p>
+    <div class="result-weapons">${rows}</div>
   `;
 }
 
@@ -125,8 +203,22 @@ export function renderResultViewMarkup(stats, { onTitleCallback = null } = {}) {
 
         ${renderWeapons(stats.weapons)}
         <div class="result-divider"></div>
+        ${renderAscension(stats)}
         ${renderCurrency(stats.currencyEarned, stats.totalCurrency)}
+        ${renderRunContext(stats)}
+        ${stats.analytics?.deathCauseSummary?.length
+          ? `
+            <div class="result-divider"></div>
+            <p class="result-section-title">최근 분석</p>
+            <div class="result-unlocks">
+              <div class="result-unlock-chip">주요 패배 원인 ${escapeHtml(stats.analytics.deathCauseSummary[0].deathCause)}</div>
+              <div class="result-unlock-chip">최근 승률 ${escapeHtml(String(Math.round(stats.analytics.winRate ?? 0)))}%</div>
+            </div>
+          `
+          : ''}
+        ${renderNextGoals(stats.nextGoals)}
         ${stats.newUnlocks?.length ? renderUnlocks(stats.newUnlocks) : ''}
+        ${renderRecentRuns(stats.recentRuns)}
       </div>
 
       <div class="result-footer">

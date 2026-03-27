@@ -38,6 +38,10 @@ const DOMAIN_FORBIDDEN_SEGMENTS = [
   '/scenes/',
 ];
 
+const PLAY_RESULT_DOMAIN_PATH = 'src/domain/meta/progression/playResultDomain.js';
+const RENDER_SYSTEM_PATH = 'src/systems/render/RenderSystem.js';
+const SOUND_SFX_CONTROLLER_PATH = 'src/systems/sound/soundSfxController.js';
+
 function walkFiles(dirPath, bucket = []) {
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     const nextPath = path.join(dirPath, entry.name);
@@ -147,6 +151,42 @@ function findSceneToSystemsViolations(imports) {
     }));
 }
 
+function findPlayResultDomainViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile === PLAY_RESULT_DOMAIN_PATH)
+    .filter(({ targetFile }) => targetFile.startsWith('src/state/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'play-result-domain-state',
+      sourceFile,
+      targetFile,
+      message: `play result domain must stay pure of state/session infrastructure: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findRenderSystemBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile === RENDER_SYSTEM_PATH)
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'render-system-browser',
+      sourceFile,
+      targetFile,
+      message: `render system must consume injected runtime services instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findSoundSfxBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile === SOUND_SFX_CONTROLLER_PATH)
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'sound-sfx-browser',
+      sourceFile,
+      targetFile,
+      message: `sound sfx controller must consume injected runtime services instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 function findMigratedWrapperViolations(imports) {
   return imports
     .filter(({ sourceFile }) => REPO_INTERNAL_PREFIXES.some((prefix) => sourceFile.startsWith(prefix)))
@@ -166,6 +206,9 @@ export function collectBoundaryViolations() {
     ...findShimViolations(sourceImports),
     ...findDomainViolations(sourceImports),
     ...findSceneToSystemsViolations(sourceImports),
+    ...findPlayResultDomainViolations(sourceImports),
+    ...findRenderSystemBrowserViolations(sourceImports),
+    ...findSoundSfxBrowserViolations(sourceImports),
     ...findMigratedWrapperViolations(repoImports),
   ];
 }

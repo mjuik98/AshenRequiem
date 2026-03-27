@@ -63,6 +63,7 @@
  * @property {object[]}     weaponAcquired
  * @property {object[]}     accessoryAcquired
  * @property {object[]}     chestCollected
+ * @property {object[]}     stageEventTriggered
  */
 
 // ─────────────────────────────────────────────────────────────
@@ -91,6 +92,9 @@
  * @property {object[]} bossData
  * @property {object[]} synergyData
  * @property {object[]} statusEffectData
+ * @property {object[]} stageData
+ * @property {object[]} archetypeData
+ * @property {object[]} riskRelicData
  */
 
 // ─────────────────────────────────────────────────────────────

@@ -36,6 +36,7 @@ import { EffectTickSystem }     from './spawn/EffectTickSystem.js';
 import { FlushSystem }          from './spawn/FlushSystem.js';
 import { CameraSystem }         from './camera/CameraSystem.js';
 import { RenderSystem }         from './render/RenderSystem.js';
+import { StageRuntimeSystem }   from './stage/StageRuntimeSystem.js';
 
 /**
  * 파이프라인 시스템 등록 목록 — 상태 없는 싱글턴 시스템만 포함.
@@ -54,6 +55,7 @@ export const SYSTEM_REGISTRY = [
   { name: 'PendingEventPumpSystem', system: PendingEventPumpSystem, priority: 5   },
 
   // priority 20: 플레이어 이동 (상태 없음 → 싱글턴 유지)
+  { name: 'StageRuntimeSystem',     system: StageRuntimeSystem,    priority: 12  },
   { name: 'PlayerMovementSystem',   system: PlayerMovementSystem,  priority: 20  },
 
   // priority 30: EnemyMovementSystem → PipelineBuilder에서 팩토리 등록
@@ -108,6 +110,7 @@ export {
   FlushSystem,
   CameraSystem,
   RenderSystem,
+  StageRuntimeSystem,
 };
 
 // 팩토리 시스템 re-export (직접 접근이 필요한 경우)

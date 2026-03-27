@@ -321,6 +321,20 @@ await test('codex records helper packages summary, achievements, and unlock entr
         evolvedWeapons: ['arcane_tempest'],
         totalRuns: 3,
         currency: 77,
+        recentRuns: [
+          {
+            outcome: 'defeat',
+            stageId: 'ember_hollow',
+            stageName: 'Ember Hollow',
+            survivalTime: 180,
+            killCount: 32,
+            level: 8,
+            deathCause: 'boss_lich',
+            weaponIds: ['magic_bolt'],
+            accessoryIds: ['iron_heart'],
+            archetypeId: 'vanguard',
+          },
+        ],
       },
       best: {
         survivalTime: 620,
@@ -341,6 +355,10 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(model.highlights.length >= 4, true);
   assert.equal(model.focusGoals.length > 0, true);
   assert.equal(model.discoveryFocus.length === 3, true);
+  assert.equal(Array.isArray(model.analytics.stageRecords), true);
+  assert.equal(model.analytics.favoriteLoadout.weaponId, 'magic_bolt');
+  assert.equal(model.favoriteLoadout.weaponName, 'Magic Bolt');
+  assert.equal(model.favoriteLoadout.archetypeName, 'Vanguard');
 
   const discovery = codexRecords.buildCodexDiscoverySummary({
     session: {
@@ -373,6 +391,20 @@ await test('codex records helper packages summary, achievements, and unlock entr
         evolvedWeapons: ['arcane_tempest'],
         totalRuns: 3,
         currency: 77,
+        recentRuns: [
+          {
+            outcome: 'defeat',
+            stageId: 'ember_hollow',
+            stageName: 'Ember Hollow',
+            survivalTime: 180,
+            killCount: 32,
+            level: 8,
+            deathCause: 'boss_lich',
+            weaponIds: ['magic_bolt'],
+            accessoryIds: ['iron_heart'],
+            archetypeId: 'vanguard',
+          },
+        ],
       },
       best: {
         survivalTime: 620,
@@ -390,6 +422,11 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(html.includes('cx-records-hero'), true);
   assert.equal(html.includes('cx-records-focus'), true);
   assert.equal(html.includes('다음 목표'), true);
+  assert.equal(html.includes('주력 로드아웃'), true);
+  assert.equal(html.includes('주요 패배 원인'), true);
+  assert.equal(html.includes('magic_bolt'), false, '기록 탭 주력 로드아웃이 raw weapon id를 노출하면 안 됨');
+  assert.equal(html.includes('Magic Bolt'), true, '기록 탭 주력 로드아웃이 weapon name을 보여주지 않음');
+  assert.equal(html.includes('Vanguard'), true, '기록 탭 주력 archetype 이름이 표시되지 않음');
 });
 
 await test('codex styles live in a dedicated module', async () => {

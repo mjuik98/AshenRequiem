@@ -16,6 +16,26 @@ export const enemyData = [
     deathSpawn: { enemyId: 'mini_slime', count: 2 },
   },
   { id: 'mini_slime', name: 'Mini Slime', hp: 2, moveSpeed: 70, damage: 2, xpValue: 1, radius: 7, color: '#80cbc4' },
+  {
+    id: 'cultist', name: 'Ash Cultist',
+    hp: 14, moveSpeed: 78, damage: 8, xpValue: 5, radius: 12, color: '#ce93d8',
+    behaviorId: 'rangedChase',
+    behaviorState: () => ({ shootTimer: 0.9 }),
+    projectileConfig: { damage: 8, speed: 230, radius: 6, color: '#ffcc80', pierce: 1 },
+  },
+  {
+    id: 'grave_hound', name: 'Grave Hound',
+    hp: 12, moveSpeed: 118, damage: 10, xpValue: 4, radius: 11, color: '#aed581',
+    behaviorId: 'dash',
+    behaviorState: () => ({ phase: 'idle', timer: 1.1, dashDirX: 0, dashDirY: 0 }),
+  },
+  {
+    id: 'ember_mage', name: 'Ember Mage',
+    hp: 18, moveSpeed: 72, damage: 11, xpValue: 6, radius: 13, color: '#ff8a65',
+    behaviorId: 'rangedChase',
+    behaviorState: () => ({ shootTimer: 1.3 }),
+    projectileConfig: { damage: 10, speed: 250, radius: 7, color: '#ffab91', pierce: 1 },
+  },
 
   // ── 엘리트 ───────────────────────────────────────────────────
   {
@@ -39,6 +59,14 @@ export const enemyData = [
     behaviorId: 'circle_dash',
     behaviorState: () => ({ phase: 'idle', timer: 1.2, orbitAngle: 0, dashDirX: 0, dashDirY: 0 }),
     projectileConfig: { damage: 6, speed: 200, radius: 6, color: '#e0e0e0', pierce: 1 },
+  },
+  {
+    id: 'elite_cultist', name: 'Elite Cultist',
+    hp: 42, moveSpeed: 84, damage: 14, xpValue: 18, radius: 15, color: '#f48fb1',
+    isElite: true,
+    behaviorId: 'rangedChase',
+    behaviorState: () => ({ shootTimer: 0.7 }),
+    projectileConfig: { damage: 12, speed: 250, radius: 7, color: '#ffe082', pierce: 1 },
   },
 
   // ── 보스 ──────────────────────────────────────────────────────

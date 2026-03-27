@@ -205,6 +205,42 @@ export const accessoryData = [
     maxLevel: 5,
     effects: [{ stat: 'projectileLifetimeMult', value: 0.10, valuePerLevel: 0.10 }],
   },
+  {
+    id: 'ember_censer',
+    name: '잿불 향로',
+    icon: '🕯',
+    description: '모든 무기 데미지 +8%, 골드 획득 +8%',
+    rarity: 'rare',
+    maxLevel: 5,
+    effects: [
+      { stat: 'damageMult', value: 1.08, valuePerLevel: 0.08 },
+      { stat: 'currencyMult', value: 0.08, valuePerLevel: 0.08 },
+    ],
+  },
+  {
+    id: 'cursed_dial',
+    name: '저주의 다이얼',
+    icon: '🜏',
+    description: '무기 쿨다운 5% 단축, 저주 +10%',
+    rarity: 'rare',
+    maxLevel: 5,
+    effects: [
+      { stat: 'cooldownMult', value: -0.05, valuePerLevel: -0.05 },
+      { stat: 'curse', value: 0.10, valuePerLevel: 0.10 },
+    ],
+  },
+  {
+    id: 'ashen_feather',
+    name: '재의 깃털',
+    icon: '🪶',
+    description: '이동 속도 +12, 크리티컬 확률 +4%',
+    rarity: 'rare',
+    maxLevel: 5,
+    effects: [
+      { stat: 'moveSpeed', value: 12, valuePerLevel: 12 },
+      { stat: 'critChance', value: 0.04, valuePerLevel: 0.04 },
+    ],
+  },
 ];
 
 /** id로 장신구 데이터 조회 */

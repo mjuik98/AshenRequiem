@@ -28,6 +28,15 @@ test('ensureCodexMeta()는 도감 메타 필드를 기본값으로 보완한다'
   assert.deepEqual(meta.accessoriesOwnedAll, []);
   assert.deepEqual(meta.evolvedWeapons, []);
   assert.equal(meta.totalRuns, 0);
+  assert.equal(meta.selectedStartAccessoryId, null);
+  assert.equal(meta.selectedArchetypeId, 'vanguard');
+  assert.equal(meta.selectedRiskRelicId, null);
+  assert.equal(meta.selectedStageId, 'ash_plains');
+  assert.equal(meta.selectedSeedMode, 'none');
+  assert.equal(meta.selectedSeedText, '');
+  assert.deepEqual(meta.recentRuns, []);
+  assert.equal(meta.selectedAscensionLevel, 0);
+  assert.equal(meta.highestAscensionCleared, 0);
 });
 
 test('appendUnique()는 배열을 중복 없이 병합한다', () => {

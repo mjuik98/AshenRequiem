@@ -3,6 +3,8 @@ import { SoundSystem } from '../systems/sound/SoundSystem.js';
 import { NullSoundSystem } from '../systems/sound/NullSoundSystem.js';
 import { PipelineProfiler } from '../systems/debug/PipelineProfiler.js';
 import { EventRegistry } from '../systems/event/EventRegistry.js';
+import { getNowSeconds } from '../adapters/browser/runtimeEnv.js';
+import { createBrowserAudioContextFactory } from '../adapters/browser/audioRuntime.js';
 
 import { createProjectile, resetProjectile } from '../entities/createProjectile.js';
 import { createEffect, resetEffect } from '../entities/createEffect.js';
@@ -21,7 +23,10 @@ function createSoundRuntime(soundEnabled) {
     return new NullSoundSystem();
   }
 
-  const soundSystem = new SoundSystem();
+  const soundSystem = new SoundSystem({
+    nowSeconds: getNowSeconds,
+    createAudioContext: createBrowserAudioContextFactory(),
+  });
   soundSystem.init();
   return soundSystem;
 }
@@ -46,6 +51,7 @@ export function createPlayContextRuntimeState({
     profiler: profilingEnabled ? new PipelineProfiler() : null,
     canvas,
     renderer,
+    nowSeconds: getNowSeconds,
     session,
     bossAnnouncementView: null,
     weaponEvolutionView: null,
@@ -60,6 +66,7 @@ export function createPlayContextServices({
   soundSystem,
   canvas,
   renderer,
+  nowSeconds,
   bossAnnouncementView,
   weaponEvolutionView,
 }) {
@@ -71,6 +78,7 @@ export function createPlayContextServices({
     soundSystem,
     canvas,
     renderer,
+    nowSeconds,
     bossAnnouncementView,
     weaponEvolutionView,
   };

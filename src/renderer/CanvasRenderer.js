@@ -114,19 +114,20 @@ export class CanvasRenderer {
     ctx.restore();
   }
 
-  drawBackground(camera) {
+  drawBackground(camera, stage = null) {
     const ctx      = this.ctx;
     const w        = GameConfig.canvasWidth;
     const h        = GameConfig.canvasHeight;
     const gridSize = 50;
+    const background = stage?.background ?? {};
 
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = background.fillStyle ?? '#0d1117';
     ctx.fillRect(0, 0, w, h);
 
     const offsetX = ((-camera.x % gridSize) + gridSize) % gridSize;
     const offsetY = ((-camera.y % gridSize) + gridSize) % gridSize;
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = background.gridColor ?? 'rgba(255,255,255,0.04)';
     ctx.lineWidth   = 1;
 
     ctx.beginPath();
@@ -142,6 +143,21 @@ export class CanvasRenderer {
       ctx.lineTo(w, y);
     }
     ctx.stroke();
+
+    if (background.accentColor) {
+      const gradient = ctx.createRadialGradient(
+        w * 0.5,
+        h * 0.5,
+        0,
+        w * 0.5,
+        h * 0.5,
+        Math.max(w, h) * 0.65,
+      );
+      gradient.addColorStop(0, background.accentColor);
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, w, h);
+    }
   }
 
   // ── IRenderer 구현 ───────────────────────────────────────────────────────

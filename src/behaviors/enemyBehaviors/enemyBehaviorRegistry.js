@@ -32,6 +32,7 @@ import { keepDistance } from './keepDistance.js';
 import { swarm }       from './swarm.js';
 import { dash }        from './dash.js';
 import { circleDash }  from './circleDash.js';
+import { rangedChase } from './rangedChase.js';
 
 const registry = {
   chase,
@@ -39,6 +40,7 @@ const registry = {
   circle,
   keepDistance,
   swarm,
+  rangedChase,
   // ── 엘리트 / 보스 전용 ─────────────────────────────────
   dash,
   circle_dash: circleDash,

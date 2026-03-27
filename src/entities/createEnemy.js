@@ -24,6 +24,35 @@ function applyCurseSnapshot(enemy, curseSnapshot) {
   }
 }
 
+function applyAscensionSnapshot(enemy, ascensionSnapshot) {
+  if (!ascensionSnapshot || enemy.isProp) return;
+
+  const hpMult = ascensionSnapshot.enemyHpMult ?? 1;
+  const damageMult = ascensionSnapshot.enemyDamageMult ?? 1;
+  const speedMult = ascensionSnapshot.enemySpeedMult ?? 1;
+  const xpMult = ascensionSnapshot.enemyXpMult ?? 1;
+
+  enemy.maxHp = Math.max(1, Math.round(enemy.maxHp * hpMult));
+  enemy.hp = enemy.maxHp;
+  enemy.damage = Math.max(1, Math.round(enemy.damage * damageMult));
+  enemy.moveSpeed = Math.max(0, Math.round(enemy.moveSpeed * speedMult));
+
+  if ((enemy.xpValue ?? 0) > 0) {
+    enemy.xpValue = Math.max(1, Math.round(enemy.xpValue * xpMult));
+  }
+}
+
+function applyStageSnapshot(enemy, stageSnapshot) {
+  if (!stageSnapshot || enemy.isProp) return;
+
+  const hpMult = stageSnapshot.enemyHpMult ?? 1;
+  const speedMult = stageSnapshot.enemySpeedMult ?? 1;
+
+  enemy.maxHp = Math.max(1, Math.round(enemy.maxHp * hpMult));
+  enemy.hp = enemy.maxHp;
+  enemy.moveSpeed = Math.max(0, Math.round(enemy.moveSpeed * speedMult));
+}
+
 export function createEnemy(enemyId = 'zombie', x = 0, y = 0, runtimeConfig = {}) {
   const data = getEnemyDataById(enemyId);
 
@@ -65,6 +94,8 @@ export function createEnemy(enemyId = 'zombie', x = 0, y = 0, runtimeConfig = {}
     pendingDestroy:  false,
   };
 
+  applyStageSnapshot(enemy, runtimeConfig.stageSnapshot);
+  applyAscensionSnapshot(enemy, runtimeConfig.ascensionSnapshot);
   applyCurseSnapshot(enemy, runtimeConfig.curseSnapshot);
 
   // CHANGE(P2-D): 개발 모드에서 엔티티 계약 검증 (프로덕션에서 tree-shake)
@@ -114,6 +145,8 @@ export function resetEnemy(enemy, config) {
   enemy.bossPhaseState   = null;
   enemy.isAlive          = true;
   enemy.pendingDestroy   = false;
+  applyStageSnapshot(enemy, config.stageSnapshot);
+  applyAscensionSnapshot(enemy, config.ascensionSnapshot);
   applyCurseSnapshot(enemy, curseSnapshot);
 
   return enemy;

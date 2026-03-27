@@ -27,6 +27,11 @@ test('unlockData has unique ids and supported condition types', () => {
     'boss_kills_gte',
     'weapon_owned_once',
     'weapon_evolved_once',
+    'currency_earned_gte',
+    'curse_gte',
+    'ascension_clear_gte',
+    'all_of',
+    'any_of',
   ]);
 
   for (const item of unlockData) {
@@ -139,6 +144,116 @@ test('unlock progress runtime은 compute/apply 경계를 분리해 계산 단계
 
   unlockProgressRuntime.applyUnlockProgress(session, progress);
   assert.ok(session.meta.unlockedWeapons.includes('boomerang'), 'apply 단계가 계산된 해금 결과를 session에 반영하지 못함');
+});
+
+test('evaluateUnlocks는 런 재화 획득량, 저주 수치, Ascension 클리어 조건을 처리한다', () => {
+  const session = makeSessionState({
+    meta: {
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+      completedUnlocks: [],
+      highestAscensionCleared: 2,
+      selectedStartWeaponId: 'magic_bolt',
+    },
+  });
+
+  const result = evaluateUnlocks({
+    session,
+    runResult: {
+      kills: 300,
+      survivalTime: 420,
+      level: 7,
+      weaponsUsed: ['magic_bolt'],
+      currencyEarned: 180,
+      highestCurse: 1.25,
+      ascensionCleared: 2,
+    },
+    unlockData: [
+      {
+        id: 'unlock_currency_test',
+        targetType: 'accessory',
+        targetId: 'coin_pendant',
+        conditionType: 'currency_earned_gte',
+        conditionValue: 150,
+      },
+      {
+        id: 'unlock_curse_test',
+        targetType: 'accessory',
+        targetId: 'ominous_relic',
+        conditionType: 'curse_gte',
+        conditionValue: 1.0,
+      },
+      {
+        id: 'unlock_ascension_test',
+        targetType: 'weapon',
+        targetId: 'chain_lightning',
+        conditionType: 'ascension_clear_gte',
+        conditionValue: 2,
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    result.newlyCompletedUnlocks.sort(),
+    ['unlock_currency_test', 'unlock_curse_test', 'unlock_ascension_test'].sort(),
+    '확장 unlock condition이 모두 평가되지 않음',
+  );
+  assert.ok(result.newlyUnlockedAccessories.includes('coin_pendant'), 'currency_earned_gte 보상이 누락됨');
+  assert.ok(result.newlyUnlockedAccessories.includes('ominous_relic'), 'curse_gte 보상이 누락됨');
+  assert.ok(result.newlyUnlockedWeapons.includes('chain_lightning'), 'ascension_clear_gte 보상이 누락됨');
+});
+
+test('evaluateUnlocks는 composite all_of / any_of 조건을 처리한다', () => {
+  const session = makeSessionState({
+    meta: {
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+      completedUnlocks: [],
+      highestAscensionCleared: 3,
+      recentRuns: [{ currencyEarned: 160, highestCurse: 0.9 }],
+    },
+  });
+
+  const result = evaluateUnlocks({
+    session,
+    runResult: {
+      kills: 300,
+      survivalTime: 420,
+      level: 7,
+      weaponsUsed: ['magic_bolt'],
+      currencyEarned: 160,
+      highestCurse: 0.9,
+      ascensionCleared: 3,
+    },
+    unlockData: [
+      {
+        id: 'unlock_all_test',
+        targetType: 'accessory',
+        targetId: 'ominous_relic',
+        conditionType: 'all_of',
+        conditions: [
+          { conditionType: 'currency_earned_gte', conditionValue: 150 },
+          { conditionType: 'curse_gte', conditionValue: 0.8 },
+        ],
+      },
+      {
+        id: 'unlock_any_test',
+        targetType: 'accessory',
+        targetId: 'swift_hourglass',
+        conditionType: 'any_of',
+        conditions: [
+          { conditionType: 'survival_time_gte', conditionValue: 1200 },
+          { conditionType: 'ascension_clear_gte', conditionValue: 3 },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    result.newlyCompletedUnlocks.sort(),
+    ['unlock_all_test', 'unlock_any_test'].sort(),
+    'composite unlock condition이 평가되지 않음',
+  );
 });
 
 summary();

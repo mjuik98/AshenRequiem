@@ -21,7 +21,7 @@ export const PLAY_EVENT_CONTRACTS = Object.freeze({
   }),
   bossPhaseChanged: Object.freeze({
     description: 'Boss phase transition data.',
-    required: Object.freeze(['boss', 'phase']),
+    required: Object.freeze(['enemy', 'phaseIndex']),
   }),
   bossSpawned: Object.freeze({
     description: 'Boss spawn announcement payload.',
@@ -50,6 +50,10 @@ export const PLAY_EVENT_CONTRACTS = Object.freeze({
   chestCollected: Object.freeze({
     description: 'Chest pickup reward payload.',
     required: Object.freeze(['rewardCount']),
+  }),
+  stageEventTriggered: Object.freeze({
+    description: 'Stage gimmick trigger payload.',
+    required: Object.freeze(['stageId', 'gimmickId']),
   }),
 });
 

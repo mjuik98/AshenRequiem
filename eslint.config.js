@@ -60,4 +60,34 @@ export default [
       }],
     },
   },
+  {
+    files: ['src/domain/meta/progression/playResultDomain.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/state/**',
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/systems/render/RenderSystem.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/systems/sound/soundSfxController.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
 ];

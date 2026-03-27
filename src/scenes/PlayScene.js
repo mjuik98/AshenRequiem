@@ -11,6 +11,7 @@
  * - devicePixelRatio 변화를 추적해 렌더 파이프라인에 반영
  */
 import { createPlayResultApplicationService } from '../app/play/playResultApplicationService.js';
+import { saveActiveRunAndPersist } from '../app/play/activeRunApplicationService.js';
 import {
   persistPauseSceneOptions,
   runPlaySceneFrame,
@@ -48,6 +49,7 @@ export class PlayScene {
 
     this._pauseWasDown      = false;
     this._isSceneChanging   = false;
+    this._checkpointAccumulator = 0;
   }
 
   enter() {
@@ -91,6 +93,7 @@ export class PlayScene {
 
     this._pauseWasDown    = false;
     this._isSceneChanging = false;
+    this._checkpointAccumulator = 0;
   }
 
   /**
@@ -137,11 +140,18 @@ export class PlayScene {
       dt,
       dpr: this._dpr,
     });
+
+    this._checkpointAccumulator += dt;
+    if (this.world.run.playMode === 'playing' && this._checkpointAccumulator >= 5) {
+      this._checkpointAccumulator = 0;
+      this._checkpointActiveRun();
+    }
   }
 
   render() {}
 
   exit() {
+    this._checkpointActiveRun(true);
     this._ui?.destroy();
     this._uiState?.reset();
     this._ctx?.dispose();
@@ -157,12 +167,13 @@ export class PlayScene {
     this.world             = null;
     this._pauseWasDown     = false;
     this._isSceneChanging  = false;
+    this._checkpointAccumulator = 0;
   }
 
   // ── 내부 핸들러 ───────────────────────────────────────────────────────
 
   _handlePauseToggle() {
-    togglePlayScenePause({
+    const pauseState = togglePlayScenePause({
       world: this.world,
       ui: this._ui,
       data: this._gameData,
@@ -170,6 +181,10 @@ export class PlayScene {
       isBlocked: () => this._isSceneChanging,
       onOptionsChange: (nextOptions) => this._updatePauseOptions(nextOptions),
     });
+    if (pauseState === 'paused') {
+      this._checkpointAccumulator = 0;
+      this._checkpointActiveRun(true);
+    }
   }
 
   _updatePauseOptions(nextOptions) {
@@ -197,5 +212,12 @@ export class PlayScene {
       },
       onError: (error) => console.error('[PlayScene] 결과 화면 씬 전환 실패:', error),
     });
+  }
+
+  _checkpointActiveRun(force = false) {
+    if (!this.world || !this.game?.session) return;
+    if (this.world.run.runOutcome && !force) return;
+    if (this.world.run.playMode === 'dead' && !force) return;
+    saveActiveRunAndPersist(this.game.session, this.world);
   }
 }

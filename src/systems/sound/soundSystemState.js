@@ -1,6 +1,6 @@
 import { clampSoundUnit } from './soundBusRuntime.js';
 
-export function createSoundSystemState({ sfxDefs, bgmDefs, rng } = {}) {
+export function createSoundSystemState({ sfxDefs, bgmDefs, rng, nowSeconds, createAudioContext } = {}) {
   return {
     _ctx: null,
     _enabled: true,
@@ -20,6 +20,8 @@ export function createSoundSystemState({ sfxDefs, bgmDefs, rng } = {}) {
     _maxVoices: 32,
     _sfxDefs: sfxDefs,
     _bgmDefs: bgmDefs,
+    _nowSeconds: typeof nowSeconds === 'function' ? nowSeconds : (() => 0),
+    _createAudioContext: typeof createAudioContext === 'function' ? createAudioContext : (() => null),
     _randomSource: typeof rng === 'function' ? rng : Math.random,
   };
 }
@@ -51,5 +53,7 @@ export function resetSoundSystemRuntime(target) {
   target._lastPlayAt = new Map();
   target._activeVoices = new Set();
   target._activeVoicesByType = new Map();
+  target._nowSeconds = typeof target._nowSeconds === 'function' ? target._nowSeconds : (() => 0);
+  target._createAudioContext = typeof target._createAudioContext === 'function' ? target._createAudioContext : (() => null);
   target._randomSource = typeof target._randomSource === 'function' ? target._randomSource : Math.random;
 }

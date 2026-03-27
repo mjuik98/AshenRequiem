@@ -149,6 +149,8 @@ export function makeWorld(overrides = {}) {
     killCount: 0,
     runCurrencyEarned: 0,
     bossKillCount: 0,
+    ascensionLevel: 0,
+    ascension: { level: 0, spawnRateMult: 1, rewardMult: 1 },
     playMode: 'playing',
     runOutcome: null,
   };
@@ -236,7 +238,7 @@ export function makeBossData(overrides = {}) {
 
 export function makeSessionState(overrides = {}) {
   return {
-    _version: 5,
+    _version: 8,
     last: { kills: 0, survivalTime: 0, level: 1, weaponsUsed: [] },
     best: { kills: 0, survivalTime: 0, level: 1, ...(overrides.best ?? {}) },
     meta: {
@@ -253,9 +255,19 @@ export function makeSessionState(overrides = {}) {
       unlockedAccessories: [],
       completedUnlocks: [],
       selectedStartWeaponId: 'magic_bolt',
+      selectedStartAccessoryId: null,
+      selectedArchetypeId: 'vanguard',
+      selectedRiskRelicId: null,
+      selectedStageId: 'ash_plains',
+      selectedSeedMode: 'none',
+      selectedSeedText: '',
+      recentRuns: [],
+      selectedAscensionLevel: 0,
+      highestAscensionCleared: 0,
       ...(overrides.meta ?? {}),
     },
     options: { soundEnabled: true, musicEnabled: true, showFps: false, ...(overrides.options ?? {}) },
+    activeRun: overrides.activeRun ?? null,
   };
 }
 

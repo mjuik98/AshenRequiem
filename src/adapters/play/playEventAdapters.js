@@ -3,6 +3,7 @@ import { registerBossPhaseHandler } from './events/bossPhaseEventAdapter.js';
 import { registerChestRewardHandler } from './events/chestRewardEventAdapter.js';
 import { registerCodexHandlers } from './events/codexEventAdapter.js';
 import { registerCurrencyHandler } from './events/currencyEventAdapter.js';
+import { registerStageEventHandler } from './events/stageEventAdapter.js';
 import { registerWeaponEvolutionHandler } from './events/weaponEvolutionEventAdapter.js';
 import { registerSoundEventHandlers } from './events/soundEventAdapter.js';
 
@@ -14,6 +15,10 @@ export const PLAY_WORLD_EVENT_ADAPTERS = Object.freeze([
   {
     id: 'boss-phase',
     register: ({ services, registry }) => registerBossPhaseHandler(services, registry),
+  },
+  {
+    id: 'stage-event',
+    register: ({ services, registry }) => registerStageEventHandler(services, registry),
   },
 ]);
 

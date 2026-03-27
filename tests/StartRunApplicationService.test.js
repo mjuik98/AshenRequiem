@@ -54,11 +54,31 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
     },
     buildPlayerSpawnStateImpl() {
       calls.push('spawn-state');
-      return { permanentUpgrades: { perm_hp: 1 } };
+      return {
+        startAccessories: [{ id: 'ring_of_speed', effects: [{ stat: 'moveSpeed', value: 10 }] }],
+        archetype: { id: 'spellweaver', name: 'Spellweaver', effects: [{ stat: 'cooldownMult', value: -0.08 }] },
+        riskRelic: { id: 'glass_censer', name: 'Glass Censer', effects: [{ stat: 'bonusProjectileCount', value: 1 }] },
+        permanentUpgrades: { perm_hp: 1 },
+        selectedAscensionLevel: 2,
+        ascension: { level: 2, enemyHpMult: 1.3, spawnRateMult: 1.15 },
+        selectedArchetypeId: 'spellweaver',
+        selectedRiskRelicId: 'glass_censer',
+        selectedStageId: 'ember_hollow',
+        stage: { id: 'ember_hollow', rewardMult: 1.2, background: { fillStyle: '#120f18' } },
+        seedMode: 'custom',
+        seedLabel: 'ashen-seed',
+        rng: { nextFloat: () => 0.25 },
+      };
     },
     createPlayerImpl() {
       calls.push('player');
       return player;
+    },
+    applyArchetypeImpl(targetPlayer, archetype) {
+      calls.push(['archetype', targetPlayer, archetype]);
+    },
+    applyRiskRelicImpl(targetPlayer, relic) {
+      calls.push(['risk', targetPlayer, relic]);
     },
     applyPermanentUpgradesImpl(targetPlayer, upgrades) {
       calls.push(['perm', targetPlayer, upgrades]);
@@ -76,15 +96,88 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
   assert.equal(prepared.world, world);
   assert.equal(prepared.player, player);
   assert.equal(world.entities.player, player);
+  assert.equal(world.runtime.rng.nextFloat(), 0.25, '런 시작 시 주입된 RNG가 world에 기록되지 않음');
+  assert.equal(world.run.ascensionLevel, 2, '런 시작 시 Ascension 레벨이 world에 기록되지 않음');
+  assert.deepEqual(world.run.ascension, { level: 2, enemyHpMult: 1.3, spawnRateMult: 1.15 }, 'Ascension snapshot이 world에 주입되지 않음');
+  assert.equal(world.run.archetypeId, 'spellweaver', '런 시작 시 archetypeId가 world에 기록되지 않음');
+  assert.deepEqual(world.run.archetype, { id: 'spellweaver', name: 'Spellweaver', effects: [{ stat: 'cooldownMult', value: -0.08 }] }, 'archetype snapshot이 world에 주입되지 않음');
+  assert.equal(world.run.riskRelicId, 'glass_censer', '런 시작 시 riskRelicId가 world에 기록되지 않음');
+  assert.deepEqual(world.run.riskRelic, { id: 'glass_censer', name: 'Glass Censer', effects: [{ stat: 'bonusProjectileCount', value: 1 }] }, 'risk relic snapshot이 world에 주입되지 않음');
+  assert.equal(world.run.stageId, 'ember_hollow', '런 시작 시 stageId가 world에 기록되지 않음');
+  assert.deepEqual(world.run.stage, { id: 'ember_hollow', rewardMult: 1.2, background: { fillStyle: '#120f18' } }, 'stage snapshot이 world에 주입되지 않음');
+  assert.equal(world.run.seedMode, 'custom', '런 시작 시 seed mode가 world에 기록되지 않음');
+  assert.equal(world.run.seedLabel, 'ashen-seed', '런 시작 시 seed label이 world에 기록되지 않음');
   assert.deepEqual(world.progression.pendingEventQueue, [{ type: 'weaponAcquired', payload: { weaponId: 'magic_bolt' } }]);
   assert.deepEqual(calls, [
     'world',
     'spawn-state',
     'player',
+    ['archetype', player, { id: 'spellweaver', name: 'Spellweaver', effects: [{ stat: 'cooldownMult', value: -0.08 }] }],
+    ['risk', player, { id: 'glass_censer', name: 'Glass Censer', effects: [{ stat: 'bonusProjectileCount', value: 1 }] }],
     ['perm', player, { perm_hp: 1 }],
     ['init-run', world],
     ['queue-events', world, player],
   ]);
+});
+
+test('prepareStartRunState는 activeRun snapshot이 있으면 복원 경로를 우선 사용한다', () => {
+  assert.ok(!serviceApi.error, serviceApi.error?.message ?? 'startRunApplicationService.js가 아직 없음');
+
+  const world = {
+    entities: { player: null },
+    progression: { pendingEventQueue: null },
+    run: {},
+    runtime: {},
+  };
+  const player = { weapons: [], accessories: [] };
+  const calls = [];
+  const activeRun = {
+    run: { elapsedTime: 90, stageId: 'moon_crypt' },
+    player: { level: 5, weapons: [{ id: 'magic_bolt', level: 3 }], accessories: [{ id: 'ring_of_speed', level: 1 }] },
+  };
+
+  serviceApi.prepareStartRunState({
+    session: makeSessionState({ activeRun }),
+    gameData: { weaponData: [] },
+    createWorldImpl: () => world,
+    buildPlayerSpawnStateImpl: () => ({
+      startAccessories: [{ id: 'ring_of_speed' }],
+      permanentUpgrades: { perm_hp: 2 },
+      selectedAscensionLevel: 1,
+      ascension: { level: 1 },
+      selectedStageId: 'moon_crypt',
+      stage: { id: 'moon_crypt' },
+      seedMode: 'none',
+      seedLabel: '',
+      rng: { nextFloat: () => 0.5 },
+    }),
+    createPlayerImpl: () => player,
+    applyStartAccessoriesImpl: () => {
+      calls.push('start-accessories');
+    },
+    applyPermanentUpgradesImpl: () => {
+      calls.push('perm');
+    },
+    initializeRunStateImpl: () => {
+      calls.push('init-run');
+    },
+    queueStartEventsImpl: () => {
+      calls.push('queue-events');
+    },
+    restoreActiveRunSnapshotImpl: (targetWorld, targetPlayer, snapshot) => {
+      calls.push(['restore', targetWorld, targetPlayer, snapshot]);
+      targetWorld.run.elapsedTime = snapshot.run.elapsedTime;
+      targetPlayer.level = snapshot.player.level;
+      return { restored: true, world: targetWorld, player: targetPlayer };
+    },
+  });
+
+  assert.equal(world.run.elapsedTime, 90, 'activeRun snapshot이 world에 복원되지 않음');
+  assert.equal(player.level, 5, 'activeRun snapshot이 player에 복원되지 않음');
+  assert.deepEqual(calls, [
+    'init-run',
+    ['restore', world, player, activeRun],
+  ], 'activeRun 복원 경로에서 신규 런 초기화 로직이 불필요하게 실행됨');
 });
 
 summary();

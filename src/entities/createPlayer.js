@@ -27,6 +27,7 @@ import { generateId }              from '../utils/ids.js';
  */
 export function createPlayer(x = 0, y = 0, config = {}) {
   const startWeapons = (config?.startWeapons ?? []).map((weapon) => ({ ...weapon }));
+  const startAccessories = (config?.startAccessories ?? []).map((accessory) => ({ ...accessory }));
   const player = {
     id:            generateId(),
     type:          'player',
@@ -62,7 +63,9 @@ export function createPlayer(x = 0, y = 0, config = {}) {
     critMultiplier:  2.0,
 
     // ── Phase 2: 장신구 및 데미지 배율 ──────────────────────────────
-    accessories:      [],
+    accessories:      startAccessories,
+    archetypeId:      config?.archetype?.id ?? null,
+    riskRelicId:      config?.riskRelic?.id ?? null,
     globalDamageMult: 1,
 
     // ── Phase 2: 무기 진화 추적 ────────────────────────────────────────────────────

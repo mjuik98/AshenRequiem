@@ -1,5 +1,8 @@
 export {
+  buildRunResult,
   buildPlayResultSummary,
+} from '../../domain/meta/progression/playResultDomain.js';
+export {
   commitPlayResultSession,
   processPlayResult,
-} from '../../domain/meta/progression/playResultDomain.js';
+} from '../../app/play/playResultSessionService.js';

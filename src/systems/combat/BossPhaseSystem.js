@@ -43,6 +43,7 @@ export const BossPhaseSystem = {
             newBehaviorId: phase.behaviorId,
             announceText:  phase.announceText ?? '',
             hpThreshold:   phase.hpThreshold,
+            phaseAction:   phase.phaseAction ?? null,
           });
         }
       }

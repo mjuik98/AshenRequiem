@@ -86,9 +86,15 @@ export function createSpawnSystem() {
       const playMode = world.run.playMode;
       const events = world.queues.events;
       const rng = world.runtime.rng;
+      const ascension = world.run.ascension ?? null;
+      const stage = world.run.stage ?? null;
       if (playMode !== 'playing') return;
       if (!player?.isAlive) return;
       const curseSnapshot = buildCurseSnapshot(player.curse ?? 0);
+      const ascensionSpawnMult = ascension?.spawnRateMult ?? 1;
+      const ascensionEliteBonus = ascension?.eliteChanceBonus ?? 0;
+      const stageSpawnMult = stage?.spawnRateMult ?? 1;
+      const stageEliteBonus = stage?.eliteChanceBonus ?? 0;
 
       // ── 보스 스폰 ──────────────────────────────────────────────────────
       if (bossData) {
@@ -118,14 +124,18 @@ export function createSpawnSystem() {
       const timeSinceBoss  = elapsedTime - _lastBossSpawnTime;
       const isBossActive   = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
       const effectiveRate  = isBossActive
-        ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER * curseSnapshot.spawnRateMult
-        : activeWave.spawnPerSecond * curseSnapshot.spawnRateMult;
+        ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER * curseSnapshot.spawnRateMult * ascensionSpawnMult * stageSpawnMult
+        : activeWave.spawnPerSecond * curseSnapshot.spawnRateMult * ascensionSpawnMult * stageSpawnMult;
 
       _spawnAccumulator += effectiveRate * deltaTime;
 
       while (_spawnAccumulator >= 1) {
         _spawnAccumulator -= 1;
-        const isElite = activeWave.eliteChance ? chance(activeWave.eliteChance, rng) : false;
+        const effectiveEliteChance = Math.min(
+          1,
+          Math.max(0, (activeWave.eliteChance ?? 0) + ascensionEliteBonus + stageEliteBonus),
+        );
+        const isElite = effectiveEliteChance > 0 ? chance(effectiveEliteChance, rng) : false;
         const pool    = isElite ? (activeWave.eliteIds ?? activeWave.enemyIds) : activeWave.enemyIds;
         if (!pool?.length) continue;
         const enemyId = randomPick(pool, rng);

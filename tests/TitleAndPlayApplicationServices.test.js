@@ -14,14 +14,59 @@ test('title loadout application service는 시작 무기 저장과 씬 생성을
     gameData: { weaponData: [{ id: 'magic_bolt', isEvolved: false }] },
   };
 
+  const directCalls = [];
   const direct = startTitleRun(game, 'magic_bolt', {
-    commitSelectionImpl: () => ({ saved: true, selectedWeaponId: 'magic_bolt' }),
+    ascensionLevel: 4,
+    startAccessoryId: 'ring_of_speed',
+    archetypeId: 'spellweaver',
+    riskRelicId: 'glass_censer',
+    stageId: 'ember_hollow',
+    seedMode: 'custom',
+    seedText: 'ashen-seed',
+    commitSelectionImpl: (...args) => {
+      directCalls.push(args);
+      return {
+        saved: true,
+        selectedWeaponId: 'magic_bolt',
+        selectedAscensionLevel: 4,
+        selectedStartAccessoryId: 'ring_of_speed',
+        selectedArchetypeId: 'spellweaver',
+        selectedRiskRelicId: 'glass_censer',
+        selectedStageId: 'ember_hollow',
+        selectedSeedMode: 'custom',
+        selectedSeedText: 'ashen-seed',
+      };
+    },
     createPlaySceneImpl: () => ({ id: 'play-scene' }),
   });
   assert.deepEqual(
     direct,
-    { saved: true, selectedWeaponId: 'magic_bolt', nextScene: { id: 'play-scene' } },
+    {
+      saved: true,
+      selectedWeaponId: 'magic_bolt',
+      selectedAscensionLevel: 4,
+      selectedStartAccessoryId: 'ring_of_speed',
+      selectedArchetypeId: 'spellweaver',
+      selectedRiskRelicId: 'glass_censer',
+      selectedStageId: 'ember_hollow',
+      selectedSeedMode: 'custom',
+      selectedSeedText: 'ashen-seed',
+      nextScene: { id: 'play-scene' },
+    },
     'startTitleRun이 저장과 다음 씬 조립 결과를 함께 반환하지 않음',
+  );
+  assert.deepEqual(
+    directCalls,
+    [[game.session, 'magic_bolt', {
+      ascensionLevel: 4,
+      startAccessoryId: 'ring_of_speed',
+      archetypeId: 'spellweaver',
+      riskRelicId: 'glass_censer',
+      stageId: 'ember_hollow',
+      seedMode: 'custom',
+      seedText: 'ashen-seed',
+    }, game.gameData]],
+    'startTitleRun이 확장된 런 설정을 commit 단계로 전달하지 않음',
   );
 
   const service = createTitleLoadoutApplicationService(game, {

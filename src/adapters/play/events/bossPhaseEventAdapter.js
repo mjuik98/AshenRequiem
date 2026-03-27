@@ -1,10 +1,22 @@
 import { logRuntimeInfo } from '../../../utils/runtimeLogger.js';
+import { queueBossPhaseAction } from './bossPhaseActionRegistry.js';
+
+function resetPhaseBehaviorState(enemy) {
+  enemy.behaviorState = null;
+  enemy.chargeState = undefined;
+  enemy.circleAngle = undefined;
+}
 
 export function registerBossPhaseHandler(services, registry) {
   if (!registry) return;
 
   registry.register('bossPhaseChanged', (event, world) => {
-    const { enemy, announceText, phaseIndex, hpThreshold } = event;
+    const { enemy, announceText, phaseIndex, hpThreshold, newBehaviorId, phaseAction } = event;
+
+    if (newBehaviorId) {
+      enemy.behaviorId = newBehaviorId;
+      resetPhaseBehaviorState(enemy);
+    }
 
     const effect = services.effectPool?.acquire({
       effectType: 'damageText',
@@ -18,6 +30,8 @@ export function registerBossPhaseHandler(services, registry) {
     if (effect) {
       world.entities.effects?.push(effect);
     }
+
+    queueBossPhaseAction(world, enemy, phaseAction);
 
     logRuntimeInfo(
       'BossPhaseHandler',

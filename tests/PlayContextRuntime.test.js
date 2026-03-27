@@ -37,6 +37,7 @@ test('createPlayContextServices는 PlayContext가 노출할 서비스 계약만 
     soundSystem: 'sound',
     canvas: 'canvas',
     renderer: 'renderer',
+    nowSeconds: 'clock',
     bossAnnouncementView: 'boss-view',
     weaponEvolutionView: 'evo-view',
     session: 'should-not-leak',
@@ -50,6 +51,7 @@ test('createPlayContextServices는 PlayContext가 노출할 서비스 계약만 
     soundSystem: 'sound',
     canvas: 'canvas',
     renderer: 'renderer',
+    nowSeconds: 'clock',
     bossAnnouncementView: 'boss-view',
     weaponEvolutionView: 'evo-view',
   });

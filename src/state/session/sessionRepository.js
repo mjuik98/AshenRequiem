@@ -15,6 +15,34 @@ function resolveBrowserStorage() {
     : null;
 }
 
+function buildSessionStorageKeys(storageKey) {
+  return {
+    primary: storageKey,
+    backup: `${storageKey}_backup`,
+    corrupt: `${storageKey}_corrupt`,
+  };
+}
+
+function tryLoadSessionPayload(raw, migrateSessionStateImpl) {
+  if (!raw) {
+    return { ok: false, error: null, session: null };
+  }
+
+  try {
+    return {
+      ok: true,
+      error: null,
+      session: migrateSessionStateImpl(JSON.parse(raw)),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error,
+      session: null,
+    };
+  }
+}
+
 export function createLocalSessionRepository(options = {}) {
   const hasExplicitStorage = Object.prototype.hasOwnProperty.call(options, 'storage');
   const {
@@ -24,6 +52,7 @@ export function createLocalSessionRepository(options = {}) {
     normalizeSessionStateImpl = normalizeSessionState,
     sessionVersion = SESSION_VERSION,
   } = options;
+  const storageKeys = buildSessionStorageKeys(storageKey);
 
   function getStorage() {
     return hasExplicitStorage ? options.storage : resolveBrowserStorage();
@@ -38,11 +67,15 @@ export function createLocalSessionRepository(options = {}) {
         const normalized = normalizeSessionStateImpl(session);
         const toSave = {
           _version: sessionVersion,
+          last: normalized.last,
           best: normalized.best,
           meta: normalized.meta,
           options: normalized.options,
+          activeRun: normalized.activeRun,
         };
-        storage.setItem(storageKey, JSON.stringify(toSave));
+        const serialized = JSON.stringify(toSave);
+        storage.setItem(storageKeys.primary, serialized);
+        storage.setItem(storageKeys.backup, serialized);
       } catch (error) {
         console.warn('[SessionState] 저장 실패:', error);
       }
@@ -52,10 +85,31 @@ export function createLocalSessionRepository(options = {}) {
       const storage = getStorage();
       if (!storage?.getItem) return createSessionStateImpl();
 
+      const primaryRaw = storage.getItem(storageKeys.primary);
+      const primaryResult = tryLoadSessionPayload(primaryRaw, migrateSessionStateImpl);
+      if (primaryResult.ok) {
+        return primaryResult.session;
+      }
+
+      const backupRaw = storage.getItem(storageKeys.backup);
+      const backupResult = tryLoadSessionPayload(backupRaw, migrateSessionStateImpl);
+      if (backupResult.ok) {
+        try {
+          if (primaryRaw && storage?.setItem) {
+            storage.setItem(storageKeys.corrupt, primaryRaw);
+          }
+          if (backupRaw && storage?.setItem) {
+            storage.setItem(storageKeys.primary, backupRaw);
+          }
+        } catch {}
+        return backupResult.session;
+      }
+
       try {
-        const raw = storage.getItem(storageKey);
-        if (!raw) return createSessionStateImpl();
-        return migrateSessionStateImpl(JSON.parse(raw));
+        if (primaryResult.error) {
+          console.warn('[SessionState] 불러오기 실패, 기본값 사용:', primaryResult.error);
+        }
+        return createSessionStateImpl();
       } catch (error) {
         console.warn('[SessionState] 불러오기 실패, 기본값 사용:', error);
         return createSessionStateImpl();

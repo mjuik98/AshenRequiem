@@ -4,7 +4,7 @@ import {
   normalizeSessionOptions,
 } from '../sessionOptions.js';
 
-export const SESSION_VERSION = 5;
+export const SESSION_VERSION = 8;
 
 function createDefaultLast() {
   return {
@@ -34,6 +34,7 @@ export function createSessionState() {
     best: createDefaultBest(),
     meta: createDefaultSessionMeta(),
     options: createDefaultOptions(),
+    activeRun: null,
   };
 }
 
@@ -71,6 +72,29 @@ export function normalizeSessionState(state) {
       selectedStartWeaponId: typeof state?.meta?.selectedStartWeaponId === 'string'
         ? state.meta.selectedStartWeaponId
         : defaults.meta.selectedStartWeaponId,
+      selectedStartAccessoryId: typeof state?.meta?.selectedStartAccessoryId === 'string'
+        ? state.meta.selectedStartAccessoryId
+        : defaults.meta.selectedStartAccessoryId,
+      selectedArchetypeId: typeof state?.meta?.selectedArchetypeId === 'string'
+        ? state.meta.selectedArchetypeId
+        : defaults.meta.selectedArchetypeId,
+      selectedRiskRelicId: typeof state?.meta?.selectedRiskRelicId === 'string'
+        ? state.meta.selectedRiskRelicId
+        : defaults.meta.selectedRiskRelicId,
+      selectedStageId: typeof state?.meta?.selectedStageId === 'string'
+        ? state.meta.selectedStageId
+        : defaults.meta.selectedStageId,
+      selectedSeedMode: typeof state?.meta?.selectedSeedMode === 'string'
+        ? state.meta.selectedSeedMode
+        : defaults.meta.selectedSeedMode,
+      selectedSeedText: typeof state?.meta?.selectedSeedText === 'string'
+        ? state.meta.selectedSeedText
+        : defaults.meta.selectedSeedText,
+      recentRuns: Array.isArray(state?.meta?.recentRuns)
+        ? [...state.meta.recentRuns]
+        : [...defaults.meta.recentRuns],
+      selectedAscensionLevel: state?.meta?.selectedAscensionLevel ?? defaults.meta.selectedAscensionLevel,
+      highestAscensionCleared: state?.meta?.highestAscensionCleared ?? defaults.meta.highestAscensionCleared,
     },
     options: {
       ...normalizeSessionOptions({
@@ -78,6 +102,7 @@ export function normalizeSessionState(state) {
         ...(state?.options ?? {}),
       }),
     },
+    activeRun: state?.activeRun ?? null,
   };
 
   return reconcileSessionUnlocks(normalized);
@@ -175,6 +200,70 @@ export function migrateSessionState(raw) {
             selectedStartWeaponId: typeof s.meta?.selectedStartWeaponId === 'string'
               ? s.meta.selectedStartWeaponId
               : 'magic_bolt',
+          },
+        };
+      },
+    },
+    {
+      from: 5,
+      migrate(s) {
+        return {
+          ...s,
+          _version: 6,
+          meta: {
+            ...s.meta,
+            selectedAscensionLevel: Number.isFinite(s.meta?.selectedAscensionLevel)
+              ? s.meta.selectedAscensionLevel
+              : 0,
+            highestAscensionCleared: Number.isFinite(s.meta?.highestAscensionCleared)
+              ? s.meta.highestAscensionCleared
+              : 0,
+          },
+        };
+      },
+    },
+    {
+      from: 6,
+      migrate(s) {
+        return {
+          ...s,
+          _version: 7,
+          meta: {
+            ...s.meta,
+            selectedStartAccessoryId: typeof s.meta?.selectedStartAccessoryId === 'string'
+              ? s.meta.selectedStartAccessoryId
+              : null,
+            selectedStageId: typeof s.meta?.selectedStageId === 'string'
+              ? s.meta.selectedStageId
+              : 'ash_plains',
+            selectedSeedMode: typeof s.meta?.selectedSeedMode === 'string'
+              ? s.meta.selectedSeedMode
+              : 'none',
+            selectedSeedText: typeof s.meta?.selectedSeedText === 'string'
+              ? s.meta.selectedSeedText
+              : '',
+            recentRuns: Array.isArray(s.meta?.recentRuns)
+              ? s.meta.recentRuns
+              : [],
+          },
+          activeRun: s.activeRun ?? null,
+        };
+      },
+    },
+    {
+      from: 7,
+      migrate(s) {
+        return {
+          ...s,
+          _version: 8,
+          meta: {
+            ...s.meta,
+            selectedArchetypeId: typeof s.meta?.selectedArchetypeId === 'string'
+              ? s.meta.selectedArchetypeId
+              : 'vanguard',
+            selectedRiskRelicId: typeof s.meta?.selectedRiskRelicId === 'string'
+              ? s.meta.selectedRiskRelicId
+              : null,
           },
         };
       },

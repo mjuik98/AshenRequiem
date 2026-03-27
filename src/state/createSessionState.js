@@ -41,7 +41,16 @@ export {
  *   unlockedWeapons: string[],
  *   unlockedAccessories: string[],
  *   completedUnlocks: string[],
- *   selectedStartWeaponId: string
+ *   selectedStartWeaponId: string,
+ *   selectedStartAccessoryId: string|null,
+ *   selectedArchetypeId: string,
+ *   selectedRiskRelicId: string|null,
+ *   selectedStageId: string,
+ *   selectedSeedMode: 'none'|'custom'|'daily',
+ *   selectedSeedText: string,
+ *   recentRuns: object[],
+ *   selectedAscensionLevel: number,
+ *   highestAscensionCleared: number
  * }} meta
  * @property {{
  *   soundEnabled: boolean,
@@ -54,6 +63,7 @@ export {
  *   showFps: boolean,
  *   useDevicePixelRatio: boolean
  * }} options
+ * @property {object|null} activeRun
  */
 
 export {};

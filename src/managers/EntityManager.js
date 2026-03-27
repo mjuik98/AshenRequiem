@@ -43,6 +43,8 @@ export const EntityManager = {
   flushSpawn(world, pools = {}) {
     const { projectilePool, effectPool, enemyPool, pickupPool } = pools;
     const curseSnapshot = buildCurseSnapshot(world.entities.player?.curse ?? 0);
+    const ascensionSnapshot = world.run?.ascension ?? null;
+    const stageSnapshot = world.run?.stage ?? null;
     for (const req of world.queues.spawnQueue) {
       let entity = req.entity;
 
@@ -51,6 +53,8 @@ export const EntityManager = {
           if (!entity && enemyPool) {
             entity = enemyPool.acquire({
               ...req.config,
+              stageSnapshot,
+              ascensionSnapshot,
               curseSnapshot,
             });
           }

@@ -1,6 +1,5 @@
 import { GameConfig }  from '../../core/GameConfig.js';
 import { RENDER }       from '../../data/constants.js';
-import { getNowSeconds } from '../../adapters/browser/runtimeEnv.js';
 
 /**
  * RenderSystem — 렌더링 순서 제어
@@ -25,12 +24,12 @@ export const RenderSystem = {
     const visible = culling.getVisible();
 
     renderer.clear();
-    renderer.drawBackground(camera);
+    renderer.drawBackground(camera, world.run.stage);
 
     const lowQuality = world.entities.projectiles.length > RENDER.GLOW_THRESHOLD;
     renderer.setQuality(lowQuality);
 
-    const timestamp = getNowSeconds();
+    const timestamp = services.nowSeconds?.() ?? 0;
 
     // ── 픽업 ────────────────────────────────────────────────────────────
     renderer.drawPickups(visible.pickups, camera, timestamp);
