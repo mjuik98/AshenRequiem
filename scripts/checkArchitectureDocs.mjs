@@ -53,6 +53,7 @@ export async function collectArchitectureDocViolations(rootDir = ROOT_DIR) {
     'npm run architecture:snapshot',
     'npm run lint',
     'npm run check:architecture-docs',
+    'npm run verify:smoke',
     'npm run verify:ci',
   ];
   for (const snippet of readmeRequirements) {

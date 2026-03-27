@@ -113,6 +113,9 @@ npm run smoke:full:prebuilt
 # 로컬 빠른 기준선: typecheck + profile budget + lint + unit test + build
 npm run verify
 
+# 로컬 브라우저 smoke 기준선: single build + core deterministic smoke
+npm run verify:smoke
+
 # CI 기준선: single build + core browser smoke
 npm run verify:ci
 

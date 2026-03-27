@@ -41,19 +41,30 @@ test('README links the snapshot workflow and keeps verify command terminology al
   assert.equal(readmeSource.includes('architecture-current.md'), true, 'README가 현재 구조 문서를 가리키지 않음');
   assert.equal(readmeSource.includes('npm run architecture:snapshot'), true, 'README가 architecture snapshot 갱신 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run compatibility:wrappers'), true, 'README가 wrapper snapshot 갱신 명령을 안내하지 않음');
+  assert.equal(readmeSource.includes('npm run verify:smoke'), true, 'README가 로컬 smoke verify 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run verify:ci'), true, 'README가 CI verify 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run lint'), true, 'README가 lint baseline을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run check:architecture-docs'), true, 'README가 architecture doc drift 검사를 안내하지 않음');
 });
 
-test('compatibility wrapper inventory documents remaining public shims and their disposition', () => {
+test('compatibility wrapper inventory documents remaining public shims and their disposition', async () => {
   const wrapperSource = readProjectSource('../docs/compatibility-wrappers.md');
+  const wrapperModule = await import('../scripts/compatibilityWrappers.mjs');
+  const snapshot = wrapperModule.collectWrapperUsageSnapshot();
+  const zeroCallerWrappers = snapshot.filter((entry) => entry.internalCallers === 0).map((entry) => entry.path);
+
   assert.equal(wrapperSource.includes('Wrapper Inventory'), true, 'wrapper inventory 문서 헤더가 없음');
   assert.equal(wrapperSource.includes('src/core/Game.js'), true, 'Game facade 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('src/scenes/play/PlayResultHandler.js'), true, 'PlayResultHandler 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('keep-public-wrapper'), true, 'wrapper disposition taxonomy가 문서화되지 않음');
+  assert.equal(wrapperSource.includes('remove-when-callers-migrate'), true, 'wrapper removal candidate taxonomy가 문서화되지 않음');
   assert.equal(wrapperSource.includes('## Generated Wrapper Usage Snapshot'), true, 'wrapper inventory에 generated usage snapshot section이 없음');
   assert.equal(wrapperSource.includes('internalCallers'), true, 'wrapper inventory가 repo 내부 caller 수를 기록하지 않음');
+  assert.equal(
+    zeroCallerWrappers.every((wrapperPath) => wrapperModule.WRAPPER_INVENTORY.find((entry) => entry.path === wrapperPath)?.disposition === '`remove-when-callers-migrate`'),
+    true,
+    'repo 내부 caller가 0인 wrapper는 removal candidate로 분류돼야 함',
+  );
 });
 
 test('AGENTS documents the split between normative rules and current-state facts', () => {

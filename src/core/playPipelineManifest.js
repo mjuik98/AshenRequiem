@@ -47,5 +47,6 @@ export const PLAY_PIPELINE_INSTANCE_SYSTEMS = Object.freeze([
     name: 'EventRegistry.asSystem()',
     priority: 105,
     source: 'PipelineBuilder registry instance',
+    create: ({ eventRegistry }) => eventRegistry.asSystem(),
   },
 ]);

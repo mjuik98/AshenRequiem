@@ -79,6 +79,7 @@ test('package verify script exposes a dedicated profile budget check', () => {
   assert.equal(typeof pkg.scripts['check:architecture-docs'], 'string', 'check:architecture-docs 스크립트가 없음');
   assert.equal(typeof pkg.scripts['verify:fast'], 'string', 'verify:fast 스크립트가 없음');
   assert.equal(typeof pkg.scripts['verify:ci'], 'string', 'verify:ci 스크립트가 없음');
+  assert.equal(typeof pkg.scripts['verify:smoke'], 'string', 'verify:smoke 스크립트가 없음');
   assert.equal(pkg.scripts.verify, 'npm run verify:fast', '기본 verify는 빠른 로컬 기준선으로 연결돼야 함');
   assert.equal(pkg.scripts.lint, 'npm run lint:architecture', 'lint는 architecture lint baseline을 가리켜야 함');
   assert.equal(pkg.scripts['lint:eslint'].includes('eslint'), true, 'lint:eslint는 eslint CLI를 실행해야 함');
@@ -87,6 +88,7 @@ test('package verify script exposes a dedicated profile budget check', () => {
   assert.equal(pkg.scripts['lint:architecture'].includes('npm run check:architecture-docs'), true, 'lint:architecture에 check:architecture-docs가 연결되지 않음');
   assert.equal(pkg.scripts['verify:fast'].includes('npm run profile:check'), true, 'verify:fast에 profile:check가 연결되지 않음');
   assert.equal(pkg.scripts['verify:fast'].includes('npm run lint'), true, 'verify:fast에 lint 단계가 연결되지 않음');
+  assert.equal(pkg.scripts['verify:smoke'], 'npm run build && npm run smoke:core:prebuilt', 'verify:smoke는 단일 build 후 prebuilt smoke를 재사용해야 함');
   assert.equal(pkg.scripts['verify:ci'].includes('npm run smoke:core:prebuilt'), true, 'verify:ci는 prebuilt core smoke baseline을 포함해야 함');
   assert.equal(pkg.scripts['verify:ci'].includes('npm run test:smoke'), false, 'verify:ci가 중복 build를 유발하는 test:smoke wrapper를 직접 호출하면 안 됨');
 });

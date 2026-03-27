@@ -29,7 +29,8 @@
     "profile": "node scripts/profile.js",
     "profile:600": "node scripts/profile.js 600",
     "profile:json": "node scripts/profile.js 300 --json",
-    "profile:check": "node scripts/profile.js 300 --assert-budget"
+    "profile:check": "node scripts/profile.js 300 --assert-budget",
+    "verify:smoke": "npm run build && npm run smoke:core:prebuilt"
   },
   "keywords": [],
   "author": "",
