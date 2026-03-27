@@ -68,8 +68,11 @@ test('CodexView는 장신구 도감 탭과 발견 수 집계를 포함한다', (
 
   assert.equal(shellHtml.includes('data-tab="accessory"'), true, 'CodexView에 장신구 도감 탭이 없음');
   assert.equal(shellHtml.includes('cx-tab-accessory'), true, 'CodexView에 장신구 패널이 없음');
-  assert.equal(shellHtml.includes('cx-discovery-strip'), true, 'CodexView에 분리 발견 통계 strip이 없음');
+  assert.equal(shellHtml.includes('cx-discovery-strip'), false, 'CodexView에 중복 진행도 strip이 남아 있음');
   assert.equal(shellHtml.includes('cx-tab-summary'), true, 'CodexView에 탭 요약 바가 없음');
+  assert.equal(shellHtml.includes('적 1/2'), true, 'CodexView 탭이 적 진행도를 직접 보여주지 않음');
+  assert.equal(shellHtml.includes('무기 1/2'), true, 'CodexView 탭이 무기 진행도를 직접 보여주지 않음');
+  assert.equal(shellHtml.includes('장신구 1/2'), true, 'CodexView 탭이 장신구 진행도를 직접 보여주지 않음');
   assert.equal(discovered, 4, '도감 발견 수가 장신구를 포함하지 않음');
   assert.equal(discovery.entries.length, 3, '분리 발견 통계가 적/무기/장신구 3종을 제공하지 않음');
 });

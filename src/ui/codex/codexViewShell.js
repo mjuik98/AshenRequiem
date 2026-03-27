@@ -14,6 +14,14 @@ export function getCodexTabSummaryText(activeTab = 'enemy') {
   return TAB_SUMMARY_TEXT[activeTab] ?? TAB_SUMMARY_TEXT.enemy;
 }
 
+function getDiscoveryCount(discovery, label) {
+  const entry = discovery?.entries?.find((candidate) => candidate.label === label);
+  return {
+    discovered: entry?.discovered ?? 0,
+    total: entry?.total ?? 0,
+  };
+}
+
 export function renderCodexViewShell({
   discovery,
   activeTab,
@@ -22,6 +30,9 @@ export function renderCodexViewShell({
   totalAccessories,
 }) {
   const discovered = discovery.totalDiscovered;
+  const enemyProgress = getDiscoveryCount(discovery, '적');
+  const weaponProgress = getDiscoveryCount(discovery, '무기');
+  const accessoryProgress = getDiscoveryCount(discovery, '장신구');
   return `
     <div class="cx-panel ss-panel">
       ${renderSubscreenHeader({
@@ -34,23 +45,15 @@ export function renderCodexViewShell({
         title: 'Codex',
         right: `<span class="cx-prog-pill ss-pill">${discovered} / ${totalEnemies + totalWeapons + totalAccessories} 발견됨</span>`,
       })}
-      <div class="cx-discovery-strip" aria-label="도감 발견 통계">
-        ${discovery.entries.map((entry) => `
-          <div class="cx-disc-pill ${entry.tone}">
-            <span class="cx-disc-label">${entry.icon} ${entry.label}</span>
-            <span class="cx-disc-value">${entry.discovered} / ${entry.total}</span>
-          </div>
-        `).join('')}
-      </div>
       <nav class="cx-tabs" role="tablist" aria-label="도감 탭">
-        <button class="cx-tab ${activeTab === 'enemy' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'enemy'}" data-tab="enemy">
-          적 도감 <span class="cx-tab-cnt">${totalEnemies}</span>
+        <button class="cx-tab ${activeTab === 'enemy' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'enemy'}" aria-label="적 ${enemyProgress.discovered}/${enemyProgress.total}" data-tab="enemy">
+          적 <span class="cx-tab-progress">${enemyProgress.discovered}/${enemyProgress.total}</span>
         </button>
-        <button class="cx-tab ${activeTab === 'weapon' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'weapon'}" data-tab="weapon">
-          무기 도감 <span class="cx-tab-cnt">${totalWeapons}</span>
+        <button class="cx-tab ${activeTab === 'weapon' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'weapon'}" aria-label="무기 ${weaponProgress.discovered}/${weaponProgress.total}" data-tab="weapon">
+          무기 <span class="cx-tab-progress">${weaponProgress.discovered}/${weaponProgress.total}</span>
         </button>
-        <button class="cx-tab ${activeTab === 'accessory' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'accessory'}" data-tab="accessory">
-          장신구 도감 <span class="cx-tab-cnt">${totalAccessories}</span>
+        <button class="cx-tab ${activeTab === 'accessory' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'accessory'}" aria-label="장신구 ${accessoryProgress.discovered}/${accessoryProgress.total}" data-tab="accessory">
+          장신구 <span class="cx-tab-progress">${accessoryProgress.discovered}/${accessoryProgress.total}</span>
         </button>
         <button class="cx-tab ${activeTab === 'records' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'records'}" data-tab="records">
           기록

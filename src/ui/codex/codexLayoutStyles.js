@@ -18,36 +18,6 @@ export const CODEX_LAYOUT_CSS = `
   }
   .cx-header-left { display: flex; align-items: center; gap: 10px; }
   .cx-prog-pill { letter-spacing: 0.5px; }
-  .cx-discovery-strip {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    padding: 0 24px 18px;
-  }
-  .cx-disc-pill {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 11px 14px;
-    border-radius: 12px;
-    border: 0.5px solid rgba(255,255,255,0.08);
-    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
-  }
-  .cx-disc-pill.enemy { border-color: rgba(239,83,80,0.24); }
-  .cx-disc-pill.weapon { border-color: rgba(212,175,106,0.24); }
-  .cx-disc-pill.accessory { border-color: rgba(126,205,232,0.28); }
-  .cx-disc-label {
-    font-size: 10px;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-    color: rgba(244,237,224,0.46);
-  }
-  .cx-disc-value {
-    font-size: 13px;
-    font-weight: 700;
-    color: rgba(244,237,224,0.9);
-  }
 
   .cx-tabs {
     display: flex; padding: 0 24px;
@@ -61,12 +31,12 @@ export const CODEX_LAYOUT_CSS = `
   }
   .cx-tab.active { color: #d4af6a; border-bottom-color: #d4af6a; }
   .cx-tab:hover:not(.active) { color: rgba(244,237,224,0.7); }
-  .cx-tab-cnt {
+  .cx-tab-progress {
     display: inline-block; font-size: 9px; letter-spacing: 0;
     background: rgba(255,255,255,0.08); border-radius: 10px;
     padding: 1px 6px; margin-left: 5px; font-weight: 400;
   }
-  .cx-tab.active .cx-tab-cnt {
+  .cx-tab.active .cx-tab-progress {
     background: rgba(212,175,106,0.16); color: rgba(212,175,106,0.6);
   }
   .cx-tab-summary {

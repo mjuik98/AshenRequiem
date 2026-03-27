@@ -52,8 +52,7 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
   );
   const state = { scene: codexReady ? 'CodexScene' : null };
 
-  const discoveryStripCount = await transport.evalJson(`document.querySelectorAll('.cx-disc-pill').length`);
-  let accessoryTabClicked = await transport.clickByText('장신구 도감');
+  let accessoryTabClicked = await transport.clickByText('장신구');
   if (!accessoryTabClicked) {
     accessoryTabClicked = await transport.evalJson(
       `document.querySelector('.cx-tab[data-tab="accessory"]')
@@ -67,7 +66,8 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
   const codexUi = {
     rootVisible: await transport.evalJson(`Boolean(document.querySelector('.cx-root'))`),
     tabCount: await transport.evalJson(`document.querySelectorAll('.cx-tab').length`),
-    discoveryStripCount,
+    tabProgressCount: await transport.evalJson(`document.querySelectorAll('.cx-tab-progress').length`),
+    discoveryStripCount: await transport.evalJson(`document.querySelectorAll('.cx-disc-pill').length`),
     accessoryTabActive: await transport.evalJson(`Boolean(document.querySelector('#cx-tab-accessory')) && Boolean(document.querySelector('.cx-tab[data-tab="accessory"]'))`),
     accessoryFilterCount: await transport.evalJson(`document.querySelectorAll('#cx-tab-accessory .cx-af').length`),
     effectFilterCount: await transport.evalJson(`document.querySelectorAll('#cx-tab-accessory .cx-ef').length`),
@@ -83,7 +83,8 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
       scene: state?.scene === 'CodexScene',
       rootVisible: codexUi.rootVisible === true,
       hasTabs: codexUi.tabCount >= 4,
-      hasDiscoveryStrip: codexUi.discoveryStripCount >= 3,
+      hasTabProgress: codexUi.tabProgressCount >= 3,
+      removedDiscoveryStrip: codexUi.discoveryStripCount === 0,
       hasAccessoryTab: codexUi.accessoryTabActive === true,
       hasAccessoryFilters: codexUi.accessoryFilterCount >= 4 && codexUi.effectFilterCount >= 4,
       hasAccessoryDetail: codexUi.accessoryDetailVisible === true,
