@@ -24,6 +24,49 @@ export const META_SHOP_CSS = `
   }
   .ms-currency-label { font-size: 13px; color: #aaa; }
   .ms-currency-value { font-size: 18px; font-weight: 700; color: #ffd54f; }
+  .ms-toolbar {
+    margin: 0 26px 18px;
+    padding: 0 2px;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .ms-filter-tabs,
+  .ms-sort-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ms-toolbar-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .ms-result-count {
+    font-size: 12px;
+    color: #a99b8a;
+  }
+  .ms-filter-tab,
+  .ms-sort-btn {
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #d7cab6;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .ms-filter-tab.is-active,
+  .ms-sort-btn.is-active {
+    background: rgba(255,213,79,0.14);
+    border-color: rgba(255,213,79,0.45);
+    color: #ffe39a;
+  }
   .ms-detail-panel {
     margin: 0 26px 22px;
     padding: 20px 22px;
@@ -84,7 +127,7 @@ export const META_SHOP_CSS = `
   }
   .ms-detail-stats {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 18px;
   }
@@ -113,6 +156,9 @@ export const META_SHOP_CSS = `
   .ms-section {
     padding: 0 26px;
     margin-bottom: 22px;
+  }
+  .ms-state-section + .ms-state-section {
+    margin-top: -2px;
   }
   .ms-section-heading {
     font-size: 12px;
@@ -254,6 +300,14 @@ export const META_SHOP_CSS = `
   @media (max-width: 640px) {
     .ms-currency-bar {
       margin: 18px 18px 20px;
+    }
+    .ms-toolbar {
+      margin: 0 18px 18px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .ms-toolbar-meta {
+      justify-content: flex-start;
     }
     .ms-detail-panel,
     .ms-section {

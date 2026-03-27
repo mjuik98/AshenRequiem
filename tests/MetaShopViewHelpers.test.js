@@ -98,9 +98,14 @@ test('meta shop model and markup keep purchase availability and shared footer co
   assert.equal(viewModel.cards.some((entry) => entry.canAfford), true, '구매 가능 카드가 계산되지 않음');
   assert.equal(viewModel.selectedCard?.id, 'perm_hp', '첫 구매 가능 카드가 기본 선택되지 않음');
   assert.equal(Array.isArray(viewModel.availableCards), true, '구매 가능 카드 섹션이 계산되지 않음');
+  assert.equal(Array.isArray(viewModel.lockedCards), true, '재화 부족 카드 섹션이 계산되지 않음');
   assert.equal(Array.isArray(viewModel.completedCards), true, '완료 카드 섹션이 계산되지 않음');
+  assert.equal(typeof viewModel.visibleCount, 'number', '현재 필터 결과 수가 계산되지 않음');
+  assert.equal(typeof viewModel.selectedCard?.maxCostToFinish, 'number', '상세 패널 총 비용이 계산되지 않음');
+  assert.equal(typeof viewModel.selectedCard?.affordablePurchaseCount, 'number', '상세 패널 추가 구매 횟수가 계산되지 않음');
 
   const html = markupApi.renderMetaShopMarkup(viewModel);
+  assert.equal(html.includes('ms-toolbar'), true, 'MetaShop toolbar markup이 없음');
   assert.equal(html.includes('ms-detail-panel'), true, 'MetaShop 상세 패널 markup이 없음');
   assert.equal(html.includes('ms-grid'), true, 'MetaShop grid markup이 없음');
   assert.equal(html.includes('ms-back-btn'), true, 'MetaShop footer back button이 없음');
@@ -117,6 +122,33 @@ test('meta shop model falls back to the first unfinished card when nothing is af
   }));
 
   assert.equal(viewModel.selectedCard?.id, 'perm_hp', '구매 불가 상태에서 첫 미완료 카드가 선택되지 않음');
+});
+
+test('meta shop model exposes category, sorting, and state sections for operability', () => {
+  const modelApi = getMetaShopModel();
+
+  const session = makeSessionState({
+    meta: {
+      currency: 15,
+      permanentUpgrades: {
+        perm_damage: 5,
+      },
+    },
+  });
+
+  const allViewModel = modelApi.buildMetaShopViewModel(session);
+  const economyViewModel = modelApi.buildMetaShopViewModel(session, {
+    activeCategory: 'economy',
+    activeSort: 'price',
+  });
+
+  assert.equal(allViewModel.affordableCards.some((card) => card.id === 'perm_hp'), true, '구매 가능 섹션이 계산되지 않음');
+  assert.equal(allViewModel.lockedCards.some((card) => card.id === 'perm_cooldown'), true, '재화 부족 섹션이 계산되지 않음');
+  assert.equal(allViewModel.completedCards.some((card) => card.id === 'perm_damage'), true, '완료 섹션이 계산되지 않음');
+  assert.equal(economyViewModel.activeCategory, 'economy', '카테고리 상태가 반영되지 않음');
+  assert.equal(economyViewModel.activeSort, 'price', '정렬 상태가 반영되지 않음');
+  assert.equal(economyViewModel.visibleCount > 0, true, '필터 결과 수가 계산되지 않음');
+  assert.equal(economyViewModel.cards.every((card) => card.category === 'economy'), true, '카테고리 필터가 적용되지 않음');
 });
 
 test('MetaShopView orchestrates helper output and binds purchase/back events', () => {
@@ -172,6 +204,36 @@ test('MetaShopView keeps the selected upgrade across refresh when it still exist
 
     assert.equal(view._selectedUpgradeId, 'perm_speed', 'refresh 이후 선택 업그레이드가 유지되지 않음');
     assert.equal(view.el.innerHTML.includes('is-selected'), true, '선택 카드 상태가 markup에 반영되지 않음');
+  } finally {
+    restore();
+  }
+});
+
+test('MetaShopView keeps category and sort state across refresh', () => {
+  const View = getMetaShopView();
+  const { document, restore } = installMockDom();
+
+  try {
+    const container = document.createElement('div');
+    const view = new View(container);
+    const session = makeSessionState({
+      meta: {
+        currency: 999,
+        permanentUpgrades: {},
+      },
+    });
+
+    view.show(session, () => {}, () => {});
+
+    const filterButtons = view.el.querySelectorAll('.ms-filter-tab');
+    const sortButtons = view.el.querySelectorAll('.ms-sort-btn');
+    filterButtons[2]?.click();
+    sortButtons[1]?.click();
+    view.refresh(session);
+
+    assert.equal(view._activeCategory, 'survival', 'refresh 이후 카테고리 상태가 유지되지 않음');
+    assert.equal(view._activeSort, 'price', 'refresh 이후 정렬 상태가 유지되지 않음');
+    assert.equal(view.el.innerHTML.includes('ms-state-section'), true, '상태별 섹션 markup이 렌더링되지 않음');
   } finally {
     restore();
   }

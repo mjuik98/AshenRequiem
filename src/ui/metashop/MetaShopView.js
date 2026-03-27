@@ -1,4 +1,8 @@
-import { buildMetaShopViewModel } from './metaShopModel.js';
+import {
+  buildMetaShopViewModel,
+  META_SHOP_FILTERS,
+  META_SHOP_SORTS,
+} from './metaShopModel.js';
 import { renderMetaShopMarkup } from './metaShopMarkup.js';
 import { ensureMetaShopStyles } from './metaShopStyles.js';
 
@@ -9,6 +13,8 @@ export class MetaShopView {
     this._onPurchase = null;
     this._onBack     = null;
     this._selectedUpgradeId = null;
+    this._activeCategory = 'all';
+    this._activeSort = 'recommended';
     ensureMetaShopStyles();
     container.appendChild(this.el);
 
@@ -40,16 +46,40 @@ export class MetaShopView {
   _render(session) {
     const viewModel = buildMetaShopViewModel(session, {
       selectedUpgradeId: this._selectedUpgradeId,
+      activeCategory: this._activeCategory,
+      activeSort: this._activeSort,
     });
     this._selectedUpgradeId = viewModel.selectedCard?.id ?? null;
     this.el.innerHTML = renderMetaShopMarkup(viewModel);
 
-    const selectionCards = [...(viewModel.availableCards ?? []), ...(viewModel.completedCards ?? [])];
+    const selectionCards = [
+      ...(viewModel.availableCards ?? []),
+      ...(viewModel.lockedCards ?? []),
+      ...(viewModel.completedCards ?? []),
+    ];
     this.el.querySelectorAll('.ms-select-btn').forEach((btn, index) => {
       const card = selectionCards[index];
       if (!card) return;
       btn.addEventListener('click', () => {
         this._selectedUpgradeId = card.id;
+        this._render(session);
+      });
+    });
+
+    this.el.querySelectorAll('.ms-filter-tab').forEach((btn, index) => {
+      const filter = META_SHOP_FILTERS[index];
+      if (!filter) return;
+      btn.addEventListener('click', () => {
+        this._activeCategory = filter.id;
+        this._render(session);
+      });
+    });
+
+    this.el.querySelectorAll('.ms-sort-btn').forEach((btn, index) => {
+      const sort = META_SHOP_SORTS[index];
+      if (!sort) return;
+      btn.addEventListener('click', () => {
+        this._activeSort = sort.id;
         this._render(session);
       });
     });

@@ -7,8 +7,14 @@ export function renderMetaShopMarkup({
   currency = 0,
   cards = [],
   selectedCard = null,
-  availableCards = cards,
+  availableCards = [],
+  lockedCards = [],
   completedCards = [],
+  activeCategory = 'all',
+  activeSort = 'recommended',
+  filters = [],
+  sorts = [],
+  visibleCount = cards.length,
 } = {}) {
   const activeCard = selectedCard ?? availableCards[0] ?? completedCards[0] ?? null;
   const renderCard = (card) => `
@@ -47,6 +53,34 @@ export function renderMetaShopMarkup({
         <span class="ms-currency-value">💰 ${currency}</span>
       </div>
 
+      <section class="ms-toolbar">
+        <div class="ms-filter-tabs">
+          ${filters.map((filter) => `
+            <button
+              class="ms-filter-tab ${filter.id === activeCategory ? 'is-active' : ''}"
+              data-filter-id="${filter.id}"
+              type="button"
+            >
+              ${filter.label}
+            </button>
+          `).join('')}
+        </div>
+        <div class="ms-toolbar-meta">
+          <div class="ms-result-count">표시 항목 ${visibleCount}</div>
+          <div class="ms-sort-group">
+            ${sorts.map((sort) => `
+              <button
+                class="ms-sort-btn ${sort.id === activeSort ? 'is-active' : ''}"
+                data-sort-id="${sort.id}"
+                type="button"
+              >
+                ${sort.label}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </section>
+
       <section class="ms-detail-panel">
         ${activeCard ? `
           <div class="ms-detail-head">
@@ -80,6 +114,14 @@ export function renderMetaShopMarkup({
               <span class="ms-detail-label">구매 후 잔액</span>
               <strong class="ms-detail-value">${activeCard.isMaxed ? '완료' : `💰 ${activeCard.postPurchaseCurrency}`}</strong>
             </div>
+            <div class="ms-detail-stat">
+              <span class="ms-detail-label">MAX까지 총 비용</span>
+              <strong class="ms-detail-value">💰 ${activeCard.maxCostToFinish}</strong>
+            </div>
+            <div class="ms-detail-stat">
+              <span class="ms-detail-label">추가 구매 가능 횟수</span>
+              <strong class="ms-detail-value">${activeCard.affordablePurchaseCount}회</strong>
+            </div>
           </div>
 
           <button
@@ -93,15 +135,24 @@ export function renderMetaShopMarkup({
         ` : ''}
       </section>
 
-      <section class="ms-section">
-        <div class="ms-section-heading">구매 후보</div>
+      <section class="ms-section ms-state-section">
+        <div class="ms-section-heading">구매 가능</div>
         <div class="ms-grid">
           ${availableCards.map(renderCard).join('')}
         </div>
       </section>
 
+      ${lockedCards.length > 0 ? `
+        <section class="ms-section ms-state-section">
+          <div class="ms-section-heading">재화 부족</div>
+          <div class="ms-grid">
+            ${lockedCards.map(renderCard).join('')}
+          </div>
+        </section>
+      ` : ''}
+
       ${completedCards.length > 0 ? `
-        <section class="ms-section is-completed">
+        <section class="ms-section ms-state-section is-completed">
           <div class="ms-section-heading">완료한 강화</div>
           <div class="ms-grid ms-grid-completed">
             ${completedCards.map(renderCard).join('')}
