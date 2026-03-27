@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { installMockDom } from './helpers/mockDom.js';
+import { projectPathExists, readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[PlayUiLazyViews]');
 
 const { test, summary } = createRunner('PlayUiLazyViews');
+
+test('PlayUI는 overlay lazy orchestration을 공용 controller helper에 위임한다', () => {
+  const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
+
+  assert.equal(projectPathExists('../src/scenes/play/LazyOverlayController.js'), true, 'overlay lazy orchestration helper 파일이 필요함');
+  assert.equal(playUiSource.includes("from './LazyOverlayController.js'"), true, 'PlayUI가 공용 LazyOverlayController를 사용해야 함');
+});
 
 test('PlayUI는 pause/result/level-up overlay를 lazy import해도 요청된 visible 상태를 유지한다', async () => {
   const { document, restore } = installMockDom();

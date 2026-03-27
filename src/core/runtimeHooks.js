@@ -112,8 +112,12 @@ function openLevelUpOverlay(game, overrides = {}) {
   world.run ??= {};
   world.progression ??= {};
   world.run.playMode ??= PlayMode.PLAYING;
-  player.weapons = [{ id: 'flame_zone', level: 1, currentCooldown: 0 }];
+  player.weapons = [
+    { id: 'flame_zone', level: 1, currentCooldown: 0 },
+    { id: 'magic_bolt', level: 7, currentCooldown: 0 },
+  ];
   player.accessories = [{ id: 'iron_heart', level: 2 }];
+  player.acquiredUpgrades = new Set(['up_magic_bolt']);
   world.progression.pendingLevelUpChoices = overrides.choices ?? [
     { id: 'up_flame_zone', type: 'weapon_upgrade', weaponId: 'flame_zone', name: '화염 지대', description: '지속 화염 피해가 강화됩니다.' },
     { id: 'up_iron_heart', type: 'accessory_upgrade', accessoryId: 'iron_heart', name: '강철 심장', description: '생존력이 한 단계 더 올라갑니다.' },

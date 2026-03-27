@@ -8,7 +8,10 @@
 
 import { Pipeline }  from './Pipeline.js';
 import { SYSTEM_REGISTRY } from '../systems/index.js';
-import { PLAY_PIPELINE_FACTORY_SYSTEMS } from './playPipelineManifest.js';
+import {
+  PLAY_PIPELINE_FACTORY_SYSTEMS,
+  PLAY_PIPELINE_INSTANCE_SYSTEMS,
+} from './playPipelineManifest.js';
 import { registerDefaultEventHandlers } from '../systems/event/eventHandlerRegistry.js';
 
 export class PipelineBuilder {
@@ -83,7 +86,13 @@ export class PipelineBuilder {
     for (const spec of PLAY_PIPELINE_FACTORY_SYSTEMS) {
       pipeline.register(this[spec.slot], { priority: spec.priority });
     }
-    pipeline.register(this._eventRegistry.asSystem(), { priority: 105 });
+    for (const spec of PLAY_PIPELINE_INSTANCE_SYSTEMS) {
+      pipeline.register(spec.create({
+        eventRegistry: this._eventRegistry,
+        services: this._services,
+        session: this._session,
+      }), { priority: spec.priority });
+    }
 
     for (const { system, priority } of SYSTEM_REGISTRY) {
       pipeline.register(system, { priority });

@@ -150,10 +150,13 @@ export async function runLevelUpOverlayScenario(url, artifactDir, transport) {
   );
   const overlayUi = {
     progression: await transport.evalJson(`document.querySelector('.card-progression')?.textContent?.trim() ?? ''`),
+    summary: await transport.evalJson(`document.querySelector('.card-summary')?.textContent?.trim() ?? ''`),
     current: await transport.evalJson(`document.querySelector('.card-current-text')?.textContent?.trim() ?? ''`),
     preview: await transport.evalJson(`document.querySelector('.card-preview-text')?.textContent?.trim() ?? ''`),
     discovery: await transport.evalJson(`document.querySelector('.card-discovery-chip')?.textContent?.trim() ?? ''`),
     relatedHintCount: await transport.evalJson(`document.querySelectorAll('.card-related-chip').length`),
+    firstPriorityHint: await transport.evalJson(`document.querySelector('.card-priority-hint')?.textContent?.trim() ?? ''`),
+    secondPriorityHint: await transport.evalJson(`document.querySelectorAll('.card-priority-hint')[1]?.textContent?.trim() ?? ''`),
   };
   await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
   const summary = {
@@ -165,10 +168,12 @@ export async function runLevelUpOverlayScenario(url, artifactDir, transport) {
       levelUpVisible: state?.ui?.levelUpVisible === true,
       onlyLevelUpVisible: state?.ui?.pauseVisible === false && state?.ui?.resultVisible === false,
       hasProgression: overlayUi.progression === 'Lv 1 → Lv 2',
-      hasCurrent: overlayUi.current === '적 위치에 화염 장판을 깔아 지속 피해를 준다',
-      hasPreview: overlayUi.preview === '화염 지대 데미지 +1',
+      hasSummary: overlayUi.summary === '화염 지대 데미지 +1',
+      noLegacyComparison: overlayUi.current === '' && overlayUi.preview === '',
       hasDiscovery: overlayUi.discovery === '도감 신규',
-      noFalseRelationHints: overlayUi.relatedHintCount === 0,
+      hasPromotedRelationHint: overlayUi.firstPriorityHint === '시너지 빌드 연결'
+        && overlayUi.secondPriorityHint === '진화 빌드 연결',
+      relationHintsRemainVisible: overlayUi.relatedHintCount >= 2,
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);

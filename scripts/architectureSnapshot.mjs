@@ -26,6 +26,7 @@ export function getVerifyBaselineSnapshot(rootDir = ROOT) {
     verify: packageJson.scripts.verify,
     verifyFast: packageJson.scripts['verify:fast'],
     verifyCi: packageJson.scripts['verify:ci'],
+    verifySmoke: packageJson.scripts['verify:smoke'],
     profileCheck: packageJson.scripts['profile:check'],
     ciUsesVerifyCi: workflowSource.includes('npm run verify:ci'),
   };
@@ -66,6 +67,7 @@ export function renderArchitectureSnapshotSections(snapshot) {
     `- \`npm run verify\`: \`${snapshot.verify.verify}\``,
     `- \`npm run verify:fast\`: \`${snapshot.verify.verifyFast}\``,
     `- \`npm run verify:ci\`: \`${snapshot.verify.verifyCi}\``,
+    `- \`npm run verify:smoke\`: \`${snapshot.verify.verifySmoke}\``,
     `- \`npm run profile:check\`: \`${snapshot.verify.profileCheck}\``,
     `- CI workflow uses \`npm run verify:ci\`: ${snapshot.verify.ciUsesVerifyCi ? 'yes' : 'no'}`,
   ].join('\n');

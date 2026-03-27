@@ -16,14 +16,14 @@ function getTypeClass(type) {
 
 function getBadge(type) {
   switch (type) {
-    case 'weapon': return 'WEAPON';
-    case 'weapon_new': return 'NEW';
-    case 'weapon_upgrade': return 'UP';
-    case 'weapon_evolution': return 'EVO';
-    case 'stat': return 'STAT';
-    case 'accessory': return 'RELIC';
-    case 'accessory_upgrade': return 'UP';
-    case 'slot': return 'SLOT';
+    case 'weapon': return '무기';
+    case 'weapon_new': return '신규';
+    case 'weapon_upgrade': return '강화';
+    case 'weapon_evolution': return '진화';
+    case 'stat': return '능력';
+    case 'accessory': return '장신구';
+    case 'accessory_upgrade': return '강화';
+    case 'slot': return '슬롯';
     default: return '';
   }
 }
@@ -76,10 +76,9 @@ export function buildLevelUpCardMarkup({
   const rerollDisabled = rerollsRemaining <= 0 || banishMode;
   const relatedHints = Array.isArray(upgrade?.relatedHints) ? upgrade.relatedHints : [];
   const levelLabel = upgrade?.levelLabel ?? '';
-  const currentLabel = upgrade?.currentLabel ?? '';
-  const currentText = upgrade?.currentText ?? '';
-  const previewLabel = upgrade?.previewLabel ?? '';
-  const previewText = upgrade?.previewText ?? '';
+  const summaryText = upgrade?.summaryText ?? upgrade?.previewText ?? upgrade?.description ?? '';
+  const priorityHint = upgrade?.priorityHint ?? '';
+  const priorityHintType = upgrade?.priorityHintType ?? '';
   const discoveryLabel = upgrade?.discoveryLabel ?? '';
   const icon = upgrade?.icon ?? (upgrade?.type === 'weapon_evolution' ? '✦' : upgrade?.type === 'accessory' || upgrade?.type === 'accessory_upgrade' ? '◆' : upgrade?.type === 'slot' ? '⬒' : upgrade?.type === 'stat' ? '✚' : '⚔');
   const badgeClass = upgrade?.type === 'weapon_evolution' ? ' card-badge-evolution' : '';
@@ -88,37 +87,24 @@ export function buildLevelUpCardMarkup({
     <div class="levelup-card-shell" data-index="${index}">
       <div class="levelup-card ${typeClass}${banishMode ? ' is-banish-mode' : ''}">
         ${badge ? `<div class="card-badge${badgeClass}">${badge}</div>` : ''}
-        <div class="card-icon" aria-hidden="true">${icon}</div>
-        <div class="card-name">${escapeHtml(upgrade?.name ?? '')}</div>
-        ${levelLabel || discoveryLabel ? `
-          <div class="card-meta-row">
-            ${levelLabel ? `<span class="card-progression">${escapeHtml(levelLabel)}</span>` : ''}
-            ${discoveryLabel ? `<span class="card-discovery-chip">${escapeHtml(discoveryLabel)}</span>` : ''}
-          </div>
-        ` : ''}
-        ${currentText || previewText ? `
-          <div class="card-comparison">
-            ${currentText ? `
-              <div class="card-detail-block card-detail-current">
-                ${currentLabel ? `<div class="card-current-label">${escapeHtml(currentLabel)}</div>` : ''}
-                <div class="card-current-text">${escapeHtml(currentText)}</div>
-              </div>
-            ` : ''}
-            ${previewText ? `
-              <div class="card-detail-block card-detail-next">
-                ${previewLabel ? `<div class="card-preview-label">${escapeHtml(previewLabel)}</div>` : ''}
-                <div class="card-preview-text">${escapeHtml(previewText)}</div>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-        <div class="card-desc">${escapeHtml(upgrade?.description ?? '')}</div>
-        ${relatedHints.length > 0 ? `
-          <div class="card-related-hints">
-            ${relatedHints.map((hint) => `<span class="card-related-chip">${escapeHtml(hint)}</span>`).join('')}
-          </div>
-        ` : ''}
-        ${upgrade?.type === 'slot' ? '<div class="card-slot-hint">슬롯 확장</div>' : ''}
+        <div class="card-main">
+          <div class="card-icon" aria-hidden="true">${icon}</div>
+          <div class="card-name">${escapeHtml(upgrade?.name ?? '')}</div>
+          ${priorityHint ? `<div class="card-priority-hint ${priorityHintType ? `is-${escapeHtml(priorityHintType)}` : ''}">${escapeHtml(priorityHint)}</div>` : ''}
+          ${summaryText ? `<div class="card-summary">${escapeHtml(summaryText)}</div>` : ''}
+          ${levelLabel || discoveryLabel ? `
+            <div class="card-meta-row">
+              ${levelLabel ? `<span class="card-progression">${escapeHtml(levelLabel)}</span>` : ''}
+              ${discoveryLabel ? `<span class="card-discovery-chip">${escapeHtml(discoveryLabel)}</span>` : ''}
+            </div>
+          ` : ''}
+          ${relatedHints.length > 0 ? `
+            <div class="card-related-hints">
+              ${relatedHints.map((hint) => `<span class="card-related-chip">${escapeHtml(hint)}</span>`).join('')}
+            </div>
+          ` : ''}
+          ${upgrade?.type === 'slot' ? '<div class="card-slot-hint">슬롯 확장</div>' : ''}
+        </div>
       </div>
       <div class="card-footer-actions">
         <button class="card-reroll-btn" type="button" ${rerollDisabled ? 'disabled' : ''}>리롤</button>

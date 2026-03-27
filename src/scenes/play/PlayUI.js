@@ -11,6 +11,7 @@ import { HudView }                     from '../../ui/hud/HudView.js';
 import { BossHudView }                 from '../../ui/boss/BossHudView.js';
 import { BossAnnouncementView }        from '../../ui/boss/BossAnnouncementView.js';
 import { WeaponEvolutionAnnounceView } from '../../ui/WeaponEvolutionAnnounceView.js';
+import { LazyOverlayController }       from './LazyOverlayController.js';
 import {
   loadLevelUpViewModule,
   loadPauseViewModule,
@@ -20,38 +21,15 @@ import {
 export class PlayUI {
   constructor(container, loaders = {}) {
     this._container = container;
-    this._loadPauseViewModule = loaders.loadPauseViewModule ?? loadPauseViewModule;
-    this._loadResultViewModule = loaders.loadResultViewModule ?? loadResultViewModule;
-    this._loadLevelUpViewModule = loaders.loadLevelUpViewModule ?? loadLevelUpViewModule;
     this._hud          = new HudView(container);
     this._bossHud      = new BossHudView(container);
     this._bossAnnounce = new BossAnnouncementView(container);
     this._evoAnnounce  = new WeaponEvolutionAnnounceView(container);
 
-    this._pause = null;
-    this._result = null;
-    this._levelUp = null;
-
-    this._pauseVisible = false;
-    this._resultVisible = false;
-    this._levelUpVisible = false;
-
-    this._pendingPauseConfig = null;
-    this._pendingResultArgs = null;
-    this._pendingLevelUpConfig = null;
-
-    this._pauseViewClass = null;
-    this._resultViewClass = null;
-    this._levelUpViewClass = null;
-
-    this._pauseModulePromise = null;
-    this._resultModulePromise = null;
-    this._levelUpModulePromise = null;
-
-    this._pauseViewPromise = null;
-    this._resultViewPromise = null;
-    this._levelUpViewPromise = null;
     this._destroyed = false;
+    this._pauseOverlay = this._createPauseOverlay(loaders.loadPauseViewModule ?? loadPauseViewModule);
+    this._resultOverlay = this._createResultOverlay(loaders.loadResultViewModule ?? loadResultViewModule);
+    this._levelUpOverlay = this._createLevelUpOverlay(loaders.loadLevelUpViewModule ?? loadLevelUpViewModule);
 
     this._preloadOverlayModules();
   }
@@ -74,82 +52,42 @@ export class PlayUI {
   // ── 일시정지 ──────────────────────────────────────────────────────────
 
   showPause(config) {
-    this._pauseVisible = true;
-    this._pendingPauseConfig = config;
-    return this._ensurePauseView().then((pauseView) => {
-      if (!pauseView || this._destroyed || !this._pauseVisible) return false;
-      pauseView.show(this._pendingPauseConfig);
-      return true;
-    }).catch((error) => {
-      console.error('[PlayUI] PauseView 로드 실패:', error);
-      return false;
-    });
+    return this._pauseOverlay.show(config);
   }
 
   hidePause() {
-    this._pauseVisible = false;
-    this._pendingPauseConfig = null;
-    this._pause?.hide();
+    this._pauseOverlay.hide();
   }
 
-  isPaused() { return this._pauseVisible || this._pause?.isVisible?.() || false; }
+  isPaused() { return this._pauseOverlay.isVisible(); }
 
   // ── 레벨업 오버레이 ───────────────────────────────────────────────────
 
   showLevelUp(config) {
-    this._levelUpVisible = true;
-    this._pendingLevelUpConfig = config;
-    return this._ensureLevelUpView().then((levelUpView) => {
-      if (!levelUpView || this._destroyed || !this._levelUpVisible) return false;
-      levelUpView.show(this._pendingLevelUpConfig);
-      return true;
-    }).catch((error) => {
-      console.error('[PlayUI] LevelUpView 로드 실패:', error);
-      return false;
-    });
+    return this._levelUpOverlay.show(config);
   }
 
   hideLevelUp() {
-    this._levelUpVisible = false;
-    this._pendingLevelUpConfig = null;
-    this._levelUp?.hide();
+    this._levelUpOverlay.hide();
   }
 
   isLevelUpVisible() {
-    return this._levelUpVisible || this._isOverlayElementVisible(this._levelUp);
+    return this._levelUpOverlay.isVisible();
   }
 
   // ── 결과 화면 ─────────────────────────────────────────────────────────
 
   showResult(stats, onRestart, onMetaShop = null) {
     this.hideHud();
-    this._resultVisible = true;
-    this._pendingResultArgs = [stats, onRestart, onMetaShop];
-    return this._ensureResultView().then((resultView) => {
-      if (!resultView || this._destroyed || !this._resultVisible) return false;
-      resultView.show(...this._pendingResultArgs);
-      return true;
-    }).catch((error) => {
-      console.error('[PlayUI] ResultView 로드 실패:', error);
-      return false;
-    });
+    return this._resultOverlay.show([stats, onRestart, onMetaShop]);
   }
 
   hideResult() {
-    this._resultVisible = false;
-    this._pendingResultArgs = null;
-    if (this._result?.hide) {
-      this._result.hide();
-      return;
-    }
-    if (this._result?.el?.style) {
-      this._result.el.style.display = 'none';
-      this._result.el.innerHTML = '';
-    }
+    this._resultOverlay.hide();
   }
 
   isResultVisible() {
-    return this._resultVisible || this._isOverlayElementVisible(this._result);
+    return this._resultOverlay.isVisible();
   }
 
   // ── 생명주기 ──────────────────────────────────────────────────────────
@@ -158,125 +96,62 @@ export class PlayUI {
     this._destroyed = true;
     [
       this._hud,
-      this._levelUp,
-      this._result,
       this._bossHud,
-      this._pause,
       this._bossAnnounce,
       this._evoAnnounce,
     ].forEach(view => view?.destroy());
+    this._pauseOverlay.destroy();
+    this._resultOverlay.destroy();
+    this._levelUpOverlay.destroy();
   }
 
   _preloadOverlayModules() {
-    this._loadPauseViewClass().catch(() => null);
-    this._loadResultViewClass().catch(() => null);
-    this._loadLevelUpViewClass().catch(() => null);
+    this._pauseOverlay.preload();
+    this._resultOverlay.preload();
+    this._levelUpOverlay.preload();
   }
 
-  _loadPauseViewClass() {
-    if (this._pauseViewClass) return Promise.resolve(this._pauseViewClass);
-    if (this._pauseModulePromise) return this._pauseModulePromise;
-
-    this._pauseModulePromise = this._loadPauseViewModule()
-      .then(({ PauseView }) => {
-        this._pauseViewClass = PauseView;
-        return PauseView;
-      })
-      .catch((error) => {
-        this._pauseModulePromise = null;
-        throw error;
-      });
-
-    return this._pauseModulePromise;
+  _createPauseOverlay(loadViewModule) {
+    return new LazyOverlayController({
+      loadViewModule,
+      resolveViewClass: ({ PauseView }) => PauseView,
+      createView: (PauseView) => new PauseView(this._container),
+      showView: (view, config) => view.show(config),
+      hideView: (view) => view?.hide?.(),
+      isVisible: (view) => view?.isVisible?.() || false,
+      onError: (error) => console.error('[PlayUI] PauseView 로드 실패:', error),
+    });
   }
 
-  _loadResultViewClass() {
-    if (this._resultViewClass) return Promise.resolve(this._resultViewClass);
-    if (this._resultModulePromise) return this._resultModulePromise;
-
-    this._resultModulePromise = this._loadResultViewModule()
-      .then(({ ResultView }) => {
-        this._resultViewClass = ResultView;
-        return ResultView;
-      })
-      .catch((error) => {
-        this._resultModulePromise = null;
-        throw error;
-      });
-
-    return this._resultModulePromise;
+  _createResultOverlay(loadViewModule) {
+    return new LazyOverlayController({
+      loadViewModule,
+      resolveViewClass: ({ ResultView }) => ResultView,
+      createView: (ResultView) => new ResultView(this._container),
+      showView: (view, payload) => view.show(...payload),
+      hideView: (view) => {
+        if (!view) return;
+        if (view.hide) {
+          view.hide();
+          return;
+        }
+        if (view.el?.style) {
+          view.el.style.display = 'none';
+          view.el.innerHTML = '';
+        }
+      },
+      onError: (error) => console.error('[PlayUI] ResultView 로드 실패:', error),
+    });
   }
 
-  _loadLevelUpViewClass() {
-    if (this._levelUpViewClass) return Promise.resolve(this._levelUpViewClass);
-    if (this._levelUpModulePromise) return this._levelUpModulePromise;
-
-    this._levelUpModulePromise = this._loadLevelUpViewModule()
-      .then(({ LevelUpView }) => {
-        this._levelUpViewClass = LevelUpView;
-        return LevelUpView;
-      })
-      .catch((error) => {
-        this._levelUpModulePromise = null;
-        throw error;
-      });
-
-    return this._levelUpModulePromise;
-  }
-
-  _ensurePauseView() {
-    if (this._pause) return Promise.resolve(this._pause);
-    if (this._pauseViewPromise) return this._pauseViewPromise;
-
-    this._pauseViewPromise = this._loadPauseViewClass()
-      .then((PauseView) => {
-        if (this._destroyed) return null;
-        this._pause = new PauseView(this._container);
-        return this._pause;
-      })
-      .catch((error) => {
-        this._pauseViewPromise = null;
-        throw error;
-      });
-    return this._pauseViewPromise;
-  }
-
-  _ensureResultView() {
-    if (this._result) return Promise.resolve(this._result);
-    if (this._resultViewPromise) return this._resultViewPromise;
-
-    this._resultViewPromise = this._loadResultViewClass()
-      .then((ResultView) => {
-        if (this._destroyed) return null;
-        this._result = new ResultView(this._container);
-        return this._result;
-      })
-      .catch((error) => {
-        this._resultViewPromise = null;
-        throw error;
-      });
-    return this._resultViewPromise;
-  }
-
-  _ensureLevelUpView() {
-    if (this._levelUp) return Promise.resolve(this._levelUp);
-    if (this._levelUpViewPromise) return this._levelUpViewPromise;
-
-    this._levelUpViewPromise = this._loadLevelUpViewClass()
-      .then((LevelUpView) => {
-        if (this._destroyed) return null;
-        this._levelUp = new LevelUpView(this._container);
-        return this._levelUp;
-      })
-      .catch((error) => {
-        this._levelUpViewPromise = null;
-        throw error;
-      });
-    return this._levelUpViewPromise;
-  }
-
-  _isOverlayElementVisible(view) {
-    const display = view?.el?.style?.display;
-    return typeof display === 'string' ? display !== 'none' : false;
+  _createLevelUpOverlay(loadViewModule) {
+    return new LazyOverlayController({
+      loadViewModule,
+      resolveViewClass: ({ LevelUpView }) => LevelUpView,
+      createView: (LevelUpView) => new LevelUpView(this._container),
+      showView: (view, config) => view.show(config),
+      hideView: (view) => view?.hide?.(),
+      onError: (error) => console.error('[PlayUI] LevelUpView 로드 실패:', error),
+    });
   }
 }

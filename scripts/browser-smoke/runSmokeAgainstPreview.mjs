@@ -20,7 +20,7 @@ const VITE_CLI = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 const DEFAULT_PORT = 4173;
 const DEFAULT_HOST = '127.0.0.1';
 const BUILD_TIMEOUT_MS = 60_000;
-const SMOKE_TIMEOUT_MS = 120_000;
+const SMOKE_TIMEOUT_MS = 180_000;
 const DEBUG_SMOKE = isDebugSmokeEnabled();
 const debugLog = createSmokeLogger({ enabled: DEBUG_SMOKE, output: process.stdout });
 

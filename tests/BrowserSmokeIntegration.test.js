@@ -6,6 +6,7 @@ import {
   resolveScenarioArtifactDir,
   SCENARIOS,
 } from '../scripts/browser-smoke/scenarios.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[BrowserSmokeIntegration]');
 
@@ -91,6 +92,15 @@ await test('package.json은 smoke 실행과 전체 verify 스크립트를 노출
   assert.equal(pkg.default.scripts['test:smoke:full'].includes('--all'), true, 'full smoke 스크립트가 모든 시나리오를 실행하지 않음');
   assert.equal(pkg.default.scripts['smoke:core:prebuilt'].includes('--skip-build'), true, 'prebuilt core smoke 스크립트가 skip-build를 사용하지 않음');
   assert.equal(pkg.default.scripts['smoke:full:prebuilt'].includes('--skip-build'), true, 'prebuilt full smoke 스크립트가 skip-build를 사용하지 않음');
+});
+
+await test('core smoke wrapper는 로컬 suite 완료를 위한 여유 timeout budget을 둔다', async () => {
+  const smokeWrapperSource = readProjectSource('../scripts/browser-smoke/runSmokeAgainstPreview.mjs');
+  assert.equal(
+    smokeWrapperSource.includes('const SMOKE_TIMEOUT_MS = 180_000;'),
+    true,
+    'core smoke timeout budget이 너무 낮아 로컬 verify:smoke가 불안정해지면 안 됨',
+  );
 });
 
 await test('browser smoke scenario registry는 title codex/settings 흐름을 포함한다', async () => {
