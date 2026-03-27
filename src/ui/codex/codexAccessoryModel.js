@@ -16,6 +16,12 @@ const EFFECT_CATEGORY_LABEL = {
   utility: '유틸',
 };
 
+const ACCESSORY_STATUS_LABEL = {
+  all: '전체',
+  discovered: '발견',
+  locked: '미발견',
+};
+
 const OFFENSE_STATS = new Set([
   'damageMult',
   'cooldownMult',
@@ -71,10 +77,15 @@ function buildLinkedWeapons(accessory, weaponEvolutionData = [], weaponData = []
     });
 }
 
-function createDiscoveryHint(unlocked) {
-  return unlocked
-    ? '런 중 한 번이라도 획득하면 도감에 유지됩니다.'
-    : '런 중 획득 시 기록됩니다.';
+function createDiscoveryHint(unlocked, isCatalyst) {
+  if (unlocked) {
+    return isCatalyst
+      ? '진화 재료 장신구로 등록되어 있으며, 이후 진화 조건 비교에 계속 표시됩니다.'
+      : '런 중 한 번이라도 획득하면 도감에 유지됩니다.';
+  }
+  return isCatalyst
+    ? '진화 재료 장신구입니다. 런 중 획득하면 도감과 진화식에 함께 기록됩니다.'
+    : '런 중 획득하면 도감에 기록됩니다.';
 }
 
 export function buildCodexAccessoryCardModel({
@@ -85,6 +96,7 @@ export function buildCodexAccessoryCardModel({
 }) {
   const unlocked = isCodexAccessoryUnlocked(accessory, session);
   const effectCategory = getAccessoryEffectCategory(accessory);
+  const isCatalyst = isCatalystAccessory(accessory?.id, weaponEvolutionData);
   return {
     id: accessory.id,
     name: accessory.name,
@@ -97,8 +109,8 @@ export function buildCodexAccessoryCardModel({
     effectText: getAccessoryEffectText(accessory),
     effectCategory,
     effectCategoryLabel: EFFECT_CATEGORY_LABEL[effectCategory] ?? effectCategory,
-    isCatalyst: isCatalystAccessory(accessory?.id, weaponEvolutionData),
-    discoveryHint: createDiscoveryHint(unlocked),
+    isCatalyst,
+    discoveryHint: createDiscoveryHint(unlocked, isCatalyst),
   };
 }
 
@@ -109,6 +121,7 @@ export function buildCodexAccessoryGridModel({
   search = '',
   rarityFilter = 'all',
   effectFilter = 'all',
+  statusFilter = 'all',
   selectedAccessoryId = null,
 }) {
   const normalizedSearch = String(search ?? '').trim().toLowerCase();
@@ -126,7 +139,10 @@ export function buildCodexAccessoryGridModel({
       const matchesRarity = rarityFilter === 'all'
         || (rarityFilter === 'catalyst' ? entry.isCatalyst : entry.rarity === rarityFilter);
       const matchesEffect = effectFilter === 'all' || entry.effectCategory === effectFilter;
-      return matchesSearch && matchesRarity && matchesEffect;
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'discovered' && entry.unlocked)
+        || (statusFilter === 'locked' && !entry.unlocked);
+      return matchesSearch && matchesRarity && matchesEffect && matchesStatus;
     });
 
   return {
@@ -136,10 +152,12 @@ export function buildCodexAccessoryGridModel({
     search,
     rarityFilter,
     effectFilter,
+    statusFilter,
     summary: {
       visibleCount: entries.length,
       discoveredCount: entries.filter((entry) => entry.unlocked).length,
       lockedCount: entries.filter((entry) => !entry.unlocked).length,
+      statusLabel: ACCESSORY_STATUS_LABEL[statusFilter] ?? ACCESSORY_STATUS_LABEL.all,
     },
   };
 }
@@ -166,7 +184,11 @@ export function buildCodexAccessoryDetailModel({
     displayName: card.unlocked ? accessory.name : '???',
     levelLines: card.unlocked ? buildAccessoryLevelDesc(accessory) : [],
     linkedWeapons: buildLinkedWeapons(accessory, weaponEvolutionData, weaponData),
-    discoveryHint: createDiscoveryHint(card.unlocked),
-    description: card.unlocked ? accessory.description ?? '' : '아직 발견하지 못한 장신구입니다.',
+    discoveryHint: createDiscoveryHint(card.unlocked, card.isCatalyst),
+    description: card.unlocked
+      ? accessory.description ?? ''
+      : (card.isCatalyst
+        ? '아직 발견하지 못한 진화 재료 장신구입니다.'
+        : '아직 발견하지 못한 장신구입니다.'),
   };
 }

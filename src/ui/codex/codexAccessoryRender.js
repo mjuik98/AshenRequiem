@@ -11,7 +11,7 @@ function escapeAttribute(value) {
     .replaceAll('>', '&gt;');
 }
 
-function renderAccessoryFilters(search, rarityFilter, effectFilter) {
+function renderAccessoryFilters(search, rarityFilter, effectFilter, statusFilter) {
   const rarityFilters = [
     ['all', '전체'],
     ['common', '일반'],
@@ -23,6 +23,11 @@ function renderAccessoryFilters(search, rarityFilter, effectFilter) {
     ['offense', '전투'],
     ['sustain', '생존'],
     ['utility', '유틸'],
+  ];
+  const statusFilters = [
+    ['all', '전체 상태'],
+    ['discovered', '발견'],
+    ['locked', '미발견'],
   ];
 
   return `
@@ -36,6 +41,11 @@ function renderAccessoryFilters(search, rarityFilter, effectFilter) {
       <div class="cx-tier-filter">
         ${effectFilters.map(([value, label]) => `
           <button class="cx-ef${effectFilter === value ? ' active' : ''}" data-efilter="${value}" type="button">${label}</button>
+        `).join('')}
+      </div>
+      <div class="cx-tier-filter">
+        ${statusFilters.map(([value, label]) => `
+          <button class="cx-sf${statusFilter === value ? ' active' : ''}" data-status-filter="${value}" type="button">${label}</button>
         `).join('')}
       </div>
     </div>
@@ -125,6 +135,7 @@ export function renderCodexAccessoryTab({
   search = '',
   rarityFilter = 'all',
   effectFilter = 'all',
+  statusFilter = 'all',
   selectedAccessoryId = null,
 }) {
   const unresolvedGrid = buildCodexAccessoryGridModel({
@@ -134,6 +145,7 @@ export function renderCodexAccessoryTab({
     search,
     rarityFilter,
     effectFilter,
+    statusFilter,
     selectedAccessoryId,
   });
   const resolvedSelectedAccessoryId = selectedAccessoryId
@@ -148,6 +160,7 @@ export function renderCodexAccessoryTab({
     search,
     rarityFilter,
     effectFilter,
+    statusFilter,
     selectedAccessoryId: resolvedSelectedAccessoryId,
   });
   const detail = buildCodexAccessoryDetailModel({
@@ -164,13 +177,14 @@ export function renderCodexAccessoryTab({
         ${renderAccessoryDetail(detail)}
       </div>
       <div class="cx-list-column">
-        ${renderAccessoryFilters(search, rarityFilter, effectFilter)}
+        ${renderAccessoryFilters(search, rarityFilter, effectFilter, statusFilter)}
         <div class="cx-summary-bar">
           <div>
             <div class="cx-summary-kicker">현재 보기</div>
             <div class="cx-summary-title">장신구 ${grid.summary.visibleCount}종</div>
           </div>
           <div class="cx-summary-metrics">
+            <span class="cx-summary-chip">${grid.summary.statusLabel}</span>
             <span class="cx-summary-chip">발견 ${grid.summary.discoveredCount}</span>
             <span class="cx-summary-chip muted">미발견 ${grid.summary.lockedCount}</span>
           </div>

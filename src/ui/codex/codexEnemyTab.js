@@ -4,6 +4,12 @@ export const ENEMY_TIER_LABELS = {
   boss: '보스',
 };
 
+const ENEMY_STATUS_LABELS = {
+  all: '전체',
+  discovered: '발견',
+  undiscovered: '미발견',
+};
+
 export function getCodexEnemyTier(enemy) {
   if (enemy?.isBoss) return 'boss';
   if (enemy?.isElite) return 'elite';
@@ -16,15 +22,27 @@ function isEnemyDiscovered(enemy, session) {
   return (kills[enemy.id] ?? 0) > 0 || encountered.includes(enemy.id);
 }
 
+function buildEnemyDiscoveryHint(enemy) {
+  const tier = getCodexEnemyTier(enemy);
+  if (tier === 'boss') {
+    return '보스는 런 중 실제로 조우하면 실루엣이 기록됩니다.';
+  }
+  if (tier === 'elite') {
+    return '엘리트 적은 전장에서 조우하거나 처치하면 도감에 기록됩니다.';
+  }
+  return '전장에서 조우하거나 처치하면 도감에 기록됩니다.';
+}
+
 export function buildCodexEnemyGridModel({
   enemyData = [],
   session = null,
   currentTier = 'all',
   selectedEnemyId = null,
   search = '',
+  statusFilter = 'all',
 }) {
   const tierText = currentTier === 'all' ? '전체' : ENEMY_TIER_LABELS[currentTier];
-  const normalizedSearch = (search ?? '').trim();
+  const normalizedSearch = String(search ?? '').trim().toLowerCase();
   const kills = session?.meta?.enemyKills ?? {};
 
   const entries = enemyData
@@ -32,8 +50,12 @@ export function buildCodexEnemyGridModel({
     .filter((enemy) => {
       const tier = getCodexEnemyTier(enemy);
       const matchesTier = currentTier === 'all' || tier === currentTier;
-      const matchesSearch = !normalizedSearch || (enemy.name ?? '').includes(normalizedSearch);
-      return matchesTier && matchesSearch;
+      const discovered = isEnemyDiscovered(enemy, session);
+      const matchesSearch = !normalizedSearch || (enemy.name ?? '').toLowerCase().includes(normalizedSearch);
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'discovered' && discovered)
+        || (statusFilter === 'undiscovered' && !discovered);
+      return matchesTier && matchesSearch && matchesStatus;
     })
     .map((enemy) => {
       const tier = getCodexEnemyTier(enemy);
@@ -82,6 +104,7 @@ export function buildCodexEnemyGridModel({
       undiscoveredCount: undiscoveredEntries.length,
       selectedId: resolvedSelected?.id ?? null,
       selectedName: resolvedSelected?.name ?? null,
+      statusLabel: ENEMY_STATUS_LABELS[statusFilter] ?? ENEMY_STATUS_LABELS.all,
     },
   };
 }
@@ -94,7 +117,27 @@ export function buildCodexEnemyDetailModel({
   if (!selectedEnemyId) return null;
 
   const enemy = enemyData.find((entry) => entry.id === selectedEnemyId && !entry?.isProp);
-  if (!enemy || !isEnemyDiscovered(enemy, session)) return null;
+  if (!enemy) return null;
+
+  if (!isEnemyDiscovered(enemy, session)) {
+    const tier = getCodexEnemyTier(enemy);
+    return {
+      id: enemy.id,
+      unlocked: false,
+      name: '???',
+      displayName: '???',
+      tier,
+      tierLabel: ENEMY_TIER_LABELS[tier] ?? tier,
+      borderColor: enemy.isBoss
+        ? 'rgba(255,64,129,0.7)'
+        : enemy.isElite
+          ? 'rgba(255,215,64,0.6)'
+          : (enemy.color ?? '#888'),
+      avatarText: '?',
+      color: enemy.color ?? '#888',
+      discoveryHint: buildEnemyDiscoveryHint(enemy),
+    };
+  }
 
   const killCount = session?.meta?.enemyKills?.[enemy.id] ?? 0;
   const tier = getCodexEnemyTier(enemy);
@@ -111,6 +154,7 @@ export function buildCodexEnemyDetailModel({
 
   return {
     id: enemy.id,
+    unlocked: true,
     name: enemy.name,
     tier,
     tierLabel: ENEMY_TIER_LABELS[tier] ?? tier,
@@ -133,6 +177,7 @@ export function buildCodexEnemyDetailModel({
       : (enemy.isBoss ? ['보스 크리스탈', '대량 통화'] : enemy.isElite ? ['엘리트 젬', '통화'] : ['경험치 젬']),
     effects,
     milestoneStates: milestones.map((value) => ({ value, done: killCount >= value })),
+    discoveryHint: buildEnemyDiscoveryHint(enemy),
   };
 }
 
@@ -150,6 +195,11 @@ export function renderCodexEnemyTabShell() {
             <button class="cx-tf" data-tier="normal">일반</button>
             <button class="cx-tf" data-tier="elite">엘리트</button>
             <button class="cx-tf" data-tier="boss">보스</button>
+          </div>
+          <div class="cx-tier-filter">
+            <button class="cx-sf active" data-status-filter="all" type="button">전체 상태</button>
+            <button class="cx-sf" data-status-filter="discovered" type="button">발견</button>
+            <button class="cx-sf" data-status-filter="undiscovered" type="button">미발견</button>
           </div>
         </div>
         <div class="cx-summary-bar">
@@ -209,6 +259,24 @@ export function renderCodexEnemyDetail(model) {
     `;
   }
 
+  if (model.unlocked === false) {
+    return `
+      <div class="cx-detail" id="cx-enemy-detail-card" role="region" tabindex="-1" aria-label="선택한 적 상세 정보">
+        <div class="cx-detail-kicker">선택한 적</div>
+        <div class="cx-dh">
+          <div class="cx-davatar" style="background:${model.color}22;border-color:${model.borderColor};color:${model.color}">
+            ${model.avatarText}
+          </div>
+          <div>
+            <div class="cx-dname">${model.displayName}</div>
+            <div class="cx-dtier"><span class="cx-ebadge badge-${model.tier}">${model.tierLabel}</span></div>
+          </div>
+        </div>
+        <div class="cx-discovery-hint">${model.discoveryHint}</div>
+      </div>
+    `;
+  }
+
   return `
     <div class="cx-detail" id="cx-enemy-detail-card" role="region" tabindex="-1" aria-label="선택한 적 상세 정보">
       <div class="cx-detail-kicker">선택한 적</div>
@@ -231,6 +299,7 @@ export function renderCodexEnemyDetail(model) {
         <span class="cx-drop-label">드롭:</span>
         ${model.drops.map((drop) => `<span class="cx-drop-pill">${drop}</span>`).join('')}
       </div>
+      <div class="cx-discovery-hint">${model.discoveryHint}</div>
       ${model.effects.length > 0 ? `<div class="cx-effects-row">${model.effects.map((effect) => `<span class="cx-effect-pill">${effect}</span>`).join('')}</div>` : ''}
       <div class="cx-kills-row">
         <div>

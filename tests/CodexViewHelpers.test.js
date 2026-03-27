@@ -37,6 +37,7 @@ await test('codex enemy helper builds filtered grid/detail models', async () => 
     currentTier: 'all',
     selectedEnemyId: 'skeleton',
     search: '',
+    statusFilter: 'all',
   });
 
   assert.equal(grid.tierText, '전체');
@@ -57,6 +58,27 @@ await test('codex enemy helper builds filtered grid/detail models', async () => 
   assert.equal(detail.id, 'skeleton');
   assert.equal(detail.killCount, 5);
   assert.equal(detail.effects.length, 0);
+
+  const lockedGrid = enemyTab.buildCodexEnemyGridModel({
+    enemyData,
+    session,
+    currentTier: 'all',
+    selectedEnemyId: 'boss_lich',
+    search: '',
+    statusFilter: 'undiscovered',
+  });
+
+  assert.equal(lockedGrid.entries.length, 1);
+  assert.equal(lockedGrid.summary.statusLabel, '미발견');
+
+  const lockedDetail = enemyTab.buildCodexEnemyDetailModel({
+    enemyData,
+    session,
+    selectedEnemyId: 'boss_lich',
+  });
+
+  assert.equal(lockedDetail.unlocked, false);
+  assert.equal(lockedDetail.discoveryHint.includes('조우'), true);
 });
 
 await test('codex weapon helper partitions weapons and derives card state', async () => {
@@ -79,6 +101,7 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   ];
 
   assert.equal(typeof weaponModel.partitionCodexWeapons, 'function');
+  assert.equal(typeof weaponModel.buildCodexWeaponCollectionModel, 'function');
   assert.equal(typeof weaponModel.buildCodexWeaponCardModel, 'function');
   assert.equal(typeof weaponModel.buildCodexWeaponDetailModel, 'function');
   assert.equal(typeof weaponRender.renderCodexWeaponCard, 'function');
@@ -92,6 +115,20 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   const sections = weaponTab.partitionCodexWeapons(weaponData);
   assert.equal(sections.baseWeapons.length, 1);
   assert.equal(sections.evolvedWeapons.length, 1);
+
+  const collection = weaponModel.buildCodexWeaponCollectionModel({
+    weaponData,
+    session,
+    weaponEvolutionData,
+    accessoryData: [{ id: 'mana_core', name: '마나 코어', icon: '◈' }],
+    search: 'arcane',
+    typeFilter: 'evolved',
+    statusFilter: 'discovered',
+    selectedWeaponId: 'arcane_tempest',
+  });
+  assert.equal(collection.entries.length, 1);
+  assert.equal(collection.lockedEntries.length, 0);
+  assert.equal(collection.summary.statusLabel, '발견');
 
   const card = weaponTab.buildCodexWeaponCardModel({
     weapon: weaponData[1],
@@ -120,6 +157,7 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   assert.equal(detail.detailStats.some((entry) => entry.label === '공격력'), true);
   assert.equal(detail.detailStats.some((entry) => entry.label === '공격속도'), true);
   assert.equal(detail.summaryChips.length > 0, true);
+  assert.equal(detail.discoveryHint.includes('진화'), true);
 
   const html = weaponTab.renderCodexWeaponTab({
     weaponData,
@@ -127,12 +165,17 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
     weaponEvolutionData,
     accessoryData: [{ id: 'mana_core', name: '마나 코어', icon: '◈' }],
     selectedWeaponId: 'arcane_tempest',
+    search: '',
+    typeFilter: 'all',
+    statusFilter: 'all',
   });
 
   assert.equal(html.includes('id="cx-weapon-detail"'), true);
   assert.equal(html.includes('선택한 무기'), true);
   assert.equal(html.includes('공격속도'), true);
   assert.equal(html.includes('cx-detail-layout'), true);
+  assert.equal(html.includes('id="cx-weapon-search"'), true);
+  assert.equal(html.includes('data-wstatus="discovered"'), true);
   assert.equal(html.includes('발견한 무기'), true);
   assert.equal(html.includes('미발견 무기'), true);
 });
@@ -171,6 +214,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
     search: 'Prism',
     rarityFilter: 'rare',
     effectFilter: 'all',
+    statusFilter: 'all',
     selectedAccessoryId: 'arcane_prism',
   });
 
@@ -178,6 +222,19 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(grid.entries[0].isCatalyst, true);
   assert.equal(grid.discoveredEntries.length, 1);
   assert.equal(grid.lockedEntries.length, 0);
+
+  const lockedGrid = accessoryModel.buildCodexAccessoryGridModel({
+    accessoryData,
+    weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
+    session,
+    search: '',
+    rarityFilter: 'all',
+    effectFilter: 'all',
+    statusFilter: 'locked',
+    selectedAccessoryId: 'iron_heart',
+  });
+  assert.equal(lockedGrid.entries.length, 1);
+  assert.equal(lockedGrid.summary.statusLabel, '미발견');
 
   const detail = accessoryModel.buildCodexAccessoryDetailModel({
     accessoryData,
@@ -191,6 +248,17 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(detail.linkedWeapons.length, 1);
   assert.equal(detail.unlocked, true);
 
+  const lockedDetail = accessoryModel.buildCodexAccessoryDetailModel({
+    accessoryData,
+    weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
+    weaponData: [{ id: 'solar_ray', name: 'Solar Ray', icon: '☀' }, { id: 'helios_lance', name: 'Helios Lance', icon: '✹' }],
+    session,
+    selectedAccessoryId: 'iron_heart',
+  });
+
+  assert.equal(lockedDetail.unlocked, false);
+  assert.equal(lockedDetail.discoveryHint.includes('획득'), true);
+
   const html = accessoryRender.renderCodexAccessoryTab({
     accessoryData,
     weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
@@ -199,6 +267,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
     search: '',
     rarityFilter: 'all',
     effectFilter: 'all',
+    statusFilter: 'all',
     selectedAccessoryId: 'arcane_prism',
   });
 
@@ -207,6 +276,7 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(html.includes('cx-accessory-detail'), true);
   assert.equal(html.includes('cx-af'), true);
   assert.equal(html.includes('cx-ef'), true);
+  assert.equal(html.includes('cx-sf'), true);
   assert.equal(html.includes('cx-discovery-hint'), true);
   assert.equal(html.includes('선택한 장신구'), true);
   assert.equal(html.includes('cx-detail-layout'), true);
@@ -269,6 +339,8 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(model.achievements.some((entry) => entry.done), true);
   assert.equal(model.unlocks.length > 0, true);
   assert.equal(model.highlights.length >= 4, true);
+  assert.equal(model.focusGoals.length > 0, true);
+  assert.equal(model.discoveryFocus.length === 3, true);
 
   const discovery = codexRecords.buildCodexDiscoverySummary({
     session: {
@@ -316,6 +388,8 @@ await test('codex records helper packages summary, achievements, and unlock entr
   });
 
   assert.equal(html.includes('cx-records-hero'), true);
+  assert.equal(html.includes('cx-records-focus'), true);
+  assert.equal(html.includes('다음 목표'), true);
 });
 
 await test('codex styles live in a dedicated module', async () => {
@@ -335,6 +409,8 @@ await test('codex view helper modules expose state transitions and dom bindings'
   assert.equal(typeof stateApi.resetCodexViewState, 'function');
   assert.equal(typeof stateApi.toggleCodexSelection, 'function');
   assert.equal(typeof stateApi.updateCodexAccessoryFilters, 'function');
+  assert.equal(typeof stateApi.updateCodexEnemyFilters, 'function');
+  assert.equal(typeof stateApi.updateCodexWeaponFilters, 'function');
   assert.equal(typeof stateApi.setCodexActiveTab, 'function');
   assert.equal(typeof bindingApi.bindCodexTabButtons, 'function');
   assert.equal(typeof bindingApi.bindCodexSelectableCards, 'function');
@@ -353,6 +429,17 @@ await test('codex view helper modules expose state transitions and dom bindings'
     search: 'prism',
     rarityFilter: 'rare',
     effectFilter: 'utility',
+    statusFilter: 'locked',
+  });
+  stateApi.updateCodexEnemyFilters(state, {
+    search: 'lich',
+    tierFilter: 'boss',
+    statusFilter: 'undiscovered',
+  });
+  stateApi.updateCodexWeaponFilters(state, {
+    search: 'arcane',
+    typeFilter: 'evolved',
+    statusFilter: 'discovered',
   });
 
   assert.equal(state.activeTab, 'records');
@@ -360,11 +447,18 @@ await test('codex view helper modules expose state transitions and dom bindings'
   assert.equal(state.accessory.search, 'prism');
   assert.equal(state.accessory.rarityFilter, 'rare');
   assert.equal(state.accessory.effectFilter, 'utility');
+  assert.equal(state.accessory.statusFilter, 'locked');
+  assert.equal(state.enemy.search, 'lich');
+  assert.equal(state.enemy.tierFilter, 'boss');
+  assert.equal(state.weapon.typeFilter, 'evolved');
+  assert.equal(state.weapon.statusFilter, 'discovered');
 
   stateApi.resetCodexViewState(state);
   assert.equal(state.activeTab, 'enemy');
   assert.equal(state.selectedWeaponId, null);
   assert.equal(state.accessory.search, '');
+  assert.equal(state.enemy.search, '');
+  assert.equal(state.weapon.search, '');
 });
 
 console.log(`\nCodexViewHelpers: ${passed}개 통과, ${failed}개 실패`);

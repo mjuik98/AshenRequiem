@@ -34,8 +34,10 @@ test('scoped typecheck config exists and enables checkJs without emitting', () =
 
 test('scoped typecheck baseline passes on the current source tree', () => {
   const result = spawnSync(
-    process.execPath,
-    ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.typecheck.json', '--pretty', 'false'],
+    process.platform === 'win32' ? 'cmd.exe' : 'bash',
+    process.platform === 'win32'
+      ? ['/d', '/s', '/c', 'npm exec -- tsc -p tsconfig.typecheck.json --pretty false']
+      : ['-lc', 'npm exec -- tsc -p tsconfig.typecheck.json --pretty false'],
     {
       cwd: new URL('..', import.meta.url),
       encoding: 'utf8',

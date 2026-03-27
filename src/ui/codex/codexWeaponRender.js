@@ -1,8 +1,44 @@
 import {
-  buildCodexWeaponCardModel,
+  buildCodexWeaponCollectionModel,
   buildCodexWeaponDetailModel,
-  partitionCodexWeapons,
 } from './codexWeaponModel.js';
+
+function escapeAttribute(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function renderWeaponFilters(search, typeFilter, statusFilter) {
+  const typeFilters = [
+    ['all', '전체'],
+    ['base', '기본'],
+    ['evolved', '진화'],
+  ];
+  const statusFilters = [
+    ['all', '전체 상태'],
+    ['discovered', '발견'],
+    ['locked', '미발견'],
+  ];
+
+  return `
+    <div class="cx-search-row">
+      <input class="cx-search" id="cx-weapon-search" placeholder="무기 이름 또는 분류 검색..." aria-label="무기 검색" value="${escapeAttribute(search)}">
+      <div class="cx-tier-filter">
+        ${typeFilters.map(([value, label]) => `
+          <button class="cx-tf${typeFilter === value ? ' active' : ''}" data-wtype="${value}" type="button">${label}</button>
+        `).join('')}
+      </div>
+      <div class="cx-tier-filter">
+        ${statusFilters.map(([value, label]) => `
+          <button class="cx-sf${statusFilter === value ? ' active' : ''}" data-wstatus="${value}" type="button">${label}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
 
 export function renderCodexWeaponDetail(detail) {
   if (!detail) return '';
@@ -24,6 +60,7 @@ export function renderCodexWeaponDetail(detail) {
           <div class="cx-detail-desc">${detail.description || '무기 설명이 아직 준비되지 않았습니다.'}</div>
         </div>
       </div>
+      <div class="cx-discovery-hint">${detail.discoveryHint}</div>
       <div class="cx-dstat-grid">
         ${detail.detailStats.map((entry) => `
           <div class="cx-dstat"><div class="v">${entry.value}</div><div class="k">${entry.label}</div></div>
@@ -52,7 +89,7 @@ export function renderCodexWeaponDetail(detail) {
 export function renderCodexWeaponCard(card) {
   return `
     <div class="cx-wcard ${card.isEvolved ? 'evolved' : ''} ${!card.unlocked ? 'locked' : ''} ${card.isSelected ? 'selected' : ''}"
-         data-wid="${card.id}" data-kind="${card.isEvolved ? 'evolved' : 'normal'}" role="button" tabindex="0" aria-label="${card.name} 상세 보기">
+         data-wid="${card.id}" data-kind="${card.isEvolved ? 'evolved' : 'base'}" role="button" tabindex="0" aria-label="${card.name} 상세 보기">
       <div class="cx-whead">
         <div class="cx-wicon">${card.icon}</div>
         <div>
@@ -90,31 +127,32 @@ export function renderCodexWeaponTab({
   session = null,
   weaponEvolutionData = [],
   accessoryData = [],
+  search = '',
+  typeFilter = 'all',
+  statusFilter = 'all',
   selectedWeaponId = null,
 }) {
-  const { baseWeapons, evolvedWeapons } = partitionCodexWeapons(weaponData);
-  const allCards = [...baseWeapons, ...evolvedWeapons].map((weapon) => buildCodexWeaponCardModel({
-    weapon,
+  const unresolvedCollection = buildCodexWeaponCollectionModel({
     weaponData,
     session,
     weaponEvolutionData,
     accessoryData,
+    search,
+    typeFilter,
+    statusFilter,
     selectedWeaponId,
-  }));
-  const resolvedSelectedWeaponId = selectedWeaponId
-    ?? allCards.find((weapon) => weapon.unlocked)?.id
-    ?? allCards[0]?.id
-    ?? null;
-  const cards = [...baseWeapons, ...evolvedWeapons].map((weapon) => buildCodexWeaponCardModel({
-    weapon,
+  });
+  const resolvedSelectedWeaponId = unresolvedCollection.summary.selectedId;
+  const collection = buildCodexWeaponCollectionModel({
     weaponData,
     session,
     weaponEvolutionData,
     accessoryData,
+    search,
+    typeFilter,
+    statusFilter,
     selectedWeaponId: resolvedSelectedWeaponId,
-  }));
-  const unlockedCards = cards.filter((card) => card.unlocked);
-  const lockedCards = cards.filter((card) => !card.unlocked);
+  });
   const detail = buildCodexWeaponDetailModel({
     weaponData,
     session,
@@ -129,30 +167,25 @@ export function renderCodexWeaponTab({
         ${renderCodexWeaponDetail(detail)}
       </div>
       <div class="cx-list-column">
-        <div class="cx-search-row">
-          <div class="cx-tier-filter">
-            <button class="cx-tf active" data-wtype="all">전체</button>
-            <button class="cx-tf" data-wtype="normal">기본</button>
-            <button class="cx-tf" data-wtype="evolved">진화</button>
-          </div>
-        </div>
+        ${renderWeaponFilters(search, typeFilter, statusFilter)}
         <div class="cx-summary-bar">
           <div>
             <div class="cx-summary-kicker">현재 보기</div>
-            <div class="cx-summary-title">무기 ${cards.length}종</div>
+            <div class="cx-summary-title">${collection.summary.typeLabel} 무기 ${collection.summary.visibleCount}종</div>
           </div>
           <div class="cx-summary-metrics">
-            <span class="cx-summary-chip">발견 ${unlockedCards.length}</span>
-            <span class="cx-summary-chip muted">미발견 ${lockedCards.length}</span>
+            <span class="cx-summary-chip">${collection.summary.statusLabel}</span>
+            <span class="cx-summary-chip">발견 ${collection.summary.discoveredCount}</span>
+            <span class="cx-summary-chip muted">미발견 ${collection.summary.lockedCount}</span>
           </div>
         </div>
-        <p class="cx-section-label">발견한 무기 · ${unlockedCards.length}종</p>
+        <p class="cx-section-label">발견한 무기 · ${collection.discoveredEntries.length}종</p>
         <div class="cx-weapon-grid" id="cx-wgrid-unlocked">
-          ${unlockedCards.map((card) => renderCodexWeaponCard(card)).join('')}
+          ${collection.discoveredEntries.map((card) => renderCodexWeaponCard(card)).join('')}
         </div>
-        <p class="cx-section-label" style="margin-top:14px">미발견 무기 · ${lockedCards.length}종</p>
+        <p class="cx-section-label" style="margin-top:14px">미발견 무기 · ${collection.lockedEntries.length}종</p>
         <div class="cx-weapon-grid" id="cx-wgrid-locked">
-          ${lockedCards.map((card) => renderCodexWeaponCard(card)).join('')}
+          ${collection.lockedEntries.map((card) => renderCodexWeaponCard(card)).join('')}
         </div>
       </div>
     </div>

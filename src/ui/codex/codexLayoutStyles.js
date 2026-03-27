@@ -124,13 +124,13 @@ export const CODEX_LAYOUT_CSS = `
   .cx-search::placeholder { color: rgba(244,237,224,0.25); }
   .cx-search:focus { border-color: rgba(212,175,106,0.4); }
   .cx-tier-filter { display: flex; gap: 6px; flex-wrap: wrap; }
-  .cx-tf, .cx-af, .cx-ef {
+  .cx-tf, .cx-af, .cx-ef, .cx-sf {
     padding: 5px 12px; font-size: 11px; border-radius: 20px;
     border: 0.5px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
     color: rgba(244,237,224,0.4); cursor: pointer; transition: all 0.15s;
   }
-  .cx-tf.active, .cx-af.active, .cx-ef.active {
+  .cx-tf.active, .cx-af.active, .cx-ef.active, .cx-sf.active {
     border-color: rgba(212,175,106,0.5); background: rgba(212,175,106,0.1); color: #d4af6a;
   }
   .cx-af.active {
@@ -143,7 +143,12 @@ export const CODEX_LAYOUT_CSS = `
     background: rgba(160,196,255,0.12);
     color: #b8d0ff;
   }
-  .cx-tf:hover:not(.active), .cx-af:hover:not(.active), .cx-ef:hover:not(.active) {
+  .cx-sf.active {
+    border-color: rgba(228,196,120,0.5);
+    background: rgba(228,196,120,0.12);
+    color: rgba(243,220,164,0.94);
+  }
+  .cx-tf:hover:not(.active), .cx-af:hover:not(.active), .cx-ef:hover:not(.active), .cx-sf:hover:not(.active) {
     border-color: rgba(255,255,255,0.22); color: rgba(244,237,224,0.7);
   }
 
@@ -180,6 +185,55 @@ export const CODEX_LAYOUT_CSS = `
     padding: 14px;
     text-align: center;
     background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+  }
+  .cx-records-focus {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .cx-records-focus-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    border-radius: 14px;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  }
+  .cx-records-focus-card.unlock,
+  .cx-records-focus-card.tone-accessory {
+    border-color: rgba(126,205,232,0.16);
+    background: linear-gradient(180deg, rgba(126,205,232,0.08), rgba(255,255,255,0.03));
+  }
+  .cx-records-focus-card.tone-enemy {
+    border-color: rgba(239,83,80,0.16);
+    background: linear-gradient(180deg, rgba(239,83,80,0.08), rgba(255,255,255,0.03));
+  }
+  .cx-records-focus-card.tone-weapon {
+    border-color: rgba(212,175,106,0.16);
+    background: linear-gradient(180deg, rgba(212,175,106,0.08), rgba(255,255,255,0.03));
+  }
+  .cx-records-focus-copy {
+    min-width: 0;
+  }
+  .cx-records-focus-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(244,237,224,0.92);
+  }
+  .cx-records-focus-desc {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: rgba(244,237,224,0.58);
+  }
+  .cx-records-focus-meta {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .cx-footer {

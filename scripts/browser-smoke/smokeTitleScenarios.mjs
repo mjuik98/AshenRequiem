@@ -35,14 +35,16 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
   );
   let codexClicked = await transport.clickByText('Codex');
   if (!codexClicked) {
-    codexClicked = await transport.evalJson(
-      `document.querySelector('[data-action="codex"]')
-        ? (document.querySelector('[data-action="codex"]').click(), true)
-        : false`,
-    );
-  }
-  if (!codexClicked) {
-    throw new Error('Failed to click Codex button');
+    await transport.runCode(`(() => {
+      const button = document.querySelector('[data-action="codex"]');
+      if (button) {
+        button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+        button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      }
+      return true;
+    })()`);
+    codexClicked = true;
   }
   const codexReady = await transport.pollEval(
     "Boolean(document.querySelector('.cx-root')) && Boolean(document.querySelector('.cx-tab[data-tab=\"accessory\"]'))",
@@ -50,6 +52,9 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
     5000,
     200,
   );
+  if (!codexClicked || codexReady !== true) {
+    throw new Error('Failed to open Codex scene');
+  }
   const state = { scene: codexReady ? 'CodexScene' : null };
 
   let accessoryTabClicked = await transport.clickByText('장신구');
@@ -71,6 +76,7 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
     accessoryTabActive: await transport.evalJson(`Boolean(document.querySelector('#cx-tab-accessory')) && Boolean(document.querySelector('.cx-tab[data-tab="accessory"]'))`),
     accessoryFilterCount: await transport.evalJson(`document.querySelectorAll('#cx-tab-accessory .cx-af').length`),
     effectFilterCount: await transport.evalJson(`document.querySelectorAll('#cx-tab-accessory .cx-ef').length`),
+    statusFilterCount: await transport.evalJson(`document.querySelectorAll('#cx-tab-accessory .cx-sf').length`),
     accessoryDetailVisible: await transport.evalJson(`Boolean(document.getElementById('cx-accessory-detail'))`),
     accessoryHintCount: await transport.evalJson(`document.getElementById('cx-tab-accessory') ? document.getElementById('cx-tab-accessory').querySelectorAll('.cx-discovery-hint').length : 0`),
   };
@@ -86,7 +92,7 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
       hasTabProgress: codexUi.tabProgressCount >= 3,
       removedDiscoveryStrip: codexUi.discoveryStripCount === 0,
       hasAccessoryTab: codexUi.accessoryTabActive === true,
-      hasAccessoryFilters: codexUi.accessoryFilterCount >= 4 && codexUi.effectFilterCount >= 4,
+      hasAccessoryFilters: codexUi.accessoryFilterCount >= 4 && codexUi.effectFilterCount >= 4 && codexUi.statusFilterCount >= 3,
       hasAccessoryDetail: codexUi.accessoryDetailVisible === true,
       hasHint: codexUi.accessoryHintCount >= 1,
     },

@@ -1,11 +1,47 @@
 import {
   buildCodexAchievements,
+  buildCodexDiscoverySummary,
   buildCodexRecordSummary,
   buildCodexUnlockEntries,
 } from './codexRecords.js';
 
 export function buildCodexRecordsModel({ session = null, gameData = null }) {
   const summary = buildCodexRecordSummary(session);
+  const achievements = buildCodexAchievements(session, gameData);
+  const unlocks = buildCodexUnlockEntries(session);
+  const discovery = buildCodexDiscoverySummary({ session, gameData });
+
+  const focusGoals = [
+    ...achievements
+      .filter((entry) => !entry.done)
+      .map((entry) => ({
+        kind: 'achievement',
+        icon: entry.icon,
+        title: entry.name,
+        description: entry.desc,
+        progressText: `${Math.round(entry.pct)}%`,
+        pct: entry.pct,
+      })),
+    ...unlocks
+      .filter((entry) => !entry.done)
+      .map((entry) => ({
+        kind: 'unlock',
+        icon: entry.icon,
+        title: entry.title,
+        description: entry.description,
+        progressText: entry.progressText,
+        pct: entry.pct,
+      })),
+  ]
+    .sort((left, right) => right.pct - left.pct)
+    .slice(0, 4);
+
+  const discoveryFocus = discovery.entries.map((entry) => ({
+    ...entry,
+    remaining: Math.max(0, entry.total - entry.discovered),
+    progressText: `${entry.discovered}/${entry.total}`,
+  }));
+
   return {
     summary,
     highlights: [
@@ -14,8 +50,10 @@ export function buildCodexRecordsModel({ session = null, gameData = null }) {
       { icon: '★', value: `Lv.${summary.best.level ?? 1}`, label: '최고 레벨' },
       { icon: '💰', value: summary.currency.toLocaleString(), label: '누적 재화' },
     ],
-    achievements: buildCodexAchievements(session, gameData),
-    unlocks: buildCodexUnlockEntries(session),
+    achievements,
+    unlocks,
+    focusGoals,
+    discoveryFocus,
   };
 }
 
@@ -25,6 +63,8 @@ export function renderCodexRecordsTab({ session = null, gameData = null }) {
     highlights,
     achievements,
     unlocks,
+    focusGoals,
+    discoveryFocus,
   } = buildCodexRecordsModel({ session, gameData });
 
   return `
@@ -34,6 +74,38 @@ export function renderCodexRecordsTab({ session = null, gameData = null }) {
           <div class="cx-rec-icon">${entry.icon}</div>
           <div class="cx-rec-val">${entry.value}</div>
           <div class="cx-rec-key">${entry.label}</div>
+        </div>
+      `).join('')}
+    </div>
+    <p class="cx-section-label">다음 목표</p>
+    <div class="cx-records-focus">
+      ${focusGoals.map((entry) => `
+        <div class="cx-records-focus-card ${entry.kind}">
+          <div class="cx-rec-icon">${entry.icon}</div>
+          <div class="cx-records-focus-copy">
+            <div class="cx-records-focus-title">${entry.title}</div>
+            <div class="cx-records-focus-desc">${entry.description}</div>
+          </div>
+          <div class="cx-records-focus-meta">
+            <div class="cx-prog-bar"><div class="cx-prog-fill" style="width:${Math.min(100, entry.pct)}%"></div></div>
+            <div class="cx-prog-text">${entry.progressText}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <p class="cx-section-label" style="margin-top:18px">발견 진행</p>
+    <div class="cx-records-focus">
+      ${discoveryFocus.map((entry) => `
+        <div class="cx-records-focus-card tone-${entry.tone}">
+          <div class="cx-rec-icon">${entry.icon}</div>
+          <div class="cx-records-focus-copy">
+            <div class="cx-records-focus-title">${entry.label} 도감</div>
+            <div class="cx-records-focus-desc">남은 항목 ${entry.remaining}개</div>
+          </div>
+          <div class="cx-records-focus-meta">
+            <div class="cx-prog-bar"><div class="cx-prog-fill" style="width:${Math.min(100, entry.pct)}%"></div></div>
+            <div class="cx-prog-text">${entry.progressText}</div>
+          </div>
         </div>
       `).join('')}
     </div>
