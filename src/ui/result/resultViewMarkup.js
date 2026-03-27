@@ -86,6 +86,46 @@ function renderAscension(stats) {
   `;
 }
 
+function renderDailyReward(dailyReward = null) {
+  if (!dailyReward?.seedLabel) return '';
+
+  const rewardText = dailyReward.awarded
+    ? `첫 승리 보상 +${escapeHtml(String(dailyReward.amount ?? 0))} 💰`
+    : dailyReward.alreadyClaimed
+      ? '오늘의 승리 보상은 이미 수령했습니다.'
+      : '오늘의 데일리 챌린지 기록입니다.';
+
+  return `
+    <div class="result-divider"></div>
+    <p class="result-section-title">데일리 챌린지</p>
+    <div class="result-unlocks">
+      <div class="result-unlock-chip">Seed ${escapeHtml(dailyReward.seedLabel)}</div>
+      ${dailyReward.streak ? `<div class="result-unlock-chip">연속 ${escapeHtml(String(dailyReward.streak))}일</div>` : ''}
+      <div class="result-unlock-chip">${rewardText}</div>
+      ${dailyReward.nextMilestone?.remaining > 0
+        ? `<div class="result-unlock-chip">다음 마일스톤 ${escapeHtml(String(dailyReward.nextMilestone.target))}일 · ${escapeHtml(String(dailyReward.nextMilestone.remaining))}일 남음</div>`
+        : ''}
+    </div>
+  `;
+}
+
+function renderRecommendations(recommendations = []) {
+  if (!recommendations.length) return '';
+
+  return `
+    <div class="result-divider"></div>
+    <p class="result-section-title">추천 조정</p>
+    <div class="result-unlocks">
+      ${recommendations.map((entry) => `
+        <div class="result-unlock-chip">
+          ${escapeHtml(entry.title ?? '')}
+          ${entry.description ? ` · ${escapeHtml(entry.description)}` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function renderUnlocks(unlocks) {
   const chips = unlocks.map((unlock) => `
     <div class="result-unlock-chip">⚡ ${escapeHtml(unlock)}</div>
@@ -205,6 +245,7 @@ export function renderResultViewMarkup(stats, { onTitleCallback = null } = {}) {
         <div class="result-divider"></div>
         ${renderAscension(stats)}
         ${renderCurrency(stats.currencyEarned, stats.totalCurrency)}
+        ${renderDailyReward(stats.dailyReward)}
         ${renderRunContext(stats)}
         ${stats.analytics?.deathCauseSummary?.length
           ? `
@@ -217,6 +258,7 @@ export function renderResultViewMarkup(stats, { onTitleCallback = null } = {}) {
           `
           : ''}
         ${renderNextGoals(stats.nextGoals)}
+        ${renderRecommendations(stats.recommendations)}
         ${stats.newUnlocks?.length ? renderUnlocks(stats.newUnlocks) : ''}
         ${renderRecentRuns(stats.recentRuns)}
       </div>

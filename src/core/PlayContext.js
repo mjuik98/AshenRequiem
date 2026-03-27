@@ -18,6 +18,8 @@ export class PlayContext {
     profilingEnabled = false,
     poolSizes        = {},
     session          = null,
+    nowSeconds       = undefined,
+    createAudioContext = undefined,
   } = {}) {
     const ctx = new PlayContext();
     Object.assign(ctx, createPlayContextRuntimeState({
@@ -27,6 +29,8 @@ export class PlayContext {
       profilingEnabled,
       poolSizes,
       session,
+      ...(nowSeconds ? { nowSeconds } : {}),
+      ...(createAudioContext ? { createAudioContext } : {}),
     }));
     return ctx;
   }

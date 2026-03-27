@@ -28,18 +28,23 @@ test('runtime env adapter는 browser global 접근 헬퍼를 노출한다', () =
 });
 
 test('high-coupling runtime modules는 shared runtime env adapter를 사용한다', () => {
-  const runtimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
+  const runtimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
+  const runtimeHooksWrapperSource = readProjectSource('../src/core/runtimeHooks.js');
   const playSceneRuntimeSource = readProjectSource('../src/scenes/play/playSceneRuntime.js');
   const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
+  const playRuntimeServicesSource = readProjectSource('../src/adapters/browser/playRuntimeServices.js');
   const renderSystemSource = readProjectSource('../src/systems/render/RenderSystem.js');
   const soundSfxControllerSource = readProjectSource('../src/systems/sound/soundSfxController.js');
   const soundSystemLifecycleSource = readProjectSource('../src/systems/sound/soundSystemLifecycle.js');
   const drawEffectSource = readProjectSource('../src/renderer/draw/drawEffect.js');
   const gameLoopSource = readProjectSource('../src/core/GameLoop.js');
 
-  assert.equal(runtimeHooksSource.includes("from '../adapters/browser/runtimeEnv.js'"), true, 'runtimeHooks가 runtime env adapter를 사용하지 않음');
+  assert.equal(runtimeHooksSource.includes("from './runtimeEnv.js'"), true, 'runtimeHooks가 runtime env adapter를 사용하지 않음');
+  assert.equal(runtimeHooksWrapperSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'core/runtimeHooks wrapper가 browser runtime env에 직접 결합되면 안 됨');
+  assert.equal(runtimeHooksWrapperSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'core/runtimeHooks wrapper가 browser runtime hooks를 재노출하지 않음');
   assert.equal(playSceneRuntimeSource.includes("from '../../adapters/browser/runtimeEnv.js'"), true, 'playSceneRuntime이 runtime env adapter를 사용하지 않음');
-  assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/runtimeEnv.js'"), true, 'playContextRuntime이 runtime env adapter를 사용하지 않음');
+  assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'playContextRuntime은 browser runtime adapter를 직접 import하면 안 됨');
+  assert.equal(playRuntimeServicesSource.includes("from './runtimeEnv.js'"), true, 'play runtime browser service adapter가 runtime env adapter를 사용하지 않음');
   assert.equal(renderSystemSource.includes("from '../../adapters/browser/runtimeEnv.js'"), false, 'RenderSystem이 browser runtime adapter에 직접 결합되어 있으면 안 됨');
   assert.equal(drawEffectSource.includes("from '../../adapters/browser/runtimeEnv.js'"), true, 'drawEffect가 runtime env adapter를 사용하지 않음');
   assert.equal(gameLoopSource.includes("from '../adapters/browser/runtimeEnv.js'"), true, 'GameLoop가 runtime env adapter를 사용하지 않음');

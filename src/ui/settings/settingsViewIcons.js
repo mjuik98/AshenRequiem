@@ -29,3 +29,10 @@ export function renderSettingsControlsIcon() {
     <path d="M11 6.5v3M9.5 8h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
   </svg>`;
 }
+
+export function renderSettingsDataIcon() {
+  return `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:block">
+    <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+    <path d="M5 5.5h6M5 8h6M5 10.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+  </svg>`;
+}

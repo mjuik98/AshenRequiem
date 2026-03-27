@@ -2,18 +2,23 @@
  * src/input/KeyboardAdapter.js
  *
  * 키보드 입력을 감지하는 어댑터.
- * CHANGE: ESC 키 → 'pause' 액션 추가
  */
+import {
+  matchesActionBinding,
+  normalizeKeyBindings,
+} from './keyBindings.js';
+
 const PREVENT_KEYS = new Set([
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ',
 ]);
 
 export class KeyboardAdapter {
-  constructor() {
+  constructor({ keyBindings = null } = {}) {
     this._keys = new Set();
     this._onKeyDown = null;
     this._onKeyUp   = null;
     this._onBlur    = null;
+    this._keyBindings = normalizeKeyBindings(keyBindings ?? {});
   }
 
   init() {
@@ -35,19 +40,20 @@ export class KeyboardAdapter {
    * @param {import('./InputState.js').InputState} state
    */
   poll(state) {
-    if (this._isDown('arrowleft')  || this._isDown('a')) state.moveX -= 1;
-    if (this._isDown('arrowright') || this._isDown('d')) state.moveX += 1;
-    if (this._isDown('arrowup')    || this._isDown('w')) state.moveY -= 1;
-    if (this._isDown('arrowdown')  || this._isDown('s')) state.moveY += 1;
+    if (this._isActionDown('moveLeft')) state.moveX -= 1;
+    if (this._isActionDown('moveRight')) state.moveX += 1;
+    if (this._isActionDown('moveUp')) state.moveY -= 1;
+    if (this._isActionDown('moveDown')) state.moveY += 1;
 
     // -1 ~ 1 사이로 클램프 (중복 입력 대비)
     state.moveX = Math.max(-1, Math.min(1, state.moveX));
     state.moveY = Math.max(-1, Math.min(1, state.moveY));
 
-    // CHANGE: ESC 키 → 'pause' 액션
-    if (this._isDown('escape')) {
+    if (this._isActionDown('pause')) {
       state.actions.add('pause');
     }
+    if (this._isActionDown('confirm')) state.actions.add('confirm');
+    if (this._isActionDown('debug')) state.actions.add('debug');
   }
 
   destroy() {
@@ -59,5 +65,18 @@ export class KeyboardAdapter {
 
   _isDown(key) {
     return this._keys.has(key.toLowerCase());
+  }
+
+  _isActionDown(action) {
+    for (const key of this._keys) {
+      if (matchesActionBinding(action, key, this._keyBindings)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  updateKeyBindings(keyBindings = {}) {
+    this._keyBindings = normalizeKeyBindings(keyBindings);
   }
 }

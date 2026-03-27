@@ -1,5 +1,9 @@
 const RUNTIME_DEBUG_FLAG = '__ASHEN_RUNTIME_DEBUG__';
 
+function formatRuntimeScope(scope, message) {
+  return `[${scope}] ${message}`;
+}
+
 export function isRuntimeDebugEnabled(scope = '') {
   const flag = globalThis?.[RUNTIME_DEBUG_FLAG];
   if (flag === true) return true;
@@ -11,5 +15,13 @@ export function isRuntimeDebugEnabled(scope = '') {
 
 export function logRuntimeInfo(scope, message, ...args) {
   if (!isRuntimeDebugEnabled(scope)) return;
-  console.info(`[${scope}] ${message}`, ...args);
+  console.info(formatRuntimeScope(scope, message), ...args);
+}
+
+export function logRuntimeWarn(scope, message, ...args) {
+  console.warn(formatRuntimeScope(scope, message), ...args);
+}
+
+export function logRuntimeError(scope, message, ...args) {
+  console.error(formatRuntimeScope(scope, message), ...args);
 }

@@ -128,6 +128,20 @@ export class HudView {
       .hud-level { border-color: rgba(212,175,106,0.22); }
       .hud-gold { color: #ffd54f; }
       .hud-curse { color: #ef9a9a; }
+      .ash-access-high-visibility .hud-level,
+      .ash-access-high-visibility .hud-right-stats span {
+        background: rgba(3, 7, 12, 0.92);
+        border-color: rgba(255,255,255,0.22);
+        color: #ffffff;
+      }
+      .ash-access-high-visibility .hud-gold { color: #ffe082; }
+      .ash-access-high-visibility .hud-curse { color: #ffb4b4; }
+      .ash-access-large-text .hud-stats { font-size: 15px; }
+      .ash-access-large-text .hud-level,
+      .ash-access-large-text .hud-right-stats span {
+        min-height: 32px;
+        padding: 0 12px;
+      }
 
       /* FIX(4): 상자 대기 카운터 */
       .hud-chest-queue {
@@ -160,6 +174,12 @@ export class HudView {
         color: #ffd54f;
         text-shadow: 0 0 8px rgba(255, 213, 79, 0.6);
         font-family: 'Segoe UI', sans-serif;
+      }
+      .ash-access-reduced-motion .hud-xp-bar,
+      .ash-access-reduced-motion .hud-chest-queue,
+      .ash-access-reduced-motion .hud-chest-icon {
+        transition: none;
+        animation: none;
       }
     `;
     document.head.appendChild(s);

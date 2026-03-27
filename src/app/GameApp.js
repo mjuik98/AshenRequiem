@@ -1,10 +1,9 @@
-import { TitleScene } from '../scenes/TitleScene.js';
 import { validateGameData } from '../utils/validateGameData.js';
-import { registerRuntimeHooks, unregisterRuntimeHooks } from '../core/runtimeHooks.js';
+import { registerRuntimeHooks, unregisterRuntimeHooks } from '../adapters/browser/runtimeHooks.js';
 
 export class GameApp {
   constructor({
-    createInitialSceneImpl = (game) => new TitleScene(game),
+    createInitialSceneImpl = null,
     validateGameDataImpl = validateGameData,
     registerRuntimeHooksImpl = registerRuntimeHooks,
     unregisterRuntimeHooksImpl = unregisterRuntimeHooks,
@@ -24,13 +23,18 @@ export class GameApp {
   }
 
   start(game = this._game) {
+    const createInitialScene = this._createInitialScene ?? game?.createInitialSceneImpl;
+    if (typeof createInitialScene !== 'function') {
+      throw new Error('GameApp requires createInitialSceneImpl to be provided by the bootstrap boundary.');
+    }
+
     this._validateGameData({
       upgradeData: game.gameData.upgradeData,
       weaponData: game.gameData.weaponData,
       waveData: game.gameData.waveData,
     });
 
-    game.sceneManager.changeScene(this._createInitialScene(game));
+    game.sceneManager.changeScene(createInitialScene(game));
     game._loop.start();
   }
 

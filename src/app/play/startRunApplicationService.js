@@ -11,7 +11,7 @@ import { restoreActiveRunSnapshot } from './activeRunApplicationService.js';
 import {
   applyRunSessionState,
   queueRunStartEvents,
-} from '../../scenes/play/playSceneRuntime.js';
+} from './runSessionStateService.js';
 
 export function prepareStartRunState({
   session = null,

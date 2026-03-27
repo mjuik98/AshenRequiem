@@ -28,6 +28,7 @@ export const upgradeData = [
   { id: 'get_venom_bog',      type: 'weapon_new',     weaponId: 'venom_bog',      name: '독성 늪',       description: '감속 독늪 장판 획득' },
   { id: 'get_crystal_shard',  type: 'weapon_new',     weaponId: 'crystal_shard',  name: '수정 파편',      description: '반사 탄환 획득' },
   { id: 'get_radiant_orb',    type: 'weapon_new',     weaponId: 'radiant_orb',    name: '성광 탄환',      description: '안정적인 반사 구체 획득' },
+  { id: 'get_ember_spines',   type: 'weapon_new',     weaponId: 'ember_spines',   name: '잿가시',         description: '전방위 잿가시 탄막 획득' },
 
   // ── 무기 강화 ────────────────────────────────────────────────────────────────
   {
@@ -77,6 +78,10 @@ export const upgradeData = [
   {
     id: 'up_radiant_orb', type: 'weapon_upgrade', weaponId: 'radiant_orb',
     name: '성광 탄환 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_ember_spines', type: 'weapon_upgrade', weaponId: 'ember_spines',
+    name: '잿가시 +', description: '다음 성장 적용',
   },
 
   // ── 진화 무기 강화 ───────────────────────────────────────────────────────────

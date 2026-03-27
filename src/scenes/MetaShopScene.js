@@ -9,6 +9,7 @@ import { mountUI }                 from '../ui/dom/mountUI.js';
 import { purchaseMetaShopUpgrade } from '../app/meta/metaShopApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { loadTitleSceneModule } from './sceneLoaders.js';
+import { logRuntimeError } from '../utils/runtimeLogger.js';
 
 export class MetaShopScene {
   constructor(game) {
@@ -57,7 +58,7 @@ export class MetaShopScene {
     await this._nav.load(loadTitleSceneModule, ({ TitleScene }) => {
       this.game.sceneManager.changeScene(new TitleScene(this.game));
     }, (e) => {
-      console.error('[MetaShopScene] TitleScene 로드 실패:', e);
+      logRuntimeError('MetaShopScene', 'TitleScene 로드 실패:', e);
     });
   }
 }

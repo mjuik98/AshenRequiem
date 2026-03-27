@@ -1,10 +1,12 @@
+import { matchesActionBinding } from '../../input/keyBindings.js';
+
 export function bindTitleSceneInput(scene, {
   startGame,
   windowRef = window,
 } = {}) {
   scene._onKeyDown = (event) => {
     if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
-    if (event.code === 'Enter' || event.code === 'Space') {
+    if (matchesActionBinding('confirm', event, scene?.game?.session?.options?.keyBindings)) {
       event.preventDefault();
       startGame();
     }

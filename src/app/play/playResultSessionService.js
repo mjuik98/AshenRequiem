@@ -11,6 +11,10 @@ import {
   buildRunResult,
 } from '../../domain/meta/progression/playResultDomain.js';
 import { buildUnlockGuideEntries } from '../../domain/meta/progression/unlockGuidanceDomain.js';
+import {
+  applyDailyRewardToSession,
+  buildDailyRewardResult,
+} from '../../domain/meta/progression/dailyChallengeDomain.js';
 
 function appendUnique(base = [], additions = []) {
   return [...new Set([...(base ?? []), ...(additions ?? [])])];
@@ -57,6 +61,10 @@ export function commitPlayResultSession(session, { world = null, runResult, unlo
   persistSessionImpl = persistSession,
 } = {}) {
   ensureCodexMetaImpl(session);
+  const dailyReward = applyDailyRewardToSession(
+    session,
+    buildDailyRewardResult(runResult, session.meta),
+  );
   session.meta.totalRuns = (session.meta.totalRuns ?? 0) + 1;
   if ((runResult?.ascensionCleared ?? null) != null) {
     session.meta.highestAscensionCleared = Math.max(
@@ -76,12 +84,15 @@ export function commitPlayResultSession(session, { world = null, runResult, unlo
   );
   session.activeRun = null;
   persistSessionImpl(session);
-  return unlockProgress;
+  return {
+    unlockProgress,
+    dailyReward,
+  };
 }
 
 export function processPlayResult(world, session, runtimeState = {}, deps = {}) {
   const runResult = buildRunResult(world);
-  const unlockProgress = commitPlayResultSession(session, {
+  const { unlockProgress, dailyReward } = commitPlayResultSession(session, {
     world,
     runResult,
   }, deps);
@@ -102,5 +113,6 @@ export function processPlayResult(world, session, runtimeState = {}, deps = {}) 
     prevBestKills: runtimeState.prevBestKills,
     newUnlockRewardTexts: unlockProgress?.newUnlockRewardTexts,
     nextGoals,
+    dailyReward,
   });
 }

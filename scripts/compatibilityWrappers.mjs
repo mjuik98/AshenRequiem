@@ -13,6 +13,12 @@ export const WRAPPER_INVENTORY = [
     notes: 'main 엔트리는 직접 사용하지 않음. `createGame()` thin helper export 제공',
   },
   {
+    path: 'src/core/runtimeHooks.js',
+    role: 'browser runtime hook facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/runtimeHooks.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
     path: 'src/scenes/play/PlayResultHandler.js',
     role: '`playResultApplicationService` class facade',
     disposition: '`keep-public-wrapper`',

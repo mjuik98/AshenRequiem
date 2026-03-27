@@ -1,5 +1,5 @@
 import { getPermanentUpgradeById } from '../../data/permanentUpgradeData.js';
-import { purchasePermanentUpgradeAndSave } from '../../state/sessionFacade.js';
+import { purchasePermanentUpgradeAndSave } from '../session/sessionPersistenceService.js';
 
 export function purchaseMetaShopUpgrade(session, upgradeId) {
   const definition = getPermanentUpgradeById(upgradeId);

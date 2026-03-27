@@ -1,4 +1,9 @@
-import { SESSION_OPTION_DEFAULTS } from '../../state/sessionOptions.js';
+import {
+  SESSION_OPTION_DEFAULTS,
+} from '../../state/sessionOptions.js';
+import {
+  normalizeSessionOptions,
+} from '../../state/sessionOptions.js';
 import {
   renderSubscreenFooter,
   renderSubscreenHeader,
@@ -7,6 +12,7 @@ import {
   SETTINGS_TABS,
   renderSettingsAudioSection,
   renderSettingsControlsSection,
+  renderSettingsDataSection,
   renderSettingsDisplaySection,
   renderSettingsGraphicsSection,
   renderSettingsNavItem,
@@ -24,7 +30,7 @@ import {
  * 저장 버튼 클릭 시 onSave(newOptions) 콜백으로 최종값 전달.
  */
 
-const OPTION_DEFAULTS = { ...SESSION_OPTION_DEFAULTS };
+const OPTION_DEFAULTS = normalizeSessionOptions(SESSION_OPTION_DEFAULTS);
 
 export class SettingsView {
   constructor(container) {
@@ -32,8 +38,14 @@ export class SettingsView {
     this.el.className = 'sv-root ss-root';
     this._onSave = null;
     this._onBack = null;
-    this._opts = { ...OPTION_DEFAULTS };
+    this._handlers = {};
+    this._opts = normalizeSessionOptions();
     this._tab = 'audio';
+    this._dataState = {
+      importText: '',
+      statusText: '',
+      detailLines: [],
+    };
     this._injectStyles();
     container.appendChild(this.el);
 
@@ -45,15 +57,17 @@ export class SettingsView {
   }
 
   show(session, onSave, onBack) {
-    this._onSave = onSave;
-    this._onBack = onBack;
-    this._opts = { ...OPTION_DEFAULTS, ...(session.options ?? {}) };
+    const handlers = this._normalizeHandlers(onSave, onBack);
+    this._onSave = handlers.onSave;
+    this._onBack = handlers.onBack;
+    this._handlers = handlers;
+    this._opts = normalizeSessionOptions(session.options ?? {});
     this._render();
     window.addEventListener('keydown', this._handleKeyDown, true);
   }
 
   refresh(session) {
-    this._opts = { ...OPTION_DEFAULTS, ...(session.options ?? {}) };
+    this._opts = normalizeSessionOptions(session.options ?? {});
     this._render();
   }
 
@@ -113,6 +127,7 @@ export class SettingsView {
     if (this._tab === 'audio') return renderSettingsAudioSection(this._opts);
     if (this._tab === 'graphics') return renderSettingsGraphicsSection(this._opts);
     if (this._tab === 'display') return renderSettingsDisplaySection(this._opts);
+    if (this._tab === 'data') return renderSettingsDataSection(this._dataState);
     return renderSettingsControlsSection(this._opts);
   }
 
@@ -167,6 +182,23 @@ export class SettingsView {
       });
     });
 
+    this.el.querySelectorAll('.sv-binding-select').forEach((selectEl) => {
+      selectEl.addEventListener('change', () => {
+        const action = selectEl.dataset.bindingAction;
+        const slotIndex = Number(selectEl.dataset.bindingSlot ?? 0);
+        const keyBindings = {
+          ...(this._opts.keyBindings ?? {}),
+          [action]: [...(this._opts.keyBindings?.[action] ?? [])],
+        };
+        keyBindings[action][slotIndex] = selectEl.value;
+        keyBindings[action] = keyBindings[action].filter(Boolean);
+        this._opts = normalizeSessionOptions({
+          ...this._opts,
+          keyBindings,
+        });
+      });
+    });
+
     this.el.querySelectorAll('.sv-quality-card').forEach((card, index, list) => {
       const select = () => {
         this._opts.quality = card.dataset.quality;
@@ -197,6 +229,49 @@ export class SettingsView {
       });
     });
 
+    const dataTextarea = this.el.querySelector('.sv-data-textarea');
+    if (dataTextarea) {
+      dataTextarea.value = this._dataState.importText;
+      dataTextarea.addEventListener('input', () => {
+        this._dataState.importText = dataTextarea.value;
+      });
+    }
+
+    this.el.querySelector('[data-action="export-session"]')?.addEventListener('click', () => {
+      const snapshot = this._handlers.onExport?.();
+      if (typeof snapshot === 'string') {
+        this._dataState.importText = snapshot;
+        this._dataState.statusText = '현재 세션 스냅샷을 내보냈습니다.';
+        this._dataState.detailLines = [];
+        this._render();
+      }
+    });
+
+    this.el.querySelector('[data-action="inspect-storage"]')?.addEventListener('click', () => {
+      const result = this._handlers.onInspect?.();
+      this._applyDataResult(result, '저장소 슬롯 상태를 분석했습니다.');
+    });
+
+    this.el.querySelector('[data-action="preview-import"]')?.addEventListener('click', () => {
+      const result = this._handlers.onPreviewImport?.(this._dataState.importText);
+      this._applyDataResult(result, '세션 스냅샷 미리보기를 생성했습니다.');
+    });
+
+    this.el.querySelector('[data-action="restore-backup"]')?.addEventListener('click', () => {
+      const result = this._handlers.onRestoreBackup?.();
+      this._applyDataResult(result, 'backup 슬롯으로부터 세션을 복구했습니다.');
+    });
+
+    this.el.querySelector('[data-action="import-session"]')?.addEventListener('click', () => {
+      const result = this._handlers.onImport?.(this._dataState.importText);
+      this._applyDataResult(result, '세션 스냅샷을 가져왔습니다.');
+    });
+
+    this.el.querySelector('[data-action="reset-session"]')?.addEventListener('click', () => {
+      const result = this._handlers.onReset?.();
+      this._applyDataResult(result, '진행 데이터를 초기화했습니다.');
+    });
+
     this.el.querySelector('.sv-btn-primary')?.addEventListener('click', () => {
       this._onSave?.({ ...this._opts });
     });
@@ -206,9 +281,53 @@ export class SettingsView {
     });
 
     this.el.querySelector('.sv-btn-reset')?.addEventListener('click', () => {
-      this._opts = { ...OPTION_DEFAULTS };
+      this._opts = normalizeSessionOptions(OPTION_DEFAULTS);
       this._render();
     });
+  }
+
+  _normalizeHandlers(onSave, onBack) {
+    if (typeof onSave === 'function' || typeof onBack === 'function') {
+      return {
+        onSave,
+        onBack,
+        onExport: null,
+        onInspect: null,
+        onPreviewImport: null,
+        onImport: null,
+        onReset: null,
+        onRestoreBackup: null,
+      };
+    }
+
+    const handlers = onSave ?? {};
+    return {
+      onSave: handlers.onSave ?? null,
+      onBack: handlers.onBack ?? null,
+      onExport: handlers.onExport ?? null,
+      onInspect: handlers.onInspect ?? null,
+      onPreviewImport: handlers.onPreviewImport ?? null,
+      onImport: handlers.onImport ?? null,
+      onReset: handlers.onReset ?? null,
+      onRestoreBackup: handlers.onRestoreBackup ?? null,
+    };
+  }
+
+  _applyDataResult(result, fallbackStatus) {
+    if (!result) return;
+
+    if (typeof result.snapshot === 'string') {
+      this._dataState.importText = result.snapshot;
+    }
+
+    this._dataState.statusText = result.message ?? fallbackStatus;
+    this._dataState.detailLines = Array.isArray(result.detailLines) ? [...result.detailLines] : [];
+
+    if (result.options) {
+      this._opts = normalizeSessionOptions(result.options);
+    }
+
+    this._render();
   }
 
   _injectStyles() {

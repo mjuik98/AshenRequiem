@@ -49,6 +49,14 @@ export class InputManager {
     return this._state.isDown(key);
   }
 
+  configureKeyBindings(keyBindings) {
+    for (const adapter of this._adapters) {
+      if (typeof adapter.updateKeyBindings === 'function') {
+        adapter.updateKeyBindings(keyBindings);
+      }
+    }
+  }
+
   destroy() {
     for (const adapter of this._adapters) {
       if (adapter.destroy) adapter.destroy();

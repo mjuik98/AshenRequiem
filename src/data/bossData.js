@@ -18,7 +18,12 @@ export const bossData = [
         announceText: '감시자가 돌진 태세를 취합니다.',
         phaseAction: { type: 'reposition', distance: 180, angleOffset: 0, burstColor: '#ffd180' },
       },
-      { hpThreshold: 0.35, behaviorId: 'charge', announceText: '감시자가 격노하며 내달립니다.' },
+      {
+        hpThreshold: 0.35,
+        behaviorId: 'charge',
+        announceText: '감시자가 격노하며 전장을 정비합니다.',
+        phaseAction: { type: 'heal_pulse', healRatio: 0.15, color: '#b8ffd5', radius: 34 },
+      },
     ],
   },
   {
@@ -55,7 +60,7 @@ export const bossData = [
         hpThreshold: 0.7,
         behaviorId: 'keepDistance',
         announceText: '세라프가 광휘 탄막을 펼칩니다.',
-        phaseAction: { type: 'projectile_barrage', count: 8, speedMult: 1.1, damageMult: 1.1, color: '#fff4a3' },
+        phaseAction: { type: 'projectile_arc', count: 5, spreadAngle: 0.9, speedMult: 1.1, damageMult: 1.1, color: '#fff4a3' },
       },
       {
         hpThreshold: 0.3,
@@ -69,7 +74,12 @@ export const bossData = [
     at: 1800,
     enemyId: 'boss_abyss_eye',
     phases: [
-      { hpThreshold: 0.7, behaviorId: 'circle', announceText: '심연의 눈이 전장을 왜곡합니다.' },
+      {
+        hpThreshold: 0.7,
+        behaviorId: 'circle',
+        announceText: '심연의 눈이 전장을 왜곡합니다.',
+        phaseAction: { type: 'projectile_nova', count: 6, speedMult: 1.05, damageMult: 1.05, color: '#8ddfff' },
+      },
       {
         hpThreshold: 0.25,
         behaviorId: 'swarm',

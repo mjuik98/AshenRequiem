@@ -33,6 +33,7 @@ import { CodexView }    from '../ui/codex/CodexView.js';
 import { mountUI }      from '../ui/dom/mountUI.js';
 import { prepareCodexSceneState } from '../app/meta/codexApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
+import { logRuntimeError } from '../utils/runtimeLogger.js';
 
 export class CodexScene {
   /**
@@ -91,7 +92,7 @@ export class CodexScene {
       const SceneClass = this._from === 'metashop' ? mod.MetaShopScene : mod.TitleScene;
       this.game.sceneManager.changeScene(new SceneClass(this.game));
     }, (e) => {
-      console.error('[CodexScene] 씬 전환 실패:', e);
+      logRuntimeError('CodexScene', '씬 전환 실패:', e);
     });
   }
 }

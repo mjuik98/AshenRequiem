@@ -23,6 +23,73 @@ function buildSessionStorageKeys(storageKey) {
   };
 }
 
+function resolveStorage(hasExplicitStorage, storage) {
+  return hasExplicitStorage ? storage : resolveBrowserStorage();
+}
+
+function buildSnapshotSummary(session = null) {
+  if (!session) return null;
+  return {
+    currency: session.meta?.currency ?? 0,
+    totalRuns: session.meta?.totalRuns ?? 0,
+    stageId: session.meta?.selectedStageId ?? 'ash_plains',
+    lastRunOutcome: session.last?.kills != null ? session.meta?.recentRuns?.[0]?.outcome ?? null : null,
+  };
+}
+
+function buildSerializableSessionState(
+  session,
+  {
+    normalizeSessionStateImpl = normalizeSessionState,
+    sessionVersion = SESSION_VERSION,
+  } = {},
+) {
+  const normalized = normalizeSessionStateImpl(session);
+  return {
+    _version: sessionVersion,
+    last: normalized.last,
+    best: normalized.best,
+    meta: normalized.meta,
+    options: normalized.options,
+    activeRun: normalized.activeRun,
+  };
+}
+
+export function serializeSessionState(
+  session,
+  {
+    normalizeSessionStateImpl = normalizeSessionState,
+    sessionVersion = SESSION_VERSION,
+  } = {},
+) {
+  return JSON.stringify(buildSerializableSessionState(session, {
+    normalizeSessionStateImpl,
+    sessionVersion,
+  }));
+}
+
+export function parseSessionState(
+  raw,
+  {
+    migrateSessionStateImpl = migrateSessionState,
+    normalizeSessionStateImpl = normalizeSessionState,
+  } = {},
+) {
+  const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (
+    payload
+    && (Object.prototype.hasOwnProperty.call(payload, 'last')
+      || Object.prototype.hasOwnProperty.call(payload, 'best')
+      || Object.prototype.hasOwnProperty.call(payload, 'meta')
+      || Object.prototype.hasOwnProperty.call(payload, 'options')
+      || Object.prototype.hasOwnProperty.call(payload, 'activeRun'))
+    && (payload._version == null && payload.version == null)
+  ) {
+    return normalizeSessionStateImpl(payload);
+  }
+  return migrateSessionStateImpl(payload);
+}
+
 function tryLoadSessionPayload(raw, migrateSessionStateImpl) {
   if (!raw) {
     return { ok: false, error: null, session: null };
@@ -32,7 +99,7 @@ function tryLoadSessionPayload(raw, migrateSessionStateImpl) {
     return {
       ok: true,
       error: null,
-      session: migrateSessionStateImpl(JSON.parse(raw)),
+      session: parseSessionState(raw, { migrateSessionStateImpl }),
     };
   } catch (error) {
     return {
@@ -41,6 +108,84 @@ function tryLoadSessionPayload(raw, migrateSessionStateImpl) {
       session: null,
     };
   }
+}
+
+export function inspectStoredSessionSnapshots(options = {}) {
+  const hasExplicitStorage = Object.prototype.hasOwnProperty.call(options, 'storage');
+  const {
+    storageKey = SESSION_STORAGE_KEY,
+    storage = null,
+    migrateSessionStateImpl = migrateSessionState,
+  } = options;
+  const resolvedStorage = resolveStorage(hasExplicitStorage, storage);
+  const storageKeys = buildSessionStorageKeys(storageKey);
+
+  function inspectSlot(key) {
+    const raw = resolvedStorage?.getItem?.(key) ?? null;
+    if (!raw) {
+      return {
+        key,
+        raw: null,
+        status: 'missing',
+        session: null,
+        summary: null,
+      };
+    }
+
+    try {
+      const session = parseSessionState(raw, { migrateSessionStateImpl });
+      return {
+        key,
+        raw,
+        status: 'ok',
+        session,
+        summary: buildSnapshotSummary(session),
+      };
+    } catch (error) {
+      return {
+        key,
+        raw,
+        status: 'invalid',
+        session: null,
+        error,
+        summary: null,
+      };
+    }
+  }
+
+  return {
+    primary: inspectSlot(storageKeys.primary),
+    backup: inspectSlot(storageKeys.backup),
+    corrupt: inspectSlot(storageKeys.corrupt),
+  };
+}
+
+export function restoreStoredSessionSnapshot(target = 'backup', options = {}) {
+  const hasExplicitStorage = Object.prototype.hasOwnProperty.call(options, 'storage');
+  const {
+    storageKey = SESSION_STORAGE_KEY,
+    storage = null,
+    normalizeSessionStateImpl = normalizeSessionState,
+    sessionVersion = SESSION_VERSION,
+  } = options;
+  const resolvedStorage = resolveStorage(hasExplicitStorage, storage);
+  const inspection = inspectStoredSessionSnapshots({
+    storageKey,
+    storage: resolvedStorage,
+  });
+  const targetSnapshot = inspection[target];
+  if (!targetSnapshot || targetSnapshot.status !== 'ok' || !targetSnapshot.session) {
+    throw new Error(`복구할 수 없는 저장 슬롯입니다: ${target}`);
+  }
+
+  const serialized = serializeSessionState(targetSnapshot.session, {
+    normalizeSessionStateImpl,
+    sessionVersion,
+  });
+  const storageKeys = buildSessionStorageKeys(storageKey);
+  resolvedStorage?.setItem?.(storageKeys.primary, serialized);
+  resolvedStorage?.setItem?.(storageKeys.backup, serialized);
+  return targetSnapshot.session;
 }
 
 export function createLocalSessionRepository(options = {}) {
@@ -55,7 +200,7 @@ export function createLocalSessionRepository(options = {}) {
   const storageKeys = buildSessionStorageKeys(storageKey);
 
   function getStorage() {
-    return hasExplicitStorage ? options.storage : resolveBrowserStorage();
+    return resolveStorage(hasExplicitStorage, options.storage);
   }
 
   return {
@@ -64,16 +209,10 @@ export function createLocalSessionRepository(options = {}) {
       if (!storage?.setItem) return;
 
       try {
-        const normalized = normalizeSessionStateImpl(session);
-        const toSave = {
-          _version: sessionVersion,
-          last: normalized.last,
-          best: normalized.best,
-          meta: normalized.meta,
-          options: normalized.options,
-          activeRun: normalized.activeRun,
-        };
-        const serialized = JSON.stringify(toSave);
+        const serialized = serializeSessionState(session, {
+          normalizeSessionStateImpl,
+          sessionVersion,
+        });
         storage.setItem(storageKeys.primary, serialized);
         storage.setItem(storageKeys.backup, serialized);
       } catch (error) {
@@ -114,6 +253,23 @@ export function createLocalSessionRepository(options = {}) {
         console.warn('[SessionState] 불러오기 실패, 기본값 사용:', error);
         return createSessionStateImpl();
       }
+    },
+
+    inspect() {
+      return inspectStoredSessionSnapshots({
+        storageKey,
+        storage: getStorage(),
+        migrateSessionStateImpl,
+      });
+    },
+
+    restore(target = 'backup') {
+      return restoreStoredSessionSnapshot(target, {
+        storageKey,
+        storage: getStorage(),
+        normalizeSessionStateImpl,
+        sessionVersion,
+      });
     },
   };
 }

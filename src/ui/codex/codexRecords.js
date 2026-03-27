@@ -6,6 +6,7 @@ import {
 } from '../../domain/meta/codex/codexDiscoveryDomain.js';
 import { buildUnlockGuideEntries } from '../../domain/meta/progression/unlockGuidanceDomain.js';
 import { buildRunAnalytics } from '../../domain/meta/progression/runAnalyticsDomain.js';
+import { buildRunRecommendations } from '../../domain/meta/progression/runRecommendationDomain.js';
 import { getArchetypeById } from '../../data/archetypeData.js';
 import { getRiskRelicById } from '../../data/riskRelicData.js';
 
@@ -148,6 +149,7 @@ export function buildCodexRecordSummary(session, gameData = null) {
   const recentRuns = Array.isArray(meta.recentRuns) ? meta.recentRuns.slice(0, 5) : [];
   const analytics = buildRunAnalytics(meta);
   const favoriteLoadout = buildFavoriteLoadoutPresentation(analytics, gameData);
+  const recommendations = buildRunRecommendations({ analytics });
 
   return {
     best,
@@ -158,6 +160,7 @@ export function buildCodexRecordSummary(session, gameData = null) {
     currency,
     recentRuns,
     analytics,
+    recommendations,
     favoriteLoadout,
     survivalSec,
     mm: Math.floor(survivalSec / 60),

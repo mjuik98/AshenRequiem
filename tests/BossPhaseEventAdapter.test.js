@@ -102,4 +102,135 @@ test('boss phase handler는 reposition phase action으로 플레이어 주변 �
   assert.equal(world.queues.spawnQueue.some((entry) => entry.type === 'effect'), true, 'reposition action이 burst effect를 남기지 않음');
 });
 
+test('boss phase handler는 heal_pulse phase action으로 체력을 회복하고 효과를 남긴다', () => {
+  const handlers = new Map();
+  const registry = {
+    register(eventType, handler) {
+      handlers.set(eventType, handler);
+    },
+  };
+  registerBossPhaseHandler({
+    effectPool: {
+      acquire(config) {
+        return { ...config, type: 'effect' };
+      },
+    },
+  }, registry);
+
+  const handler = handlers.get('bossPhaseChanged');
+  const enemy = {
+    id: 'enemy-3',
+    x: 20,
+    y: 30,
+    radius: 20,
+    color: '#fff',
+    hp: 40,
+    maxHp: 100,
+    enemyDataId: 'boss_warden',
+    behaviorId: 'charge',
+  };
+  const world = {
+    entities: { effects: [] },
+    queues: { spawnQueue: [] },
+  };
+
+  handler({
+    enemy,
+    announceText: 'recover',
+    phaseIndex: 1,
+    hpThreshold: 0.25,
+    newBehaviorId: 'dash',
+    phaseAction: { type: 'heal_pulse', healRatio: 0.2, color: '#aaffcc' },
+  }, world);
+
+  assert.equal(enemy.hp, 60, 'heal_pulse action이 maxHp 비율만큼 회복하지 않음');
+  assert.equal(world.queues.spawnQueue.some((entry) => entry.type === 'effect'), true, 'heal_pulse action이 회복 이펙트를 남기지 않음');
+});
+
+test('boss phase handler는 projectile_arc phase action으로 플레이어 방향 부채꼴 탄막을 생성한다', () => {
+  const handlers = new Map();
+  const registry = {
+    register(eventType, handler) {
+      handlers.set(eventType, handler);
+    },
+  };
+  registerBossPhaseHandler({
+    effectPool: {
+      acquire(config) {
+        return { ...config, type: 'effect' };
+      },
+    },
+  }, registry);
+
+  const handler = handlers.get('bossPhaseChanged');
+  const enemy = {
+    id: 'enemy-4',
+    x: 20,
+    y: 30,
+    radius: 20,
+    color: '#fff',
+    enemyDataId: 'boss_seraph',
+    behaviorId: 'keepDistance',
+    projectileConfig: { speed: 180, damage: 10, radius: 8, color: '#ffeeaa', pierce: 1 },
+  };
+  const world = {
+    entities: { player: { x: 120, y: 30 }, effects: [] },
+    queues: { spawnQueue: [] },
+  };
+
+  handler({
+    enemy,
+    announceText: 'fan barrage',
+    phaseIndex: 1,
+    hpThreshold: 0.25,
+    newBehaviorId: 'circle_dash',
+    phaseAction: { type: 'projectile_arc', count: 5, spreadAngle: 0.8, color: '#ffeeaa' },
+  }, world);
+
+  assert.equal(world.queues.spawnQueue.filter((entry) => entry.type === 'projectile').length, 5, 'projectile_arc action이 부채꼴 투사체를 생성하지 않음');
+});
+
+test('boss phase handler는 projectile_nova phase action으로 원형 투사체를 생성한다', () => {
+  const handlers = new Map();
+  const registry = {
+    register(eventType, handler) {
+      handlers.set(eventType, handler);
+    },
+  };
+  registerBossPhaseHandler({
+    effectPool: {
+      acquire(config) {
+        return { ...config, type: 'effect' };
+      },
+    },
+  }, registry);
+
+  const handler = handlers.get('bossPhaseChanged');
+  const enemy = {
+    id: 'enemy-5',
+    x: 20,
+    y: 30,
+    radius: 22,
+    color: '#fff',
+    enemyDataId: 'boss_abyss_eye',
+    behaviorId: 'swarm',
+    projectileConfig: { speed: 200, damage: 11, radius: 8, color: '#7ce7ff', pierce: 1 },
+  };
+  const world = {
+    entities: { effects: [] },
+    queues: { spawnQueue: [] },
+  };
+
+  handler({
+    enemy,
+    announceText: 'nova',
+    phaseIndex: 1,
+    hpThreshold: 0.2,
+    newBehaviorId: 'circle',
+    phaseAction: { type: 'projectile_nova', count: 6, color: '#7ce7ff' },
+  }, world);
+
+  assert.equal(world.queues.spawnQueue.filter((entry) => entry.type === 'projectile').length, 6, 'projectile_nova action이 원형 투사체를 생성하지 않음');
+});
+
 summary();

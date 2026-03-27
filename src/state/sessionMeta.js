@@ -36,6 +36,10 @@ export function createDefaultSessionMeta() {
     selectedStageId: 'ash_plains',
     selectedSeedMode: 'none',
     selectedSeedText: '',
+    claimedDailyRewardSeeds: [],
+    dailyChallengeStreak: 0,
+    bestDailyChallengeStreak: 0,
+    lastDailyRewardSeed: '',
     recentRuns:            [],
     selectedAscensionLevel: 0,
     highestAscensionCleared: 0,
@@ -93,6 +97,18 @@ export function ensureCodexMeta(session) {
   meta.selectedSeedText = typeof meta.selectedSeedText === 'string'
     ? meta.selectedSeedText
     : defaults.selectedSeedText;
+  meta.claimedDailyRewardSeeds = Array.isArray(meta.claimedDailyRewardSeeds)
+    ? [...meta.claimedDailyRewardSeeds]
+    : [...defaults.claimedDailyRewardSeeds];
+  meta.dailyChallengeStreak = Number.isFinite(meta.dailyChallengeStreak)
+    ? Math.max(0, meta.dailyChallengeStreak)
+    : defaults.dailyChallengeStreak;
+  meta.bestDailyChallengeStreak = Number.isFinite(meta.bestDailyChallengeStreak)
+    ? Math.max(meta.dailyChallengeStreak ?? 0, meta.bestDailyChallengeStreak)
+    : Math.max(meta.dailyChallengeStreak ?? 0, defaults.bestDailyChallengeStreak);
+  meta.lastDailyRewardSeed = typeof meta.lastDailyRewardSeed === 'string'
+    ? meta.lastDailyRewardSeed
+    : defaults.lastDailyRewardSeed;
   meta.recentRuns = Array.isArray(meta.recentRuns)
     ? [...meta.recentRuns]
     : [...defaults.recentRuns];

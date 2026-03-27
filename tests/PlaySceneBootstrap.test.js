@@ -86,6 +86,13 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
       calls.push(['ui', root]);
       return fakeUi;
     },
+    createRuntimeServicesImpl() {
+      calls.push(['runtime-services']);
+      return {
+        nowSeconds: () => 42,
+        createAudioContext: () => ({ id: 'audio' }),
+      };
+    },
   });
 
   assert.equal(runtime.world, fakeWorld);
@@ -93,23 +100,28 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   assert.equal(runtime.ctx, fakeCtx);
   assert.deepEqual(runtime.systems, ['s1']);
   assert.equal(fakeUi.shown, 1, 'HUD가 즉시 표시되지 않음');
-  assert.deepEqual(calls[0], ['world', {
+  assert.deepEqual(calls[0], ['runtime-services']);
+  assert.deepEqual(calls[1], ['world', {
     session: fakeSession,
     gameData: { weaponData: [{ id: 'magic_bolt' }] },
   }]);
-  assert.deepEqual(calls[1], ['normalize', fakeSession.options]);
-  assert.deepEqual(calls[2], ['profile']);
-  assert.deepEqual(calls[3], ['context', {
+  assert.deepEqual(calls[2], ['normalize', fakeSession.options]);
+  assert.deepEqual(calls[3], ['profile']);
+  assert.deepEqual(calls[4], ['context', {
     canvas: { id: 'canvas' },
     renderer: { id: 'renderer' },
     soundEnabled: false,
     profilingEnabled: true,
     session: fakeSession,
+    nowSeconds: calls[4][1]?.nowSeconds,
+    createAudioContext: calls[4][1]?.createAudioContext,
   }]);
-  assert.deepEqual(calls[4], ['mount-ui']);
-  assert.deepEqual(calls[5], ['ui', { id: 'ui-root' }]);
-  assert.deepEqual(calls[6], ['views', 'boss-view', 'evo-view']);
-  assert.deepEqual(calls[7], ['pipeline', fakeWorld, { id: 'input' }, { weaponData: [{ id: 'magic_bolt' }] }]);
+  assert.equal(typeof calls[4][1].nowSeconds, 'function');
+  assert.equal(typeof calls[4][1].createAudioContext, 'function');
+  assert.deepEqual(calls[5], ['mount-ui']);
+  assert.deepEqual(calls[6], ['ui', { id: 'ui-root' }]);
+  assert.deepEqual(calls[7], ['views', 'boss-view', 'evo-view']);
+  assert.deepEqual(calls[8], ['pipeline', fakeWorld, { id: 'input' }, { weaponData: [{ id: 'magic_bolt' }] }]);
 });
 
 summary();

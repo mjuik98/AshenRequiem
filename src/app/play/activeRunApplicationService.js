@@ -1,4 +1,4 @@
-import { persistSession } from '../../state/sessionFacade.js';
+import { persistSession } from '../session/sessionPersistenceService.js';
 
 function cloneWeapons(weapons = []) {
   return (weapons ?? []).map((weapon) => ({ ...weapon }));

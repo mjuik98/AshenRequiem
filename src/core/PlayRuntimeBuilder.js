@@ -12,6 +12,7 @@ export function buildPlayRuntime({
   createPlayContextImpl = PlayContext.create,
   mountUiImpl = mountUI,
   createPlayUiImpl = (container) => new PlayUI(container),
+  runtimeServices = null,
 } = {}) {
   const session = game?.session ?? null;
   const gameData = game?.gameData ?? {};
@@ -23,6 +24,7 @@ export function buildPlayRuntime({
     soundEnabled: options.soundEnabled ?? true,
     profilingEnabled: shouldEnableProfilingImpl(),
     session,
+    ...(runtimeServices ?? {}),
   });
   const ui = createPlayUiImpl(mountUiImpl());
 

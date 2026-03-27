@@ -1,11 +1,11 @@
 import { GameConfig } from '../../core/GameConfig.js';
 import { transitionPlayMode, PlayMode } from '../../state/PlayMode.js';
 import { getEffectiveDevicePixelRatio } from '../../state/sessionOptions.js';
-import { updateSessionOptionsAndSave } from '../../state/sessionFacade.js';
+import { updateSessionOptionsAndSave } from '../session/sessionPersistenceService.js';
 import {
   createPauseOverlayConfig,
   createResultSceneActions,
-} from '../../scenes/play/playSceneOverlays.js';
+} from './playSceneOverlaysService.js';
 
 export function syncPlaySceneDevicePixelRatio({
   sessionOptions,

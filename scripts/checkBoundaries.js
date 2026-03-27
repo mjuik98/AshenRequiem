@@ -21,6 +21,7 @@ export const SHIM_IMPORT_PATTERNS = [
   'systems/event/currencyHandler.js',
   'systems/event/weaponEvolutionHandler.js',
   'core/Game.js',
+  'core/runtimeHooks.js',
   'scenes/play/PlayResultHandler.js',
 ];
 
@@ -41,6 +42,7 @@ const DOMAIN_FORBIDDEN_SEGMENTS = [
 const PLAY_RESULT_DOMAIN_PATH = 'src/domain/meta/progression/playResultDomain.js';
 const RENDER_SYSTEM_PATH = 'src/systems/render/RenderSystem.js';
 const SOUND_SFX_CONTROLLER_PATH = 'src/systems/sound/soundSfxController.js';
+const PLAY_CONTEXT_RUNTIME_PATH = 'src/core/playContextRuntime.js';
 
 function walkFiles(dirPath, bucket = []) {
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
@@ -151,6 +153,30 @@ function findSceneToSystemsViolations(imports) {
     }));
 }
 
+function findAppToScenesViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile.startsWith('src/app/') && !sourceFile.startsWith('src/app/bootstrap/'))
+    .filter(({ targetFile }) => targetFile.startsWith('src/scenes/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'app-to-scenes',
+      sourceFile,
+      targetFile,
+      message: `application module imports scene implementation directly: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findAppToSessionFacadeViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile.startsWith('src/app/'))
+    .filter(({ targetFile }) => targetFile === 'src/state/sessionFacade.js')
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'app-to-session-facade',
+      sourceFile,
+      targetFile,
+      message: `application module must depend on concrete session services instead of legacy facade: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 function findPlayResultDomainViolations(imports) {
   return imports
     .filter(({ sourceFile }) => sourceFile === PLAY_RESULT_DOMAIN_PATH)
@@ -187,6 +213,18 @@ function findSoundSfxBrowserViolations(imports) {
     }));
 }
 
+function findPlayContextRuntimeBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile === PLAY_CONTEXT_RUNTIME_PATH)
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'play-context-runtime-browser',
+      sourceFile,
+      targetFile,
+      message: `play context runtime must consume injected browser services instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 function findMigratedWrapperViolations(imports) {
   return imports
     .filter(({ sourceFile }) => REPO_INTERNAL_PREFIXES.some((prefix) => sourceFile.startsWith(prefix)))
@@ -206,9 +244,12 @@ export function collectBoundaryViolations() {
     ...findShimViolations(sourceImports),
     ...findDomainViolations(sourceImports),
     ...findSceneToSystemsViolations(sourceImports),
+    ...findAppToScenesViolations(sourceImports),
+    ...findAppToSessionFacadeViolations(sourceImports),
     ...findPlayResultDomainViolations(sourceImports),
     ...findRenderSystemBrowserViolations(sourceImports),
     ...findSoundSfxBrowserViolations(sourceImports),
+    ...findPlayContextRuntimeBrowserViolations(sourceImports),
     ...findMigratedWrapperViolations(repoImports),
   ];
 }

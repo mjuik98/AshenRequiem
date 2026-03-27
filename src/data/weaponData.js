@@ -122,6 +122,15 @@ export const weaponData = [
     projectileCount: 1,
     behaviorId: 'ricochetProjectile', maxLevel: 7,
   },
+  {
+    id: 'ember_spines', name: '잿가시',
+    icon: '✸',
+    description: '플레이어를 중심으로 잿빛 가시를 전방위로 흩뿌린다',
+    damage: 4, cooldown: 1.6, projectileSpeed: 300, range: 240,
+    radius: 6, pierce: 2, projectileColor: '#ff9f7a',
+    projectileCount: 6,
+    behaviorId: 'omnidirectional', maxLevel: 7,
+  },
 
   // ── 진화 무기 (isEvolved: true — WeaponEvolutionSystem에서만 획득 가능) ───────
   {

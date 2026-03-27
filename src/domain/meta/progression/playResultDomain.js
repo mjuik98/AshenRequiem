@@ -1,4 +1,5 @@
 import { buildRunAnalytics } from './runAnalyticsDomain.js';
+import { buildRunRecommendations } from './runRecommendationDomain.js';
 
 export function buildRunResult(world) {
   return {
@@ -64,6 +65,7 @@ export function buildPlayResultSummary(world, session, {
   prevBestKills = 0,
   newUnlockRewardTexts = [],
   nextGoals = [],
+  dailyReward = null,
 } = {}) {
   const runResult = buildRunResult(world);
   const currencyEarned = Math.max(
@@ -72,6 +74,7 @@ export function buildPlayResultSummary(world, session, {
     (session?.meta?.currency ?? 0) - startCurrency,
   );
   const analytics = buildRunAnalytics(session?.meta ?? {});
+  const recommendations = buildRunRecommendations({ analytics });
 
   return {
     killCount: runResult.kills,
@@ -88,6 +91,7 @@ export function buildPlayResultSummary(world, session, {
     riskRelicName: world.run.riskRelic?.name ?? world.run.riskRelicId ?? null,
     stageName: world.run.stage?.name ?? world.run.stageId ?? 'ash_plains',
     seedLabel: world.run.seedLabel ?? '',
+    dailyReward,
     deathCause: world.run.lastDamageSource?.label ?? world.run.lastDamageSource?.attackerId ?? null,
     highestAscensionCleared: session?.meta?.highestAscensionCleared ?? 0,
     weapons: buildWeaponSummary(world),
@@ -95,5 +99,6 @@ export function buildPlayResultSummary(world, session, {
     nextGoals: [...(nextGoals ?? [])],
     recentRuns: [...(session?.meta?.recentRuns ?? [])].slice(0, 5),
     analytics,
+    recommendations,
   };
 }

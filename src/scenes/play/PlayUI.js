@@ -17,6 +17,7 @@ import {
   loadPauseViewModule,
   loadResultViewModule,
 } from '../sceneLoaders.js';
+import { logRuntimeError } from '../../utils/runtimeLogger.js';
 
 export class PlayUI {
   constructor(container, loaders = {}) {
@@ -119,7 +120,7 @@ export class PlayUI {
       showView: (view, config) => view.show(config),
       hideView: (view) => view?.hide?.(),
       isVisible: (view) => view?.isVisible?.() || false,
-      onError: (error) => console.error('[PlayUI] PauseView 로드 실패:', error),
+      onError: (error) => logRuntimeError('PlayUI', 'PauseView 로드 실패:', error),
     });
   }
 
@@ -140,7 +141,7 @@ export class PlayUI {
           view.el.innerHTML = '';
         }
       },
-      onError: (error) => console.error('[PlayUI] ResultView 로드 실패:', error),
+      onError: (error) => logRuntimeError('PlayUI', 'ResultView 로드 실패:', error),
     });
   }
 
@@ -151,7 +152,7 @@ export class PlayUI {
       createView: (LevelUpView) => new LevelUpView(this._container),
       showView: (view, config) => view.show(config),
       hideView: (view) => view?.hide?.(),
-      onError: (error) => console.error('[PlayUI] LevelUpView 로드 실패:', error),
+      onError: (error) => logRuntimeError('PlayUI', 'LevelUpView 로드 실패:', error),
     });
   }
 }

@@ -8,8 +8,12 @@ export function createGame(options) {
 /** Game — 게임 최상위 진입점 */
 export class Game {
   constructor({
+    createInitialSceneImpl = null,
     createShellImpl = createBrowserGameShell,
-    createAppImpl = (options) => new GameApp(options),
+    createAppImpl = (options) => new GameApp({
+      createInitialSceneImpl,
+      ...(options ?? {}),
+    }),
   } = {}) {
     this._shell = createShellImpl();
     this._shell.attach(this);

@@ -2,6 +2,7 @@ import { buildPlayRuntime } from '../../core/PlayRuntimeBuilder.js';
 import { PlayContext } from '../../core/PlayContext.js';
 import { prepareStartRunState } from '../../app/play/startRunApplicationService.js';
 import { normalizeSessionOptions } from '../../state/sessionOptions.js';
+import { createPlayBrowserRuntimeServices } from '../../adapters/browser/playRuntimeServices.js';
 import { mountUI } from '../../ui/dom/mountUI.js';
 import { PlayUI } from './PlayUI.js';
 import {
@@ -28,6 +29,7 @@ export function bootstrapPlaySceneRuntime({
   mountUiImpl = mountUI,
   createPlayUiImpl = (container) => new PlayUI(container),
   buildPlayRuntimeImpl = buildPlayRuntime,
+  createRuntimeServicesImpl = createPlayBrowserRuntimeServices,
 } = {}) {
   return buildPlayRuntimeImpl({
     game,
@@ -37,5 +39,6 @@ export function bootstrapPlaySceneRuntime({
     createPlayContextImpl,
     mountUiImpl,
     createPlayUiImpl,
+    runtimeServices: createRuntimeServicesImpl(),
   });
 }

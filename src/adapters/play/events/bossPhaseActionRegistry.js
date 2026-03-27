@@ -76,11 +76,85 @@ function queueReposition(world, enemy, phaseAction) {
   }));
 }
 
+function queueHealPulse(world, enemy, phaseAction) {
+  const healRatio = Math.max(0, Number(phaseAction.healRatio) || 0);
+  const healAmount = Math.round((enemy.maxHp ?? enemy.hp ?? 0) * healRatio);
+  enemy.hp = Math.min(enemy.maxHp ?? enemy.hp ?? 0, (enemy.hp ?? 0) + healAmount);
+
+  world.queues.spawnQueue.push(spawnEffect({
+    effectType: phaseAction.effectType ?? 'burst',
+    x: enemy.x,
+    y: enemy.y,
+    config: {
+      color: phaseAction.color ?? '#aaffcc',
+      radius: phaseAction.radius ?? (enemy.radius * 1.2),
+      duration: phaseAction.duration ?? 0.75,
+    },
+  }));
+}
+
+function queueProjectileArc(world, enemy, phaseAction) {
+  if (!enemy.projectileConfig) return;
+  const player = world.entities.player;
+  const count = Math.max(1, phaseAction.count ?? 3);
+  const spreadAngle = Number(phaseAction.spreadAngle) || 0.6;
+  const baseAngle = player
+    ? Math.atan2(player.y - enemy.y, player.x - enemy.x)
+    : 0;
+  const stepAngle = count > 1 ? spreadAngle / (count - 1) : 0;
+  const startAngle = baseAngle - spreadAngle * 0.5;
+
+  for (let index = 0; index < count; index += 1) {
+    world.queues.spawnQueue.push(spawnProjectile({
+      weapon: { id: `${enemy.enemyDataId}_phase_arc` },
+      x: enemy.x,
+      y: enemy.y,
+      angle: startAngle + stepAngle * index,
+      config: {
+        speed: (enemy.projectileConfig.speed ?? 220) * (phaseAction.speedMult ?? 1),
+        damage: Math.round((enemy.projectileConfig.damage ?? 10) * (phaseAction.damageMult ?? 1)),
+        radius: enemy.projectileConfig.radius ?? 8,
+        color: phaseAction.color ?? enemy.projectileConfig.color ?? enemy.color,
+        pierce: enemy.projectileConfig.pierce ?? 1,
+        ownerId: enemy.id,
+        ownerType: 'enemy',
+        maxRange: phaseAction.maxRange ?? 520,
+      },
+    }));
+  }
+}
+
+function queueProjectileNova(world, enemy, phaseAction) {
+  if (!enemy.projectileConfig) return;
+  const count = Math.max(1, phaseAction.count ?? 6);
+  for (let index = 0; index < count; index += 1) {
+    world.queues.spawnQueue.push(spawnProjectile({
+      weapon: { id: `${enemy.enemyDataId}_phase_nova` },
+      x: enemy.x,
+      y: enemy.y,
+      angle: (index / count) * Math.PI * 2,
+      config: {
+        speed: (enemy.projectileConfig.speed ?? 220) * (phaseAction.speedMult ?? 1),
+        damage: Math.round((enemy.projectileConfig.damage ?? 10) * (phaseAction.damageMult ?? 1)),
+        radius: enemy.projectileConfig.radius ?? 8,
+        color: phaseAction.color ?? enemy.projectileConfig.color ?? enemy.color,
+        pierce: enemy.projectileConfig.pierce ?? 1,
+        ownerId: enemy.id,
+        ownerType: 'enemy',
+        maxRange: phaseAction.maxRange ?? 560,
+      },
+    }));
+  }
+}
+
 const BOSS_PHASE_ACTION_REGISTRY = Object.freeze({
   summon: queueSummon,
   burst: queueBurst,
   projectile_barrage: queueProjectileBarrage,
+  projectile_arc: queueProjectileArc,
+  projectile_nova: queueProjectileNova,
   reposition: queueReposition,
+  heal_pulse: queueHealPulse,
 });
 
 export function queueBossPhaseAction(world, enemy, phaseAction = null) {

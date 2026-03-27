@@ -16,6 +16,7 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 
 1. **책임 분리를 엄격히 유지한다**
    - **Scene**: 상태 진입/종료, 프레임 처리 순서, 화면 흐름만 담당. 전투(게임) 규칙 계산 절대 금지.
+   - **Application Service**: use-case 조립과 쓰기 orchestration만 담당. `Scene`/`View` 구현을 직접 import하지 말고, 필요한 화면 전환/표시 객체는 scene/bootstrap 경계에서 주입받는다.
    - **System**: 한 가지의 게임 규칙(이동, 충돌, 스폰, 렌더준비 등)만 책임을 진다.
    - **Entity**: 데이터를 담는 얇은 상태 객체로 유지. (메서드에 복잡한 규칙 내장 금지)
    - **Renderer / UI**: 데이터 출력을 담당. 게임 규칙이나 월드 상태(`world`)를 직접 수정하는 것 금지.
@@ -30,9 +31,10 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 5. **테스트 전용 메서드 금지 (R-시리즈)**
    - `_testWithData` 등 테스트를 위한 우회 메서드를 프로덕션 코드에 노출하지 않는다.
 6. **아키텍처 경계는 edit-time + verify-time 이중 가드로 유지한다**
-   - edit-time: `lint:eslint`의 `no-restricted-imports` 규칙으로 `domain -> presentation/browser`, `scene -> systems`, compatibility wrapper direct import를 막는다.
+   - edit-time: `lint:eslint`의 `no-restricted-imports` 규칙으로 `domain -> presentation/browser`, `scene -> systems`, `app -> scenes(session bootstrap 제외)`, `app -> sessionFacade`, compatibility wrapper direct import를 막는다.
    - verify-time: `check:boundaries`와 `check:architecture-docs`가 resolved import 경계와 문서 drift를 최종 판정한다.
    - 새 compatibility wrapper를 추가하거나 disposition이 바뀌면 `docs/compatibility-wrappers.md`와 관련 스크립트 snapshot을 함께 갱신한다.
+   - browser debug/runtime hook 구현은 `src/adapters/browser/runtimeHooks.js`가 소유하고, `src/core/runtimeHooks.js`는 호환 re-export shim으로만 유지한다.
 
 ---
 
@@ -130,6 +132,7 @@ getLiveEnemies(enemies)
 - **System은 session에 직접 접근하지 않는다** (R-14)
 - session 수정은 PipelineBuilder에 등록된 이벤트 핸들러가 담당
 - `updateSessionBest()` → `saveSession()` 체인은 PlayResultHandler에서만 호출
+- `src/app/*`는 `src/state/sessionFacade.js`를 직접 import하지 않는다. 실제 쓰기 소유권은 `src/app/session/*` 서비스에 있다.
 - 시작 무기 선택 저장은 공용 `startLoadoutRuntime` 정규화 경로를 통해서만 수행한다. UI가 기본 시작 무기 ID를 하드코딩하면 안 된다.
 
 ### 6.3 무기 동작(Weapon/Behavior) 추가 규칙
@@ -145,6 +148,7 @@ getLiveEnemies(enemies)
 - factory 시스템(`createXxxSystem()`)은 PipelineBuilder가 인스턴스를 생성함
 - `SYSTEM_REGISTRY`에는 **상태 없는 singleton 시스템만** `{ system, priority }` 형태로 등록한다.
 - 상태를 가지는 factory 시스템은 `PipelineBuilder`에서 직접 생성하고 `pipeline.register()` 한다.
+- browser runtime service(`nowSeconds`, `createAudioContext` 등)는 `PlayContext`/system이 직접 browser adapter를 import하지 않고 bootstrap/adapters 경계에서 주입한다.
 
 ### 6.6 이벤트 (`EventRegistry`) 규칙
 - 새 이벤트 타입은 `src/data/constants/events.js`의 `EVENT_TYPES`에 추가

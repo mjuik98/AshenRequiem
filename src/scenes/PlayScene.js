@@ -29,6 +29,8 @@ import {
 import {
   applySessionOptionsToRuntime,
 } from '../state/sessionOptions.js';
+import { logRuntimeError } from '../utils/runtimeLogger.js';
+import { createDocumentAccessibilityRuntime } from '../ui/shared/accessibilityRuntime.js';
 
 export class PlayScene {
   constructor(game) {
@@ -107,6 +109,7 @@ export class PlayScene {
     applySessionOptionsToRuntime(this.game.session?.options, {
       soundSystem: this._ctx.soundSystem,
       renderer: this.game.renderer,
+      accessibilityRuntime: createDocumentAccessibilityRuntime(),
     });
   }
 
@@ -210,7 +213,7 @@ export class PlayScene {
         const { TitleScene } = await loadTitleSceneModule();
         this.game.sceneManager.changeScene(new TitleScene(this.game));
       },
-      onError: (error) => console.error('[PlayScene] 결과 화면 씬 전환 실패:', error),
+      onError: (error) => logRuntimeError('PlayScene', '결과 화면 씬 전환 실패:', error),
     });
   }
 

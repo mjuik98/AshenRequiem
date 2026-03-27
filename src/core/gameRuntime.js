@@ -19,7 +19,7 @@ export function createGameRuntimeState({
   const canvas = documentRef.getElementById(canvasId);
   const ctx = canvas.getContext('2d');
   const session = loadSessionImpl();
-  const input = createInputImpl({ canvas, host });
+  const input = createInputImpl({ canvas, host, options: session?.options });
   const gameData = loadGameDataImpl();
   const sceneManager = createSceneManagerImpl();
   const renderer = createRendererImpl(canvas, ctx);

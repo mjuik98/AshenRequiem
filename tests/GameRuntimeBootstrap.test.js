@@ -44,4 +44,46 @@ test('Game는 runtime helper를 사용해 부트스트랩하고 직접 wiring을
   assert.equal(gameSource.includes('GameDataLoader.loadDefault()'), false, 'Game가 game data loading 세부사항을 직접 수행하면 안 됨');
 });
 
+test('createGameRuntimeState는 session option key binding을 input factory에 전달한다', () => {
+  ensureRuntimeModules();
+
+  const calls = [];
+  const documentRef = {
+    getElementById() {
+      return {
+        getContext() {
+          return {};
+        },
+      };
+    },
+  };
+
+  runtimeApi.createGameRuntimeState({
+    documentRef,
+    loadSessionImpl() {
+      return {
+        options: {
+          keyBindings: {
+            pause: ['p'],
+            confirm: ['f'],
+          },
+        },
+      };
+    },
+    createInputImpl(args) {
+      calls.push(args.options?.keyBindings);
+      return {};
+    },
+    loadGameDataImpl() { return {}; },
+    createSceneManagerImpl() { return {}; },
+    createRendererImpl() { return {}; },
+    createGameLoopImpl() { return {}; },
+  });
+
+  assert.deepEqual(calls, [{
+    pause: ['p'],
+    confirm: ['f'],
+  }], 'game runtime이 session option key binding을 input 생성으로 전달하지 않음');
+});
+
 summary();

@@ -3,6 +3,7 @@ import {
   loadPlaySceneModule,
   loadSettingsSceneModule,
 } from '../sceneLoaders.js';
+import { logRuntimeError, logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 function formatTitleLoadFailureMessage(label, error) {
   const errorText = String(error?.message ?? error ?? '');
@@ -53,7 +54,7 @@ export function runTitleAction(action, scene, {
       scene.game.sceneManager.changeScene(new PlayScene(scene.game));
     }, (error) => {
       reportTitleLoadFailure('전투', error, setMessage);
-      console.error('[TitleScene] Continue PlayScene 로드 실패:', error);
+      logRuntimeError('TitleScene', 'Continue PlayScene 로드 실패:', error);
     });
     return;
   }
@@ -63,7 +64,7 @@ export function runTitleAction(action, scene, {
       scene.game.sceneManager.changeScene(new CodexScene(scene.game, 'title'));
     }, (error) => {
       reportTitleLoadFailure('Codex', error, setMessage);
-      console.error('[TitleScene] CodexScene 로드 실패:', error);
+      logRuntimeError('TitleScene', 'CodexScene 로드 실패:', error);
     });
     return;
   }
@@ -73,7 +74,7 @@ export function runTitleAction(action, scene, {
       scene.game.sceneManager.changeScene(new SettingsScene(scene.game));
     }, (error) => {
       reportTitleLoadFailure('설정', error, setMessage);
-      console.error('[TitleScene] SettingsScene 로드 실패:', error);
+      logRuntimeError('TitleScene', 'SettingsScene 로드 실패:', error);
     });
     return;
   }
@@ -84,7 +85,7 @@ export function runTitleAction(action, scene, {
       windowRef,
       setMessage,
       onError: (error) => {
-        console.warn('[TitleScene] 창 종료 시도 실패:', error);
+        logRuntimeWarn('TitleScene', '창 종료 시도 실패:', error);
       },
     });
   }

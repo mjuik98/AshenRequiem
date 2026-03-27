@@ -316,12 +316,29 @@ await test('codex records helper packages summary, achievements, and unlock entr
       meta: {
         enemyKills: { skeleton: 25 },
         killedBosses: ['boss_lich'],
+        claimedDailyRewardSeeds: ['daily-2026-03-25', 'daily-2026-03-26'],
+        dailyChallengeStreak: 2,
+        bestDailyChallengeStreak: 3,
         weaponsUsedAll: ['magic_bolt'],
         accessoriesOwnedAll: ['iron_heart'],
         evolvedWeapons: ['arcane_tempest'],
         totalRuns: 3,
         currency: 77,
         recentRuns: [
+          {
+            outcome: 'defeat',
+            seedMode: 'daily',
+            seedLabel: 'daily-2026-03-26',
+            stageId: 'moon_crypt',
+            stageName: 'Moon Crypt',
+            survivalTime: 120,
+            killCount: 20,
+            level: 6,
+            deathCause: 'elite_skeleton',
+            weaponIds: ['magic_bolt'],
+            accessoryIds: ['iron_heart'],
+            archetypeId: 'vanguard',
+          },
           {
             outcome: 'defeat',
             stageId: 'ember_hollow',
@@ -333,6 +350,17 @@ await test('codex records helper packages summary, achievements, and unlock entr
             weaponIds: ['magic_bolt'],
             accessoryIds: ['iron_heart'],
             archetypeId: 'vanguard',
+          },
+          {
+            outcome: 'victory',
+            stageId: 'ember_hollow',
+            stageName: 'Ember Hollow',
+            survivalTime: 640,
+            killCount: 90,
+            level: 18,
+            weaponIds: ['magic_bolt'],
+            accessoryIds: ['iron_heart'],
+            archetypeId: 'spellweaver',
           },
         ],
       },
@@ -357,8 +385,11 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(model.discoveryFocus.length === 3, true);
   assert.equal(Array.isArray(model.analytics.stageRecords), true);
   assert.equal(model.analytics.favoriteLoadout.weaponId, 'magic_bolt');
+  assert.equal(model.analytics.stageWeakness.stageId, 'moon_crypt');
+  assert.equal(model.analytics.dailyStats.streak, 2);
   assert.equal(model.favoriteLoadout.weaponName, 'Magic Bolt');
   assert.equal(model.favoriteLoadout.archetypeName, 'Vanguard');
+  assert.equal(model.recommendations.length > 0, true);
 
   const discovery = codexRecords.buildCodexDiscoverySummary({
     session: {
@@ -386,12 +417,27 @@ await test('codex records helper packages summary, achievements, and unlock entr
       meta: {
         enemyKills: { skeleton: 25 },
         killedBosses: ['boss_lich'],
+        claimedDailyRewardSeeds: ['daily-2026-03-25', 'daily-2026-03-26'],
+        dailyChallengeStreak: 2,
+        bestDailyChallengeStreak: 3,
         weaponsUsedAll: ['magic_bolt'],
         accessoriesOwnedAll: ['iron_heart'],
         evolvedWeapons: ['arcane_tempest'],
         totalRuns: 3,
         currency: 77,
         recentRuns: [
+          {
+            outcome: 'defeat',
+            stageId: 'moon_crypt',
+            stageName: 'Moon Crypt',
+            survivalTime: 120,
+            killCount: 20,
+            level: 6,
+            deathCause: 'elite_skeleton',
+            weaponIds: ['magic_bolt'],
+            accessoryIds: ['iron_heart'],
+            archetypeId: 'vanguard',
+          },
           {
             outcome: 'defeat',
             stageId: 'ember_hollow',
@@ -422,6 +468,9 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(html.includes('cx-records-hero'), true);
   assert.equal(html.includes('cx-records-focus'), true);
   assert.equal(html.includes('다음 목표'), true);
+  assert.equal(html.includes('추천 조정'), true);
+  assert.equal(html.includes('취약 스테이지'), true);
+  assert.equal(html.includes('Moon Crypt'), true);
   assert.equal(html.includes('주력 로드아웃'), true);
   assert.equal(html.includes('주요 패배 원인'), true);
   assert.equal(html.includes('magic_bolt'), false, '기록 탭 주력 로드아웃이 raw weapon id를 노출하면 안 됨');

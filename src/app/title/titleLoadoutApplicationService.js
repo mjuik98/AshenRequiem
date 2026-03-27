@@ -1,5 +1,7 @@
 import {
   clearActiveRunAndSave,
+} from '../session/sessionPersistenceService.js';
+import {
   setRunSeedSelectionAndSave,
   setSelectedAscensionAndSave,
   setSelectedArchetypeAndSave,
@@ -7,7 +9,7 @@ import {
   setSelectedStageAndSave,
   setSelectedStartAccessoryAndSave,
   setSelectedStartWeaponAndSave,
-} from '../../state/sessionFacade.js';
+} from '../session/loadoutSelectionWriteService.js';
 
 function normalizeRunOptions(ascensionLevelOrOptions = null) {
   if (

@@ -197,8 +197,26 @@ export const SETTINGS_VIEW_CSS = `
     border-radius: 7px;
   }
   .sv-info-text { margin: 0; font-size: 11px; color: rgba(199,163,93,0.6); }
+  .sv-detail-list {
+    margin: 8px 0 0 16px;
+    padding: 0;
+    color: rgba(244,237,224,0.55);
+    font-size: 11px;
+    line-height: 1.5;
+  }
 
   .sv-keybind-list { display: flex; flex-direction: column; gap: 6px; }
+  .sv-binding-list { display: flex; flex-direction: column; gap: 8px; }
+  .sv-binding-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 13px;
+    background: rgba(255,255,255,0.025);
+    border: 0.5px solid rgba(217,179,107,0.09);
+    border-radius: 12px;
+  }
   .sv-keybind-row {
     display: flex;
     align-items: center;
@@ -209,7 +227,35 @@ export const SETTINGS_VIEW_CSS = `
     border-radius: 12px;
   }
   .sv-keybind-action { font-size: 13px; color: rgba(244,237,224,0.5); }
-  .sv-keybind-right { display: flex; align-items: center; gap: 7px; }
+  .sv-keybind-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .sv-binding-slot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sv-binding-slot-label {
+    font-size: 10px;
+    color: rgba(244,237,224,0.36);
+  }
+  .sv-binding-select {
+    min-width: 108px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(199,163,93,0.2);
+    background: rgba(10,10,16,0.7);
+    color: rgba(244,237,224,0.82);
+    font-size: 12px;
+  }
+  .sv-binding-select:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(199,163,93,0.35);
+  }
   .sv-keybind-note-badge {
     font-size: 10px;
     color: rgba(199,163,93,0.65);
@@ -233,6 +279,62 @@ export const SETTINGS_VIEW_CSS = `
     font-size: 11px;
     color: rgba(244,237,224,0.25);
     text-align: center;
+  }
+
+  .sv-data-box {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(217,179,107,0.12);
+    border-radius: 14px;
+  }
+  .sv-data-copy { flex: 1; min-width: 0; }
+  .sv-data-title {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(244,237,224,0.84);
+  }
+  .sv-data-desc {
+    margin: 6px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: rgba(244,237,224,0.42);
+  }
+  .sv-data-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 140px;
+  }
+  .sv-data-btn {
+    padding: 9px 14px;
+    border: 0.5px solid rgba(199,163,93,0.22);
+    background: rgba(199,163,93,0.08);
+    color: rgba(244,237,224,0.76);
+  }
+  .sv-data-btn-danger {
+    border-color: rgba(255,138,101,0.28);
+    background: rgba(255,138,101,0.1);
+    color: rgba(255,210,198,0.82);
+  }
+  .sv-data-textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 12px 14px;
+    resize: vertical;
+    border-radius: 12px;
+    border: 0.5px solid rgba(217,179,107,0.14);
+    background: rgba(10,10,16,0.55);
+    color: rgba(244,237,224,0.82);
+    font: 12px/1.5 'Cascadia Code', 'Consolas', monospace;
+    box-sizing: border-box;
+  }
+  .sv-data-textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(199,163,93,0.35);
   }
 
   .sv-footer {
@@ -265,6 +367,20 @@ export const SETTINGS_VIEW_CSS = `
     border: 1px solid rgba(199,163,93,0.45);
     color: #c9a86c;
   }
+  .ash-access-large-text .sv-panel {
+    width: min(840px, calc(100vw - 32px));
+  }
+  .ash-access-large-text .sv-nav-item,
+  .ash-access-large-text .sv-toggle-label,
+  .ash-access-large-text .sv-slider-label,
+  .ash-access-large-text .sv-keybind-action {
+    font-size: 14px;
+  }
+  .ash-access-reduced-motion .sv-panel,
+  .ash-access-reduced-motion .sv-switch-knob {
+    animation: none;
+    transition: none;
+  }
 
   @media (max-width: 780px) {
     .sv-body { grid-template-columns: 1fr; }
@@ -279,6 +395,20 @@ export const SETTINGS_VIEW_CSS = `
       gap: 4px;
     }
     .sv-content { padding-left: 0; max-height: none; }
+    .sv-data-box {
+      flex-direction: column;
+    }
+    .sv-data-actions {
+      min-width: 0;
+    }
+    .sv-binding-row,
+    .sv-keybind-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sv-keybind-right {
+      justify-content: flex-start;
+    }
   }
 
   @media (max-width: 560px) {

@@ -48,6 +48,7 @@ export {
  *   selectedStageId: string,
  *   selectedSeedMode: 'none'|'custom'|'daily',
  *   selectedSeedText: string,
+ *   claimedDailyRewardSeeds: string[],
  *   recentRuns: object[],
  *   selectedAscensionLevel: number,
  *   highestAscensionCleared: number
@@ -61,7 +62,19 @@ export {
  *   quality: 'low'|'medium'|'high',
  *   glowEnabled: boolean,
  *   showFps: boolean,
- *   useDevicePixelRatio: boolean
+ *   useDevicePixelRatio: boolean,
+ *   reducedMotion: boolean,
+ *   highVisibilityHud: boolean,
+ *   largeText: boolean,
+ *   keyBindings: {
+ *     moveUp: string[],
+ *     moveDown: string[],
+ *     moveLeft: string[],
+ *     moveRight: string[],
+ *     pause: string[],
+ *     confirm: string[],
+ *     debug: string[]
+ *   }
  * }} options
  * @property {object|null} activeRun
  */

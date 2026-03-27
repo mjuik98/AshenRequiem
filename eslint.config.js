@@ -20,6 +20,7 @@ export default [
           '**/systems/event/currencyHandler.js',
           '**/systems/event/weaponEvolutionHandler.js',
           '**/core/Game.js',
+          '**/core/runtimeHooks.js',
           '**/scenes/play/PlayResultHandler.js',
         ],
       }],
@@ -61,6 +62,18 @@ export default [
     },
   },
   {
+    files: ['src/app/**/*.js'],
+    ignores: ['src/app/bootstrap/**/*.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/scenes/**',
+          '**/state/sessionFacade.js',
+        ],
+      }],
+    },
+  },
+  {
     files: ['src/domain/meta/progression/playResultDomain.js'],
     rules: {
       'no-restricted-imports': ['error', {
@@ -82,6 +95,16 @@ export default [
   },
   {
     files: ['src/systems/sound/soundSfxController.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/core/playContextRuntime.js'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [

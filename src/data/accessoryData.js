@@ -241,6 +241,18 @@ export const accessoryData = [
       { stat: 'critChance', value: 0.04, valuePerLevel: 0.04 },
     ],
   },
+  {
+    id: 'glacier_band',
+    name: '빙하의 고리',
+    icon: '❅',
+    description: '투사체 속도 +8%, 무기 쿨다운 4% 단축',
+    rarity: 'rare',
+    maxLevel: 5,
+    effects: [
+      { stat: 'projectileSpeedMult', value: 0.08, valuePerLevel: 0.08 },
+      { stat: 'cooldownMult', value: -0.04, valuePerLevel: -0.04 },
+    ],
+  },
 ];
 
 /** id로 장신구 데이터 조회 */

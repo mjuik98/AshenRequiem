@@ -3,6 +3,10 @@
  *
  * 세션 옵션의 기본값, 병합, 정규화, 런타임 반영을 한 곳에 모은다.
  */
+import {
+  DEFAULT_KEY_BINDINGS,
+  normalizeKeyBindings,
+} from '../input/keyBindings.js';
 
 export const SESSION_OPTION_DEFAULTS = Object.freeze({
   soundEnabled:        true,
@@ -14,6 +18,10 @@ export const SESSION_OPTION_DEFAULTS = Object.freeze({
   glowEnabled:         true,
   showFps:             false,
   useDevicePixelRatio: true,
+  reducedMotion:       false,
+  highVisibilityHud:   false,
+  largeText:           false,
+  keyBindings:         DEFAULT_KEY_BINDINGS,
 });
 
 function normalizeQuality(quality) {
@@ -23,10 +31,14 @@ function normalizeQuality(quality) {
 }
 
 export function normalizeSessionOptions(options = {}) {
-  return {
+  const merged = {
     ...SESSION_OPTION_DEFAULTS,
     ...(options ?? {}),
+  };
+  return {
+    ...merged,
     quality: normalizeQuality(options?.quality),
+    keyBindings: normalizeKeyBindings(options?.keyBindings),
   };
 }
 
@@ -49,7 +61,12 @@ export function getEffectiveDevicePixelRatio(
 
 export function applySessionOptionsToRuntime(
   options = {},
-  { soundSystem = null, renderer = null } = {},
+  {
+    soundSystem = null,
+    renderer = null,
+    accessibilityRuntime = null,
+    inputManager = null,
+  } = {},
 ) {
   const normalized = normalizeSessionOptions(options);
 
@@ -75,6 +92,14 @@ export function applySessionOptionsToRuntime(
 
   if (typeof renderer?.setQualityPreset === 'function') {
     renderer.setQualityPreset(normalized.quality);
+  }
+
+  if (typeof accessibilityRuntime?.applyOptions === 'function') {
+    accessibilityRuntime.applyOptions(normalized);
+  }
+
+  if (typeof inputManager?.configureKeyBindings === 'function') {
+    inputManager.configureKeyBindings(normalized.keyBindings);
   }
 
   return normalized;

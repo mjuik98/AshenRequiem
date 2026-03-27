@@ -45,6 +45,7 @@ export function buildCodexRecordsModel({ session = null, gameData = null }) {
   return {
     summary,
     analytics: summary.analytics,
+    recommendations: summary.recommendations ?? [],
     highlights: [
       { icon: '☠', value: summary.kills.toLocaleString(), label: '총 처치 수' },
       { icon: '⏱', value: `${summary.mm}:${summary.ss}`, label: '최장 생존' },
@@ -70,6 +71,7 @@ export function renderCodexRecordsTab({ session = null, gameData = null }) {
     discoveryFocus,
     recentRuns,
     analytics,
+    recommendations,
     favoriteLoadout,
   } = buildCodexRecordsModel({ session, gameData });
 
@@ -124,6 +126,51 @@ export function renderCodexRecordsTab({ session = null, gameData = null }) {
       <div class="cx-rec"><div class="cx-rec-icon">🏃</div><div class="cx-rec-val">${summary.totalRuns}</div><div class="cx-rec-key">총 런 수</div></div>
       <div class="cx-rec"><div class="cx-rec-icon">⚔</div><div class="cx-rec-val">${summary.bossKills}</div><div class="cx-rec-key">보스 처치</div></div>
     </div>
+    <p class="cx-section-label">데일리 챌린지</p>
+    <div class="cx-records-focus">
+      <div class="cx-records-focus-card achievement">
+        <div class="cx-rec-icon">☀</div>
+        <div class="cx-records-focus-copy">
+          <div class="cx-records-focus-title">데일리 런 통계</div>
+          <div class="cx-records-focus-desc">
+            총 ${analytics.dailyStats.runs}회 시도 · ${analytics.dailyStats.victories}회 승리
+          </div>
+        </div>
+        <div class="cx-records-focus-meta">
+          <div class="cx-prog-text">보상 수령 ${analytics.dailyStats.claimedRewards}회</div>
+          <div class="cx-prog-text">승률 ${Math.round(analytics.dailyStats.winRate ?? 0)}%</div>
+        </div>
+      </div>
+    </div>
+    ${analytics.stageWeakness ? `
+      <p class="cx-section-label">취약 스테이지</p>
+      <div class="cx-records-focus">
+        <div class="cx-records-focus-card unlock">
+          <div class="cx-rec-icon">⚠</div>
+          <div class="cx-records-focus-copy">
+            <div class="cx-records-focus-title">${analytics.stageWeakness.stageName ?? analytics.stageWeakness.stageId}</div>
+            <div class="cx-records-focus-desc">승률 ${Math.round(analytics.stageWeakness.winRate ?? 0)}% · 패배 ${analytics.stageWeakness.defeats ?? 0}회</div>
+          </div>
+          <div class="cx-records-focus-meta">
+            <div class="cx-prog-text">추천 스테이지 조정</div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+    ${recommendations.length > 0 ? `
+      <p class="cx-section-label">추천 조정</p>
+      <div class="cx-records-focus">
+        ${recommendations.map((entry) => `
+          <div class="cx-records-focus-card ${entry.tone === 'warning' ? 'unlock' : 'achievement'}">
+            <div class="cx-rec-icon">${entry.tone === 'danger' ? '☠' : entry.tone === 'warning' ? '⚠' : '✦'}</div>
+            <div class="cx-records-focus-copy">
+              <div class="cx-records-focus-title">${entry.title}</div>
+              <div class="cx-records-focus-desc">${entry.description}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
     <p class="cx-section-label">주력 로드아웃</p>
     <div class="cx-records-focus">
       <div class="cx-records-focus-card achievement">

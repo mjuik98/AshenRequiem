@@ -13,7 +13,7 @@ const expectations = [
     mustExclude: ['world.player ='],
   },
   {
-    ref: '../src/scenes/play/playSceneRuntime.js',
+    ref: '../src/app/play/runSessionStateService.js',
     mustInclude: ['world.progression.runRerollsRemaining', 'world.progression.pendingEventQueue'],
     mustExclude: ['world.runRerollsRemaining', 'world.pendingEventQueue'],
   },
@@ -33,7 +33,7 @@ const expectations = [
     mustExclude: ['world.killCount', 'world.player'],
   },
   {
-    ref: '../src/core/runtimeHooks.js',
+    ref: '../src/adapters/browser/runtimeHooks.js',
     mustInclude: ['world.run.playMode', 'world.entities.player'],
     mustExclude: ['world.playMode', 'world.player'],
   },

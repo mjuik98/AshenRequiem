@@ -5,12 +5,15 @@ import { TouchAdapter } from '../input/TouchAdapter.js';
 export function createGameInput({
   canvas,
   host = globalThis,
+  options = null,
   inputManagerCtor = InputManager,
   keyboardAdapterCtor = KeyboardAdapter,
   touchAdapterCtor = TouchAdapter,
 } = {}) {
   const input = new inputManagerCtor();
-  input.addAdapter(new keyboardAdapterCtor());
+  input.addAdapter(new keyboardAdapterCtor({
+    keyBindings: options?.keyBindings,
+  }));
 
   if ('ontouchstart' in (host ?? {})) {
     input.addAdapter(new touchAdapterCtor(canvas));

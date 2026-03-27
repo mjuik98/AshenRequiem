@@ -262,6 +262,22 @@ export const RESULT_VIEW_CSS = `
   .result-restart-btn:hover {
     box-shadow: 0 6px 22px rgba(239, 83, 80, 0.5);
   }
+
+  .ash-access-large-text .result-card {
+    width: min(580px, 100%);
+  }
+  .ash-access-large-text .result-title {
+    font-size: 34px;
+  }
+  .ash-access-large-text .result-stat-val {
+    font-size: 20px;
+  }
+  .ash-access-large-text .result-unlock-chip {
+    font-size: 13px;
+  }
+  .ash-access-reduced-motion .result-card {
+    animation: none;
+  }
 `;
 
 export function ensureResultViewStyles(documentRef = document) {

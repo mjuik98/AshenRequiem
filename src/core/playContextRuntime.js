@@ -3,8 +3,6 @@ import { SoundSystem } from '../systems/sound/SoundSystem.js';
 import { NullSoundSystem } from '../systems/sound/NullSoundSystem.js';
 import { PipelineProfiler } from '../systems/debug/PipelineProfiler.js';
 import { EventRegistry } from '../systems/event/EventRegistry.js';
-import { getNowSeconds } from '../adapters/browser/runtimeEnv.js';
-import { createBrowserAudioContextFactory } from '../adapters/browser/audioRuntime.js';
 
 import { createProjectile, resetProjectile } from '../entities/createProjectile.js';
 import { createEffect, resetEffect } from '../entities/createEffect.js';
@@ -18,16 +16,22 @@ export const DEFAULT_PLAY_CONTEXT_POOL_SIZES = {
   pickup: 80,
 };
 
-function createSoundRuntime(soundEnabled) {
+function createSoundRuntime({
+  soundEnabled,
+  nowSeconds,
+  createAudioContext,
+  createSoundSystemImpl = (options) => new SoundSystem(options),
+  createNullSoundSystemImpl = () => new NullSoundSystem(),
+}) {
   if (!soundEnabled) {
-    return new NullSoundSystem();
+    return createNullSoundSystemImpl();
   }
 
-  const soundSystem = new SoundSystem({
-    nowSeconds: getNowSeconds,
-    createAudioContext: createBrowserAudioContextFactory(),
+  const soundSystem = createSoundSystemImpl({
+    nowSeconds,
+    createAudioContext,
   });
-  soundSystem.init();
+  soundSystem.init?.();
   return soundSystem;
 }
 
@@ -38,6 +42,10 @@ export function createPlayContextRuntimeState({
   profilingEnabled = false,
   poolSizes = {},
   session = null,
+  nowSeconds = () => 0,
+  createAudioContext = () => null,
+  createSoundSystemImpl,
+  createNullSoundSystemImpl,
 } = {}) {
   const sizes = { ...DEFAULT_PLAY_CONTEXT_POOL_SIZES, ...poolSizes };
 
@@ -46,12 +54,18 @@ export function createPlayContextRuntimeState({
     effectPool: new ObjectPool(createEffect, resetEffect, sizes.effect),
     enemyPool: new ObjectPool(createEnemy, resetEnemy, sizes.enemy),
     pickupPool: new ObjectPool(createPickup, resetPickup, sizes.pickup),
-    soundSystem: createSoundRuntime(soundEnabled),
+    soundSystem: createSoundRuntime({
+      soundEnabled,
+      nowSeconds,
+      createAudioContext,
+      createSoundSystemImpl,
+      createNullSoundSystemImpl,
+    }),
     eventRegistry: new EventRegistry(),
     profiler: profilingEnabled ? new PipelineProfiler() : null,
     canvas,
     renderer,
-    nowSeconds: getNowSeconds,
+    nowSeconds,
     session,
     bossAnnouncementView: null,
     weaponEvolutionView: null,

@@ -24,7 +24,7 @@ function createDefaultBest() {
 }
 
 function createDefaultOptions() {
-  return { ...SESSION_OPTION_DEFAULTS };
+  return normalizeSessionOptions(SESSION_OPTION_DEFAULTS);
 }
 
 export function createSessionState() {
@@ -90,6 +90,18 @@ export function normalizeSessionState(state) {
       selectedSeedText: typeof state?.meta?.selectedSeedText === 'string'
         ? state.meta.selectedSeedText
         : defaults.meta.selectedSeedText,
+      claimedDailyRewardSeeds: Array.isArray(state?.meta?.claimedDailyRewardSeeds)
+        ? [...state.meta.claimedDailyRewardSeeds]
+        : [...defaults.meta.claimedDailyRewardSeeds],
+      dailyChallengeStreak: Number.isFinite(state?.meta?.dailyChallengeStreak)
+        ? state.meta.dailyChallengeStreak
+        : defaults.meta.dailyChallengeStreak,
+      bestDailyChallengeStreak: Number.isFinite(state?.meta?.bestDailyChallengeStreak)
+        ? state.meta.bestDailyChallengeStreak
+        : defaults.meta.bestDailyChallengeStreak,
+      lastDailyRewardSeed: typeof state?.meta?.lastDailyRewardSeed === 'string'
+        ? state.meta.lastDailyRewardSeed
+        : defaults.meta.lastDailyRewardSeed,
       recentRuns: Array.isArray(state?.meta?.recentRuns)
         ? [...state.meta.recentRuns]
         : [...defaults.meta.recentRuns],

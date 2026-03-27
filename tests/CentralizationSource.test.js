@@ -13,6 +13,7 @@ import { PAUSE_AUDIO_DEFAULTS } from '../src/ui/pause/pauseAudioControls.js';
 import { syncPlaySceneDevicePixelRatio } from '../src/app/play/playSceneFlowService.js';
 
 const gameSource = readProjectSource('../src/core/Game.js');
+const gameAppSource = readProjectSource('../src/app/GameApp.js');
 const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
 const settingsSceneSource = readProjectSource('../src/scenes/SettingsScene.js');
 const metaShopSceneSource = readProjectSource('../src/scenes/MetaShopScene.js');
@@ -45,6 +46,15 @@ const levelUpFlowRuntimeSource = readProjectSource('../src/progression/levelUpFl
 const playSceneAppFlowSource = readProjectSource('../src/app/play/playSceneFlowService.js');
 const playerSpawnAppSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
 const levelUpAppFlowSource = readProjectSource('../src/app/play/levelUpFlowService.js');
+const startRunAppSource = readProjectSource('../src/app/play/startRunApplicationService.js');
+const activeRunAppSource = readProjectSource('../src/app/play/activeRunApplicationService.js');
+const settingsAppSource = readProjectSource('../src/app/meta/settingsApplicationService.js');
+const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplicationService.js');
+const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
+const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
+const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
+const coreRuntimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
+const browserRuntimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
 
 console.log('\n[CentralizationSource]');
 
@@ -142,6 +152,29 @@ test('play orchestration helper는 app/play 소유 모듈로 이동하고 기존
   assert.equal(levelUpAppFlowSource.includes('decorateLevelUpChoices'), true, 'level up flow app service가 없음');
   assert.equal(levelUpFlowRuntimeSource.includes("from '../app/play/levelUpFlowService.js'"), true, 'levelUpFlowRuntime wrapper가 app service를 re-export하지 않음');
   assert.equal(playSceneAppFlowSource.includes('showPlaySceneResult'), true, 'playScene flow app service가 결과 orchestration을 소유하지 않음');
+  assert.equal(startRunAppSource.includes("from '../../scenes/play/playSceneRuntime.js'"), false, 'startRunApplicationService가 scene runtime helper에 직접 의존하면 안 됨');
+});
+
+test('app 계층은 legacy session facade 대신 실제 session write service를 직접 사용한다', () => {
+  [
+    [settingsAppSource, 'settingsApplicationService'],
+    [metaShopAppSource, 'metaShopApplicationService'],
+    [activeRunAppSource, 'activeRunApplicationService'],
+    [titleLoadoutAppSource, 'titleLoadoutApplicationService'],
+  ].forEach(([source, label]) => {
+    assert.equal(source.includes("from '../../state/sessionFacade.js'"), false, `${label}가 legacy sessionFacade에 직접 의존하면 안 됨`);
+  });
+});
+
+test('browser runtime wiring은 bootstrap/play context 경계에서 주입되고 core runtime helper는 browser adapter를 직접 import하지 않는다', () => {
+  assert.equal(gameAppSource.includes("from '../scenes/TitleScene.js'"), false, 'GameApp이 기본 초기 Scene에 직접 결합되면 안 됨');
+  assert.equal(gameAppSource.includes("from '../core/runtimeHooks.js'"), false, 'GameApp이 core runtimeHooks shim에 직접 의존하면 안 됨');
+  assert.equal(gameAppSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'GameApp이 browser runtimeHooks adapter를 직접 사용해야 함');
+  assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'playContextRuntime이 browser runtime adapter를 직접 import하면 안 됨');
+  assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/audioRuntime.js'"), false, 'playContextRuntime이 browser audio adapter를 직접 import하면 안 됨');
+  assert.equal(bootstrapBrowserGameSource.includes("from '../../scenes/TitleScene.js'"), true, 'browser bootstrap이 기본 초기 Scene wiring을 소유해야 함');
+  assert.equal(coreRuntimeHooksSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'core/runtimeHooks는 adapter 소유 모듈을 재노출하는 shim이어야 함');
+  assert.equal(browserRuntimeHooksSource.includes('export function registerRuntimeHooks'), true, 'browser runtimeHooks adapter가 실제 구현을 소유하지 않음');
 });
 
 test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {

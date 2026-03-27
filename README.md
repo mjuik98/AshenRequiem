@@ -43,14 +43,23 @@
 - [x] 시너지 및 무기 진화 시스템
 - [x] 도감/런 기록 조회 (`CodexScene`)
 - [x] 설정 화면, 오디오 볼륨, 렌더 품질 프리셋
+- [x] 세션 스냅샷 export/import/reset UX (`SettingsScene`)
+- [x] 저장 슬롯 inspection / backup restore UX
+- [x] 세션 import preview / diff 요약 UX
+- [x] 접근성 옵션 (`reduced motion`, `HUD 가독성`, `큰 글씨`)
+- [x] 입력 커스터마이징(키 리맵)
+- [x] 데일리 챌린지 승리 보상과 Codex daily 통계
+- [x] daily streak / milestone 보상과 결과·Codex 추천 조정
+- [x] 추가 stage / 무기 / 장신구 데이터 확장
 - [x] 파이프라인 성능 예산 검증 (`profile:check`)
 - [x] deterministic browser smoke 시나리오
 
 ### Near-Term Focus
 - [ ] 메타/도감/런타임 UI 폴리싱
-- [ ] 적/무기/장신구 데이터 확장
-- [ ] 보스 패턴과 시너지 조합 추가
-- [ ] 저장 데이터와 해금 흐름 고도화
+- [ ] 적/무기/장신구 데이터 추가 확장
+- [ ] 보스 패턴과 stage gimmick 추가 확장
+- [ ] 저장 데이터와 해금 흐름 추가 고도화
+- [ ] 입력 프리셋/중복 키 충돌 UX 고도화
 
 ---
 
