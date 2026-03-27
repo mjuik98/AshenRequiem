@@ -101,6 +101,11 @@ export function buildCodexWeaponDetailModel({
     ...card,
     description: selectedWeapon.description ?? '',
     maxLevel: selectedWeapon.maxLevel ?? 1,
+    summaryChips: [
+      card.unlocked ? '발견 완료' : '미발견',
+      card.isEvolved ? '진화 무기' : '기본 무기',
+      `Lv.${selectedWeapon.maxLevel ?? 1}`,
+    ],
     detailStats: [
       { label: '공격력', value: String(selectedWeapon.damage ?? 0) },
       { label: '공격속도', value: `${card.cdPct}%` },

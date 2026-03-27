@@ -34,16 +34,19 @@ await test('codex enemy helper builds filtered grid/detail models', async () => 
   const grid = enemyTab.buildCodexEnemyGridModel({
     enemyData,
     session,
-    currentTier: 'normal',
+    currentTier: 'all',
     selectedEnemyId: 'skeleton',
-    search: 'Skel',
+    search: '',
   });
 
-  assert.equal(grid.tierText, '일반');
-  assert.equal(grid.entries.length, 1);
-  assert.equal(grid.entries[0].id, 'skeleton');
-  assert.equal(grid.entries[0].discovered, true);
-  assert.equal(grid.entries[0].isSelected, true);
+  assert.equal(grid.tierText, '전체');
+  assert.equal(grid.entries.length, 2);
+  assert.equal(grid.discoveredEntries.length, 1);
+  assert.equal(grid.undiscoveredEntries.length, 1);
+  assert.equal(grid.discoveredEntries[0].id, 'skeleton');
+  assert.equal(grid.discoveredEntries[0].discovered, true);
+  assert.equal(grid.discoveredEntries[0].isSelected, true);
+  assert.equal(grid.summary.selectedName, 'Skeleton');
 
   const detail = enemyTab.buildCodexEnemyDetailModel({
     enemyData,
@@ -116,6 +119,7 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   assert.equal(detail.name, '비전 폭풍');
   assert.equal(detail.detailStats.some((entry) => entry.label === '공격력'), true);
   assert.equal(detail.detailStats.some((entry) => entry.label === '공격속도'), true);
+  assert.equal(detail.summaryChips.length > 0, true);
 
   const html = weaponTab.renderCodexWeaponTab({
     weaponData,
@@ -128,6 +132,9 @@ await test('codex weapon helper partitions weapons and derives card state', asyn
   assert.equal(html.includes('id="cx-weapon-detail"'), true);
   assert.equal(html.includes('선택한 무기'), true);
   assert.equal(html.includes('공격속도'), true);
+  assert.equal(html.includes('cx-detail-layout'), true);
+  assert.equal(html.includes('발견한 무기'), true);
+  assert.equal(html.includes('미발견 무기'), true);
 });
 
 await test('codex accessory helper derives filterable grid/detail models and discovery gating', async () => {
@@ -169,6 +176,8 @@ await test('codex accessory helper derives filterable grid/detail models and dis
 
   assert.equal(grid.entries.length, 1);
   assert.equal(grid.entries[0].isCatalyst, true);
+  assert.equal(grid.discoveredEntries.length, 1);
+  assert.equal(grid.lockedEntries.length, 0);
 
   const detail = accessoryModel.buildCodexAccessoryDetailModel({
     accessoryData,
@@ -200,6 +209,8 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(html.includes('cx-ef'), true);
   assert.equal(html.includes('cx-discovery-hint'), true);
   assert.equal(html.includes('선택한 장신구'), true);
+  assert.equal(html.includes('cx-detail-layout'), true);
+  assert.equal(html.includes('발견한 장신구'), true);
   assert.equal(typeof accessoryTab.buildCodexAccessoryGridModel, 'function');
   assert.equal(typeof accessoryTab.renderCodexAccessoryTab, 'function');
   assert.equal(accessoryStyles.CODEX_ACCESSORY_TAB_CSS.includes('.cx-accessory-grid'), true);
@@ -257,6 +268,7 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(model.summary.currency, 77);
   assert.equal(model.achievements.some((entry) => entry.done), true);
   assert.equal(model.unlocks.length > 0, true);
+  assert.equal(model.highlights.length >= 4, true);
 
   const discovery = codexRecords.buildCodexDiscoverySummary({
     session: {
@@ -278,6 +290,32 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(model.achievements.some((entry) => entry.name === '장신구 수집가'), true);
   assert.equal(model.achievements.some((entry) => entry.name === '희귀 수집가'), true);
   assert.equal(model.achievements.some((entry) => entry.name === '진화 촉매 수집가'), true);
+
+  const html = recordsTab.renderCodexRecordsTab({
+    session: {
+      meta: {
+        enemyKills: { skeleton: 25 },
+        killedBosses: ['boss_lich'],
+        weaponsUsedAll: ['magic_bolt'],
+        accessoriesOwnedAll: ['iron_heart'],
+        evolvedWeapons: ['arcane_tempest'],
+        totalRuns: 3,
+        currency: 77,
+      },
+      best: {
+        survivalTime: 620,
+        level: 21,
+      },
+    },
+    gameData: {
+      enemyData: [{ id: 'skeleton' }, { id: 'boss_lich' }],
+      weaponData: [{ id: 'magic_bolt' }, { id: 'arcane_tempest', isEvolved: true }],
+      accessoryData: [{ id: 'iron_heart', rarity: 'common' }, { id: 'arcane_prism', rarity: 'rare' }],
+      weaponEvolutionData: [{ resultWeaponId: 'arcane_tempest', requires: { weaponId: 'magic_bolt', accessoryIds: ['iron_heart'] } }],
+    },
+  });
+
+  assert.equal(html.includes('cx-records-hero'), true);
 });
 
 await test('codex styles live in a dedicated module', async () => {

@@ -44,9 +44,12 @@ export function renderCodexEnemyPanel(root, { state, gameData, session }) {
 
   const refreshGrid = (search) => {
     const label = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-enemy-label'));
+    const summary = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-enemy-summary'));
     const grid = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-enemy-grid'));
+    const lockedGrid = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-enemy-grid-locked'));
+    const lockedLabel = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-enemy-locked-label'));
     const searchInput = /** @type {HTMLInputElement | null} */ (panel.querySelector('#cx-enemy-search'));
-    if (!label || !grid) return;
+    if (!label || !summary || !grid || !lockedGrid || !lockedLabel) return;
 
     const model = buildCodexEnemyGridModel({
       enemyData: gameData?.enemyData ?? [],
@@ -56,8 +59,16 @@ export function renderCodexEnemyPanel(root, { state, gameData, session }) {
       search,
     });
 
-    label.textContent = `${model.tierText} · ${model.entries.length}종`;
-    grid.innerHTML = renderCodexEnemyGrid(model);
+    state.selectedEnemyId = model.summary.selectedId;
+    label.textContent = `${model.tierText} 적 ${model.summary.visibleCount}종`;
+    summary.innerHTML = `
+      <span class="cx-summary-chip">발견 ${model.summary.discoveredCount}</span>
+      <span class="cx-summary-chip muted">미발견 ${model.summary.undiscoveredCount}</span>
+    `;
+    grid.innerHTML = renderCodexEnemyGrid({ entries: model.discoveredEntries });
+    lockedGrid.innerHTML = renderCodexEnemyGrid({ entries: model.undiscoveredEntries });
+    lockedLabel.style.display = model.undiscoveredEntries.length > 0 ? '' : 'none';
+    lockedGrid.style.display = model.undiscoveredEntries.length > 0 ? '' : 'none';
 
     const cards = /** @type {NodeListOf<HTMLElement>} */ (panel.querySelectorAll('.cx-ecard'));
     bindCodexSelectableCards(cards, 'id', (enemyId) => {
@@ -114,13 +125,14 @@ export function renderCodexWeaponPanel(root, {
   });
 
   const typeButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (panel.querySelectorAll('.cx-tf'));
-  const baseGrid = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-wgrid-base'));
-  const evolvedGrid = /** @type {HTMLElement | null} */ (panel.querySelector('#cx-wgrid-evo'));
+  const cardsByKind = /** @type {NodeListOf<HTMLElement>} */ (panel.querySelectorAll('.cx-wcard'));
   bindCodexButtonGroup(typeButtons, 'wtype', (type, button) => {
     typeButtons.forEach((candidate) => candidate.classList.remove('active'));
     button.classList.add('active');
-    if (baseGrid) baseGrid.style.display = type === 'all' || type === 'normal' ? '' : 'none';
-    if (evolvedGrid) evolvedGrid.style.display = type === 'all' || type === 'evolved' ? '' : 'none';
+    cardsByKind.forEach((card) => {
+      const kind = card.dataset.kind ?? 'normal';
+      card.style.display = type === 'all' || kind === type ? '' : 'none';
+    });
   });
 
   const recipeButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (panel.querySelectorAll('[data-accessory-ref]'));

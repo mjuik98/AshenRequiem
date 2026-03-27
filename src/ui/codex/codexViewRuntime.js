@@ -9,7 +9,10 @@ import {
   renderCodexRecordsPanel,
   renderCodexWeaponPanel,
 } from './codexViewControllers.js';
-import { renderCodexViewShell } from './codexViewShell.js';
+import {
+  getCodexTabSummaryText,
+  renderCodexViewShell,
+} from './codexViewShell.js';
 import {
   setCodexActiveTab,
 } from './codexViewState.js';
@@ -48,9 +51,16 @@ export function renderCodexPanelsRuntime(view, {
 export function activateCodexTabRuntime(view, tabName, {
   setCodexActiveTabImpl = setCodexActiveTab,
   syncCodexTabPanelsImpl = syncCodexTabPanels,
+  syncCodexTabSummaryImpl = (root, activeTab) => {
+    const summary = root?.querySelector?.('.cx-tab-summary');
+    if (summary) {
+      summary.textContent = getCodexTabSummaryText(activeTab);
+    }
+  },
 } = {}) {
   setCodexActiveTabImpl(view._state, tabName);
   syncCodexTabPanelsImpl(view.el, view._state.activeTab);
+  syncCodexTabSummaryImpl(view.el, view._state.activeTab);
   return view._state.activeTab;
 }
 

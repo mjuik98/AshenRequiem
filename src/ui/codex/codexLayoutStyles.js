@@ -69,6 +69,12 @@ export const CODEX_LAYOUT_CSS = `
   .cx-tab.active .cx-tab-cnt {
     background: rgba(212,175,106,0.16); color: rgba(212,175,106,0.6);
   }
+  .cx-tab-summary {
+    padding: 14px 24px 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(244,237,224,0.56);
+  }
 
   .cx-content {
     padding: 22px 26px;
@@ -78,6 +84,61 @@ export const CODEX_LAYOUT_CSS = `
   }
   .cx-tab-content { display: none; }
   .cx-tab-content.active { display: block; }
+  .cx-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .cx-detail-column,
+  .cx-list-column {
+    min-width: 0;
+  }
+  .cx-summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border-radius: 14px;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  }
+  .cx-summary-kicker {
+    font-size: 9px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: rgba(244,237,224,0.35);
+  }
+  .cx-summary-title {
+    margin-top: 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(244,237,224,0.9);
+  }
+  .cx-summary-metrics,
+  .cx-summary-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cx-summary-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 0.5px solid rgba(212,175,106,0.2);
+    background: rgba(212,175,106,0.08);
+    color: rgba(236,212,156,0.9);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+  .cx-summary-chip.muted {
+    border-color: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
+    color: rgba(244,237,224,0.45);
+  }
 
   .cx-search-row {
     display: flex; gap: 10px; margin-bottom: 16px;
@@ -119,6 +180,36 @@ export const CODEX_LAYOUT_CSS = `
   .cx-section-label {
     font-size: 9px; font-weight: 600; letter-spacing: 2.5px;
     text-transform: uppercase; color: rgba(244,237,224,0.25); margin: 0 0 10px;
+  }
+  .cx-detail-empty {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cx-empty-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(244,237,224,0.9);
+  }
+  .cx-empty-copy {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(244,237,224,0.5);
+  }
+  .cx-records-hero {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .cx-records-hero-card {
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
   }
 
   .cx-footer {

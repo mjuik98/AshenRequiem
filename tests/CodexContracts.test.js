@@ -69,6 +69,7 @@ test('CodexView는 장신구 도감 탭과 발견 수 집계를 포함한다', (
   assert.equal(shellHtml.includes('data-tab="accessory"'), true, 'CodexView에 장신구 도감 탭이 없음');
   assert.equal(shellHtml.includes('cx-tab-accessory'), true, 'CodexView에 장신구 패널이 없음');
   assert.equal(shellHtml.includes('cx-discovery-strip'), true, 'CodexView에 분리 발견 통계 strip이 없음');
+  assert.equal(shellHtml.includes('cx-tab-summary'), true, 'CodexView에 탭 요약 바가 없음');
   assert.equal(discovered, 4, '도감 발견 수가 장신구를 포함하지 않음');
   assert.equal(discovery.entries.length, 3, '분리 발견 통계가 적/무기/장신구 3종을 제공하지 않음');
 });
@@ -107,6 +108,8 @@ test('Codex accessory runtime는 검색/필터 state와 상세 패널 구조를 
   assert.equal(html.includes('id="cx-accessory-search"'), true, 'Codex accessory search input이 없음');
   assert.equal(html.includes('class="cx-accessory-detail"'), true, 'CodexView에 장신구 상세 패널이 없음');
   assert.equal(html.includes('선택한 장신구'), true, '장신구 상세 패널 선택 헤더가 없음');
+  assert.equal(html.includes('cx-detail-layout'), true, '장신구 도감이 detail-first layout을 사용하지 않음');
+  assert.equal(html.includes('발견한 장신구'), true, '장신구 도감이 발견 섹션을 제공하지 않음');
   assert.equal(html.includes('cx-discovery-hint'), true, '미발견 장신구 힌트가 없음');
   assert.equal(html.includes('data-afilter="rare"'), true, '장신구 rarity filter 버튼이 없음');
   assert.equal(html.includes('data-efilter="utility"'), true, '장신구 effect filter 버튼이 없음');
@@ -138,6 +141,8 @@ test('CodexView 무기 도감은 진화 재료 장신구 클릭 점프 구조와
   assert.equal(html.includes('data-accessory-ref="arcane_prism"'), true, '무기 도감 진화 재료 칩 훅이 없음');
   assert.equal(html.includes('id="cx-weapon-detail"'), true, '무기 도감 상세 패널이 없음');
   assert.equal(html.includes('선택한 무기'), true, '무기 상세 패널 선택 헤더가 없음');
+  assert.equal(html.includes('발견한 무기'), true, '무기 도감이 발견 섹션을 제공하지 않음');
+  assert.equal(html.includes('미발견 무기'), true, '무기 도감이 미발견 섹션을 제공하지 않음');
   assert.equal(isCodexWeaponUnlocked({ id: 'magic_bolt', isEvolved: false }, session), true);
   assert.equal(isCodexWeaponUnlocked({ id: 'arcane_tempest', isEvolved: true }, session), true);
   assert.equal(isCodexWeaponUnlocked({ id: 'frozen_orb', isEvolved: true }, session), false);

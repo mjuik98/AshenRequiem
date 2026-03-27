@@ -127,7 +127,7 @@ export function renderCodexAccessoryTab({
   effectFilter = 'all',
   selectedAccessoryId = null,
 }) {
-  const grid = buildCodexAccessoryGridModel({
+  const unresolvedGrid = buildCodexAccessoryGridModel({
     accessoryData,
     weaponEvolutionData,
     session,
@@ -136,20 +136,54 @@ export function renderCodexAccessoryTab({
     effectFilter,
     selectedAccessoryId,
   });
+  const resolvedSelectedAccessoryId = selectedAccessoryId
+    ?? unresolvedGrid.discoveredEntries[0]?.id
+    ?? unresolvedGrid.lockedEntries[0]?.id
+    ?? accessoryData[0]?.id
+    ?? null;
+  const grid = buildCodexAccessoryGridModel({
+    accessoryData,
+    weaponEvolutionData,
+    session,
+    search,
+    rarityFilter,
+    effectFilter,
+    selectedAccessoryId: resolvedSelectedAccessoryId,
+  });
   const detail = buildCodexAccessoryDetailModel({
     accessoryData,
     weaponEvolutionData,
     weaponData,
     session,
-    selectedAccessoryId: selectedAccessoryId ?? grid.entries[0]?.id ?? accessoryData[0]?.id ?? null,
+    selectedAccessoryId: resolvedSelectedAccessoryId,
   });
 
   return `
-    ${renderAccessoryFilters(search, rarityFilter, effectFilter)}
-    <p class="cx-section-label">장신구 · ${grid.entries.length}종</p>
-    <div class="cx-accessory-grid">
-      ${grid.entries.map((entry) => renderCodexAccessoryCard(entry)).join('')}
+    <div class="cx-detail-layout">
+      <div class="cx-detail-column">
+        ${renderAccessoryDetail(detail)}
+      </div>
+      <div class="cx-list-column">
+        ${renderAccessoryFilters(search, rarityFilter, effectFilter)}
+        <div class="cx-summary-bar">
+          <div>
+            <div class="cx-summary-kicker">현재 보기</div>
+            <div class="cx-summary-title">장신구 ${grid.summary.visibleCount}종</div>
+          </div>
+          <div class="cx-summary-metrics">
+            <span class="cx-summary-chip">발견 ${grid.summary.discoveredCount}</span>
+            <span class="cx-summary-chip muted">미발견 ${grid.summary.lockedCount}</span>
+          </div>
+        </div>
+        <p class="cx-section-label">발견한 장신구 · ${grid.discoveredEntries.length}종</p>
+        <div class="cx-accessory-grid">
+          ${grid.discoveredEntries.map((entry) => renderCodexAccessoryCard(entry)).join('')}
+        </div>
+        <p class="cx-section-label" style="margin-top:14px">미발견 장신구 · ${grid.lockedEntries.length}종</p>
+        <div class="cx-accessory-grid">
+          ${grid.lockedEntries.map((entry) => renderCodexAccessoryCard(entry)).join('')}
+        </div>
+      </div>
     </div>
-    ${renderAccessoryDetail(detail)}
   `;
 }

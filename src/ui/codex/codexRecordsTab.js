@@ -5,17 +5,38 @@ import {
 } from './codexRecords.js';
 
 export function buildCodexRecordsModel({ session = null, gameData = null }) {
+  const summary = buildCodexRecordSummary(session);
   return {
-    summary: buildCodexRecordSummary(session),
+    summary,
+    highlights: [
+      { icon: '☠', value: summary.kills.toLocaleString(), label: '총 처치 수' },
+      { icon: '⏱', value: `${summary.mm}:${summary.ss}`, label: '최장 생존' },
+      { icon: '★', value: `Lv.${summary.best.level ?? 1}`, label: '최고 레벨' },
+      { icon: '💰', value: summary.currency.toLocaleString(), label: '누적 재화' },
+    ],
     achievements: buildCodexAchievements(session, gameData),
     unlocks: buildCodexUnlockEntries(session),
   };
 }
 
 export function renderCodexRecordsTab({ session = null, gameData = null }) {
-  const { summary, achievements, unlocks } = buildCodexRecordsModel({ session, gameData });
+  const {
+    summary,
+    highlights,
+    achievements,
+    unlocks,
+  } = buildCodexRecordsModel({ session, gameData });
 
   return `
+    <div class="cx-records-hero">
+      ${highlights.map((entry) => `
+        <div class="cx-records-hero-card">
+          <div class="cx-rec-icon">${entry.icon}</div>
+          <div class="cx-rec-val">${entry.value}</div>
+          <div class="cx-rec-key">${entry.label}</div>
+        </div>
+      `).join('')}
+    </div>
     <p class="cx-section-label">런 기록</p>
     <div class="cx-records-grid" style="margin-bottom:18px">
       <div class="cx-rec"><div class="cx-rec-icon">☠</div><div class="cx-rec-val">${summary.kills.toLocaleString()}</div><div class="cx-rec-key">총 처치 수</div></div>

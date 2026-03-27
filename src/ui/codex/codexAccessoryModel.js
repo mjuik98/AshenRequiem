@@ -131,9 +131,16 @@ export function buildCodexAccessoryGridModel({
 
   return {
     entries,
+    discoveredEntries: entries.filter((entry) => entry.unlocked),
+    lockedEntries: entries.filter((entry) => !entry.unlocked),
     search,
     rarityFilter,
     effectFilter,
+    summary: {
+      visibleCount: entries.length,
+      discoveredCount: entries.filter((entry) => entry.unlocked).length,
+      lockedCount: entries.filter((entry) => !entry.unlocked).length,
+    },
   };
 }
 

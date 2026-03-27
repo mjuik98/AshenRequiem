@@ -33,7 +33,14 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
     5000,
     150,
   );
-  const codexClicked = await transport.clickByText('Codex');
+  let codexClicked = await transport.clickByText('Codex');
+  if (!codexClicked) {
+    codexClicked = await transport.evalJson(
+      `document.querySelector('[data-action="codex"]')
+        ? (document.querySelector('[data-action="codex"]').click(), true)
+        : false`,
+    );
+  }
   if (!codexClicked) {
     throw new Error('Failed to click Codex button');
   }
@@ -46,7 +53,14 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
   const state = { scene: codexReady ? 'CodexScene' : null };
 
   const discoveryStripCount = await transport.evalJson(`document.querySelectorAll('.cx-disc-pill').length`);
-  const accessoryTabClicked = await transport.clickByText('장신구 도감');
+  let accessoryTabClicked = await transport.clickByText('장신구 도감');
+  if (!accessoryTabClicked) {
+    accessoryTabClicked = await transport.evalJson(
+      `document.querySelector('.cx-tab[data-tab="accessory"]')
+        ? (document.querySelector('.cx-tab[data-tab="accessory"]').click(), true)
+        : false`,
+    );
+  }
   if (!accessoryTabClicked) {
     throw new Error('Failed to click accessory tab');
   }

@@ -3,6 +3,17 @@ import {
   renderSubscreenHeader,
 } from '../shared/subscreenTheme.js';
 
+const TAB_SUMMARY_TEXT = {
+  enemy: '선택한 적의 특성과 처치 기록을 먼저 읽고 아래 목록에서 탐색하세요.',
+  weapon: '선택한 무기의 핵심 성능과 진화 조건을 먼저 읽고 아래 목록에서 비교하세요.',
+  accessory: '선택한 장신구의 효과와 연결된 진화를 먼저 읽고 아래 목록에서 탐색하세요.',
+  records: '핵심 기록을 먼저 읽고 아래에서 업적과 해금 진행도를 확인하세요.',
+};
+
+export function getCodexTabSummaryText(activeTab = 'enemy') {
+  return TAB_SUMMARY_TEXT[activeTab] ?? TAB_SUMMARY_TEXT.enemy;
+}
+
 export function renderCodexViewShell({
   discovery,
   activeTab,
@@ -45,6 +56,7 @@ export function renderCodexViewShell({
           기록
         </button>
       </nav>
+      <div class="cx-tab-summary">${getCodexTabSummaryText(activeTab)}</div>
       <div class="cx-content ss-scroll">
         <div class="cx-tab-content ${activeTab === 'enemy' ? 'active' : ''}" id="cx-tab-enemy" role="tabpanel"></div>
         <div class="cx-tab-content ${activeTab === 'weapon' ? 'active' : ''}" id="cx-tab-weapon" role="tabpanel"></div>

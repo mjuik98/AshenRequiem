@@ -62,7 +62,28 @@ export function buildCodexEnemyGridModel({
       };
     });
 
-  return { tierText, entries };
+  const resolvedSelected = entries.find((entry) => entry.id === selectedEnemyId)
+    ?? entries.find((entry) => entry.discovered)
+    ?? entries[0]
+    ?? null;
+  const discoveredEntries = entries.filter((entry) => entry.discovered)
+    .map((entry) => ({ ...entry, isSelected: resolvedSelected?.id === entry.id }));
+  const undiscoveredEntries = entries.filter((entry) => !entry.discovered)
+    .map((entry) => ({ ...entry, isSelected: resolvedSelected?.id === entry.id }));
+
+  return {
+    tierText,
+    entries,
+    discoveredEntries,
+    undiscoveredEntries,
+    summary: {
+      visibleCount: entries.length,
+      discoveredCount: discoveredEntries.length,
+      undiscoveredCount: undiscoveredEntries.length,
+      selectedId: resolvedSelected?.id ?? null,
+      selectedName: resolvedSelected?.name ?? null,
+    },
+  };
 }
 
 export function buildCodexEnemyDetailModel({
@@ -117,18 +138,33 @@ export function buildCodexEnemyDetailModel({
 
 export function renderCodexEnemyTabShell() {
   return `
-    <div class="cx-search-row">
-      <input class="cx-search" id="cx-enemy-search" placeholder="적 이름 검색..." aria-label="적 검색">
-      <div class="cx-tier-filter">
-        <button class="cx-tf active" data-tier="all">전체</button>
-        <button class="cx-tf" data-tier="normal">일반</button>
-        <button class="cx-tf" data-tier="elite">엘리트</button>
-        <button class="cx-tf" data-tier="boss">보스</button>
+    <div class="cx-detail-layout">
+      <div class="cx-detail-column">
+        <div id="cx-enemy-detail"></div>
+      </div>
+      <div class="cx-list-column">
+        <div class="cx-search-row">
+          <input class="cx-search" id="cx-enemy-search" placeholder="적 이름 검색..." aria-label="적 검색">
+          <div class="cx-tier-filter">
+            <button class="cx-tf active" data-tier="all">전체</button>
+            <button class="cx-tf" data-tier="normal">일반</button>
+            <button class="cx-tf" data-tier="elite">엘리트</button>
+            <button class="cx-tf" data-tier="boss">보스</button>
+          </div>
+        </div>
+        <div class="cx-summary-bar">
+          <div>
+            <div class="cx-summary-kicker">현재 범위</div>
+            <div class="cx-summary-title" id="cx-enemy-label"></div>
+          </div>
+          <div class="cx-summary-metrics" id="cx-enemy-summary"></div>
+        </div>
+        <p class="cx-section-label">발견한 적</p>
+        <div class="cx-enemy-grid" id="cx-enemy-grid"></div>
+        <p class="cx-section-label" id="cx-enemy-locked-label">미발견 적</p>
+        <div class="cx-enemy-grid" id="cx-enemy-grid-locked"></div>
       </div>
     </div>
-    <p class="cx-section-label" id="cx-enemy-label"></p>
-    <div class="cx-enemy-grid" id="cx-enemy-grid"></div>
-    <div id="cx-enemy-detail"></div>
   `;
 }
 
@@ -163,7 +199,15 @@ export function renderCodexEnemyGrid(model) {
 }
 
 export function renderCodexEnemyDetail(model) {
-  if (!model) return '';
+  if (!model) {
+    return `
+      <div class="cx-detail cx-detail-empty" id="cx-enemy-detail-card">
+        <div class="cx-detail-kicker">선택한 적</div>
+        <div class="cx-empty-title">탐색할 적을 선택하세요</div>
+        <div class="cx-empty-copy">발견한 적을 선택하면 특성과 드롭, 처치 기록을 크게 읽을 수 있습니다.</div>
+      </div>
+    `;
+  }
 
   return `
     <div class="cx-detail" id="cx-enemy-detail-card" role="region" tabindex="-1" aria-label="선택한 적 상세 정보">
