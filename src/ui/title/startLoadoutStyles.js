@@ -1,4 +1,10 @@
+import { ACTION_BUTTON_SHARED_CSS } from '../shared/actionButtonTheme.js';
+import { MODAL_SHARED_CSS } from '../shared/modalTheme.js';
+
 export const START_LOADOUT_VIEW_CSS = `
+  ${MODAL_SHARED_CSS}
+  ${ACTION_BUTTON_SHARED_CSS}
+
   .sl-root {
     position: absolute;
     inset: 0;
@@ -8,35 +14,26 @@ export const START_LOADOUT_VIEW_CSS = `
     z-index: 12;
   }
   .sl-backdrop {
-    position: absolute;
-    inset: 0;
     background: rgba(5, 3, 8, 0.74);
-    backdrop-filter: blur(8px);
   }
   .sl-panel {
-    position: relative;
     width: min(760px, calc(100% - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 28px;
-    border-radius: 24px;
-    border: 1px solid rgba(212, 175, 106, 0.28);
-    background: linear-gradient(180deg, rgba(18, 12, 28, 0.98) 0%, rgba(9, 7, 15, 0.98) 100%);
-    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
-    color: #f4ede0;
+    scroll-padding-bottom: 108px;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
   }
   .sl-eyebrow {
     margin: 0 0 6px;
-    font-size: 11px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: rgba(212, 175, 106, 0.7);
   }
   .sl-title {
-    margin: 0;
-    font-size: 28px;
+    font-size: 31px;
   }
   .sl-copy {
     margin: 8px 0 18px;
-    color: rgba(244, 237, 224, 0.66);
   }
   .sl-ascension-block {
     margin-bottom: 18px;
@@ -320,34 +317,42 @@ export const START_LOADOUT_VIEW_CSS = `
     line-height: 1.45;
   }
   .sl-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
     margin-top: 20px;
+    padding-top: 16px;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background:
+      linear-gradient(180deg, rgba(9, 7, 15, 0) 0%, rgba(9, 7, 15, 0.92) 28%, rgba(9, 7, 15, 0.98) 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
   .sl-btn {
-    min-width: 120px;
-    height: 42px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: transparent;
-    color: #f4ede0;
-    cursor: pointer;
+    min-width: 128px;
+    min-height: 44px;
   }
-  .sl-btn.primary {
-    border-color: rgba(212, 175, 106, 0.7);
-    background: linear-gradient(180deg, #d8bb78 0%, #9a7130 100%);
-    color: #140d03;
-    font-weight: 700;
+  .sl-btn-cancel {
+    box-shadow: 0 6px 20px rgba(70, 90, 104, 0.16);
   }
-  .sl-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
+  .sl-btn-start {
+    box-shadow: 0 8px 24px rgba(154, 113, 48, 0.22);
   }
-  .sl-btn.ghost:hover,
-  .sl-btn.ghost:focus-visible {
-    border-color: rgba(255, 255, 255, 0.32);
-    background: rgba(255, 255, 255, 0.06);
+  .sl-card:focus-visible,
+  .sl-inline-card:focus-visible,
+  .sl-asc-card:focus-visible,
+  .sl-seed-input:focus-visible {
+    outline: none;
+    border-color: rgba(217, 179, 107, 0.62);
+    box-shadow: 0 0 0 2px rgba(217, 179, 107, 0.22);
+  }
+  @media (max-height: 760px) {
+    .sl-panel {
+      padding: 22px;
+      max-height: calc(100vh - 24px);
+    }
+    .sl-actions {
+      margin-top: 16px;
+      padding-top: 12px;
+    }
   }
   @media (max-width: 640px) {
     .sl-panel {

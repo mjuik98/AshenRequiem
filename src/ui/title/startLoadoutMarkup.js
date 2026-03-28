@@ -1,3 +1,6 @@
+import { renderActionButton } from '../shared/actionButtonTheme.js';
+import { renderModalHeader, renderModalShell } from '../shared/modalShell.js';
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -305,45 +308,85 @@ export function renderStartLoadoutMarkup({
   const copy = canStart
     ? '해금한 기본 무기 중 하나를 고르고 전투를 시작합니다.'
     : '시작 가능한 기본 무기가 없습니다.';
-
-  return `
-    <div class="sl-backdrop" data-action="cancel"></div>
-    <section class="sl-panel" role="dialog" aria-modal="true" aria-labelledby="sl-title">
-      <p class="sl-eyebrow">Loadout</p>
-      <h2 class="sl-title" id="sl-title">시작 무기 선택</h2>
-      <p class="sl-copy">${escapeHtml(copy)}</p>
-      <div class="sl-ascension-block">
-        <div class="sl-section-title">Ascension</div>
-        <div class="sl-ascension-grid">${renderAscensionChoices(ascensionChoices, selectedAscensionLevel)}</div>
-        ${renderAscensionSummary(ascensionChoices, selectedAscensionLevel)}
-      </div>
-      <div class="sl-config-block">
-        <div class="sl-section-title">Starting Relic</div>
-        <div class="sl-inline-grid">${renderAccessoryChoices(accessories, selectedStartAccessoryId)}</div>
-      </div>
-      <div class="sl-config-block">
-        <div class="sl-section-title">Archetype</div>
-        <div class="sl-inline-grid">${renderArchetypeChoices(archetypes, selectedArchetypeId)}</div>
-      </div>
-      <div class="sl-config-block">
-        <div class="sl-section-title">Risk Relic</div>
-        <div class="sl-inline-grid">${renderRiskRelicChoices(riskRelics, selectedRiskRelicId)}</div>
-      </div>
-      <div class="sl-config-block">
-        <div class="sl-section-title">Stage</div>
-        <div class="sl-inline-grid">${renderStageChoices(stages, selectedStageId)}</div>
-      </div>
-      <div class="sl-config-block">
-        <div class="sl-section-title">Run Seed</div>
-        ${renderSeedChoices(selectedSeedMode, selectedSeedText, seedPreviewText)}
-      </div>
-      ${renderRecommendedGoals(recommendedGoals)}
-      <div class="sl-grid">${renderStartLoadoutCards(weapons, selectedWeaponId)}</div>
-      ${emptyState}
-      <div class="sl-actions">
-        <button class="sl-btn ghost" data-action="cancel" type="button">취소</button>
-        <button class="sl-btn primary" data-action="start" type="button"${canStart ? '' : ' disabled'}>시작하기</button>
-      </div>
-    </section>
+  const cancelButton = renderActionButton({
+    className: 'sl-btn sl-btn-cancel',
+    label: '취소',
+    tone: 'neutral',
+    shape: 'pill',
+    attributes: { 'data-action': 'cancel' },
+  });
+  const startButton = renderActionButton({
+    className: 'sl-btn sl-btn-start',
+    label: '시작하기',
+    tone: 'accent',
+    shape: 'pill',
+    solid: true,
+    disabled: !canStart,
+    attributes: { 'data-action': 'start' },
+  });
+  const headerHtml = renderModalHeader({
+    eyebrow: 'Loadout',
+    title: '시작 무기 선택',
+    copy,
+    titleId: 'sl-title',
+    copyId: 'sl-copy',
+    eyebrowClassName: 'sl-eyebrow',
+    titleClassName: 'sl-title',
+    copyClassName: 'sl-copy',
+  });
+  const bodyHtml = `
+    <div class="sl-ascension-block">
+      <div class="sl-section-title">Ascension</div>
+      <div class="sl-ascension-grid">${renderAscensionChoices(ascensionChoices, selectedAscensionLevel)}</div>
+      ${renderAscensionSummary(ascensionChoices, selectedAscensionLevel)}
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Starting Relic</div>
+      <div class="sl-inline-grid">${renderAccessoryChoices(accessories, selectedStartAccessoryId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Archetype</div>
+      <div class="sl-inline-grid">${renderArchetypeChoices(archetypes, selectedArchetypeId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Risk Relic</div>
+      <div class="sl-inline-grid">${renderRiskRelicChoices(riskRelics, selectedRiskRelicId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Stage</div>
+      <div class="sl-inline-grid">${renderStageChoices(stages, selectedStageId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Run Seed</div>
+      ${renderSeedChoices(selectedSeedMode, selectedSeedText, seedPreviewText)}
+    </div>
+    ${renderRecommendedGoals(recommendedGoals)}
+    <div class="sl-grid">${renderStartLoadoutCards(weapons, selectedWeaponId)}</div>
+    ${emptyState}
   `;
+  const footerHtml = `
+    <footer class="sl-actions ui-modal-action-bar">
+      ${cancelButton}
+      ${startButton}
+    </footer>
+  `;
+
+  return renderModalShell({
+    tone: 'loadout',
+    shellClassName: 'sl-shell',
+    backdropClassName: 'sl-backdrop',
+    backdropAttributes: { 'data-action': 'cancel' },
+    panelTag: 'section',
+    panelClassName: 'sl-panel ui-modal-panel--scroll ui-modal-panel--floating',
+    panelAttributes: {
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': 'sl-title',
+      'aria-describedby': 'sl-copy',
+      tabindex: '-1',
+    },
+    headerHtml,
+    bodyHtml,
+    footerHtml,
+  });
 }

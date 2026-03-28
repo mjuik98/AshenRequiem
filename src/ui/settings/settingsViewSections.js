@@ -185,37 +185,65 @@ export function renderSettingsDataSection({ importText = '', statusText = '', de
   return `
     <p class="sv-section-label">Data</p>
 
-    <div class="sv-data-box">
-      <div class="sv-data-copy">
-        <p class="sv-data-title">세이브 데이터</p>
-        <p class="sv-data-desc">현재 진행 데이터를 JSON 스냅샷으로 내보내거나 가져옵니다.</p>
-      </div>
-      <div class="sv-data-actions">
-        <button class="sv-btn sv-data-btn" type="button" data-action="inspect-storage">저장소 분석</button>
-        <button class="sv-btn sv-data-btn" type="button" data-action="preview-import">가져오기 미리보기</button>
-        <button class="sv-btn sv-data-btn" type="button" data-action="restore-backup">백업 복구</button>
-        <button class="sv-btn sv-data-btn" type="button" data-action="export-session">내보내기</button>
-        <button class="sv-btn sv-data-btn" type="button" data-action="import-session">가져오기</button>
-        <button class="sv-btn sv-data-btn sv-data-btn-danger" type="button" data-action="reset-session">진행 초기화</button>
-      </div>
-    </div>
+    <div class="sv-data-layout">
+      <div class="sv-data-main">
+        <div class="sv-data-box">
+          <div class="sv-data-copy">
+            <p class="sv-data-title">세이브 데이터</p>
+            <p class="sv-data-desc">현재 진행 데이터를 JSON 스냅샷으로 내보내거나 가져옵니다.</p>
+            <ul class="sv-data-summary-list">
+              <li>현재 세션 상태를 백업하거나 외부 JSON에서 복구할 수 있습니다.</li>
+              <li>가져오기 전에는 먼저 내보내기로 백업본을 남겨 두는 편이 안전합니다.</li>
+            </ul>
+          </div>
+        </div>
 
-    <label class="sv-field-label" for="sv-data-textarea">세션 스냅샷</label>
-    <textarea
-      id="sv-data-textarea"
-      class="sv-data-textarea"
-      data-key="importText"
-      spellcheck="false"
-      placeholder="여기에 세이브 JSON을 붙여 넣으면 가져오기가 실행됩니다."
-    >${importText}</textarea>
+        <div class="sv-data-editor">
+          <label class="sv-field-label" for="sv-data-textarea">세션 스냅샷</label>
+          <textarea
+            id="sv-data-textarea"
+            class="sv-data-textarea"
+            data-key="importText"
+            spellcheck="false"
+            placeholder="여기에 세이브 JSON을 붙여 넣으면 가져오기가 실행됩니다."
+          >${importText}</textarea>
+        </div>
 
-    <div class="sv-info-box">
-      <p class="sv-info-text">${statusText || '가져오기 전에는 현재 스냅샷을 먼저 내보내 백업해 두는 것을 권장합니다.'}</p>
-      ${detailLines.length > 0 ? `
-        <ul class="sv-detail-list">
-          ${detailLines.map((line) => `<li>${line}</li>`).join('')}
-        </ul>
-      ` : ''}
+        <div class="sv-info-box sv-data-status-box">
+          <p class="sv-info-text">${statusText || '가져오기 전에는 현재 스냅샷을 먼저 내보내 백업해 두는 것을 권장합니다.'}</p>
+          ${detailLines.length > 0 ? `
+            <ul class="sv-detail-list">
+              ${detailLines.map((line) => `<li>${line}</li>`).join('')}
+            </ul>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="sv-data-sidebar">
+        <section class="sv-data-action-group">
+          <p class="sv-data-group-title">스냅샷 작업</p>
+          <div class="sv-data-actions">
+            <button class="sv-btn sv-data-btn" type="button" data-action="export-session">내보내기</button>
+            <button class="sv-btn sv-data-btn" type="button" data-action="import-session">가져오기</button>
+            <button class="sv-btn sv-data-btn" type="button" data-action="preview-import">가져오기 미리보기</button>
+          </div>
+        </section>
+
+        <section class="sv-data-action-group">
+          <p class="sv-data-group-title">보관 및 복구</p>
+          <div class="sv-data-actions">
+            <button class="sv-btn sv-data-btn" type="button" data-action="inspect-storage">저장소 분석</button>
+            <button class="sv-btn sv-data-btn" type="button" data-action="restore-backup">백업 복구</button>
+          </div>
+        </section>
+
+        <section class="sv-data-action-group sv-data-action-group-danger">
+          <p class="sv-data-group-title">위험 작업</p>
+          <div class="sv-data-actions">
+            <button class="sv-btn sv-data-btn sv-data-btn-danger" type="button" data-action="reset-session">진행 초기화</button>
+          </div>
+        </section>
+      </div>
     </div>
   `;
 }

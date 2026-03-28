@@ -59,6 +59,13 @@ export const SUBSCREEN_SHARED_CSS = `
     pointer-events: none;
   }
 
+  .ss-panel:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(217,179,107,0.4),
+      ${SUBSCREEN_THEME.shadow};
+  }
+
   .ss-header {
     position: relative;
     display: flex;

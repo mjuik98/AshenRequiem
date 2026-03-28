@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { makeRng } from './fixtures/index.js';
-import { weightedPick } from '../src/utils/weightedPick.js';
-import { createSeededRng, ensureRng, nextFloat } from '../src/utils/random.js';
+import { createSeededRng, ensureRng, nextFloat, weightedPick } from '../src/utils/random.js';
 
 console.log('\n[RandomUtils]');
 

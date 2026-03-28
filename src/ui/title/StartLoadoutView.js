@@ -1,6 +1,7 @@
 import { bindStartLoadoutInteractions } from './startLoadoutInteractions.js';
 import { renderStartLoadoutMarkup } from './startLoadoutMarkup.js';
 import { ensureStartLoadoutStyles } from './startLoadoutStyles.js';
+import { bindDialogRuntime } from '../shared/dialogRuntime.js';
 
 export class StartLoadoutView {
   constructor(container) {
@@ -27,15 +28,7 @@ export class StartLoadoutView {
     this._recommendedGoals = [];
     this._onStart = null;
     this._onCancel = null;
-    this._windowRef = globalThis.window;
-    this._onKeyDown = (event) => {
-      if (this._el.style.display === 'none') return;
-      if (event?.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
-      if (event?.key !== 'Escape' && event?.code !== 'Escape') return;
-      event?.preventDefault?.();
-      this.hide();
-      this._onCancel?.();
-    };
+    this._dialogRuntime = null;
     ensureStartLoadoutStyles();
     container.appendChild(this._el);
   }
@@ -92,24 +85,68 @@ export class StartLoadoutView {
     this._canStart = Boolean(canStart && this._selectedWeaponId);
     this._onStart = onStart;
     this._onCancel = onCancel;
-    this._windowRef?.removeEventListener('keydown', this._onKeyDown);
-    this._windowRef?.addEventListener('keydown', this._onKeyDown);
-    this._render();
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = bindDialogRuntime({
+      root: this._el,
+      panelSelector: '.sl-panel',
+      onRequestClose: () => {
+        this.hide();
+        this._onCancel?.();
+      },
+    });
     this._el.style.display = 'flex';
+    this._render({ focusSelector: '.sl-panel', scrollTop: 0 });
   }
 
   hide() {
-    this._windowRef?.removeEventListener('keydown', this._onKeyDown);
+    this._dialogRuntime?.dispose();
+    this._dialogRuntime = null;
     this._el.style.display = 'none';
     this._el.innerHTML = '';
   }
 
   destroy() {
-    this._windowRef?.removeEventListener('keydown', this._onKeyDown);
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = null;
     this._el.remove();
   }
 
-  _render() {
+  _captureRenderState() {
+    return {
+      scrollTop: this._el.querySelector('.sl-panel')?.scrollTop ?? 0,
+      focusSelector: this._resolveFocusSelector(globalThis.document?.activeElement ?? null),
+    };
+  }
+
+  _resolveFocusSelector(activeElement) {
+    if (!activeElement) return null;
+    if (activeElement === this._el.querySelector('.sl-panel')) {
+      return '.sl-panel';
+    }
+
+    const dataset = activeElement.dataset ?? {};
+    if (dataset.weaponId) return `[data-weapon-id="${dataset.weaponId}"]`;
+    if (dataset.ascensionLevel) return `[data-ascension-level="${dataset.ascensionLevel}"]`;
+    if (dataset.accessoryId) return `[data-accessory-id="${dataset.accessoryId}"]`;
+    if (dataset.archetypeId) return `[data-archetype-id="${dataset.archetypeId}"]`;
+    if (dataset.riskRelicId) return `[data-risk-relic-id="${dataset.riskRelicId}"]`;
+    if (dataset.stageId) return `[data-stage-id="${dataset.stageId}"]`;
+    if (dataset.seedMode) return `[data-seed-mode="${dataset.seedMode}"]`;
+    if (Object.hasOwn(dataset, 'seedText')) return '[data-seed-text]';
+    if (dataset.action) return `[data-action="${dataset.action}"]`;
+    return null;
+  }
+
+  _restoreRenderState({ focusSelector = null, scrollTop = 0 } = {}) {
+    const panel = this._el.querySelector('.sl-panel');
+    if (panel) {
+      panel.scrollTop = scrollTop;
+    }
+    if (!focusSelector) return;
+    this._el.querySelector(focusSelector)?.focus?.({ preventScroll: true });
+  }
+
+  _render(renderState = this._captureRenderState()) {
     this._el.innerHTML = renderStartLoadoutMarkup({
       weapons: this._weapons,
       accessories: this._accessories,
@@ -185,6 +222,8 @@ export class StartLoadoutView {
         this._onStart?.(selectedWeaponId, runOptions);
       },
     });
+
+    this._restoreRenderState(renderState);
   }
 
   _buildSeedPreviewText() {

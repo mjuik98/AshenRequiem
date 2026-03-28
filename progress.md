@@ -126,3 +126,6 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-27: 입력 커스터마이징 1차 완료. `session.options.keyBindings`를 도입해 `KeyboardAdapter`, `TitleScene` confirm 입력, settings 저장/가져오기/복구 경로가 같은 binding 규칙을 사용하도록 통합했다. 설정의 조작 탭에는 action별 기본/보조 키 select를 추가했고, 저장 직후 `input.configureKeyBindings()`로 런타임에 즉시 반영한다.
 - 2026-03-27: 세션 데이터 UX 2차 개선. `settingsApplicationService`에 import preview/diff helper를 추가했고 `SettingsScene` 데이터 탭에 `가져오기 미리보기` 버튼과 diff list를 연결했다. 저장소 분석은 이제 corrupt 슬롯 상태도 함께 노출한다.
 - 2026-03-27: 전투/콘텐츠 확장 2차 반영. `StageRuntimeSystem`에 `cross_barrage`, `bossPhaseActionRegistry`에 `projectile_nova`를 추가하고 `stageData`에 `frost_harbor`, `weaponData`에 `ember_spines`, `accessoryData`에 `glacier_band`, `unlockData`/`upgradeData`에 대응 엔트리를 연결했다. `GameDataLoader`는 이제 `unlockData`도 기본 카탈로그에 포함한다.
+- 2026-03-28: 타이틀 하위 서브스크린 `MetaShopView`/`SettingsView`/`CodexView`에 `dialogRuntime` 공통 포커스 계약을 적용했다. 각 패널은 `role="dialog" aria-modal="true" tabindex="-1"`를 갖고 초기 포커스, `Escape` 닫기, 이전 포커스 복원을 공유한다.
+- 2026-03-28: `actionButtonTheme`가 modal tone alias(`loadout`, `pause`, `reward`, `result-victory`, `result-defeat`)를 직접 지원하도록 확장했다. 이전에는 일부 버튼이 정의되지 않은 tone을 넘겨도 `accent`로 fallback되고 있었다.
+- 2026-03-28: `runSmokeAgainstPreview.mjs`에 정적 `dist/` fallback 서버를 추가했다. `vite preview`가 준비되지 않는 로컬 환경에서도 같은 포트로 deterministic smoke를 계속 돌릴 수 있다.

@@ -1,12 +1,13 @@
 import { ACTION_BUTTON_SHARED_CSS } from '../shared/actionButtonTheme.js';
+import { MODAL_SHARED_CSS } from '../shared/modalTheme.js';
 
 export const RESULT_VIEW_CSS = `
+  ${MODAL_SHARED_CSS}
   ${ACTION_BUTTON_SHARED_CSS}
 
   .result-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.78);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -14,24 +15,24 @@ export const RESULT_VIEW_CSS = `
     padding: 16px;
   }
 
-  .result-card {
-    width: min(520px, 100%);
-    background: #0d1117;
-    border: 0.5px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    overflow: hidden;
-    animation: result-appear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  .result-backdrop {
+    background: rgba(0, 0, 0, 0.78);
   }
 
-  @keyframes result-appear {
-    from { transform: scale(0.88) translateY(12px); opacity: 0; }
-    to { transform: scale(1) translateY(0); opacity: 1; }
+  .result-card {
+    width: min(520px, 100%);
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(18,12,26,0.98), rgba(10,8,18,0.99));
   }
 
   .result-header {
     padding: 28px 28px 20px;
     text-align: center;
     border-bottom: 2px solid transparent;
+  }
+
+  .result-eyebrow {
+    margin-bottom: 10px;
   }
 
   .result-header.defeat { border-bottom-color: #e24b4a; }
@@ -72,16 +73,13 @@ export const RESULT_VIEW_CSS = `
 
   .result-title {
     margin: 0 0 6px;
-    font-size: 30px;
     font-weight: 500;
     letter-spacing: 0.12em;
     color: rgba(255, 255, 255, 0.92);
   }
 
   .result-sub {
-    margin: 0;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .result-body {

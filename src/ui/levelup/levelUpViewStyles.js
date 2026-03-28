@@ -1,24 +1,42 @@
+import { ACTION_BUTTON_SHARED_CSS } from '../shared/actionButtonTheme.js';
+import { MODAL_SHARED_CSS } from '../shared/modalTheme.js';
+
 export const LEVEL_UP_VIEW_CSS = `
+  ${MODAL_SHARED_CSS}
+  ${ACTION_BUTTON_SHARED_CSS}
+
   .levelup-overlay {
     position: absolute; inset: 0;
-    background:
-      radial-gradient(circle at 50% 30%, rgba(212,175,106,0.12), transparent 36%),
-      rgba(0,0,0,0.78);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 24px;
     z-index: 30;
+    padding: 18px;
+  }
+  .levelup-backdrop {
+    background:
+      radial-gradient(circle at 50% 30%, rgba(245,212,124,0.12), transparent 36%),
+      rgba(0,0,0,0.78);
+  }
+  .levelup-stage {
+    width: min(960px, 100%);
+    max-height: calc(100vh - 36px);
+    padding: 24px 24px 20px;
   }
   .levelup-header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+  }
+  .levelup-eyebrow,
+  .levelup-copy {
+    text-align: center;
   }
   .levelup-title {
     font-size: 30px; font-weight: 800;
     color: #f5d47c; text-shadow: 0 0 20px rgba(245,212,124,0.55);
     letter-spacing: 0.2em;
     animation: levelup-pulse 0.6s ease-out;
+    text-align: center;
   }
   .levelup-actions {
     display: flex;
@@ -36,23 +54,13 @@ export const LEVEL_UP_VIEW_CSS = `
     color: #cfd8dc;
   }
   .levelup-mode-btn {
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.16);
-    background: linear-gradient(180deg, #233044, #141d2b);
-    color: #f3e5f5;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
+    min-width: 118px;
   }
   .levelup-mode-btn.is-active {
-    border-color: rgba(255, 138, 128, 0.8);
-    background: linear-gradient(180deg, #4a2020, #2a1414);
-    color: #ffccbc;
+    box-shadow: 0 8px 22px rgba(140, 48, 48, 0.18);
   }
   .levelup-mode-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+    box-shadow: none;
   }
   .chest-title {
     color: #ffb300;
@@ -66,6 +74,7 @@ export const LEVEL_UP_VIEW_CSS = `
   }
   .levelup-cards {
     display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; align-items: stretch;
+    margin-top: 20px;
   }
   .levelup-card-shell {
     display: flex;
@@ -264,29 +273,22 @@ export const LEVEL_UP_VIEW_CSS = `
   }
   .card-reroll-btn {
     width: 100%;
-    min-height: 36px;
-    padding: 7px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(6, 10, 18, 0.7);
-    color: rgba(236,239,241,0.9);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
+    justify-content: center;
   }
   .card-reroll-btn:hover:not(:disabled) {
-    border-color: rgba(255,255,255,0.18);
-    background: rgba(10, 15, 24, 0.88);
+    box-shadow: 0 6px 18px rgba(70, 90, 104, 0.16);
   }
   .card-reroll-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+    box-shadow: none;
   }
   @media (max-width: 900px) {
     .levelup-overlay {
       padding: 20px 14px;
       justify-content: flex-start;
       overflow-y: auto;
+    }
+    .levelup-stage {
+      padding: 20px 18px 18px;
     }
     .levelup-cards {
       gap: 12px;

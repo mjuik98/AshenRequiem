@@ -133,4 +133,45 @@ test('반복 insert/queryUnique 후 버퍼가 오염되지 않는다', () => {
   }
 });
 
+test('forEachUnique는 unique 후보를 callback으로 순회한다', () => {
+  const grid = new SpatialGrid(120);
+  const a = makeEntity({ x: 60, y: 60, radius: 80 });
+  const b = makeEntity({ x: 65, y: 65, radius: 5 });
+  const c = makeEntity({ x: 70, y: 70, radius: 5 });
+
+  grid.insert(a);
+  grid.insert(b);
+  grid.insert(c);
+
+  assert.equal(typeof grid.forEachUnique, 'function', 'SpatialGrid.forEachUnique 계약이 아직 없음');
+
+  const visited = [];
+  grid.forEachUnique(a, (entity) => {
+    visited.push(entity.id);
+  });
+
+  assert.equal(new Set(visited).size, visited.length, 'forEachUnique가 unique 후보를 중복 방문함');
+  assert.equal(visited.includes(b.id), true, 'forEachUnique가 인접 후보를 방문하지 않음');
+  assert.equal(visited.includes(c.id), true, 'forEachUnique가 두 번째 후보를 방문하지 않음');
+});
+
+test('forEachUnique는 callback이 false를 반환하면 조기 종료한다', () => {
+  const grid = new SpatialGrid(120);
+  const a = makeEntity({ x: 60, y: 60, radius: 80 });
+  const b = makeEntity({ x: 65, y: 65, radius: 5 });
+  const c = makeEntity({ x: 70, y: 70, radius: 5 });
+
+  grid.insert(a);
+  grid.insert(b);
+  grid.insert(c);
+
+  const visited = [];
+  grid.forEachUnique(a, (entity) => {
+    visited.push(entity.id);
+    return false;
+  });
+
+  assert.equal(visited.length, 1, 'forEachUnique 조기 종료가 동작하지 않음');
+});
+
 summary();

@@ -1,4 +1,5 @@
 import { renderActionButton } from '../shared/actionButtonTheme.js';
+import { renderModalShell } from '../shared/modalShell.js';
 import {
   renderPauseHeader,
   renderPauseTabNavigation,
@@ -45,37 +46,51 @@ export function renderPauseViewShell({
     stretch: true,
   });
 
-  return `
-    <div class="pv-backdrop"></div>
-    <div class="pv-panel" role="dialog" aria-label="일시정지 메뉴">
-      ${renderPauseHeader({
-        timeStr,
-        killStr,
-        level,
-        hp,
-        maxHp,
-        hpPct,
-        hpFillClass,
-        hpFillColor,
-        hpPctColor,
-      })}
-      ${renderPauseTabNavigation({
-        activeTabName,
-        weaponCount,
-        maxWpnSlots,
-        accessoryCount,
-        maxAccSlots,
-      })}
-      ${renderPauseTabPanels({
-        activeTabName,
-        loadoutPanelHtml,
-        statsHtml,
-        soundControlsHtml,
-      })}
-      <footer class="pv-footer">
-        ${forfeitButton}
-        ${resumeButton}
-      </footer>
-    </div>
+  const bodyHtml = `
+    ${renderPauseHeader({
+      timeStr,
+      killStr,
+      level,
+      hp,
+      maxHp,
+      hpPct,
+      hpFillClass,
+      hpFillColor,
+      hpPctColor,
+    })}
+    ${renderPauseTabNavigation({
+      activeTabName,
+      weaponCount,
+      maxWpnSlots,
+      accessoryCount,
+      maxAccSlots,
+    })}
+    ${renderPauseTabPanels({
+      activeTabName,
+      loadoutPanelHtml,
+      statsHtml,
+      soundControlsHtml,
+    })}
   `;
+  const footerHtml = `
+    <footer class="pv-footer ui-modal-action-bar">
+      ${forfeitButton}
+      ${resumeButton}
+    </footer>
+  `;
+
+  return renderModalShell({
+    tone: 'pause',
+    shellClassName: 'pv-shell',
+    backdropClassName: 'pv-backdrop',
+    panelTag: 'div',
+    panelClassName: 'pv-panel ui-modal-panel--scroll ui-modal-panel--floating',
+    panelAttributes: {
+      role: 'dialog',
+      'aria-label': '일시정지 메뉴',
+      tabindex: '-1',
+    },
+    bodyHtml,
+    footerHtml,
+  });
 }

@@ -4,6 +4,7 @@ import {
   withDebugRuntime,
   writeScenarioJson,
   bootToPlay,
+  sleep,
 } from './smokeScenarioShared.mjs';
 
 export async function runTitleToPlayScenario(url, artifactDir, transport) {
@@ -17,6 +18,128 @@ export async function runTitleToPlayScenario(url, artifactDir, transport) {
     assertions: {
       scene: state?.scene === 'PlayScene',
       weaponCount: (state?.player?.weapons?.length ?? 0) === 1,
+    },
+  };
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  await transport.open(withDebugRuntime(url));
+  await transport.resize(390, 640);
+  await transport.pollEval(
+    `Boolean(document.querySelector('[data-action="start"]'))`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  const titleClicked = await transport.clickByText('Start Game');
+  if (!titleClicked) {
+    throw new Error('Failed to click Start Game button');
+  }
+
+  const dialogVisible = await transport.pollEval(
+    `Boolean(document.querySelector('.sl-root .sl-panel')) && getComputedStyle(document.querySelector('.sl-root')).display !== 'none'`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  if (dialogVisible !== true) {
+    throw new Error('Start loadout dialog did not open');
+  }
+
+  const dialogMetrics = await transport.evalJson(`[
+    window.innerWidth,
+    window.innerHeight,
+    document.querySelector('.sl-panel')?.getBoundingClientRect?.().top ?? null,
+    document.querySelector('.sl-panel')?.getBoundingClientRect?.().bottom ?? null,
+    document.querySelector('.sl-panel')?.getBoundingClientRect?.().height ?? null,
+    document.querySelector('.sl-panel') ? document.querySelector('.sl-panel').scrollHeight > document.querySelector('.sl-panel').clientHeight : false,
+    document.querySelector('.sl-panel') ? getComputedStyle(document.querySelector('.sl-panel')).overflowY : null,
+    document.querySelector('.sl-actions') ? getComputedStyle(document.querySelector('.sl-actions')).position : null,
+    Boolean(document.querySelector('.sl-panel') && document.activeElement && (document.activeElement === document.querySelector('.sl-panel') || document.querySelector('.sl-panel').contains(document.activeElement)))
+  ]`);
+  const dialogState = {
+    viewport: { width: dialogMetrics[0], height: dialogMetrics[1] },
+    panelRect: { top: dialogMetrics[2], bottom: dialogMetrics[3], height: dialogMetrics[4] },
+    panelScrollable: dialogMetrics[5],
+    panelOverflowY: dialogMetrics[6],
+    actionsPosition: dialogMetrics[7],
+    focusInsideDialog: dialogMetrics[8],
+  };
+
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+  await transport.press('Escape');
+  const closedByEscape = await transport.pollEval(
+    `getComputedStyle(document.querySelector('.sl-root')).display === 'none' || !document.querySelector('.sl-root .sl-panel')`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+  if (closedByEscape !== true) {
+    throw new Error('ESC did not close start loadout dialog');
+  }
+
+  const reopened = await transport.clickByText('Start Game');
+  if (!reopened) {
+    throw new Error('Failed to reopen Start Game dialog');
+  }
+  await transport.pollEval(
+    `Boolean(document.querySelector('.sl-root .sl-panel')) && getComputedStyle(document.querySelector('.sl-root')).display !== 'none'`,
+    (value) => value === true,
+    5000,
+    150,
+  );
+
+  await transport.press('Tab');
+  const tabFocusInsideDialog = await transport.evalJson(`Boolean(document.querySelector('.sl-panel') && document.activeElement && document.activeElement !== document.querySelector('.sl-panel') && document.querySelector('.sl-panel').contains(document.activeElement))`);
+
+  await transport.evalJson(`document.querySelector('.sl-panel') ? (document.querySelector('.sl-panel').scrollTop = document.querySelector('.sl-panel').scrollHeight, true) : false`);
+
+  const postScrollMetrics = await transport.evalJson(`[
+    document.querySelector('.sl-panel')?.scrollTop ?? null,
+    document.querySelector('.sl-root [data-action="start"]')?.getBoundingClientRect?.().bottom ?? null,
+    window.innerHeight
+  ]`);
+  const postScrollState = {
+    panelScrollTop: postScrollMetrics[0],
+    startButtonBottom: postScrollMetrics[1],
+    viewportHeight: postScrollMetrics[2],
+  };
+
+  const loadoutClicked = await transport.clickByText('시작하기');
+  if (!loadoutClicked) {
+    throw new Error('Failed to click loadout start button after scrolling');
+  }
+  await sleep(250);
+  await transport.evalJson('window.__ASHEN_DEBUG__?.advanceTime?.(136), true');
+  const playState = await transport.pollEval(
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (state) => state?.scene === 'PlayScene',
+    5000,
+    200,
+  );
+
+  const summary = {
+    scenario: 'title_loadout_accessibility',
+    dialogState,
+    postScrollState,
+    playState,
+    assertions: {
+      viewportApplied: dialogState?.viewport?.width === 390 && dialogState?.viewport?.height === 640,
+      panelWithinViewport: typeof dialogState?.panelRect?.top === 'number'
+        && dialogState.panelRect.top >= 0
+        && dialogState.panelRect.bottom <= dialogState.viewport.height,
+      panelScrollable: dialogState?.panelScrollable === true && dialogState?.panelOverflowY === 'auto',
+      stickyActions: dialogState?.actionsPosition === 'sticky',
+      initialFocusInsideDialog: dialogState?.focusInsideDialog === true,
+      escapeCloses: closedByEscape === true,
+      tabMovesWithinDialog: tabFocusInsideDialog === true,
+      startButtonReachableAfterScroll: typeof postScrollState?.startButtonBottom === 'number'
+        && postScrollState.startButtonBottom <= postScrollState.viewportHeight,
+      startRunWorks: playState?.scene === 'PlayScene',
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);

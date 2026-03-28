@@ -3,6 +3,7 @@ import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { createRunner } from './helpers/testRunner.js';
 import {
+  projectPathExists,
   readProjectSource,
   resolveProjectPath,
   stripLineComments,
@@ -118,7 +119,7 @@ test('production entity/runtime state avoids underscore-prefixed private slots a
     '../src/systems/combat/DamageSystem.js',
     '../src/systems/combat/StatusEffectSystem.js',
     '../src/systems/combat/DeathSystem.js',
-    '../src/systems/event/chestRewardHandler.js',
+    '../src/adapters/play/events/chestRewardEventAdapter.js',
     '../src/behaviors/enemyBehaviors/rangedChase.js',
   ];
 
@@ -145,16 +146,14 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
   const levelUpControllerSource = readProjectSource('../src/scenes/play/levelUpController.js');
   const playResultHandlerSource = readProjectSource('../src/scenes/play/PlayResultHandler.js');
-  const levelUpFlowRuntimeSource = readProjectSource('../src/progression/levelUpFlowRuntime.js');
   const levelUpFlowServiceSource = readProjectSource('../src/app/play/levelUpFlowService.js');
   const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
   const sessionMetaSource = readProjectSource('../src/state/sessionMeta.js');
   const pipelineBuilderSource = readProjectSource('../src/core/PipelineBuilder.js');
   const upgradeSystemSource = readProjectSource('../src/systems/progression/UpgradeSystem.js');
-  const codexHandlerSource = readProjectSource('../src/systems/event/codexHandler.js');
+  const codexEventAdapterSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
   const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
   const titleLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
-  const playerSpawnRuntimeSource = readProjectSource('../src/scenes/play/playerSpawnRuntime.js');
   const playerSpawnServiceSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
   const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
   const unlockProgressRuntimeSource = readProjectSource('../src/progression/unlockProgressRuntime.js');
@@ -187,15 +186,9 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    /import\s+\{[^}]*UpgradeSystem[^}]*\}\s+from\s+['"]\.\.\/systems\/progression\/UpgradeSystem\.js['"]/.test(levelUpFlowRuntimeSource),
+    projectPathExists('../src/progression/levelUpFlowRuntime.js'),
     false,
-    'levelUpFlowRuntime가 systems 레이어의 UpgradeSystem 구현에 직접 의존하고 있음',
-  );
-
-  assert.equal(
-    levelUpFlowRuntimeSource.includes("from '../app/play/levelUpFlowService.js'"),
-    true,
-    'levelUpFlowRuntime wrapper가 app level up flow service를 재노출하지 않음',
+    'unused levelUpFlowRuntime wrapper가 제거되지 않음',
   );
 
   assert.equal(
@@ -205,9 +198,9 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    /export function recordWeaponAcquired|export function recordAccessoryAcquired|export function recordEnemyEncounter/.test(codexHandlerSource),
+    /export function recordWeaponAcquired|export function recordAccessoryAcquired|export function recordEnemyEncounter/.test(codexEventAdapterSource),
     false,
-    'codexHandler가 이벤트 핸들러 외부에 직접 세션 변경 helper를 노출하고 있음',
+    'codex event adapter가 이벤트 핸들러 외부에 직접 세션 변경 helper를 노출하고 있음',
   );
 
   assert.equal(
@@ -253,9 +246,9 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    playerSpawnRuntimeSource.includes("from '../../app/play/playerSpawnApplicationService.js'"),
-    true,
-    'playerSpawnRuntime wrapper가 app player spawn service를 재노출하지 않음',
+    projectPathExists('../src/scenes/play/playerSpawnRuntime.js'),
+    false,
+    'unused playerSpawnRuntime wrapper가 제거되지 않음',
   );
 
   assert.equal(
@@ -265,9 +258,15 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    /resolveStartLoadout\(/.test(playerSpawnRuntimeSource),
+    /resolveStartLoadout\(/.test(playerSpawnServiceSource),
     false,
-    'playerSpawnRuntime이 broad start loadout DTO를 그대로 재노출하고 있음',
+    'playerSpawn application service가 broad start loadout DTO를 그대로 재노출하고 있음',
+  );
+
+  assert.equal(
+    projectPathExists('../src/systems/event/codexHandler.js'),
+    false,
+    'unused codex handler shim이 제거되지 않음',
   );
 
   assert.equal(

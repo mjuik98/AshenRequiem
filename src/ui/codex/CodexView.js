@@ -3,6 +3,7 @@ import {
   resetCodexViewState,
 } from './codexViewState.js';
 import { CODEX_VIEW_CSS, CODEX_VIEW_STYLE_ID } from './codexStyles.js';
+import { bindDialogRuntime } from '../shared/dialogRuntime.js';
 import {
   activateCodexTabRuntime,
   renderCodexPanelsRuntime,
@@ -20,16 +21,11 @@ export class CodexView {
     container.appendChild(this.el);
 
     this._onBack = null;
+    this._dialogRuntime = null;
     /** @type {import('./codexViewState.js').CodexViewState} */
     this._state = createCodexViewState();
     this._gameData = null;
     this._session = null;
-
-    this._handleKeyDown = (event) => {
-      if (event.key === 'Escape' || event.key === 'Esc') {
-        this._onBack?.();
-      }
-    };
   }
 
   /**
@@ -45,11 +41,18 @@ export class CodexView {
 
     this._render();
     this.el.style.display = 'block';
-    window.addEventListener('keydown', this._handleKeyDown, true);
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = bindDialogRuntime({
+      root: this.el,
+      panelSelector: '.cx-panel',
+      onRequestClose: () => this._onBack?.(),
+    });
+    this._dialogRuntime.focusInitial();
   }
 
   destroy() {
-    window.removeEventListener('keydown', this._handleKeyDown, true);
+    this._dialogRuntime?.dispose();
+    this._dialogRuntime = null;
     this.el.remove();
   }
 

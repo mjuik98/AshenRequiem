@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createRunner } from './helpers/testRunner.js';
-import { resolveProjectPath } from './helpers/sourceInspection.js';
+import { projectPathExists, resolveProjectPath } from './helpers/sourceInspection.js';
 
 console.log('\n[ArchitectureBoundaries]');
 
@@ -49,11 +49,23 @@ test('src 내부 모듈은 compatibility shim 경로 대신 실 소유 모듈을
     const source = readFileSync(filePath, 'utf8');
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/createWorld\.js['"]/.test(source), false, `${filePath}가 createWorld shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/startLoadoutRuntime\.js['"]/.test(source), false, `${filePath}가 startLoadoutRuntime shim에 직접 의존하면 안 됨`);
-    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*scenes\/play\/playerSpawnRuntime\.js['"]/.test(source), false, `${filePath}가 playerSpawnRuntime wrapper에 직접 의존하면 안 됨`);
-    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*scenes\/play\/playSceneFlow\.js['"]/.test(source), false, `${filePath}가 playSceneFlow wrapper에 직접 의존하면 안 됨`);
-    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*progression\/levelUpFlowRuntime\.js['"]/.test(source), false, `${filePath}가 levelUpFlowRuntime wrapper에 직접 의존하면 안 됨`);
-    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*systems\/event\/(?:currencyHandler|codexHandler|bossPhaseHandler|bossAnnouncementHandler|chestRewardHandler|weaponEvolutionHandler)\.js['"]/.test(source), false, `${filePath}가 event handler shim에 직접 의존하면 안 됨`);
-    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*systems\/sound\/soundEventHandler\.js['"]/.test(source), false, `${filePath}가 sound event shim에 직접 의존하면 안 됨`);
+  });
+});
+
+test('zero-caller compatibility shim files are removed from the repo', () => {
+  [
+    '../src/scenes/play/playerSpawnRuntime.js',
+    '../src/scenes/play/playSceneFlow.js',
+    '../src/progression/levelUpFlowRuntime.js',
+    '../src/systems/sound/soundEventHandler.js',
+    '../src/systems/event/bossAnnouncementHandler.js',
+    '../src/systems/event/bossPhaseHandler.js',
+    '../src/systems/event/chestRewardHandler.js',
+    '../src/systems/event/codexHandler.js',
+    '../src/systems/event/currencyHandler.js',
+    '../src/systems/event/weaponEvolutionHandler.js',
+  ].forEach((ref) => {
+    assert.equal(projectPathExists(ref), false, `${ref} dead shim이 아직 남아 있음`);
   });
 });
 

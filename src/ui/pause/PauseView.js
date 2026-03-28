@@ -18,6 +18,7 @@ import {
   refreshPauseLoadoutPanelRuntime,
   renderPauseViewRuntime,
 } from './pauseViewRuntime.js';
+import { bindDialogRuntime } from '../shared/dialogRuntime.js';
 
 export class PauseView {
   constructor(container) {
@@ -29,7 +30,6 @@ export class PauseView {
     this._onResume = null;
     this._onForfeit = null;
     this._onOptionsChange = null;
-    this._onKeyDown = null;
     this._tt = null;
     this._ttHideTimer = null;
     this._tooltipBinding = null;
@@ -43,6 +43,7 @@ export class PauseView {
     this._pauseOptions = { ...PAUSE_AUDIO_DEFAULTS };
     this._activeTabName = 'loadout';
     this._isClosingToMenu = false;
+    this._dialogRuntime = null;
 
     this._injectStyles();
     container.appendChild(this.el);
@@ -69,15 +70,25 @@ export class PauseView {
 
     renderPauseViewRuntime(this);
     bindPauseViewRuntime(this);
-    this._bindKeyboard();
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = bindDialogRuntime({
+      root: this.el,
+      panelSelector: '.pv-panel',
+      onRequestClose: () => {
+        if (this._isClosingToMenu) return;
+        this._onResume?.();
+      },
+    });
 
     this.el.setAttribute('aria-hidden', 'false');
     this.el.style.display = 'flex';
+    this._dialogRuntime.focusInitial();
   }
 
   hide() {
     disposePauseViewRuntime(this);
-    this._unbindKeyboard();
+    this._dialogRuntime?.dispose();
+    this._dialogRuntime = null;
     this.el.setAttribute('aria-hidden', 'true');
     this.el.style.display = 'none';
     resetPauseViewRuntime(this);
@@ -89,7 +100,8 @@ export class PauseView {
 
   destroy() {
     disposePauseViewRuntime(this);
-    this._unbindKeyboard();
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = null;
     this._tt?.remove();
     this._tt = null;
     resetPauseViewRuntime(this, { clearSelection: true });
@@ -114,20 +126,6 @@ export class PauseView {
     if (!name) return;
     this._activeTabName = name;
     applyPauseTabState(this.el, name);
-  }
-
-  _bindKeyboard() {
-    this._onKeyDown = () => {
-      if (!this.isVisible()) return;
-    };
-    window.addEventListener('keydown', this._onKeyDown);
-  }
-
-  _unbindKeyboard() {
-    if (this._onKeyDown) {
-      window.removeEventListener('keydown', this._onKeyDown);
-      this._onKeyDown = null;
-    }
   }
 
   _injectStyles() {

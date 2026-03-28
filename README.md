@@ -24,6 +24,7 @@
 > 🛠 **AI 에이전트 및 개발자 가이드**: 
 > 규칙과 설계 원칙은 [AGENTS.md](./AGENTS.md)를, 현재 구현 사실과 파이프라인 스냅샷은 [docs/architecture-current.md](./docs/architecture-current.md)를 기준으로 확인합니다.
 > 현재 구조 스냅샷을 다시 출력하려면 `npm run architecture:snapshot`를 사용합니다.
+> baseline에 직접 묶이지 않은 maintenance script의 역할은 [docs/maintenance-scripts.md](./docs/maintenance-scripts.md)에 분리해 둡니다.
 
 ---
 

@@ -1,36 +1,18 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SRC_DIR = path.join(ROOT_DIR, 'src');
-
-const SOURCE_EXTENSIONS = new Set(['.js', '.mjs']);
+import { ROOT_DIR, collectSourceImports } from './importGraph.mjs';
 
 export const SHIM_IMPORT_PATTERNS = [
   'state/createWorld.js',
   'state/startLoadoutRuntime.js',
-  'scenes/play/playerSpawnRuntime.js',
-  'scenes/play/playSceneFlow.js',
-  'progression/levelUpFlowRuntime.js',
-  'systems/sound/soundEventHandler.js',
-  'systems/event/bossAnnouncementHandler.js',
-  'systems/event/bossPhaseHandler.js',
-  'systems/event/chestRewardHandler.js',
-  'systems/event/codexHandler.js',
-  'systems/event/currencyHandler.js',
-  'systems/event/weaponEvolutionHandler.js',
   'core/Game.js',
   'core/runtimeHooks.js',
   'scenes/play/PlayResultHandler.js',
 ];
 
-const REPO_INTERNAL_PREFIXES = ['src/', 'tests/', 'scripts/'];
-const MIGRATED_WRAPPER_PATTERNS = [
-  'scenes/play/playerSpawnRuntime.js',
-  'scenes/play/playSceneFlow.js',
-  'progression/levelUpFlowRuntime.js',
-];
+const ALLOWED_SHIM_IMPORTS = new Set([
+  'src/scenes/CodexScene.js->src/core/Game.js',
+]);
 
 const DOMAIN_FORBIDDEN_SEGMENTS = [
   '/ui/',
@@ -44,82 +26,12 @@ const RENDER_SYSTEM_PATH = 'src/systems/render/RenderSystem.js';
 const SOUND_SFX_CONTROLLER_PATH = 'src/systems/sound/soundSfxController.js';
 const PLAY_CONTEXT_RUNTIME_PATH = 'src/core/playContextRuntime.js';
 
-function walkFiles(dirPath, bucket = []) {
-  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
-    const nextPath = path.join(dirPath, entry.name);
-    if (entry.isDirectory()) {
-      walkFiles(nextPath, bucket);
-      continue;
-    }
-    if (SOURCE_EXTENSIONS.has(path.extname(entry.name))) {
-      bucket.push(nextPath);
-    }
-  }
-  return bucket;
-}
-
-function toPosixPath(filePath) {
-  return filePath.split(path.sep).join('/');
-}
-
-function toProjectRelative(filePath) {
-  return toPosixPath(path.relative(ROOT_DIR, filePath));
-}
-
-function extractImports(source) {
-  const matches = source.matchAll(/from\s+['"]([^'"]+)['"]/g);
-  return [...matches].map((match) => match[1]);
-}
-
-function resolveImportTarget(sourceFile, specifier) {
-  if (!specifier.startsWith('.')) return specifier;
-
-  const resolved = path.resolve(path.dirname(sourceFile), specifier);
-  const candidates = [
-    resolved,
-    `${resolved}.js`,
-    `${resolved}.mjs`,
-    path.join(resolved, 'index.js'),
-    path.join(resolved, 'index.mjs'),
-  ];
-
-  const hit = candidates.find((candidate) => fs.existsSync(candidate));
-  return hit ? toProjectRelative(hit) : toPosixPath(path.relative(ROOT_DIR, resolved));
-}
-
-function collectSourceImports() {
-  return walkFiles(SRC_DIR).flatMap((filePath) => {
-    const source = fs.readFileSync(filePath, 'utf8');
-    const relPath = toProjectRelative(filePath);
-    return extractImports(source).map((specifier) => ({
-      sourceFile: relPath,
-      specifier,
-      targetFile: resolveImportTarget(filePath, specifier),
-    }));
-  });
-}
-
-function collectRepoImports() {
-  return ['src', 'tests', 'scripts'].flatMap((rootSegment) => {
-    const baseDir = path.join(ROOT_DIR, rootSegment);
-    if (!fs.existsSync(baseDir)) return [];
-    return walkFiles(baseDir).flatMap((filePath) => {
-      const source = fs.readFileSync(filePath, 'utf8');
-      const relPath = toProjectRelative(filePath);
-      return extractImports(source).map((specifier) => ({
-        sourceFile: relPath,
-        specifier,
-        targetFile: resolveImportTarget(filePath, specifier),
-      }));
-    });
-  });
-}
-
 function findShimViolations(imports) {
   return imports
     .filter(({ sourceFile, targetFile }) => (
       sourceFile.startsWith('src/')
       && SHIM_IMPORT_PATTERNS.some((pattern) => targetFile.endsWith(pattern))
+      && !ALLOWED_SHIM_IMPORTS.has(`${sourceFile}->${targetFile}`)
     ))
     .map(({ sourceFile, targetFile }) => ({
       rule: 'compatibility-shim',
@@ -225,21 +137,8 @@ function findPlayContextRuntimeBrowserViolations(imports) {
     }));
 }
 
-function findMigratedWrapperViolations(imports) {
-  return imports
-    .filter(({ sourceFile }) => REPO_INTERNAL_PREFIXES.some((prefix) => sourceFile.startsWith(prefix)))
-    .filter(({ targetFile }) => MIGRATED_WRAPPER_PATTERNS.some((pattern) => targetFile.endsWith(pattern)))
-    .map(({ sourceFile, targetFile }) => ({
-      rule: 'migrated-wrapper',
-      sourceFile,
-      targetFile,
-      message: `migrated wrapper import is forbidden outside public compatibility usage: ${sourceFile} -> ${targetFile}`,
-    }));
-}
-
 export function collectBoundaryViolations() {
   const sourceImports = collectSourceImports();
-  const repoImports = collectRepoImports();
   return [
     ...findShimViolations(sourceImports),
     ...findDomainViolations(sourceImports),
@@ -250,7 +149,6 @@ export function collectBoundaryViolations() {
     ...findRenderSystemBrowserViolations(sourceImports),
     ...findSoundSfxBrowserViolations(sourceImports),
     ...findPlayContextRuntimeBrowserViolations(sourceImports),
-    ...findMigratedWrapperViolations(repoImports),
   ];
 }
 

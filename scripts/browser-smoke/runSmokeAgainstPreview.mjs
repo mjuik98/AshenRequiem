@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises';
+import http from 'node:http';
 import { once } from 'node:events';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +27,19 @@ const DEBUG_SMOKE = isDebugSmokeEnabled();
 const debugLog = createSmokeLogger({ enabled: DEBUG_SMOKE, output: process.stdout });
 
 export { buildCommandInvocation, stopChildProcess, waitForChildExit } from './smokeProcessUtils.mjs';
+
+const STATIC_MIME_TYPES = Object.freeze({
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.ico': 'image/x-icon',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.wasm': 'application/wasm',
+});
 
 function parseArgs(argv) {
   const args = {
@@ -96,6 +111,70 @@ function ensureViteCli() {
   return VITE_CLI;
 }
 
+function getStaticMimeType(filePath) {
+  return STATIC_MIME_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream';
+}
+
+async function resolveStaticRequestPath(rootDir, requestUrl = '/') {
+  const pathname = new URL(requestUrl, 'http://127.0.0.1').pathname;
+  const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  const candidatePath = path.resolve(rootDir, relativePath);
+  const normalizedRoot = `${path.resolve(rootDir)}${path.sep}`;
+
+  if (candidatePath !== path.resolve(rootDir) && !candidatePath.startsWith(normalizedRoot)) {
+    throw new Error(`Refusing to serve path outside dist root: ${pathname}`);
+  }
+
+  try {
+    const stats = await fs.stat(candidatePath);
+    if (stats.isDirectory()) {
+      return path.join(candidatePath, 'index.html');
+    }
+    return candidatePath;
+  } catch {
+    return path.join(rootDir, 'index.html');
+  }
+}
+
+export async function startStaticDistServer({
+  host = DEFAULT_HOST,
+  port = DEFAULT_PORT,
+  rootDir = path.join(ROOT, 'dist'),
+} = {}) {
+  await fs.access(rootDir);
+
+  const server = http.createServer(async (request, response) => {
+    try {
+      const filePath = await resolveStaticRequestPath(rootDir, request.url ?? '/');
+      const body = await fs.readFile(filePath);
+      response.writeHead(200, { 'Content-Type': getStaticMimeType(filePath) });
+      response.end(body);
+    } catch (error) {
+      response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      response.end(error instanceof Error ? error.message : String(error));
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, host, resolve);
+  });
+
+  return {
+    close() {
+      return new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+  };
+}
+
 export async function waitForServer(url, timeoutMs = 15000) {
   const startedAt = Date.now();
 
@@ -157,6 +236,7 @@ export async function runSmokeAgainstPreview(
     findAvailablePortFn = findAvailablePort,
     runCommandFn = runCommand,
     spawnCommandFn = spawnCommand,
+    startStaticDistServerFn = startStaticDistServer,
     waitForPreviewReadyFn = waitForPreviewReady,
     stopChildProcessFn = stopChildProcess,
   } = {},
@@ -165,6 +245,7 @@ export async function runSmokeAgainstPreview(
   const port = await findAvailablePortFn(options.port ?? DEFAULT_PORT, host);
   const url = `http://${host}:${port}`;
   const viteCli = ensureViteCliFn();
+  const preferStaticServer = options.skipBuild === true;
   const smokeArgs = [
     path.join('scripts', 'browser-smoke', 'runDeterministicSmoke.mjs'),
     '--url',
@@ -187,32 +268,53 @@ export async function runSmokeAgainstPreview(
     });
   }
 
-  const preview = spawnCommandFn(process.execPath, [
-    viteCli,
-    'preview',
-    '--host',
-    host,
-    '--port',
-    String(port),
-  ], {
-    cwd: ROOT,
-    env: process.env,
-    stdio: 'ignore',
-  });
+  let fallbackServer = null;
+  let preview = null;
 
   try {
-    debugLog('preview:spawned', { pid: preview.pid });
-    await waitForPreviewReadyFn(preview, url);
-    debugLog('preview:ready', { pid: preview.pid });
+    if (preferStaticServer) {
+      fallbackServer = await startStaticDistServerFn({ host, port, rootDir: path.join(ROOT, 'dist') });
+      debugLog('fallback:ready', { url });
+    } else {
+      preview = spawnCommandFn(process.execPath, [
+        viteCli,
+        'preview',
+        '--host',
+        host,
+        '--port',
+        String(port),
+      ], {
+        cwd: ROOT,
+        env: process.env,
+        stdio: 'ignore',
+      });
+      debugLog('preview:spawned', { pid: preview.pid });
+      try {
+        await waitForPreviewReadyFn(preview, url);
+        debugLog('preview:ready', { pid: preview.pid });
+      } catch (error) {
+        debugLog('preview:fallback', { pid: preview.pid, reason: error instanceof Error ? error.message : String(error) });
+        await stopChildProcessFn(preview, { env: process.env });
+        preview = null;
+        fallbackServer = await startStaticDistServerFn({ host, port, rootDir: path.join(ROOT, 'dist') });
+        debugLog('fallback:ready', { url });
+      }
+    }
     await runCommandFn(process.execPath, smokeArgs, {
       shell: false,
       timeoutMs: SMOKE_TIMEOUT_MS,
     });
     debugLog('smoke:completed');
   } finally {
-    debugLog('preview:stopping', { pid: preview.pid });
-    await stopChildProcessFn(preview, { env: process.env });
-    debugLog('preview:stopped', { pid: preview.pid, handles: getActiveHandleSummary() });
+    if (preview) {
+      debugLog('preview:stopping', { pid: preview.pid });
+      await stopChildProcessFn(preview, { env: process.env });
+      debugLog('preview:stopped', { pid: preview.pid, handles: getActiveHandleSummary() });
+    }
+    if (fallbackServer) {
+      await fallbackServer.close();
+      debugLog('fallback:stopped', { handles: getActiveHandleSummary() });
+    }
   }
 }
 

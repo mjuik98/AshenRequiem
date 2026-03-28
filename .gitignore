@@ -12,5 +12,6 @@ dist/
 .playwright-cli/
 .superpowers/
 .worktrees/
+.codex
 docs/
 output/

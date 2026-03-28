@@ -60,17 +60,16 @@ export function createCollisionSystem() {
         const p = projectiles[i];
         if (!isLive(p) || p.ownerId !== player.id) continue;
 
-        const queuedHitTargets = new Set(p.hitTargets);
+        const queuedHitTargets = [];
         let queuedHitCount = p.hitCount ?? 0;
-        const candidates = _grid.queryUnique(p);
-        for (const e of candidates) {
-          if (!isLive(e)) continue;
-          if (queuedHitTargets.has(e.id)) continue;
+        _grid.forEachUnique(p, (e) => {
+          if (!isLive(e)) return;
+          if (p.hitTargets?.has(e.id) || queuedHitTargets.includes(e.id)) return;
 
           const rSum = p.radius + e.radius;
           const dSq  = distanceSq(p, e);
           if (dSq <= rSum * rSum) {
-            queuedHitTargets.add(e.id);
+            queuedHitTargets.push(e.id);
             queuedHitCount++;
             events.hits.push({
               attackerId:   p.ownerId,
@@ -81,9 +80,9 @@ export function createCollisionSystem() {
               projectile:   p,
             });
 
-            if (queuedHitCount >= p.pierce) break;
+            if (queuedHitCount >= p.pierce) return false;
           }
-        }
+        });
       }
 
       // ── 적/투사체 vs 플레이어 — 무적 프레임 중엔 전체 생략 ────────────────
@@ -126,8 +125,9 @@ export function createCollisionSystem() {
       // ── 픽업 수집 ────────────────────────────────────────────────────
       for (let i = 0; i < pickups.length; i++) {
         const pk = pickups[i];
+        const rSum = player.radius + pk.radius;
         if (isLive(pk) &&
-            distanceSq(player, pk) <= (player.radius + pk.radius) ** 2) {
+            distanceSq(player, pk) <= rSum * rSum) {
           events.pickupCollected.push({
             pickupId: pk.id,
             pickup:   pk,

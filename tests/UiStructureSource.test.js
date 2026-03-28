@@ -3,15 +3,24 @@ import { readProjectSource } from './helpers/sourceInspection.js';
 
 const resultViewSource = readProjectSource('../src/ui/result/ResultView.js');
 const codexViewSource = readProjectSource('../src/ui/codex/CodexView.js');
+const metaShopViewSource = readProjectSource('../src/ui/metashop/MetaShopView.js');
 const soundSystemSource = readProjectSource('../src/systems/sound/SoundSystem.js');
 const codexStylesSource = readProjectSource('../src/ui/codex/codexStyles.js');
 const codexAccessoryTabSource = readProjectSource('../src/ui/codex/codexAccessoryTab.js');
+const pauseViewSource = readProjectSource('../src/ui/pause/PauseView.js');
 const pauseStylesSource = readProjectSource('../src/ui/pause/pauseStyles.js');
 const accessoryDataSource = readProjectSource('../src/data/accessoryData.js');
 const weaponDataSource = readProjectSource('../src/data/weaponData.js');
 const levelUpViewSource = readProjectSource('../src/ui/levelup/LevelUpView.js');
 const resultViewMarkupSource = readProjectSource('../src/ui/result/resultViewMarkup.js');
 const resultViewStylesSource = readProjectSource('../src/ui/result/resultViewStyles.js');
+const pauseViewShellSource = readProjectSource('../src/ui/pause/pauseViewShell.js');
+const settingsViewSource = readProjectSource('../src/ui/settings/SettingsView.js');
+const startLoadoutMarkupSource = readProjectSource('../src/ui/title/startLoadoutMarkup.js');
+const startLoadoutStylesSource = readProjectSource('../src/ui/title/startLoadoutStyles.js');
+const startLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
+const levelUpContentSource = readProjectSource('../src/ui/levelup/levelUpContent.js');
+const levelUpStylesSource = readProjectSource('../src/ui/levelup/levelUpViewStyles.js');
 
 console.log('\n[UiStructureSource]');
 
@@ -212,6 +221,71 @@ await test('Pause/Result 액션 버튼은 공통 토큰 모듈을 사용한다',
       || /from '\.\.\/shared\/actionButtonTheme\.js'/.test(resultViewStylesSource),
     true,
     'ResultView 분해 helper가 공통 action button theme를 사용하지 않음',
+  );
+});
+
+await test('모달 계열 UI는 공통 modal theme와 action button 토큰을 공유한다', async () => {
+  let modalTheme;
+  let modalShell;
+  let dialogRuntime;
+  let levelUpContent;
+  let pauseStyles;
+  let startLoadoutMarkup;
+  let startLoadoutStyles;
+
+  try {
+    modalTheme = await import('../src/ui/shared/modalTheme.js');
+    modalShell = await import('../src/ui/shared/modalShell.js');
+    dialogRuntime = await import('../src/ui/shared/dialogRuntime.js');
+    levelUpContent = await import('../src/ui/levelup/levelUpContent.js');
+    pauseStyles = await import('../src/ui/pause/pauseStyles.js');
+    startLoadoutMarkup = await import('../src/ui/title/startLoadoutMarkup.js');
+    startLoadoutStyles = await import('../src/ui/title/startLoadoutStyles.js');
+  } catch (error) {
+    throw new Error(`modal theme import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof modalTheme.MODAL_THEME, 'object', 'MODAL_THEME 토큰이 없음');
+  assert.equal(typeof modalTheme.MODAL_SHARED_CSS, 'string', 'MODAL_SHARED_CSS가 없음');
+  assert.equal(typeof modalShell.renderModalShell, 'function', 'renderModalShell helper가 없음');
+  assert.equal(typeof modalShell.renderModalHeader, 'function', 'renderModalHeader helper가 없음');
+  assert.equal(typeof dialogRuntime.bindDialogRuntime, 'function', 'bindDialogRuntime helper가 없음');
+  assert.equal(typeof levelUpContent.buildLevelUpHeaderMarkup, 'function', 'LevelUp markup helper가 없음');
+  assert.equal(typeof pauseStyles.PAUSE_VIEW_CSS, 'string', 'PauseView style helper가 없음');
+  assert.equal(typeof startLoadoutMarkup.renderStartLoadoutMarkup, 'function', 'StartLoadout markup helper가 없음');
+  assert.equal(typeof startLoadoutStyles.ensureStartLoadoutStyles, 'function', 'StartLoadout style helper가 없음');
+  assert.equal(
+    /from '\.\.\/shared\/modalTheme\.js'/.test(startLoadoutStylesSource)
+      || /from '\.\.\/shared\/modalTheme\.js'/.test(resultViewStylesSource)
+      || /from '\.\.\/shared\/modalTheme\.js'/.test(pauseStylesSource)
+      || /from '\.\.\/shared\/modalTheme\.js'/.test(levelUpStylesSource),
+    true,
+    '모달 스타일이 공통 modal theme를 사용하지 않음',
+  );
+  assert.equal(
+    /from '\.\.\/shared\/actionButtonTheme\.js'/.test(startLoadoutMarkupSource)
+      || /from '\.\.\/shared\/actionButtonTheme\.js'/.test(levelUpContentSource),
+    true,
+    'StartLoadout/LevelUp가 공통 action button theme를 사용하지 않음',
+  );
+  assert.equal(
+    /from '\.\.\/shared\/modalShell\.js'/.test(startLoadoutMarkupSource)
+      && /from '\.\.\/shared\/modalShell\.js'/.test(levelUpContentSource)
+      && /from '\.\.\/shared\/modalShell\.js'/.test(resultViewMarkupSource)
+      && /from '\.\.\/shared\/modalShell\.js'/.test(pauseViewShellSource),
+    true,
+    '모달 markup helper들이 공통 modal shell을 사용하지 않음',
+  );
+  assert.equal(
+    /from '\.\.\/shared\/dialogRuntime\.js'/.test(startLoadoutViewSource)
+      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(levelUpViewSource)
+      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(pauseViewSource)
+      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(resultViewSource)
+      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(metaShopViewSource)
+      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(settingsViewSource)
+      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(codexViewSource),
+    true,
+    '오버레이/서브스크린 view들이 공통 dialog runtime을 사용하지 않음',
   );
 });
 

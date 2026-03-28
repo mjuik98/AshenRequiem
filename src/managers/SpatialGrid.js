@@ -126,22 +126,36 @@ export class SpatialGrid {
    * @returns {object[]} 반환된 배열은 다음 queryUnique 호출까지만 유효하다.
    */
   queryUnique(entity) {
-    this._seenIds.clear();
     this._queryBuffer.length = 0;
+    this.forEachUnique(entity, (candidate) => {
+      this._queryBuffer.push(candidate);
+    });
+    return this._queryBuffer;
+  }
+
+  /**
+   * 중복 없는 후보를 callback으로 순회한다.
+   * callback이 false를 반환하면 즉시 순회를 중단한다.
+   *
+   * @param {object} entity
+   * @param {(candidate: object) => (void | boolean)} visit
+   */
+  forEachUnique(entity, visit) {
+    this._seenIds.clear();
 
     const count = this._fillCellBuffer(entity);
     for (let i = 0; i < count; i++) {
       const cell = this._cells.get(this._key(this._cellCxBuf[i], this._cellCyBuf[i]));
       if (!cell) continue;
       for (let j = 0; j < cell.length; j++) {
-        const e = cell[j];
-        if (!this._seenIds.has(e.id)) {
-          this._seenIds.add(e.id);
-          this._queryBuffer.push(e);
+        const candidate = cell[j];
+        if (this._seenIds.has(candidate.id)) continue;
+        this._seenIds.add(candidate.id);
+        if (visit(candidate) === false) {
+          return;
         }
       }
     }
-    return this._queryBuffer;
   }
 
   /** 현재 점유된 셀 수를 반환한다. (디버그·프로파일링용) */

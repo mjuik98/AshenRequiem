@@ -1,4 +1,21 @@
-export const ACTION_BUTTON_THEME = Object.freeze({
+import { MODAL_TONES } from './modalTheme.js';
+
+function buildModalActionTone(modalTone = {}) {
+  const accent = modalTone.accent ?? '#d4af6a';
+  const focusRing = modalTone.focusRing ?? 'rgba(217,179,107,0.46)';
+  const panelBorder = modalTone.panelBorder ?? 'rgba(212,175,106,0.28)';
+  const accentSoft = modalTone.accentSoft ?? 'rgba(212,175,106,0.72)';
+
+  return {
+    border: panelBorder,
+    background: focusRing.replace(/0?\.\d+\)/, '0.14)'),
+    color: accent,
+    hoverBorder: accentSoft.replace(/0?\.\d+\)/, '0.82)'),
+    hoverBackground: focusRing.replace(/0?\.\d+\)/, '0.24)'),
+  };
+}
+
+const ACTION_BUTTON_THEME_MAP = {
   accent: {
     border: 'rgba(212,175,106,0.32)',
     background: 'rgba(212,175,106,0.12)',
@@ -27,7 +44,27 @@ export const ACTION_BUTTON_THEME = Object.freeze({
     hoverBorder: 'rgba(129,199,132,0.5)',
     hoverBackground: 'rgba(102,187,106,0.24)',
   },
-});
+  loadout: buildModalActionTone(MODAL_TONES.loadout),
+  pause: buildModalActionTone(MODAL_TONES.pause),
+  reward: buildModalActionTone(MODAL_TONES.reward),
+  'result-victory': buildModalActionTone(MODAL_TONES['result-victory']),
+  'result-defeat': buildModalActionTone(MODAL_TONES['result-defeat']),
+};
+
+export const ACTION_BUTTON_THEME = Object.freeze(ACTION_BUTTON_THEME_MAP);
+
+function buildToneCss(tone, values) {
+  return `
+  .ui-action-btn--${tone} {
+    border-color: ${values.border};
+    background: ${values.background};
+    color: ${values.color};
+  }
+  .ui-action-btn--${tone}:hover {
+    border-color: ${values.hoverBorder};
+    background: ${values.hoverBackground};
+  }`;
+}
 
 export const ACTION_BUTTON_SHARED_CSS = `
   .ui-action-btn {
@@ -44,50 +81,38 @@ export const ACTION_BUTTON_SHARED_CSS = `
     transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
     text-decoration: none;
     box-sizing: border-box;
+    white-space: nowrap;
   }
   .ui-action-btn:hover {
     transform: translateY(-1px);
   }
+  .ui-action-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(212,175,106,0.22);
+  }
   .ui-action-btn:disabled {
     opacity: 0.5;
-    cursor: wait;
+    cursor: not-allowed;
     transform: none;
   }
-  .ui-action-btn--accent {
-    border-color: ${ACTION_BUTTON_THEME.accent.border};
-    background: ${ACTION_BUTTON_THEME.accent.background};
-    color: ${ACTION_BUTTON_THEME.accent.color};
+  .ui-action-btn--pill {
+    border-radius: 999px;
   }
-  .ui-action-btn--accent:hover {
-    border-color: ${ACTION_BUTTON_THEME.accent.hoverBorder};
-    background: ${ACTION_BUTTON_THEME.accent.hoverBackground};
+  .ui-action-btn--compact {
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 11px;
   }
-  .ui-action-btn--neutral {
-    border-color: ${ACTION_BUTTON_THEME.neutral.border};
-    background: ${ACTION_BUTTON_THEME.neutral.background};
-    color: ${ACTION_BUTTON_THEME.neutral.color};
+  ${Object.entries(ACTION_BUTTON_THEME).map(([tone, values]) => buildToneCss(tone, values)).join('\n')}
+  .ui-action-btn--solid.ui-action-btn--accent {
+    background: linear-gradient(180deg, #d8bb78 0%, #9a7130 100%);
+    border-color: rgba(212,175,106,0.74);
+    color: #140d03;
+    box-shadow: 0 8px 24px rgba(154,113,48,0.2);
   }
-  .ui-action-btn--neutral:hover {
-    border-color: ${ACTION_BUTTON_THEME.neutral.hoverBorder};
-    background: ${ACTION_BUTTON_THEME.neutral.hoverBackground};
-  }
-  .ui-action-btn--danger {
-    border-color: ${ACTION_BUTTON_THEME.danger.border};
-    background: ${ACTION_BUTTON_THEME.danger.background};
-    color: ${ACTION_BUTTON_THEME.danger.color};
-  }
-  .ui-action-btn--danger:hover {
-    border-color: ${ACTION_BUTTON_THEME.danger.hoverBorder};
-    background: ${ACTION_BUTTON_THEME.danger.hoverBackground};
-  }
-  .ui-action-btn--success {
-    border-color: ${ACTION_BUTTON_THEME.success.border};
-    background: ${ACTION_BUTTON_THEME.success.background};
-    color: ${ACTION_BUTTON_THEME.success.color};
-  }
-  .ui-action-btn--success:hover {
-    border-color: ${ACTION_BUTTON_THEME.success.hoverBorder};
-    background: ${ACTION_BUTTON_THEME.success.hoverBackground};
+  .ui-action-btn--solid.ui-action-btn--accent:hover {
+    background: linear-gradient(180deg, #e2c98d 0%, #a97d37 100%);
+    border-color: rgba(241,209,138,0.82);
   }
   .ui-action-btn--stretch {
     width: 100%;
@@ -99,26 +124,42 @@ export function renderActionButton({
   id = '',
   type = 'button',
   tone = 'accent',
+  shape = 'default',
+  size = 'md',
+  solid = false,
   label = '',
   ariaLabel = '',
   leading = '',
   trailing = '',
   disabled = false,
   stretch = false,
+  attributes = {},
 } = {}) {
   const safeTone = Object.hasOwn(ACTION_BUTTON_THEME, tone) ? tone : 'accent';
   const classes = [
     'ui-action-btn',
     `ui-action-btn--${safeTone}`,
+    shape === 'pill' ? 'ui-action-btn--pill' : '',
+    size === 'sm' ? 'ui-action-btn--compact' : '',
+    solid ? 'ui-action-btn--solid' : '',
     stretch ? 'ui-action-btn--stretch' : '',
     className,
   ].filter(Boolean).join(' ');
 
+  const extraAttrs = Object.entries(attributes).map(([key, value]) => {
+    if (value === false || value == null) return '';
+    if (value === true) return key;
+    return `${key}="${String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')}"`;
+  }).filter(Boolean).join(' ');
+
   const attrs = [
     `class="${classes}"`,
-    `type="${type}"`,
     id ? `id="${id}"` : '',
     ariaLabel ? `aria-label="${ariaLabel}"` : '',
+    extraAttrs,
+    `type="${type}"`,
     disabled ? 'disabled' : '',
   ].filter(Boolean).join(' ');
 

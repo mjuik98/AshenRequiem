@@ -1,3 +1,6 @@
+import { renderActionButton } from '../shared/actionButtonTheme.js';
+import { renderModalHeader, renderModalShell } from '../shared/modalShell.js';
+
 function getTypeClass(type) {
   switch (type) {
     case 'weapon':
@@ -45,24 +48,53 @@ export function buildLevelUpHeaderMarkup({
 } = {}) {
   const isChest = title.includes('상자');
   const titleClass = isChest ? 'levelup-title chest-title' : 'levelup-title';
-
-  return `
-    <div class="levelup-header">
-      <div class="${titleClass}">${title}</div>
-      <div class="levelup-actions">
-        <div class="levelup-uses">남은 리롤 <strong>${rerollsRemaining}</strong></div>
-        <div class="levelup-uses">남은 봉인 <strong>${banishesRemaining}</strong></div>
-        <button
-          class="levelup-mode-btn ${banishMode ? 'is-active' : ''}"
-          type="button"
-          ${banishesRemaining <= 0 && !banishMode ? 'disabled' : ''}
-        >
-          ${banishMode ? '봉인 모드 해제' : '봉인 모드'}
-        </button>
-      </div>
+  const eyebrow = isChest ? 'Reward' : 'Choice';
+  const copy = isChest
+    ? '상자에서 나온 보상 중 현재 빌드에 가장 필요한 선택지를 고르세요.'
+    : '지금 빌드 흐름에 맞는 강화 카드를 선택하세요.';
+  const modeButton = renderActionButton({
+    className: `levelup-mode-btn ${banishMode ? 'is-active' : ''}`,
+    label: banishMode ? '봉인 모드 해제' : '봉인 모드',
+    tone: banishMode ? 'danger' : 'neutral',
+    shape: 'pill',
+    size: 'sm',
+    disabled: banishesRemaining <= 0 && !banishMode,
+  });
+  const headerHtml = renderModalHeader({
+    eyebrow,
+    title,
+    copy,
+    titleTag: 'div',
+    titleId: 'levelup-title',
+    headerClassName: 'levelup-header',
+    eyebrowClassName: 'levelup-eyebrow',
+    titleClassName: titleClass,
+    copyClassName: 'levelup-copy',
+  });
+  const bodyHtml = `
+    <div class="levelup-actions">
+      <div class="levelup-uses">남은 리롤 <strong>${rerollsRemaining}</strong></div>
+      <div class="levelup-uses">남은 봉인 <strong>${banishesRemaining}</strong></div>
+      ${modeButton}
     </div>
     <div class="levelup-cards"></div>
   `;
+
+  return renderModalShell({
+    tone: 'reward',
+    shellClassName: 'levelup-shell',
+    backdropClassName: 'levelup-backdrop',
+    panelTag: 'div',
+    panelClassName: 'levelup-stage ui-modal-panel--floating ui-modal-panel--scroll',
+    panelAttributes: {
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': 'levelup-title',
+      tabindex: '-1',
+    },
+    headerHtml,
+    bodyHtml,
+  });
 }
 
 export function buildLevelUpCardMarkup({
@@ -82,6 +114,14 @@ export function buildLevelUpCardMarkup({
   const discoveryLabel = upgrade?.discoveryLabel ?? '';
   const icon = upgrade?.icon ?? (upgrade?.type === 'weapon_evolution' ? '✦' : upgrade?.type === 'accessory' || upgrade?.type === 'accessory_upgrade' ? '◆' : upgrade?.type === 'slot' ? '⬒' : upgrade?.type === 'stat' ? '✚' : '⚔');
   const badgeClass = upgrade?.type === 'weapon_evolution' ? ' card-badge-evolution' : '';
+  const rerollButton = renderActionButton({
+    className: 'card-reroll-btn',
+    label: '리롤',
+    tone: 'neutral',
+    shape: 'pill',
+    size: 'sm',
+    disabled: rerollDisabled,
+  });
 
   return `
     <div class="levelup-card-shell" data-index="${index}">
@@ -107,7 +147,7 @@ export function buildLevelUpCardMarkup({
         </div>
       </div>
       <div class="card-footer-actions">
-        <button class="card-reroll-btn" type="button" ${rerollDisabled ? 'disabled' : ''}>리롤</button>
+        ${rerollButton}
       </div>
     </div>
   `;

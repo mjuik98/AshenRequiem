@@ -44,18 +44,36 @@ export async function runPauseOverlayScenario(url, artifactDir, transport) {
     visible: tooltipVisible === true,
     text: await transport.evalJson(`document.querySelector('.pv-tooltip')?.innerText ?? ''`),
   };
+  const keyboardState = {
+    focusInsideDialog: await transport.evalJson(`Boolean(document.querySelector('.pv-panel') && document.activeElement && (document.activeElement === document.querySelector('.pv-panel') || document.querySelector('.pv-panel').contains(document.activeElement)))`),
+  };
+  await transport.press('Tab');
+  await sleep(120);
+  keyboardState.tabMovesWithinDialog = await transport.evalJson(`Boolean(document.querySelector('.pv-panel') && document.activeElement && document.activeElement !== document.querySelector('.pv-panel') && document.querySelector('.pv-panel').contains(document.activeElement))`);
   await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+  await transport.press('Escape');
+  const resumedState = await transport.pollEval(
+    'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+    (value) => value?.ui?.pauseVisible === false,
+    3000,
+    150,
+  );
+  keyboardState.escapeResumes = resumedState?.ui?.pauseVisible === false;
   const summary = {
     scenario: 'pause_overlay',
     pauseOpened,
     hover,
     state,
     tooltip,
+    keyboardState,
     assertions: {
       pauseVisible: state?.ui?.pauseVisible === true,
       tooltipVisible: tooltip?.visible === true,
       hasTooltipText: typeof tooltip?.text === 'string'
         && tooltip.text.includes(hover?.cardName ?? ''),
+      focusInsideDialog: keyboardState?.focusInsideDialog === true,
+      tabMovesWithinDialog: keyboardState?.tabMovesWithinDialog === true,
+      escapeResumes: keyboardState?.escapeResumes === true,
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
@@ -158,12 +176,19 @@ export async function runLevelUpOverlayScenario(url, artifactDir, transport) {
     firstPriorityHint: await transport.evalJson(`document.querySelector('.card-priority-hint')?.textContent?.trim() ?? ''`),
     secondPriorityHint: await transport.evalJson(`document.querySelectorAll('.card-priority-hint')[1]?.textContent?.trim() ?? ''`),
   };
+  const keyboardState = {
+    focusInsideDialog: await transport.evalJson(`Boolean(document.querySelector('.levelup-stage') && document.activeElement && (document.activeElement === document.querySelector('.levelup-stage') || document.querySelector('.levelup-stage').contains(document.activeElement)))`),
+  };
+  await transport.press('Tab');
+  await sleep(120);
+  keyboardState.tabMovesWithinDialog = await transport.evalJson(`Boolean(document.querySelector('.levelup-stage') && document.activeElement && document.activeElement !== document.querySelector('.levelup-stage') && document.querySelector('.levelup-stage').contains(document.activeElement))`);
   await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
   const summary = {
     scenario: 'levelup_overlay',
     levelUpOpened,
     state,
     overlayUi,
+    keyboardState,
     assertions: {
       levelUpVisible: state?.ui?.levelUpVisible === true,
       onlyLevelUpVisible: state?.ui?.pauseVisible === false && state?.ui?.resultVisible === false,
@@ -174,6 +199,8 @@ export async function runLevelUpOverlayScenario(url, artifactDir, transport) {
       hasPromotedRelationHint: overlayUi.firstPriorityHint === '시너지 빌드 연결'
         && overlayUi.secondPriorityHint === '진화 빌드 연결',
       relationHintsRemainVisible: overlayUi.relatedHintCount >= 2,
+      focusInsideDialog: keyboardState?.focusInsideDialog === true,
+      tabMovesWithinDialog: keyboardState?.tabMovesWithinDialog === true,
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
@@ -205,6 +232,12 @@ export async function runResultScreenScenario(url, artifactDir, transport) {
     restart: await transport.evalJson(`document.querySelector('.result-restart-btn')?.textContent?.trim() ?? ''`),
     titleButton: await transport.evalJson(`document.querySelector('.result-title-btn')?.textContent?.trim() ?? ''`),
   };
+  const keyboardState = {
+    focusInsideDialog: await transport.evalJson(`Boolean(document.querySelector('.result-card') && document.activeElement && (document.activeElement === document.querySelector('.result-card') || document.querySelector('.result-card').contains(document.activeElement)))`),
+  };
+  await transport.press('Tab');
+  await sleep(120);
+  keyboardState.tabMovesWithinDialog = await transport.evalJson(`Boolean(document.querySelector('.result-card') && document.activeElement && document.activeElement !== document.querySelector('.result-card') && document.querySelector('.result-card').contains(document.activeElement))`);
   await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
   const summary = {
     scenario: 'result_screen',
@@ -212,6 +245,7 @@ export async function runResultScreenScenario(url, artifactDir, transport) {
     triggerState,
     state,
     resultUi,
+    keyboardState,
     assertions: {
       resultVisible: state?.ui?.resultVisible === true,
       hasOutcomeTitle: typeof resultUi?.title === 'string'
@@ -219,6 +253,8 @@ export async function runResultScreenScenario(url, artifactDir, transport) {
       hasRestartButton: typeof resultUi?.restart === 'string' && resultUi.restart.includes('다시 시작'),
       hasTitleButton: typeof resultUi?.titleButton === 'string'
         && resultUi.titleButton.includes('메인 화면으로'),
+      focusInsideDialog: keyboardState?.focusInsideDialog === true,
+      tabMovesWithinDialog: keyboardState?.tabMovesWithinDialog === true,
     },
   };
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);

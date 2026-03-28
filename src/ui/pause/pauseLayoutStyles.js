@@ -8,23 +8,15 @@ export const PAUSE_LAYOUT_CSS = `
   }
   .pv-overlay * { pointer-events: auto; }
   .pv-backdrop {
-    position: absolute; inset: 0;
     background: rgba(4,3,10,0.82);
-    backdrop-filter: blur(3px);
   }
   .pv-panel {
-    position: relative; z-index: 1;
+    z-index: 1;
     width: min(960px, calc(100vw - 24px));
     max-height: calc(100vh - 40px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
     background: linear-gradient(160deg, rgba(24,18,36,0.98), rgba(10,8,18,0.99));
-    border: 1px solid rgba(212,175,106,0.25);
-    border-radius: 20px;
     box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 32px 80px rgba(0,0,0,0.7);
-    animation: pv-enter 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
   }
-  @keyframes pv-enter { from{opacity:0;transform:scale(0.91) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
   .pv-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 20px 24px 14px;

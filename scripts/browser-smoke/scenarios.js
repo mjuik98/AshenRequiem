@@ -10,6 +10,12 @@ export const SCENARIOS = {
     suite: 'core',
     stepNames: ['title', 'play'],
   },
+  title_loadout_accessibility: {
+    id: 'title_loadout_accessibility',
+    artifactSlug: 'title-loadout-accessibility',
+    suite: 'core',
+    stepNames: ['title', 'loadout', 'responsive', 'keyboard'],
+  },
   title_codex: {
     id: 'title_codex',
     artifactSlug: 'title-codex',
@@ -38,13 +44,13 @@ export const SCENARIOS = {
     id: 'pause_overlay',
     artifactSlug: 'pause-overlay',
     suite: 'core',
-    stepNames: ['play', 'pause'],
+    stepNames: ['play', 'pause', 'keyboard'],
   },
   levelup_overlay: {
     id: 'levelup_overlay',
     artifactSlug: 'levelup-overlay',
     suite: 'core',
-    stepNames: ['play', 'levelup'],
+    stepNames: ['play', 'levelup', 'keyboard'],
   },
   pause_layout: {
     id: 'pause_layout',
@@ -57,7 +63,7 @@ export const SCENARIOS = {
     id: 'result_screen',
     artifactSlug: 'result-screen',
     suite: 'core',
-    stepNames: ['play', 'result'],
+    stepNames: ['play', 'result', 'keyboard'],
   },
 };
 

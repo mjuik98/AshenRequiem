@@ -1,7 +1,7 @@
 /**
  * src/core/PipelineBuilder.js — 파이프라인 조립 전담 빌더
  *
- * CHANGE(P0): currencyHandler 등록 추가
+ * CHANGE(P0): currency event adapter 등록 추가
  * CHANGE(P1): session을 4번째 파라미터로 분리 수신 (R-14 준수)
  * CHANGE(P3): eventHandlerRegistry를 통한 핸들러 등록 일원화
  */

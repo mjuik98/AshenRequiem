@@ -50,20 +50,17 @@ export function createEnemyMovementSystem() {
       // FIX(BUG-4): a.stunned 체크
       if (!isLive(a) || a.isProp || a.knockbackTimer > 0 || a.stunned) continue;
 
-      const candidates = _grid.queryUnique(a);
-
-      for (let j = 0; j < candidates.length; j++) {
-        const b = candidates[j];
-        if (a === b) continue;
+      _grid.forEachUnique(a, (b) => {
+        if (a === b) return;
         // FIX(BUG-4): b.stunned 체크
-        if (!isLive(b) || b.isProp || b.knockbackTimer > 0 || b.stunned) continue;
-        if (a.id >= b.id) continue;
+        if (!isLive(b) || b.isProp || b.knockbackTimer > 0 || b.stunned) return;
+        if (a.id >= b.id) return;
 
         const dSq = distanceSq(a, b);
-        if (dSq === 0) continue;
+        if (dSq === 0) return;
 
         const minDist = (a.radius ?? 12) + (b.radius ?? 12);
-        if (dSq >= minDist * minDist) continue;
+        if (dSq >= minDist * minDist) return;
 
         const dist = Math.sqrt(dSq);
         const push = ((minDist - dist) / minDist) * SEPARATION_STRENGTH;
@@ -76,7 +73,7 @@ export function createEnemyMovementSystem() {
         a.y -= ny * push;
         b.x += nx * push;
         b.y += ny * push;
-      }
+      });
     }
   }
 

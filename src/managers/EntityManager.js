@@ -1,12 +1,12 @@
 /**
  * src/managers/EntityManager.js
  *
- * CHANGE(P1-F): compact.js를 단일 진실의 원천으로 위임
+ * CHANGE(P1-F): entityUtils.js를 단일 진실의 원천으로 위임
  *   Before: EntityManager._compact()가 자체 dead 판정 로직 인라인 구현
- *           → compact.js와 EntityManager가 각자 다른 기준으로 dead 판정
+ *           → entityUtils.js와 EntityManager가 각자 다른 기준으로 dead 판정
  *           → dead 판정 변경 시 두 파일 모두 수정 필요
- *   After:  isDead() / compactWithPool()을 compact.js에서 import
- *           → dead 판정의 단일 진실의 원천: src/utils/compact.js
+ *   After:  isDead() / compactWithPool()을 entityUtils.js에서 import
+ *           → dead 판정의 단일 진실의 원천: src/utils/entityUtils.js
  *           → flushDestroy()가 in-place 정리로 전환 (새 배열 할당 제거)
  *
  * 사용 원칙:

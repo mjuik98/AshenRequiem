@@ -1,5 +1,6 @@
 import {
   runTitleCodexScenario,
+  runTitleLoadoutAccessibilityScenario,
   runTitleMetaShopScenario,
   runTitleSettingsScenario,
   runTitleSettingsPersistScenario,
@@ -14,6 +15,7 @@ import {
 
 const RUNNERS = {
   title_to_play: runTitleToPlayScenario,
+  title_loadout_accessibility: runTitleLoadoutAccessibilityScenario,
   title_codex: runTitleCodexScenario,
   title_meta_shop: runTitleMetaShopScenario,
   title_settings: runTitleSettingsScenario,

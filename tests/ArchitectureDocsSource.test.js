@@ -3,6 +3,7 @@ import { createRunner } from './helpers/testRunner.js';
 import {
   projectPathExists,
   readProjectJson,
+  readOptionalProjectSource,
   readProjectSource,
 } from './helpers/sourceInspection.js';
 
@@ -13,6 +14,7 @@ const { test, summary } = createRunner('ArchitectureDocsSource');
 const readmeSource = readProjectSource('../README.md');
 const agentsSource = readProjectSource('../AGENTS.md');
 const architectureSource = readProjectSource('../docs/architecture-current.md');
+const maintenanceScriptsSource = readOptionalProjectSource('../docs/maintenance-scripts.md');
 const packageJson = readProjectJson('../package.json');
 
 test('architecture snapshot tooling exposes generated docs sections and an npm script', async () => {
@@ -41,10 +43,19 @@ test('README links the snapshot workflow and keeps verify command terminology al
   assert.equal(readmeSource.includes('architecture-current.md'), true, 'README가 현재 구조 문서를 가리키지 않음');
   assert.equal(readmeSource.includes('npm run architecture:snapshot'), true, 'README가 architecture snapshot 갱신 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run compatibility:wrappers'), true, 'README가 wrapper snapshot 갱신 명령을 안내하지 않음');
+  assert.equal(readmeSource.includes('maintenance-scripts.md'), true, 'README가 maintenance scripts 문서를 가리키지 않음');
   assert.equal(readmeSource.includes('npm run verify:smoke'), true, 'README가 로컬 smoke verify 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run verify:ci'), true, 'README가 CI verify 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run lint'), true, 'README가 lint baseline을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run check:architecture-docs'), true, 'README가 architecture doc drift 검사를 안내하지 않음');
+});
+
+test('maintenance script inventory documents internal helpers and manual-only tools separately', () => {
+  assert.equal(maintenanceScriptsSource.includes('Maintenance Scripts'), true, 'maintenance script inventory 문서 헤더가 없음');
+  assert.equal(maintenanceScriptsSource.includes('scripts/importGraph.mjs'), true, 'importGraph helper 역할이 문서화되지 않음');
+  assert.equal(maintenanceScriptsSource.includes('scripts/addTsCheck.js'), true, 'addTsCheck tool 역할이 문서화되지 않음');
+  assert.equal(/manual-only|수동 유지보수/i.test(maintenanceScriptsSource), true, 'manual-only maintenance tool 구분이 문서화되지 않음');
+  assert.equal(/check:boundaries/.test(maintenanceScriptsSource), true, 'maintenance scripts 문서가 실제 baseline 연결을 설명하지 않음');
 });
 
 test('compatibility wrapper inventory documents remaining public shims and their disposition', async () => {
@@ -57,14 +68,20 @@ test('compatibility wrapper inventory documents remaining public shims and their
   assert.equal(wrapperSource.includes('src/core/Game.js'), true, 'Game facade 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('src/scenes/play/PlayResultHandler.js'), true, 'PlayResultHandler 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('keep-public-wrapper'), true, 'wrapper disposition taxonomy가 문서화되지 않음');
-  assert.equal(wrapperSource.includes('remove-when-callers-migrate'), true, 'wrapper removal candidate taxonomy가 문서화되지 않음');
+  assert.equal(wrapperSource.includes('zero-caller'), true, 'dead wrapper 정리 원칙이 문서화되지 않음');
   assert.equal(wrapperSource.includes('## Generated Wrapper Usage Snapshot'), true, 'wrapper inventory에 generated usage snapshot section이 없음');
   assert.equal(wrapperSource.includes('internalCallers'), true, 'wrapper inventory가 repo 내부 caller 수를 기록하지 않음');
   assert.equal(
-    zeroCallerWrappers.every((wrapperPath) => wrapperModule.WRAPPER_INVENTORY.find((entry) => entry.path === wrapperPath)?.disposition === '`remove-when-callers-migrate`'),
-    true,
-    'repo 내부 caller가 0인 wrapper는 removal candidate로 분류돼야 함',
+    zeroCallerWrappers.length,
+    0,
+    'repo 내부 caller가 0인 wrapper는 inventory에 남기지 않아야 함',
   );
+  assert.equal(
+    wrapperModule.WRAPPER_INVENTORY.every((entry) => entry.disposition === '`keep-public-wrapper`'),
+    true,
+    '남아 있는 wrapper inventory는 keep-public-wrapper만 포함해야 함',
+  );
+  assert.equal(wrapperSource.includes('src/scenes/play/playerSpawnRuntime.js'), false, '삭제된 dead wrapper가 inventory 문서에 남아 있음');
 });
 
 test('AGENTS documents the split between normative rules and current-state facts', () => {
@@ -78,6 +95,12 @@ test('AGENTS documents the split between normative rules and current-state facts
 
 test('legacy MVP-only comments are removed from active runtime modules', () => {
   assert.equal(projectPathExists('../src/managers/AssetManager.js'), false, '유휴 AssetManager가 아직 남아 있음');
+  assert.equal(projectPathExists('../src/scenes/ResultScene.js'), false, '죽은 ResultScene placeholder가 아직 남아 있음');
+  assert.equal(projectPathExists('../src/managers/poolResets.js'), false, '호출자 없는 poolResets re-export가 아직 남아 있음');
+  assert.equal(projectPathExists('../src/renderer/IRenderer.js'), false, '미사용 IRenderer 추상화 파일이 아직 남아 있음');
+  assert.equal(projectPathExists('../src/systems/progression/unlockEvaluator.js'), false, '호출자 없는 unlockEvaluator wrapper가 아직 남아 있음');
+  assert.equal(projectPathExists('../src/utils/spawnUtils.js'), false, '호출자 없는 spawnUtils helper가 아직 남아 있음');
+  assert.equal(projectPathExists('../src/utils/clamp.js'), false, '호출자 없는 clamp helper가 아직 남아 있음');
 });
 
 summary();

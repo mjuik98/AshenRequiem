@@ -1,4 +1,5 @@
 import { renderActionButton } from '../shared/actionButtonTheme.js';
+import { renderModalShell } from '../shared/modalShell.js';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -217,61 +218,76 @@ export function renderResultViewMarkup(stats, { onTitleCallback = null } = {}) {
         tone: 'neutral',
       })
     : '';
+  const bodyHtml = `
+    <div class="result-header ${modeClass}">
+      <p class="result-eyebrow ui-modal-eyebrow">Run Summary</p>
+      <div class="result-outcome-badge ${modeClass}">
+        <div class="result-outcome-dot ${modeClass}"></div>
+        <span>${isVictory ? 'The night is broken' : 'The hunt ends here'}</span>
+      </div>
+      <p class="result-title ui-modal-title" id="result-title">${isVictory ? 'VICTORY' : 'DEFEAT'}</p>
+      <p class="result-sub ui-modal-copy">${isVictory ? '모든 보스를 처치했습니다' : '당신의 전투가 기록되었습니다'}</p>
+    </div>
 
-  return `
-    <div class="result-card">
-      <div class="result-header ${modeClass}">
-        <div class="result-outcome-badge ${modeClass}">
-          <div class="result-outcome-dot ${modeClass}"></div>
-          <span>${isVictory ? 'The night is broken' : 'The hunt ends here'}</span>
-        </div>
-        <p class="result-title">${isVictory ? 'VICTORY' : 'DEFEAT'}</p>
-        <p class="result-sub">${isVictory ? '모든 보스를 처치했습니다' : '당신의 전투가 기록되었습니다'}</p>
+    <div class="result-body">
+      <div class="result-stat-grid">
+        ${renderStat(timeText, '생존 시간', newBestTime, bestTimeText ? `이전 기록 ${bestTimeText}` : null)}
+        ${renderStat(`Lv.${stats.level}`, '최종 레벨', newBestLevel, stats.bestLevel != null ? `이전 기록 Lv.${stats.bestLevel}` : null)}
+        ${renderStat(
+          Number(stats.killCount ?? 0).toLocaleString(),
+          '처치 수',
+          newBestKills,
+          stats.bestKills != null ? `이전 기록 ${Number(stats.bestKills).toLocaleString()}` : null,
+        )}
       </div>
 
-      <div class="result-body">
-        <div class="result-stat-grid">
-          ${renderStat(timeText, '생존 시간', newBestTime, bestTimeText ? `이전 기록 ${bestTimeText}` : null)}
-          ${renderStat(`Lv.${stats.level}`, '최종 레벨', newBestLevel, stats.bestLevel != null ? `이전 기록 Lv.${stats.bestLevel}` : null)}
-          ${renderStat(
-            Number(stats.killCount ?? 0).toLocaleString(),
-            '처치 수',
-            newBestKills,
-            stats.bestKills != null ? `이전 기록 ${Number(stats.bestKills).toLocaleString()}` : null,
-          )}
-        </div>
-
-        ${renderWeapons(stats.weapons)}
-        <div class="result-divider"></div>
-        ${renderAscension(stats)}
-        ${renderCurrency(stats.currencyEarned, stats.totalCurrency)}
-        ${renderDailyReward(stats.dailyReward)}
-        ${renderRunContext(stats)}
-        ${stats.analytics?.deathCauseSummary?.length
-          ? `
-            <div class="result-divider"></div>
-            <p class="result-section-title">최근 분석</p>
-            <div class="result-unlocks">
-              <div class="result-unlock-chip">주요 패배 원인 ${escapeHtml(stats.analytics.deathCauseSummary[0].deathCause)}</div>
-              <div class="result-unlock-chip">최근 승률 ${escapeHtml(String(Math.round(stats.analytics.winRate ?? 0)))}%</div>
-            </div>
-          `
-          : ''}
-        ${renderNextGoals(stats.nextGoals)}
-        ${renderRecommendations(stats.recommendations)}
-        ${stats.newUnlocks?.length ? renderUnlocks(stats.newUnlocks) : ''}
-        ${renderRecentRuns(stats.recentRuns)}
-      </div>
-
-      <div class="result-footer">
-        ${titleBtn}
-        ${renderActionButton({
-          className: 'result-restart-btn',
-          label: '↺ 다시 시작',
-          tone: isVictory ? 'success' : 'danger',
-          stretch: true,
-        })}
-      </div>
+      ${renderWeapons(stats.weapons)}
+      <div class="result-divider"></div>
+      ${renderAscension(stats)}
+      ${renderCurrency(stats.currencyEarned, stats.totalCurrency)}
+      ${renderDailyReward(stats.dailyReward)}
+      ${renderRunContext(stats)}
+      ${stats.analytics?.deathCauseSummary?.length
+        ? `
+          <div class="result-divider"></div>
+          <p class="result-section-title">최근 분석</p>
+          <div class="result-unlocks">
+            <div class="result-unlock-chip">주요 패배 원인 ${escapeHtml(stats.analytics.deathCauseSummary[0].deathCause)}</div>
+            <div class="result-unlock-chip">최근 승률 ${escapeHtml(String(Math.round(stats.analytics.winRate ?? 0)))}%</div>
+          </div>
+        `
+        : ''}
+      ${renderNextGoals(stats.nextGoals)}
+      ${renderRecommendations(stats.recommendations)}
+      ${stats.newUnlocks?.length ? renderUnlocks(stats.newUnlocks) : ''}
+      ${renderRecentRuns(stats.recentRuns)}
     </div>
   `;
+  const footerHtml = `
+    <div class="result-footer">
+      ${titleBtn}
+      ${renderActionButton({
+        className: 'result-restart-btn',
+        label: '↺ 다시 시작',
+        tone: isVictory ? 'success' : 'danger',
+        stretch: true,
+      })}
+    </div>
+  `;
+
+  return renderModalShell({
+    tone: isVictory ? 'result-victory' : 'result-defeat',
+    shellClassName: 'result-shell',
+    backdropClassName: 'result-backdrop',
+    panelTag: 'div',
+    panelClassName: 'result-card ui-modal-panel--floating',
+    panelAttributes: {
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': 'result-title',
+      tabindex: '-1',
+    },
+    bodyHtml,
+    footerHtml,
+  });
 }

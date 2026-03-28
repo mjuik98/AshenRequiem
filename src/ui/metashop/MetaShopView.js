@@ -3,6 +3,7 @@ import {
   META_SHOP_FILTERS,
   META_SHOP_SORTS,
 } from './metaShopModel.js';
+import { bindDialogRuntime } from '../shared/dialogRuntime.js';
 import { renderMetaShopMarkup } from './metaShopMarkup.js';
 import { ensureMetaShopStyles } from './metaShopStyles.js';
 
@@ -15,30 +16,32 @@ export class MetaShopView {
     this._selectedUpgradeId = null;
     this._activeCategory = 'all';
     this._activeSort = 'recommended';
+    this._dialogRuntime = null;
     ensureMetaShopStyles();
     container.appendChild(this.el);
-
-    this._handleKeyDown = (e) => {
-      if (e.key === 'Escape' || e.key === 'Esc') {
-        this._onBack?.();
-      }
-    };
   }
 
   show(session, onPurchase, onBack) {
     this._onPurchase = onPurchase;
     this._onBack     = onBack;
     this._render(session);
-    window.addEventListener('keydown', this._handleKeyDown, true);
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = bindDialogRuntime({
+      root: this.el,
+      panelSelector: '.ms-panel',
+      onRequestClose: () => this._onBack?.(),
+    });
+    this._dialogRuntime.focusInitial();
   }
 
   refresh(session) {
     this._render(session);
   }
 
-  destroy() { 
-    window.removeEventListener('keydown', this._handleKeyDown, true);
-    this.el.remove(); 
+  destroy() {
+    this._dialogRuntime?.dispose();
+    this._dialogRuntime = null;
+    this.el.remove();
   }
 
   // ── 내부 렌더 ──────────────────────────────────────────────────────

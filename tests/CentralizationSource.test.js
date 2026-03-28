@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test, summary } from './helpers/testRunner.js';
 import {
+  projectPathExists,
   readProjectSource,
   stripLineComments,
 } from './helpers/sourceInspection.js';
@@ -33,7 +34,6 @@ const weaponDataSource = readProjectSource('../src/data/weaponData.js');
 const accessoryModelSource = readProjectSource('../src/ui/codex/codexAccessoryModel.js');
 const pauseLoadoutStatsSource = readProjectSource('../src/ui/pause/pauseLoadoutStatsSections.js');
 const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
-const playerSpawnRuntimeSource = readProjectSource('../src/scenes/play/playerSpawnRuntime.js');
 const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
 const titleLoadoutFlowSource = readProjectSource('../src/scenes/title/titleLoadoutFlow.js');
 const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
@@ -41,8 +41,6 @@ const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSy
 const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
 const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
 const playResultHandlerSource = readProjectSource('../src/scenes/play/PlayResultHandler.js');
-const playSceneFlowSource = readProjectSource('../src/scenes/play/playSceneFlow.js');
-const levelUpFlowRuntimeSource = readProjectSource('../src/progression/levelUpFlowRuntime.js');
 const playSceneAppFlowSource = readProjectSource('../src/app/play/playSceneFlowService.js');
 const playerSpawnAppSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
 const levelUpAppFlowSource = readProjectSource('../src/app/play/levelUpFlowService.js');
@@ -144,14 +142,15 @@ test('PlayScene 부트스트랩과 PlayContext 런타임 생성은 전용 helper
   assert.equal(playContextSource.includes('createPlayContextRuntimeState'), true, 'PlayContext가 runtime helper를 사용하지 않음');
 });
 
-test('play orchestration helper는 app/play 소유 모듈로 이동하고 기존 경로는 호환 re-export만 남긴다', () => {
+test('play orchestration helper는 app/play 소유 모듈로 일원화되고 zero-caller wrapper는 제거된다', () => {
   assert.equal(playSceneSource.includes("from '../app/play/playSceneFlowService.js'"), true, 'PlayScene이 app/play flow service를 직접 사용하지 않음');
-  assert.equal(/export\s+\{[^}]*runPlaySceneFrame/.test(playSceneFlowSource), true, 'playSceneFlow wrapper가 app service를 re-export하지 않음');
+  assert.equal(projectPathExists('../src/scenes/play/playSceneFlow.js'), false, 'unused playSceneFlow wrapper가 제거되지 않음');
   assert.equal(playerSpawnAppSource.includes('resolvePlayerSpawnState'), true, 'playerSpawn application service가 없음');
-  assert.equal(playerSpawnRuntimeSource.includes("from '../../app/play/playerSpawnApplicationService.js'"), true, 'playerSpawnRuntime wrapper가 app service를 re-export하지 않음');
+  assert.equal(projectPathExists('../src/scenes/play/playerSpawnRuntime.js'), false, 'unused playerSpawnRuntime wrapper가 제거되지 않음');
   assert.equal(levelUpAppFlowSource.includes('decorateLevelUpChoices'), true, 'level up flow app service가 없음');
-  assert.equal(levelUpFlowRuntimeSource.includes("from '../app/play/levelUpFlowService.js'"), true, 'levelUpFlowRuntime wrapper가 app service를 re-export하지 않음');
+  assert.equal(projectPathExists('../src/progression/levelUpFlowRuntime.js'), false, 'unused levelUpFlowRuntime wrapper가 제거되지 않음');
   assert.equal(playSceneAppFlowSource.includes('showPlaySceneResult'), true, 'playScene flow app service가 결과 orchestration을 소유하지 않음');
+  assert.equal(/processPlayResult\(/.test(playSceneAppFlowSource), false, 'playScene flow app service가 play result domain을 직접 호출하면 안 됨');
   assert.equal(startRunAppSource.includes("from '../../scenes/play/playSceneRuntime.js'"), false, 'startRunApplicationService가 scene runtime helper에 직접 의존하면 안 됨');
 });
 
@@ -198,7 +197,7 @@ test('메타 씬은 app 계층 service를 통해 세션 규칙을 호출한다',
   assert.equal(titleLoadoutFlowSource.includes('createTitleLoadoutApplicationService'), true, 'titleLoadoutFlow가 title loadout application service를 사용하지 않음');
   assert.equal(titleLoadoutFlowSource.includes('setSelectedStartWeaponAndSave'), false, 'titleLoadoutFlow가 session facade를 직접 import하면 안 됨');
   assert.equal(playResultHandlerSource.includes('createPlayResultApplicationService'), true, 'PlayResultHandler가 play result application service를 사용하지 않음');
-  assert.equal(playSceneFlowSource.includes('processPlayResult('), false, 'playSceneFlow가 play result domain을 직접 호출하면 안 됨');
+  assert.equal(playSceneAppFlowSource.includes('processPlayResult('), false, 'playScene flow app service가 play result domain을 직접 호출하면 안 됨');
 });
 
 test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙화된다', () => {
@@ -208,7 +207,7 @@ test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙
   assert.equal(accessoryModelSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Codex accessory model이 전용 accessory helper를 사용하지 않음');
   assert.equal(pauseLoadoutStatsSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Pause loadout stats가 전용 accessory helper를 사용하지 않음');
   assert.equal(createPlayerSource.includes("from '../data/weaponDataHelpers.js'"), false, 'createPlayer가 여전히 데이터 helper에 직접 결합되어 있음');
-  assert.equal(playerSpawnRuntimeSource.includes('resolveStartLoadout('), false, 'playerSpawnRuntime이 broad start loadout DTO를 그대로 재노출하면 안 됨');
+  assert.equal(playerSpawnAppSource.includes('resolveStartLoadout('), false, 'playerSpawn application service가 broad start loadout DTO를 그대로 재노출하면 안 됨');
   assert.equal(titleLoadoutSource.includes('resolveStartLoadout('), false, 'titleLoadout이 broad start loadout DTO를 그대로 재노출하면 안 됨');
   assert.equal(titleLoadoutSource.includes('resolveStartWeaponSelection'), true, 'titleLoadout이 전용 start weapon selection helper를 사용하지 않음');
   assert.equal(startLoadoutRuntimeSource.includes("from '../data/weaponDataHelpers.js'"), false, 'startLoadoutRuntime이 정적 weaponData helper로 폴백하면 안 됨');

@@ -8,6 +8,7 @@ import {
   renderSubscreenFooter,
   renderSubscreenHeader,
 } from '../shared/subscreenTheme.js';
+import { bindDialogRuntime } from '../shared/dialogRuntime.js';
 import {
   SETTINGS_TABS,
   renderSettingsAudioSection,
@@ -41,6 +42,7 @@ export class SettingsView {
     this._handlers = {};
     this._opts = normalizeSessionOptions();
     this._tab = 'audio';
+    this._dialogRuntime = null;
     this._dataState = {
       importText: '',
       statusText: '',
@@ -48,12 +50,6 @@ export class SettingsView {
     };
     this._injectStyles();
     container.appendChild(this.el);
-
-    this._handleKeyDown = (event) => {
-      if (event.key === 'Escape' || event.key === 'Esc') {
-        this._onBack?.();
-      }
-    };
   }
 
   show(session, onSave, onBack) {
@@ -63,7 +59,13 @@ export class SettingsView {
     this._handlers = handlers;
     this._opts = normalizeSessionOptions(session.options ?? {});
     this._render();
-    window.addEventListener('keydown', this._handleKeyDown, true);
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = bindDialogRuntime({
+      root: this.el,
+      panelSelector: '.sv-panel',
+      onRequestClose: () => this._onBack?.(),
+    });
+    this._dialogRuntime.focusInitial();
   }
 
   refresh(session) {
@@ -72,13 +74,14 @@ export class SettingsView {
   }
 
   destroy() {
-    window.removeEventListener('keydown', this._handleKeyDown, true);
+    this._dialogRuntime?.dispose();
+    this._dialogRuntime = null;
     this.el.remove();
   }
 
   _render() {
     this.el.innerHTML = `
-      <div class="sv-panel ss-panel">
+      <div class="sv-panel ss-panel" role="dialog" aria-modal="true" aria-label="설정" tabindex="-1">
 
         ${renderSubscreenHeader({
           headerClass: 'sv-header',

@@ -9,46 +9,60 @@
  */
 import { renderResultViewMarkup } from './resultViewMarkup.js';
 import { ensureResultViewStyles } from './resultViewStyles.js';
+import { bindDialogRuntime } from '../shared/dialogRuntime.js';
 
 export class ResultView {
   constructor(container) {
     this.el = document.createElement('div');
     this.el.className = 'result-overlay';
     this.el.style.display = 'none';
+    this._dialogRuntime = null;
+    this._onRestart = null;
+    this._onTitle = null;
     ensureResultViewStyles();
     container.appendChild(this.el);
   }
 
   show(stats, onRestartCallback, onTitleCallback = null) {
+    this._onRestart = onRestartCallback;
+    this._onTitle = onTitleCallback;
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = bindDialogRuntime({
+      root: this.el,
+      panelSelector: '.result-card',
+    });
     this.el.innerHTML = renderResultViewMarkup(stats, { onTitleCallback });
 
     this.el.querySelector('.result-restart-btn')?.addEventListener('click', () => {
-      this.el.style.display = 'none';
-      this.el.innerHTML = '';
-      onRestartCallback?.();
+      const onRestart = this._onRestart;
+      this.hide();
+      onRestart?.();
     });
 
     if (onTitleCallback) {
       this.el.querySelector('.result-title-btn')?.addEventListener('click', () => {
-        this.el.style.display = 'none';
-        this.el.innerHTML = '';
-        onTitleCallback();
+        const onTitle = this._onTitle;
+        this.hide();
+        onTitle?.();
       });
     }
 
     this.el.style.display = 'flex';
-
-    if (typeof globalThis.requestAnimationFrame === 'function') {
-      globalThis.requestAnimationFrame(() => {
-        this.el.querySelector('.result-restart-btn')?.focus();
-      });
-    }
+    this._dialogRuntime.focusInitial();
   }
 
   hide() {
+    this._dialogRuntime?.dispose();
+    this._dialogRuntime = null;
     this.el.style.display = 'none';
     this.el.innerHTML = '';
+    this._onRestart = null;
+    this._onTitle = null;
   }
 
-  destroy() { this.el.remove(); }
+  destroy() {
+    this._dialogRuntime?.dispose({ restoreFocus: false });
+    this._dialogRuntime = null;
+    this.el.remove();
+  }
 }

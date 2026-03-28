@@ -35,8 +35,10 @@ if (BUDGET_OVERRIDE != null && Number.isNaN(BUDGET_OVERRIDE)) {
   process.exit(1);
 }
 
-function buildProfileSummary({ systems, totals, totalAll, perFrame, budget }) {
-  const sorted = Object.entries(totals).sort((left, right) => right[1] - left[1]);
+function buildProfileSummary({ systemNames, totals, totalAll, perFrame, budget }) {
+  const sorted = systemNames
+    .map((name, index) => [name, totals[index]])
+    .sort((left, right) => right[1] - left[1]);
   const withinBudget = budget?.maxPerFrameMs != null
     ? perFrame <= budget.maxPerFrameMs
     : true;
@@ -47,7 +49,7 @@ function buildProfileSummary({ systems, totals, totalAll, perFrame, budget }) {
     frameCount: FRAME_COUNT,
     targetFps: PROFILE_TARGET_FPS,
     warnThreshold: PROFILE_WARN_THRESHOLD,
-    systemCount: systems.length,
+    systemCount: systemNames.length,
     totalMs: totalAll,
     perFrameMs: perFrame,
     systems: sorted.map(([name, ms]) => {
@@ -65,37 +67,43 @@ function buildProfileSummary({ systems, totals, totalAll, perFrame, budget }) {
 
 async function runProfile() {
   const systems = await loadProfileSystems();
-  const totals = Object.fromEntries(systems.map(({ name }) => [name, 0]));
+  const systemNames = systems.map(({ name }) => name);
+  const totals = new Float64Array(systems.length);
   const ctx = buildProfileContext(PROFILE_PRESET);
+  const eventQueues = Object.values(ctx.world.queues.events);
 
   for (let frame = 0; frame < FRAME_COUNT; frame += 1) {
     ctx.dt = PROFILE_SIM_DT;
     ctx.world.runtime.deltaTime = PROFILE_SIM_DT;
     ctx.world.run.elapsedTime += PROFILE_SIM_DT;
 
-    for (const queue of Object.values(ctx.world.queues.events)) {
-      queue.length = 0;
+    for (let queueIndex = 0; queueIndex < eventQueues.length; queueIndex += 1) {
+      eventQueues[queueIndex].length = 0;
     }
     ctx.world.queues.spawnQueue.length = 0;
 
-    for (const { name, system } of systems) {
+    for (let systemIndex = 0; systemIndex < systems.length; systemIndex += 1) {
+      const system = systems[systemIndex].system;
       const startedAt = performance.now();
       try {
         system.update(ctx);
       } catch {
         // headless 측정에서는 일부 시스템이 실제 렌더/오디오 없이 동작하므로 예외는 무시한다.
       }
-      totals[name] += performance.now() - startedAt;
+      totals[systemIndex] += performance.now() - startedAt;
     }
   }
 
-  const totalAll = Object.values(totals).reduce((sum, value) => sum + value, 0);
+  let totalAll = 0;
+  for (let systemIndex = 0; systemIndex < totals.length; systemIndex += 1) {
+    totalAll += totals[systemIndex];
+  }
   const perFrame = totalAll / FRAME_COUNT;
   const activeBudget = BUDGET_OVERRIDE != null
     ? { ...(ctx.budget ?? {}), maxPerFrameMs: BUDGET_OVERRIDE }
     : ctx.budget;
   const summary = buildProfileSummary({
-    systems,
+    systemNames,
     totals,
     totalAll,
     perFrame,

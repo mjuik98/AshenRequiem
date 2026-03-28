@@ -34,7 +34,7 @@ export function renderCodexViewShell({
   const weaponProgress = getDiscoveryCount(discovery, '무기');
   const accessoryProgress = getDiscoveryCount(discovery, '장신구');
   return `
-    <div class="cx-panel ss-panel">
+    <div class="cx-panel ss-panel" role="dialog" aria-modal="true" aria-label="Codex" tabindex="-1">
       ${renderSubscreenHeader({
         headerClass: 'cx-header',
         leftClass: 'cx-header-left',

@@ -54,6 +54,12 @@ test('settings section renderers는 탭별 핵심 마크업을 생성한다', ()
 
   const dataHtml = renderSettingsDataSection({ importText: '{"meta":{"currency":10}}' });
   assert.equal(dataHtml.includes('세이브 데이터'), true);
+  assert.equal(dataHtml.includes('sv-data-layout'), true);
+  assert.equal(dataHtml.includes('sv-data-editor'), true);
+  assert.equal(dataHtml.includes('sv-data-status-box'), true);
+  assert.equal(dataHtml.includes('스냅샷 작업'), true);
+  assert.equal(dataHtml.includes('보관 및 복구'), true);
+  assert.equal(dataHtml.includes('위험 작업'), true);
   assert.equal(dataHtml.includes('내보내기'), true);
   assert.equal(dataHtml.includes('가져오기'), true);
   assert.equal(dataHtml.includes('가져오기 미리보기'), true);
@@ -80,6 +86,7 @@ test('settings styles는 별도 모듈에서 관리되고 모바일 레이아웃
   assert.equal(SETTINGS_VIEW_CSS.includes('.sv-keybind-note-badge'), true);
   assert.equal(SETTINGS_VIEW_CSS.includes('.sv-binding-select'), true);
   assert.equal(SETTINGS_VIEW_CSS.includes('.sv-data-box'), true);
+  assert.equal(SETTINGS_VIEW_CSS.includes('.sv-data-status-box'), true);
   assert.equal(SETTINGS_VIEW_CSS.includes('@media (max-width: 780px)'), true);
   assert.equal(SETTINGS_VIEW_CSS.includes('@keyframes sv-enter'), true);
 });

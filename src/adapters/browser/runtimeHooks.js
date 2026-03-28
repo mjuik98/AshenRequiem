@@ -64,13 +64,17 @@ function openPauseOverlay(game) {
 
   ui.hideLevelUp?.();
   ui.hideResult?.();
+  transitionPlayMode(world, PlayMode.PAUSED);
 
   ui.showPause({
     player: world.entities.player,
     data: scene?._gameData ?? game?.gameData ?? {},
     world,
     session: game?.session ?? null,
-    onResume: null,
+    onResume: () => {
+      transitionPlayMode(world, PlayMode.PLAYING);
+      ui.hidePause?.();
+    },
     onForfeit: null,
     onOptionsChange: null,
   });
