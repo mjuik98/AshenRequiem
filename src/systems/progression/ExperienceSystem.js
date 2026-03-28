@@ -15,6 +15,10 @@
  */
 import { distanceSq }       from '../../math/Vector2.js';
 import { PICKUP_BEHAVIOR }  from '../../data/constants.js';
+import {
+  getLivePickupsByType,
+  isLivePickup,
+} from '../../utils/entityUtils.js';
 
 const VACUUM_MIN_SPEED = 220;
 const VACUUM_MAX_SPEED = 960;
@@ -116,7 +120,7 @@ function _processCollectedPickups({ world, collected, startIndex, events, player
 function _markAllXpPickupsForVacuum(pickups) {
   for (let i = 0; i < pickups.length; i++) {
     const pickup = pickups[i];
-    if (!pickup?.isAlive || pickup.pendingDestroy) continue;
+    if (!isLivePickup(pickup)) continue;
     if (_getPickupType(pickup) !== 'xp') continue;
     pickup.magnetized = true;
     pickup.vacuumPulled = true;
@@ -131,11 +135,11 @@ function _getPickupMoveSpeed(pickup, distanceToPlayer) {
 }
 
 function _hasActiveVacuumPull(pickups = []) {
-  return pickups.some((pickup) => pickup?.isAlive && !pickup.pendingDestroy && pickup.vacuumPulled);
+  return getLivePickupsByType(pickups, 'xp').some((pickup) => pickup.vacuumPulled);
 }
 
 function _mergeNearbyXpPickups(pickups = []) {
-  const liveXp = pickups.filter((pickup) => pickup?.isAlive && !pickup.pendingDestroy && _getPickupType(pickup) === 'xp' && !pickup.magnetized);
+  const liveXp = getLivePickupsByType(pickups, 'xp').filter((pickup) => !pickup.magnetized);
   if (liveXp.length < 24) return;
 
   const buckets = new Map();

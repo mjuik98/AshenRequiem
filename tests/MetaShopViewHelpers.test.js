@@ -103,12 +103,14 @@ test('meta shop model and markup keep purchase availability and shared footer co
   assert.equal(typeof viewModel.visibleCount, 'number', '현재 필터 결과 수가 계산되지 않음');
   assert.equal(typeof viewModel.selectedCard?.maxCostToFinish, 'number', '상세 패널 총 비용이 계산되지 않음');
   assert.equal(typeof viewModel.selectedCard?.affordablePurchaseCount, 'number', '상세 패널 추가 구매 횟수가 계산되지 않음');
+  assert.equal(typeof viewModel.roadmapGoal?.title, 'string', 'MetaShop model이 roadmap goal을 노출하지 않음');
 
   const html = markupApi.renderMetaShopMarkup(viewModel);
   assert.equal(html.includes('ms-toolbar'), true, 'MetaShop toolbar markup이 없음');
   assert.equal(html.includes('ms-detail-panel'), true, 'MetaShop 상세 패널 markup이 없음');
   assert.equal(html.includes('ms-grid'), true, 'MetaShop grid markup이 없음');
   assert.equal(html.includes('ms-back-btn'), true, 'MetaShop footer back button이 없음');
+  assert.equal(html.includes('ms-roadmap-chip'), true, 'MetaShop toolbar가 roadmap goal chip을 렌더하지 않음');
 });
 
 test('meta shop model falls back to the first unfinished card when nothing is affordable', () => {

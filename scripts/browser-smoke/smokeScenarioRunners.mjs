@@ -7,6 +7,8 @@ import {
   runTitleToPlayScenario,
 } from './smokeTitleScenarios.mjs';
 import {
+  runBossReadabilityScenario,
+  runCombatPressureScenario,
   runLevelUpOverlayScenario,
   runPauseLayoutScenario,
   runPauseOverlayScenario,
@@ -24,6 +26,8 @@ const RUNNERS = {
   levelup_overlay: runLevelUpOverlayScenario,
   pause_layout: runPauseLayoutScenario,
   result_screen: runResultScreenScenario,
+  combat_pressure: runCombatPressureScenario,
+  boss_readability: runBossReadabilityScenario,
 };
 
 export async function runSmokeScenario(url, scenarioId, artifactDir, transport) {

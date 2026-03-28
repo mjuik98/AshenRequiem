@@ -95,6 +95,7 @@ export function createSpawnSystem() {
       const ascensionEliteBonus = ascension?.eliteChanceBonus ?? 0;
       const stageSpawnMult = stage?.spawnRateMult ?? 1;
       const stageEliteBonus = stage?.eliteChanceBonus ?? 0;
+      const encounterSpawnMult = world.run.encounterState?.currentBeat?.spawnRateMult ?? 1;
 
       // ── 보스 스폰 ──────────────────────────────────────────────────────
       if (bossData) {
@@ -124,8 +125,8 @@ export function createSpawnSystem() {
       const timeSinceBoss  = elapsedTime - _lastBossSpawnTime;
       const isBossActive   = timeSinceBoss >= 0 && timeSinceBoss < BOSS_SUPPRESSION_DURATION;
       const effectiveRate  = isBossActive
-        ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER * curseSnapshot.spawnRateMult * ascensionSpawnMult * stageSpawnMult
-        : activeWave.spawnPerSecond * curseSnapshot.spawnRateMult * ascensionSpawnMult * stageSpawnMult;
+        ? activeWave.spawnPerSecond * BOSS_SPAWN_MULTIPLIER * curseSnapshot.spawnRateMult * ascensionSpawnMult * stageSpawnMult * encounterSpawnMult
+        : activeWave.spawnPerSecond * curseSnapshot.spawnRateMult * ascensionSpawnMult * stageSpawnMult * encounterSpawnMult;
 
       _spawnAccumulator += effectiveRate * deltaTime;
 

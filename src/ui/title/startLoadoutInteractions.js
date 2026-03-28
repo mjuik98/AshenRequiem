@@ -8,6 +8,8 @@ export function bindStartLoadoutInteractions(root, {
   getSelectedStageId = () => 'ash_plains',
   getSelectedSeedMode = () => 'none',
   getSelectedSeedText = () => '',
+  onSelectQuickStartPreset,
+  onToggleAdvanced,
   onSelectWeapon,
   onSelectAscension,
   onSelectAccessory,
@@ -25,10 +27,20 @@ export function bindStartLoadoutInteractions(root, {
     });
   });
 
+  root?.querySelectorAll('[data-preset-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      onSelectQuickStartPreset?.(button.dataset.presetId ?? null);
+    });
+  });
+
   root?.querySelectorAll('[data-action="cancel"]').forEach((button) => {
     button.addEventListener('click', () => {
       onCancel?.();
     });
+  });
+
+  root?.querySelector('[data-action="toggle-advanced"]')?.addEventListener('click', () => {
+    onToggleAdvanced?.();
   });
 
   root?.querySelectorAll('[data-ascension-level]').forEach((button) => {

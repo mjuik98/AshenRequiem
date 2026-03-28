@@ -11,7 +11,15 @@ export function registerBossPhaseHandler(services, registry) {
   if (!registry) return;
 
   registry.register('bossPhaseChanged', (event, world) => {
-    const { enemy, announceText, phaseIndex, hpThreshold, newBehaviorId, phaseAction } = event;
+    const {
+      enemy,
+      announceText,
+      phaseIndex,
+      hpThreshold,
+      newBehaviorId,
+      phaseAction,
+      phaseActions,
+    } = event;
 
     if (newBehaviorId) {
       enemy.behaviorId = newBehaviorId;
@@ -31,7 +39,13 @@ export function registerBossPhaseHandler(services, registry) {
       world.entities.effects?.push(effect);
     }
 
-    queueBossPhaseAction(world, enemy, phaseAction);
+    const actions = Array.isArray(phaseActions) && phaseActions.length > 0
+      ? phaseActions
+      : (phaseAction ? [phaseAction] : []);
+
+    for (const action of actions) {
+      queueBossPhaseAction(world, enemy, action);
+    }
 
     logRuntimeInfo(
       'BossPhaseHandler',

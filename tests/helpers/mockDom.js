@@ -187,6 +187,7 @@ function createMockElement(documentRef, tagName) {
   const listeners = new Map();
   let innerHTML = '';
   const selectorCache = new Map();
+  const descriptorNodeCache = new Map();
 
   const element = {
     ownerDocument: documentRef,
@@ -254,7 +255,14 @@ function createMockElement(documentRef, tagName) {
       if (descriptors.length <= 0) return [];
       const cached = selectorCache.get(selector);
       if (cached && cached.length === descriptors.length) return cached;
-      const nodes = descriptors.map((descriptor) => createMockMarkupNode(documentRef, selector, descriptor, element));
+      const nodes = descriptors.map((descriptor) => {
+        const cacheKey = `${descriptor.index}:${descriptor.tagName}`;
+        const existing = descriptorNodeCache.get(cacheKey);
+        if (existing) return existing;
+        const node = createMockMarkupNode(documentRef, selector, descriptor, element);
+        descriptorNodeCache.set(cacheKey, node);
+        return node;
+      });
       selectorCache.set(selector, nodes);
       return nodes;
     },
@@ -273,6 +281,7 @@ function createMockElement(documentRef, tagName) {
     set(value) {
       innerHTML = String(value ?? '');
       selectorCache.clear();
+      descriptorNodeCache.clear();
     },
   });
 

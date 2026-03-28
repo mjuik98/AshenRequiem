@@ -41,4 +41,25 @@ test('createWorld()는 ownership 기반 substate만 제공한다', () => {
   assert.equal('player' in world, false, 'top-level player alias가 제거되지 않음');
 });
 
+test('createWorld()는 encounter state와 run guidance 기본값을 포함한다', () => {
+  const world = createWorld();
+
+  assert.deepEqual(
+    world.run.encounterState,
+    {
+      currentBeat: null,
+      nextBeat: null,
+      nextBeatStartsIn: null,
+      nextBossAt: null,
+      nextBossStartsIn: null,
+    },
+    'encounterState 기본값이 없음',
+  );
+  assert.deepEqual(
+    world.run.guidance,
+    { primaryObjective: null, stageDirective: null },
+    'run guidance 기본값이 없음',
+  );
+});
+
 summary();

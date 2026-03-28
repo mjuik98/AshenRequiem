@@ -22,6 +22,142 @@ import {
 const DEFAULT_START_WEAPON_ID = 'magic_bolt';
 const DEFAULT_SEED_MODE = 'none';
 
+function getEntryLabelById(entries = [], id = null, fallback = '기본') {
+  return entries.find((entry) => entry?.id === id)?.name ?? fallback;
+}
+
+function pickPreferredId(entries = [], preferredIds = [], fallbackId = null) {
+  for (const preferredId of preferredIds) {
+    if (entries.some((entry) => entry?.id === preferredId)) {
+      return preferredId;
+    }
+  }
+  return fallbackId;
+}
+
+function createQuickStartPreset({
+  id,
+  label,
+  description,
+  weaponId,
+  runOptions,
+  accent = 'stable',
+} = {}) {
+  return {
+    id,
+    label,
+    description,
+    weaponId,
+    runOptions: { ...runOptions },
+    accent,
+  };
+}
+
+function buildQuickStartPresets({
+  availableStartWeapons = [],
+  availableStartAccessories = [],
+  archetypes = [],
+  riskRelics = [],
+  stages = [],
+  selectedStartWeaponId = null,
+  selectedStartAccessoryId = null,
+  selectedArchetypeId = 'vanguard',
+  selectedRiskRelicId = null,
+  selectedStageId = 'ash_plains',
+  selectedAscensionLevel = 0,
+} = {}) {
+  if (!availableStartWeapons.length) return [];
+
+  const defaultWeaponId = selectedStartWeaponId ?? availableStartWeapons[0]?.id ?? null;
+  const recoveryStageId = pickPreferredId(stages, ['ash_plains'], selectedStageId);
+  const rewardStageId = pickPreferredId(stages, ['ember_hollow', 'moon_crypt'], selectedStageId);
+  const pressureStageId = pickPreferredId(stages, ['frost_harbor', 'moon_crypt'], selectedStageId);
+  const mobilityAccessoryId = pickPreferredId(
+    availableStartAccessories,
+    ['ring_of_speed', 'iron_heart', 'magnet_stone'],
+    selectedStartAccessoryId,
+  );
+  const greedAccessoryId = pickPreferredId(
+    availableStartAccessories,
+    ['greed_amulet', 'coin_pendant', 'magnet_stone'],
+    selectedStartAccessoryId,
+  );
+  const survivalArchetypeId = pickPreferredId(archetypes, ['vanguard', 'spellblade'], selectedArchetypeId);
+  const tempoArchetypeId = pickPreferredId(archetypes, ['spellweaver', 'spellblade'], selectedArchetypeId);
+  const pressureRelicId = pickPreferredId(riskRelics, ['glass_censer', 'greed_gryphon'], selectedRiskRelicId);
+  const safeWeaponId = pickPreferredId(availableStartWeapons, ['magic_bolt', 'holy_aura', 'boomerang'], defaultWeaponId);
+  const greedWeaponId = pickPreferredId(availableStartWeapons, ['boomerang', 'ember_spines', 'magic_bolt'], defaultWeaponId);
+  const pressureWeaponId = pickPreferredId(availableStartWeapons, ['chain_lightning', 'frost_nova', 'boomerang'], defaultWeaponId);
+
+  return [
+    createQuickStartPreset({
+      id: 'recommended',
+      label: '추천 시작',
+      description: '무난한 생존력과 이동성을 우선한 기본 진입입니다.',
+      weaponId: safeWeaponId,
+      accent: 'stable',
+      runOptions: {
+        ascensionLevel: selectedAscensionLevel,
+        startAccessoryId: mobilityAccessoryId,
+        archetypeId: survivalArchetypeId,
+        riskRelicId: null,
+        stageId: recoveryStageId,
+        seedMode: 'none',
+        seedText: '',
+      },
+    }),
+    createQuickStartPreset({
+      id: 'loot_route',
+      label: '보상 루트',
+      description: '재화와 픽업 회수를 노리는 빠른 파밍 진입입니다.',
+      weaponId: greedWeaponId,
+      accent: 'reward',
+      runOptions: {
+        ascensionLevel: selectedAscensionLevel,
+        startAccessoryId: greedAccessoryId,
+        archetypeId: tempoArchetypeId,
+        riskRelicId: null,
+        stageId: rewardStageId,
+        seedMode: 'none',
+        seedText: '',
+      },
+    }),
+    createQuickStartPreset({
+      id: 'boss_prep',
+      label: '보스 대비',
+      description: '압박 패턴에 빠르게 익숙해지는 전투 집중 세팅입니다.',
+      weaponId: pressureWeaponId,
+      accent: 'pressure',
+      runOptions: {
+        ascensionLevel: selectedAscensionLevel,
+        startAccessoryId: selectedStartAccessoryId ?? mobilityAccessoryId,
+        archetypeId: tempoArchetypeId,
+        riskRelicId: pressureRelicId,
+        stageId: pressureStageId,
+        seedMode: 'none',
+        seedText: '',
+      },
+    }),
+  ].filter((preset) => typeof preset.weaponId === 'string' && preset.weaponId.length > 0);
+}
+
+function buildAdvancedSummary({
+  ascensionChoices = [],
+  selectedAscensionLevel = 0,
+  archetypes = [],
+  selectedArchetypeId = 'vanguard',
+  stages = [],
+  selectedStageId = 'ash_plains',
+} = {}) {
+  const ascensionLabel = `A${selectedAscensionLevel}`;
+  const archetypeLabel = getEntryLabelById(archetypes, selectedArchetypeId, 'Archetype');
+  const stageLabel = getEntryLabelById(stages, selectedStageId, 'Stage');
+  const pressureLabel = ascensionChoices.find((choice) => choice?.level === selectedAscensionLevel)?.pressureLabel ?? '';
+  return [ascensionLabel, archetypeLabel, stageLabel, pressureLabel]
+    .filter((part) => typeof part === 'string' && part.length > 0)
+    .join(' · ');
+}
+
 export function normalizeSeedMode(seedMode = DEFAULT_SEED_MODE) {
   return ['none', 'custom', 'daily'].includes(seedMode) ? seedMode : DEFAULT_SEED_MODE;
 }
@@ -258,6 +394,20 @@ export function resolveStartWeaponSelection(gameData = {}, session = null) {
   const selectedRiskRelicId = resolveSelectedRiskRelicId(gameData, session);
   const selectedStageId = resolveSelectedStageId(gameData, session);
   const seedConfig = resolveSelectedSeedConfig(session);
+  const ascensionChoices = getAscensionChoices();
+  const quickStartPresets = buildQuickStartPresets({
+    availableStartWeapons,
+    availableStartAccessories,
+    archetypes: archetypeCatalog,
+    riskRelics: riskRelicCatalog,
+    stages: stageCatalog,
+    selectedStartWeaponId,
+    selectedStartAccessoryId,
+    selectedArchetypeId,
+    selectedRiskRelicId,
+    selectedStageId,
+    selectedAscensionLevel,
+  });
 
   return {
     unlockedWeapons,
@@ -267,7 +417,7 @@ export function resolveStartWeaponSelection(gameData = {}, session = null) {
     canStart: availableStartWeapons.length > 0,
     selectedStartWeaponId,
     selectedStartAccessoryId,
-    ascensionChoices: getAscensionChoices(),
+    ascensionChoices,
     selectedAscensionLevel,
     selectedAscension: getAscensionByLevel(selectedAscensionLevel),
     archetypes: archetypeCatalog,
@@ -287,6 +437,15 @@ export function resolveStartWeaponSelection(gameData = {}, session = null) {
     seedPreviewText: seedConfig.seedLabel
       ? `Seed ${seedConfig.seedLabel}`
       : '랜덤 시드로 새로운 런을 생성합니다.',
+    quickStartPresets,
+    advancedSummary: buildAdvancedSummary({
+      ascensionChoices,
+      selectedAscensionLevel,
+      archetypes: archetypeCatalog,
+      selectedArchetypeId,
+      stages: stageCatalog,
+      selectedStageId,
+    }),
   };
 }
 

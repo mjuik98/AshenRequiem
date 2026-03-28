@@ -19,15 +19,20 @@ const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
 const settingsSceneSource = readProjectSource('../src/scenes/SettingsScene.js');
 const metaShopSceneSource = readProjectSource('../src/scenes/MetaShopScene.js');
 const titleSceneRuntimeSource = readProjectSource('../src/scenes/title/titleSceneRuntime.js');
+const levelUpViewSource = readProjectSource('../src/ui/levelup/LevelUpView.js');
 const settingsViewSource = readProjectSource('../src/ui/settings/SettingsView.js');
 const pauseViewSource = readProjectSource('../src/ui/pause/PauseView.js');
 const pauseAudioSource = readProjectSource('../src/ui/pause/pauseAudioControls.js');
+const resultViewSource = readProjectSource('../src/ui/result/ResultView.js');
+const startLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
+const codexViewSource = readProjectSource('../src/ui/codex/CodexView.js');
 const codexSceneSource = readProjectSource('../src/scenes/CodexScene.js');
 const codexHandlerSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
 const playContextSource = readProjectSource('../src/core/PlayContext.js');
 const collisionSystemSource = readProjectSource('../src/systems/combat/CollisionSystem.js');
 const enemyMovementSystemSource = readProjectSource('../src/systems/movement/EnemyMovementSystem.js');
 const statusEffectSystemSource = readProjectSource('../src/systems/combat/StatusEffectSystem.js');
+const entityUtilsSource = readProjectSource('../src/utils/entityUtils.js');
 const bossHudViewSource = readProjectSource('../src/ui/boss/BossHudView.js');
 const accessoryDataSource = readProjectSource('../src/data/accessoryData.js');
 const weaponDataSource = readProjectSource('../src/data/weaponData.js');
@@ -47,12 +52,14 @@ const levelUpAppFlowSource = readProjectSource('../src/app/play/levelUpFlowServi
 const startRunAppSource = readProjectSource('../src/app/play/startRunApplicationService.js');
 const activeRunAppSource = readProjectSource('../src/app/play/activeRunApplicationService.js');
 const settingsAppSource = readProjectSource('../src/app/meta/settingsApplicationService.js');
+const settingsRuntimeDepsSource = readProjectSource('../src/scenes/settingsRuntimeDependencies.js');
 const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplicationService.js');
 const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
 const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
 const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
 const coreRuntimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
 const browserRuntimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
+const dialogViewLifecycleSource = readProjectSource('../src/ui/shared/dialogViewLifecycle.js');
 
 console.log('\n[CentralizationSource]');
 
@@ -86,6 +93,17 @@ test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
     1,
     'PlayScene flow helper가 공통 DPR 계산을 사용하지 않음',
   );
+});
+
+test('dialog overlay view는 공통 lifecycle helper로 dialog runtime attach/detach를 중앙화한다', () => {
+  assert.equal(dialogViewLifecycleSource.includes('replaceDialogRuntime'), true, 'dialog lifecycle helper가 replace helper를 제공하지 않음');
+  assert.equal(dialogViewLifecycleSource.includes('disposeDialogRuntime'), true, 'dialog lifecycle helper가 dispose helper를 제공하지 않음');
+  assert.equal(levelUpViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'LevelUpView가 공통 dialog lifecycle helper를 사용하지 않음');
+  assert.equal(pauseViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'PauseView가 공통 dialog lifecycle helper를 사용하지 않음');
+  assert.equal(resultViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'ResultView가 공통 dialog lifecycle helper를 사용하지 않음');
+  assert.equal(startLoadoutViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'StartLoadoutView가 공통 dialog lifecycle helper를 사용하지 않음');
+  assert.equal(codexViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'CodexView가 공통 dialog lifecycle helper를 사용하지 않음');
+  assert.equal(codexSceneSource.includes("dialogViewLifecycle"), false, 'scene가 dialog lifecycle helper를 직접 소유하면 안 됨');
 });
 
 test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => {
@@ -200,6 +218,13 @@ test('메타 씬은 app 계층 service를 통해 세션 규칙을 호출한다',
   assert.equal(playSceneAppFlowSource.includes('processPlayResult('), false, 'playScene flow app service가 play result domain을 직접 호출하면 안 됨');
 });
 
+test('SettingsScene은 runtime dependency helper로 앱 서비스 인수를 조립한다', () => {
+  assert.equal(settingsRuntimeDepsSource.includes('createSettingsRuntimeDependencies'), true, 'settings runtime deps helper가 없음');
+  assert.equal(settingsRuntimeDepsSource.includes('accessibilityRuntimeFactory'), true, 'settings runtime deps helper가 accessibility runtime factory를 주입받지 않음');
+  assert.equal(settingsSceneSource.includes("from './settingsRuntimeDependencies.js'"), true, 'SettingsScene이 settings runtime deps helper를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('createDocumentAccessibilityRuntime()'), false, 'SettingsScene에 accessibility runtime 생성 중복이 남아 있음');
+});
+
 test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙화된다', () => {
   assert.equal(accessoryDataSource.includes('export function buildAccessoryLevelDesc'), false, 'accessoryData가 설명 helper를 직접 export함');
   assert.equal(accessoryDataSource.includes('export function buildAccessoryCurrentDesc'), false, 'accessoryData가 현재 설명 helper를 직접 export함');
@@ -222,6 +247,12 @@ test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙
   assert.equal(/export function getSelectedStartWeaponId/.test(titleLoadoutSource), false, 'titleLoadout에 중복 시작 무기 선택 helper가 남아 있음');
   assert.equal(/pendingRunStartEvents|pendingEventQueue/.test(worldTickSystemSource), false, 'WorldTickSystem에 pending event 주입 책임이 남아 있음');
   assert.equal(/weaponAcquired|accessoryAcquired/.test(pendingEventPumpSystemSource), false, 'PendingEventPumpSystem이 도메인 이벤트명을 하드코딩하면 안 됨');
+});
+
+test('ExperienceSystem pickup 판정은 entityUtils helper로 중앙화된다', () => {
+  assert.equal(entityUtilsSource.includes('isLivePickup'), true, 'entityUtils가 live pickup predicate를 제공하지 않음');
+  assert.equal(entityUtilsSource.includes('getLivePickupsByType'), true, 'entityUtils가 타입별 live pickup helper를 제공하지 않음');
+  assert.equal(readProjectSource('../src/systems/progression/ExperienceSystem.js').includes("from '../../utils/entityUtils.js'"), true, 'ExperienceSystem이 pickup helper를 import하지 않음');
 });
 
 summary();

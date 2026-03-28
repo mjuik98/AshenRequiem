@@ -35,6 +35,9 @@ export const BossPhaseSystem = {
         const phase = bossDef.phases[pi];
         if (hpRatio <= phase.hpThreshold) {
           triggered[pi] = true;
+          const phaseActions = Array.isArray(phase.phaseActions)
+            ? [...phase.phaseActions]
+            : (phase.phaseAction ? [phase.phaseAction] : []);
 
           world.queues.events.bossPhaseChanged.push({
             enemy,
@@ -43,7 +46,8 @@ export const BossPhaseSystem = {
             newBehaviorId: phase.behaviorId,
             announceText:  phase.announceText ?? '',
             hpThreshold:   phase.hpThreshold,
-            phaseAction:   phase.phaseAction ?? null,
+            phaseAction:   phase.phaseAction ?? phaseActions[0] ?? null,
+            phaseActions,
           });
         }
       }

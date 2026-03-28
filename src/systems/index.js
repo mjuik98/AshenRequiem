@@ -36,6 +36,7 @@ import { EffectTickSystem }     from './spawn/EffectTickSystem.js';
 import { FlushSystem }          from './spawn/FlushSystem.js';
 import { CameraSystem }         from './camera/CameraSystem.js';
 import { RenderSystem }         from './render/RenderSystem.js';
+import { EncounterDirectorSystem } from './stage/EncounterDirectorSystem.js';
 import { StageRuntimeSystem }   from './stage/StageRuntimeSystem.js';
 
 /**
@@ -53,6 +54,7 @@ export const SYSTEM_REGISTRY = [
   // priority 0: world 메타 동기화
   { name: 'WorldTickSystem',        system: WorldTickSystem,       priority: 0   },
   { name: 'PendingEventPumpSystem', system: PendingEventPumpSystem, priority: 5   },
+  { name: 'EncounterDirectorSystem', system: EncounterDirectorSystem, priority: 8 },
 
   // priority 20: 플레이어 이동 (상태 없음 → 싱글턴 유지)
   { name: 'StageRuntimeSystem',     system: StageRuntimeSystem,    priority: 12  },
@@ -110,6 +112,7 @@ export {
   FlushSystem,
   CameraSystem,
   RenderSystem,
+  EncounterDirectorSystem,
   StageRuntimeSystem,
 };
 

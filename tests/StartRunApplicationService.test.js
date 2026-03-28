@@ -36,6 +36,8 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
   const world = {
     entities: { player: null },
     progression: { pendingEventQueue: null },
+    run: {},
+    runtime: {},
   };
   const player = { weapons: [{ id: 'magic_bolt' }], accessories: [] };
   const prepared = serviceApi.prepareStartRunState({
@@ -87,6 +89,10 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
       calls.push(['init-run', targetWorld]);
       targetWorld.progression.runRerollsRemaining = 2;
     },
+    buildRunGuidanceImpl() {
+      calls.push('guidance');
+      return { primaryObjective: { id: 'unlock_boomerang', title: '곡예의 각성' } };
+    },
     queueStartEventsImpl(targetWorld, targetPlayer) {
       calls.push(['queue-events', targetWorld, targetPlayer]);
       targetWorld.progression.pendingEventQueue = [{ type: 'weaponAcquired', payload: { weaponId: 'magic_bolt' } }];
@@ -107,6 +113,7 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
   assert.deepEqual(world.run.stage, { id: 'ember_hollow', rewardMult: 1.2, background: { fillStyle: '#120f18' } }, 'stage snapshot이 world에 주입되지 않음');
   assert.equal(world.run.seedMode, 'custom', '런 시작 시 seed mode가 world에 기록되지 않음');
   assert.equal(world.run.seedLabel, 'ashen-seed', '런 시작 시 seed label이 world에 기록되지 않음');
+  assert.deepEqual(world.run.guidance, { primaryObjective: { id: 'unlock_boomerang', title: '곡예의 각성' } }, '런 시작 시 guidance snapshot이 world에 기록되지 않음');
   assert.deepEqual(world.progression.pendingEventQueue, [{ type: 'weaponAcquired', payload: { weaponId: 'magic_bolt' } }]);
   assert.deepEqual(calls, [
     'world',
@@ -116,6 +123,7 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
     ['risk', player, { id: 'glass_censer', name: 'Glass Censer', effects: [{ stat: 'bonusProjectileCount', value: 1 }] }],
     ['perm', player, { perm_hp: 1 }],
     ['init-run', world],
+    'guidance',
     ['queue-events', world, player],
   ]);
 });

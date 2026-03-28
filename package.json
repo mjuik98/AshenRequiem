@@ -30,6 +30,7 @@
     "profile:600": "node scripts/profile.js 600",
     "profile:json": "node scripts/profile.js 300 --json",
     "profile:check": "node scripts/profile.js 300 --assert-budget",
+    "encounter:report": "node scripts/encounterReport.mjs",
     "verify:smoke": "npm run build && npm run smoke:core:prebuilt"
   },
   "keywords": [],

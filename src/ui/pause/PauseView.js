@@ -18,7 +18,10 @@ import {
   refreshPauseLoadoutPanelRuntime,
   renderPauseViewRuntime,
 } from './pauseViewRuntime.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 
 export class PauseView {
   constructor(container) {
@@ -70,8 +73,7 @@ export class PauseView {
 
     renderPauseViewRuntime(this);
     bindPauseViewRuntime(this);
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
       panelSelector: '.pv-panel',
       onRequestClose: () => {
@@ -87,8 +89,7 @@ export class PauseView {
 
   hide() {
     disposePauseViewRuntime(this);
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.setAttribute('aria-hidden', 'true');
     this.el.style.display = 'none';
     resetPauseViewRuntime(this);
@@ -100,8 +101,7 @@ export class PauseView {
 
   destroy() {
     disposePauseViewRuntime(this);
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
     this._tt?.remove();
     this._tt = null;
     resetPauseViewRuntime(this, { clearSelection: true });

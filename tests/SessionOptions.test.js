@@ -6,6 +6,7 @@ let normalizeSessionOptions;
 let mergeSessionOptions;
 let getEffectiveDevicePixelRatio;
 let applySessionOptionsToRuntime;
+let createSettingsRuntimeDependencies;
 
 try {
   ({
@@ -17,6 +18,13 @@ try {
   } = await import('../src/state/sessionOptions.js'));
 } catch (e) {
   console.warn('[테스트] sessionOptions import 실패 — 스킵:', e.message);
+  process.exit(1);
+}
+
+try {
+  ({ createSettingsRuntimeDependencies } = await import('../src/scenes/settingsRuntimeDependencies.js'));
+} catch (e) {
+  console.warn('[테스트] settingsRuntimeDependencies import 실패 — 스킵:', e.message);
   process.exit(1);
 }
 
@@ -138,6 +146,33 @@ test('applySessionOptionsToRuntime()는 사운드/렌더러에 정규화된 옵�
     ['accessibility', true, true, true],
     ['bindings', 'p', 'f'],
   ]);
+});
+
+test('createSettingsRuntimeDependencies()는 SettingsScene 런타임 의존성 조립을 중앙화한다', () => {
+  const game = {
+    renderer: { id: 'renderer' },
+    soundSystem: { id: 'sound' },
+    input: { id: 'input' },
+    _resizeCanvas() {},
+  };
+  const accessibilityRuntime = { id: 'accessibility' };
+
+  const deps = createSettingsRuntimeDependencies(game, {
+    accessibilityRuntimeFactory: () => accessibilityRuntime,
+  });
+
+  assert.deepEqual(Object.keys(deps).sort(), [
+    'accessibilityRuntime',
+    'inputManager',
+    'renderer',
+    'resizeCanvas',
+    'soundSystem',
+  ]);
+  assert.equal(deps.renderer, game.renderer);
+  assert.equal(deps.soundSystem, game.soundSystem);
+  assert.equal(deps.accessibilityRuntime, accessibilityRuntime);
+  assert.equal(deps.inputManager, game.input);
+  assert.equal(typeof deps.resizeCanvas, 'function');
 });
 
 summary();

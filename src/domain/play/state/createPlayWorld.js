@@ -1,4 +1,5 @@
 import { EVENT_TYPES } from '../../../data/constants/events.js';
+import { createDefaultEncounterState } from '../encounter/encounterDirectorDomain.js';
 import { createSynergyState } from '../../../state/createSynergyState.js';
 import { createRng } from '../../../utils/random.js';
 
@@ -45,6 +46,8 @@ export function createPlayWorld() {
     seedMode: 'none',
     seedLabel: '',
     lastDamageSource: null,
+    encounterState: createDefaultEncounterState(),
+    guidance: { primaryObjective: null, stageDirective: null },
     playMode: 'playing',
     runOutcome: null,
   };

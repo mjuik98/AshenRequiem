@@ -228,6 +228,7 @@ await test('모달 계열 UI는 공통 modal theme와 action button 토큰을 �
   let modalTheme;
   let modalShell;
   let dialogRuntime;
+  let dialogViewLifecycle;
   let levelUpContent;
   let pauseStyles;
   let startLoadoutMarkup;
@@ -237,6 +238,7 @@ await test('모달 계열 UI는 공통 modal theme와 action button 토큰을 �
     modalTheme = await import('../src/ui/shared/modalTheme.js');
     modalShell = await import('../src/ui/shared/modalShell.js');
     dialogRuntime = await import('../src/ui/shared/dialogRuntime.js');
+    dialogViewLifecycle = await import('../src/ui/shared/dialogViewLifecycle.js');
     levelUpContent = await import('../src/ui/levelup/levelUpContent.js');
     pauseStyles = await import('../src/ui/pause/pauseStyles.js');
     startLoadoutMarkup = await import('../src/ui/title/startLoadoutMarkup.js');
@@ -250,6 +252,8 @@ await test('모달 계열 UI는 공통 modal theme와 action button 토큰을 �
   assert.equal(typeof modalShell.renderModalShell, 'function', 'renderModalShell helper가 없음');
   assert.equal(typeof modalShell.renderModalHeader, 'function', 'renderModalHeader helper가 없음');
   assert.equal(typeof dialogRuntime.bindDialogRuntime, 'function', 'bindDialogRuntime helper가 없음');
+  assert.equal(typeof dialogViewLifecycle.replaceDialogRuntime, 'function', 'dialog lifecycle replace helper가 없음');
+  assert.equal(typeof dialogViewLifecycle.disposeDialogRuntime, 'function', 'dialog lifecycle dispose helper가 없음');
   assert.equal(typeof levelUpContent.buildLevelUpHeaderMarkup, 'function', 'LevelUp markup helper가 없음');
   assert.equal(typeof pauseStyles.PAUSE_VIEW_CSS, 'string', 'PauseView style helper가 없음');
   assert.equal(typeof startLoadoutMarkup.renderStartLoadoutMarkup, 'function', 'StartLoadout markup helper가 없음');
@@ -277,15 +281,15 @@ await test('모달 계열 UI는 공통 modal theme와 action button 토큰을 �
     '모달 markup helper들이 공통 modal shell을 사용하지 않음',
   );
   assert.equal(
-    /from '\.\.\/shared\/dialogRuntime\.js'/.test(startLoadoutViewSource)
-      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(levelUpViewSource)
-      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(pauseViewSource)
-      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(resultViewSource)
-      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(metaShopViewSource)
-      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(settingsViewSource)
-      && /from '\.\.\/shared\/dialogRuntime\.js'/.test(codexViewSource),
+    /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(startLoadoutViewSource)
+      && /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(levelUpViewSource)
+      && /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(pauseViewSource)
+      && /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(resultViewSource)
+      && /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(metaShopViewSource)
+      && /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(settingsViewSource)
+      && /from '\.\.\/shared\/dialogViewLifecycle\.js'/.test(codexViewSource),
     true,
-    '오버레이/서브스크린 view들이 공통 dialog runtime을 사용하지 않음',
+    '오버레이/서브스크린 view들이 공통 dialog lifecycle helper를 사용하지 않음',
   );
 });
 

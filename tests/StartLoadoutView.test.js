@@ -138,4 +138,68 @@ await test('StartLoadoutView는 선택으로 재렌더되어도 패널 스크롤
   }
 });
 
+await test('StartLoadoutView는 quick start preset 클릭으로 선택을 갱신하고 고급 설정을 접은 채 시작할 수 있다', async () => {
+  const dom = installMockDom();
+
+  try {
+    const { StartLoadoutView } = await import('../src/ui/title/StartLoadoutView.js');
+    const container = document.createElement('div');
+    const view = new StartLoadoutView(container);
+    let startArgs = null;
+
+    view.show({
+      weapons: [
+        { id: 'magic_bolt', name: '마법탄', behaviorId: 'targetProjectile' },
+        { id: 'boomerang', name: '부메랑', behaviorId: 'boomerang' },
+      ],
+      accessories: [{ id: 'ring_of_speed', name: '속도의 반지' }],
+      archetypes: [{ id: 'vanguard', name: 'Vanguard' }, { id: 'spellweaver', name: 'Spellweaver' }],
+      riskRelics: [{ id: 'glass_censer', name: 'Glass Censer' }],
+      stages: [{ id: 'ash_plains', name: 'Ash Plains' }, { id: 'ember_hollow', name: 'Ember Hollow' }],
+      quickStartPresets: [
+        {
+          id: 'recommended',
+          label: '추천 시작',
+          description: '안정적으로 진입합니다.',
+          weaponId: 'boomerang',
+          runOptions: {
+            ascensionLevel: 1,
+            startAccessoryId: 'ring_of_speed',
+            archetypeId: 'spellweaver',
+            riskRelicId: 'glass_censer',
+            stageId: 'ember_hollow',
+            seedMode: 'none',
+            seedText: '',
+          },
+        },
+      ],
+      advancedSummary: 'A1 · Spellweaver · Ember Hollow',
+      canStart: true,
+      onStart: (...args) => {
+        startArgs = args;
+      },
+      onCancel: () => {},
+    });
+
+    assert.equal(view._el.innerHTML.includes('data-preset-id="recommended"'), true, 'quick start preset 카드가 렌더되지 않음');
+    assert.equal(view._el.innerHTML.includes('data-action="toggle-advanced"'), true, '고급 설정 토글이 렌더되지 않음');
+    assert.equal(view._el.innerHTML.includes('A1 · Spellweaver · Ember Hollow'), true, '고급 설정 요약이 렌더되지 않음');
+
+    view._el?.querySelector?.('[data-preset-id="recommended"]')?.click();
+    view._el?.querySelector?.('[data-action="start"]')?.click();
+
+    assert.deepEqual(startArgs, ['boomerang', {
+      ascensionLevel: 1,
+      startAccessoryId: 'ring_of_speed',
+      archetypeId: 'spellweaver',
+      riskRelicId: 'glass_censer',
+      stageId: 'ember_hollow',
+      seedMode: 'none',
+      seedText: '',
+    }], 'quick start preset이 시작 payload를 갱신하지 않음');
+  } finally {
+    dom.restore();
+  }
+});
+
 summary();

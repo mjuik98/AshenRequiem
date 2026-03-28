@@ -3,7 +3,10 @@ import {
   META_SHOP_FILTERS,
   META_SHOP_SORTS,
 } from './metaShopModel.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 import { renderMetaShopMarkup } from './metaShopMarkup.js';
 import { ensureMetaShopStyles } from './metaShopStyles.js';
 
@@ -25,8 +28,7 @@ export class MetaShopView {
     this._onPurchase = onPurchase;
     this._onBack     = onBack;
     this._render(session);
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
       panelSelector: '.ms-panel',
       onRequestClose: () => this._onBack?.(),
@@ -39,8 +41,7 @@ export class MetaShopView {
   }
 
   destroy() {
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.remove();
   }
 

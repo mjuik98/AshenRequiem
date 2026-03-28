@@ -15,6 +15,7 @@ export function renderMetaShopMarkup({
   filters = [],
   sorts = [],
   visibleCount = cards.length,
+  roadmapGoal = null,
 } = {}) {
   const activeCard = selectedCard ?? availableCards[0] ?? completedCards[0] ?? null;
   const renderCard = (card) => `
@@ -67,6 +68,13 @@ export function renderMetaShopMarkup({
         </div>
         <div class="ms-toolbar-meta">
           <div class="ms-result-count">표시 항목 ${visibleCount}</div>
+          ${roadmapGoal ? `
+            <div class="ms-roadmap-chip">
+              <span class="ms-roadmap-icon">${roadmapGoal.icon ?? '✦'}</span>
+              <span class="ms-roadmap-copy">${roadmapGoal.title}</span>
+              <span class="ms-roadmap-progress">${roadmapGoal.progressText ?? ''}</span>
+            </div>
+          ` : ''}
           <div class="ms-sort-group">
             ${sorts.map((sort) => `
               <button

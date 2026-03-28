@@ -1,4 +1,5 @@
 import { permanentUpgradeData } from '../../data/permanentUpgradeData.js';
+import { buildMetaGoalRoadmap } from '../../domain/meta/progression/metaGoalDomain.js';
 
 export const META_SHOP_FILTERS = [
   { id: 'all', label: '전체' },
@@ -231,6 +232,11 @@ export function buildMetaShopViewModel(session, {
   const lockedCards = cardsWithSelection.filter((card) => card.status === 'locked');
   const completedCards = cardsWithSelection.filter((card) => card.status === 'maxed');
   const resolvedSelectedCard = cardsWithSelection.find((card) => card.id === selectedId) ?? null;
+  const roadmapGoal = buildMetaGoalRoadmap({
+    session,
+    gameData: { permanentUpgradeData: upgradeData },
+    limit: 1,
+  })[0] ?? null;
 
   return {
     currency,
@@ -245,5 +251,6 @@ export function buildMetaShopViewModel(session, {
     activeSort,
     filters: META_SHOP_FILTERS,
     sorts: META_SHOP_SORTS,
+    roadmapGoal,
   };
 }

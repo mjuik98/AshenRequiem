@@ -10,7 +10,10 @@ import {
   buildLevelUpCardMarkup,
   buildLevelUpHeaderMarkup,
 } from './levelUpContent.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 import { bindLevelUpCardInteractions } from './levelUpViewInteractions.js';
 import { ensureLevelUpViewStyles } from './levelUpViewStyles.js';
 
@@ -45,8 +48,7 @@ export class LevelUpView {
     this._onSelect = onSelect;
     this._onReroll = onReroll;
     this._onToggleBanishMode = onToggleBanishMode;
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
       panelSelector: '.levelup-stage',
     });
@@ -89,8 +91,7 @@ export class LevelUpView {
   }
 
   hide() {
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.style.display = 'none';
     this.el.innerHTML = '';
     this._onSelect = null;
@@ -105,8 +106,7 @@ export class LevelUpView {
   }
 
   destroy() {
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
     this.el.remove();
   }
 }

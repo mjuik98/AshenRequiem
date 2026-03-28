@@ -84,6 +84,51 @@ test('stage runtime system은 pickup_cluster gimmick을 발동해 골드 픽업�
   );
 });
 
+test('stage runtime system은 pickup_cluster gimmick의 ward/heal payload를 유지한다', async () => {
+  const { StageRuntimeSystem } = await import('../src/systems/stage/StageRuntimeSystem.js');
+
+  const world = {
+    entities: {
+      player: { x: 0, y: 0, isAlive: true },
+    },
+    queues: {
+      spawnQueue: [],
+      events: { stageEventTriggered: [] },
+    },
+    run: {
+      elapsedTime: 80,
+      playMode: 'playing',
+      stage: {
+        id: 'ash_plains',
+        gimmicks: [{
+          id: 'ashen_lantern',
+          type: 'pickup_cluster',
+          startAt: 60,
+          count: 2,
+          radius: 80,
+          pickupType: 'ward',
+          duration: 3,
+          healValue: 12,
+          announceText: 'Ashen Lantern',
+        }],
+      },
+      stageRuntime: null,
+    },
+  };
+
+  StageRuntimeSystem.update({ world });
+
+  assert.equal(world.queues.spawnQueue.length, 2, 'ward pickup_cluster가 픽업 수를 맞추지 못함');
+  assert.equal(
+    world.queues.spawnQueue.every((entry) => entry.type === 'pickup' && entry.config.pickupType === 'ward'),
+    true,
+    'ward pickup_cluster가 ward pickup을 생성하지 않음',
+  );
+  assert.equal(world.queues.spawnQueue.every((entry) => entry.config.duration === 3), true, 'ward pickup duration이 유지되지 않음');
+  assert.equal(world.queues.spawnQueue.every((entry) => entry.config.healValue === 12), true, 'pickup_cluster 추가 payload가 보존되지 않음');
+  assert.equal(world.queues.events.stageEventTriggered[0]?.telegraphTone, 'info', 'ward pickup_cluster는 info telegraph tone을 사용해야 함');
+});
+
 test('stage runtime system은 projectile_barrage gimmick을 발동해 플레이어를 겨냥한 적 투사체를 생성한다', async () => {
   const { StageRuntimeSystem } = await import('../src/systems/stage/StageRuntimeSystem.js');
 
@@ -120,6 +165,8 @@ test('stage runtime system은 projectile_barrage gimmick을 발동해 플레이�
   assert.equal(world.queues.spawnQueue.length, 5, 'projectile_barrage gimmick이 투사체 수를 맞추지 못함');
   assert.equal(world.queues.spawnQueue.every((entry) => entry.type === 'projectile'), true, 'projectile_barrage gimmick이 projectile spawn만 생성해야 함');
   assert.equal(world.queues.events.stageEventTriggered.length, 1, 'projectile_barrage gimmick이 stage event를 남기지 않음');
+  assert.equal(world.queues.events.stageEventTriggered[0].dangerLevel, 'high', 'projectile_barrage danger level이 기록되지 않음');
+  assert.match(world.queues.events.stageEventTriggered[0].telegraphText, /incoming|탄막|warning/i, 'projectile_barrage telegraph text가 없음');
 });
 
 test('stage runtime system은 hazard_ring gimmick으로 이펙트와 투사체를 함께 생성한다', async () => {
@@ -195,6 +242,43 @@ test('stage runtime system은 cross_barrage gimmick으로 십자 탄막을 생�
   assert.equal(world.queues.spawnQueue.filter((entry) => entry.type === 'projectile').length, 4, 'cross_barrage가 십자 투사체 4개를 생성하지 않음');
   assert.equal(world.queues.spawnQueue.filter((entry) => entry.type === 'effect').length, 4, 'cross_barrage가 warning effect를 생성하지 않음');
   assert.equal(world.queues.events.stageEventTriggered.length, 1, 'cross_barrage gimmick이 stage event를 남기지 않음');
+  assert.equal(world.queues.events.stageEventTriggered[0].telegraphTone, 'danger', 'cross_barrage telegraph tone이 danger가 아님');
+});
+
+test('stage runtime system은 encounter cadence multiplier를 반영해 gimmick trigger 간격을 줄인다', async () => {
+  const { StageRuntimeSystem } = await import('../src/systems/stage/StageRuntimeSystem.js');
+
+  const world = {
+    entities: {
+      player: { x: 0, y: 0, isAlive: true },
+    },
+    queues: {
+      spawnQueue: [],
+      events: { stageEventTriggered: [] },
+    },
+    run: {
+      elapsedTime: 100,
+      playMode: 'playing',
+      encounterState: { currentBeat: { id: 'surge', gimmickIntervalMult: 0.5 } },
+      stage: {
+        id: 'ember_hollow',
+        gimmicks: [{
+          id: 'ember_ring',
+          type: 'hazard_ring',
+          startAt: 90,
+          interval: 40,
+          count: 2,
+          ringRadius: 80,
+        }],
+      },
+      stageRuntime: null,
+    },
+  };
+
+  StageRuntimeSystem.update({ world });
+
+  assert.equal(world.run.stageRuntime.gimmicks.ember_ring.triggerCount, 1, '첫 cadence trigger가 기록되지 않음');
+  assert.equal(world.run.stageRuntime.gimmicks.ember_ring.nextTriggerAt, 110, 'encounter cadence multiplier가 interval에 반영되지 않음');
 });
 
 summary();

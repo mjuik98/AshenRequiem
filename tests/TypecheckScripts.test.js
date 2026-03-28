@@ -16,6 +16,7 @@ const packageJson = readProjectJson('../package.json');
 test('package scripts expose an explicit typecheck baseline and verify runs it', () => {
   assert.equal(typeof packageJson.scripts?.typecheck, 'string', 'typecheck script가 없음');
   assert.match(packageJson.scripts.typecheck, /tsc/, 'typecheck script는 tsc 기반이어야 함');
+  assert.equal(typeof packageJson.scripts?.['encounter:report'], 'string', 'encounter:report script가 없음');
   assert.equal(packageJson.scripts.verify, 'npm run verify:fast', '기본 verify는 fast baseline alias여야 함');
   assert.match(packageJson.scripts['verify:fast'] ?? '', /typecheck/, 'verify:fast가 typecheck를 포함해야 함');
   assert.equal(typeof packageJson.devDependencies?.typescript, 'string', 'typescript devDependency가 없음');

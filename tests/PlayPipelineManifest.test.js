@@ -33,6 +33,16 @@ test('play pipeline manifest는 런타임 등록 spec을 전용 모듈로 노출
   assert.equal(api.PLAY_PIPELINE_INSTANCE_SYSTEMS.some((spec) => spec.name === 'EventRegistry.asSystem()'), true, 'registry instance spec이 빠짐');
 });
 
+test('play pipeline snapshot은 encounter director system을 포함한다', () => {
+  const snapshot = snapshotApi.getPlayPipelineSnapshot();
+
+  assert.equal(
+    snapshot.some((spec) => spec.name === 'EncounterDirectorSystem' && spec.priority < 10),
+    true,
+    'encounter director system이 spawn보다 먼저 등록되어야 함',
+  );
+});
+
 test('pipeline builder는 문서 snapshot 대신 runtime manifest를 직접 사용한다', () => {
   const pipelineBuilderSource = readProjectSource('../src/core/PipelineBuilder.js');
   const snapshotSource = readProjectSource('../src/core/architectureSnapshot.js');

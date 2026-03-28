@@ -14,11 +14,21 @@ import { makePlayer, makePickup, makeEvents, makeWorld } from './fixtures/index.
 import { test, summary } from './helpers/testRunner.js';
 
 let ExperienceSystem;
+let isLivePickup;
+let getLivePickupsByType;
 try {
   ({ ExperienceSystem } = await import('../src/systems/progression/ExperienceSystem.js'));
 } catch {
   console.warn('[테스트] ExperienceSystem import 실패 — 로직 검증 스킵');
   ExperienceSystem = null;
+}
+
+try {
+  ({ isLivePickup, getLivePickupsByType } = await import('../src/utils/entityUtils.js'));
+} catch {
+  console.warn('[테스트] entityUtils import 실패 — pickup predicate 검증 스킵');
+  isLivePickup = null;
+  getLivePickupsByType = null;
 }
 
 console.log('\n[ExperienceSystem]');
@@ -49,6 +59,24 @@ test('pendingDestroy 픽업은 XP 계산 제외', () => {
   const events = makeEvents({ pickupCollected: [{ pickup: dead }] });
   ExperienceSystem.update({ world: makeWorld({ entities: { player }, queues: { events } }) });
   assert.equal(player.xp, 0, 'pendingDestroy 픽업 XP가 적용됨');
+});
+
+test('pickup predicate helper는 collected/pendingDestroy를 포함한 live pickup 판정을 제공한다', () => {
+  if (!isLivePickup || !getLivePickupsByType) return;
+
+  const liveXp = makePickup({ pickupType: 'xp', magnetized: false });
+  const deadXp = makePickup({ pickupType: 'xp', pendingDestroy: true });
+  const collectedXp = makePickup({ pickupType: 'xp', collected: true });
+  const liveGold = makePickup({ pickupType: 'gold' });
+
+  assert.equal(isLivePickup(liveXp), true, '정상 pickup이 live로 판정되지 않음');
+  assert.equal(isLivePickup(deadXp), false, 'pendingDestroy pickup이 live로 판정되면 안 됨');
+  assert.equal(isLivePickup(collectedXp), false, 'collected pickup이 live로 판정되면 안 됨');
+  assert.deepEqual(
+    getLivePickupsByType([liveXp, deadXp, collectedXp, liveGold], 'xp'),
+    [liveXp],
+    '타입별 live pickup 필터가 xp pickup SSOT로 동작해야 함',
+  );
 });
 
 test('Phase 4: xpMult 적용 — 획득 XP에 배율 곱함 (올림 처리)', () => {

@@ -45,15 +45,75 @@ function buildSnapshot(game) {
           accessories: (world.entities.player.accessories ?? []).map((accessory) => accessory.id),
         }
       : null,
+    boss: (world.entities.enemies ?? [])
+      .filter((enemy) => enemy?.isBoss && !enemy?.pendingDestroy)
+      .map((enemy) => ({
+        id: enemy.id ?? enemy.enemyDataId ?? 'boss',
+        name: enemy.name ?? enemy.enemyDataId ?? 'BOSS',
+        hp: enemy.hp ?? 0,
+        maxHp: enemy.maxHp ?? 0,
+      }))[0] ?? null,
     rerollsRemaining: world.progression.runRerollsRemaining ?? null,
     banishesRemaining: world.progression.runBanishesRemaining ?? null,
     pendingLevelUpChoices: (world.progression.pendingLevelUpChoices ?? []).map((choice) => choice?.id).filter(Boolean),
+    encounter: {
+      label: world.run.encounterState?.currentBeat?.label ?? '',
+      summaryText: world.run.encounterState?.currentBeat?.summaryText ?? '',
+      nextBossStartsIn: world.run.encounterState?.nextBossStartsIn ?? null,
+      objectiveTitle: world.run.guidance?.primaryObjective?.title ?? '',
+      stageDirectiveTitle: world.run.guidance?.stageDirective?.title ?? '',
+    },
     ui: {
       pauseVisible: ui?.isPaused?.() ?? false,
       levelUpVisible: ui?.isLevelUpVisible?.() ?? false,
       resultVisible: ui?.isResultVisible?.() ?? false,
     },
   };
+}
+
+function openBossReadabilityOverlay(game) {
+  const scene = game?.sceneManager?.currentScene ?? null;
+  const ui = scene?._ui ?? null;
+  const world = scene?.world ?? null;
+  if (!world?.entities?.player || !ui?.update) return false;
+
+  ui.hidePause?.();
+  ui.hideLevelUp?.();
+  ui.hideResult?.();
+
+  world.run ??= {};
+  transitionPlayMode(world, PlayMode.PLAYING);
+  world.run.stageId ??= 'frost_harbor';
+  world.run.stage ??= { id: world.run.stageId, name: 'Frost Harbor' };
+  world.run.guidance ??= {};
+  world.run.guidance.primaryObjective ??= { title: '교전 유지' };
+  world.run.guidance.stageDirective ??= { title: world.run.stage?.name ?? 'Boss Arena' };
+  world.run.encounterState ??= {};
+  world.run.encounterState.currentBeat ??= {
+    label: '보스 압박',
+    summaryText: '보스 HUD와 guidance surface를 함께 읽을 수 있어야 합니다.',
+  };
+  world.run.encounterState.nextBossStartsIn = 0;
+
+  world.entities.enemies = [
+    {
+      id: 'debug-boss-seraph',
+      enemyDataId: 'boss_seraph',
+      name: 'SERAPH',
+      isBoss: true,
+      isAlive: true,
+      pendingDestroy: false,
+      x: world.entities.player.x ?? 0,
+      y: (world.entities.player.y ?? 0) - 120,
+      radius: 30,
+      hp: 860,
+      maxHp: 1000,
+      color: '#fff4a3',
+    },
+  ];
+
+  ui.update(world);
+  return true;
 }
 
 function openPauseOverlay(game) {
@@ -157,6 +217,9 @@ function buildDebugHost(game) {
     },
     openResultOverlay(overrides = {}) {
       return openResultOverlay(game, overrides);
+    },
+    openBossReadabilityOverlay() {
+      return openBossReadabilityOverlay(game);
     },
   };
 }

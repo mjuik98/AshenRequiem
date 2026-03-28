@@ -37,7 +37,14 @@ export async function bootToPlay(url, transport) {
     5000,
     150,
   );
-  const titleClicked = await transport.clickByText('Start Game');
+  let titleClicked = await transport.clickByText('Start Game');
+  if (!titleClicked) {
+    titleClicked = await transport.evalJson(`
+      document.querySelector('[data-action="start"]')
+        ? (document.querySelector('[data-action="start"]').click(), true)
+        : false
+    `);
+  }
   if (!titleClicked) {
     throw new Error('Failed to click Start Game button');
   }
@@ -52,7 +59,14 @@ export async function bootToPlay(url, transport) {
     throw new Error('Start loadout dialog did not open');
   }
 
-  const loadoutClicked = await transport.clickByText('시작하기');
+  let loadoutClicked = await transport.clickByText('시작하기');
+  if (!loadoutClicked) {
+    loadoutClicked = await transport.evalJson(`
+      document.querySelector('.sl-root [data-action="start"]')
+        ? (document.querySelector('.sl-root [data-action="start"]').click(), true)
+        : false
+    `);
+  }
   if (!loadoutClicked) {
     throw new Error('Failed to click loadout start button');
   }

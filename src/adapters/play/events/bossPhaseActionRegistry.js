@@ -1,4 +1,8 @@
 import { spawnEffect, spawnEnemy, spawnProjectile } from '../../../state/spawnRequest.js';
+import {
+  queueStageEvent,
+  triggerStageGimmick,
+} from '../../../domain/play/stage/stageGimmickRuntime.js';
 
 function queueSummon(world, enemy, phaseAction) {
   const count = Math.max(1, phaseAction.count ?? 1);
@@ -147,6 +151,22 @@ function queueProjectileNova(world, enemy, phaseAction) {
   }
 }
 
+function queueStageEcho(world, enemy) {
+  const stageEcho = world.run?.stage?.bossEcho ?? null;
+  if (!stageEcho) return;
+
+  const anchor = stageEcho.target === 'player'
+    ? world.entities.player
+    : enemy;
+  if (!anchor) return;
+
+  triggerStageGimmick(world, stageEcho, {
+    anchor,
+    ownerIdPrefix: `boss:${enemy.enemyDataId ?? enemy.id ?? 'unknown'}`,
+  });
+  queueStageEvent(world, stageEcho);
+}
+
 const BOSS_PHASE_ACTION_REGISTRY = Object.freeze({
   summon: queueSummon,
   burst: queueBurst,
@@ -155,6 +175,7 @@ const BOSS_PHASE_ACTION_REGISTRY = Object.freeze({
   projectile_nova: queueProjectileNova,
   reposition: queueReposition,
   heal_pulse: queueHealPulse,
+  stage_echo: queueStageEcho,
 });
 
 export function queueBossPhaseAction(world, enemy, phaseAction = null) {

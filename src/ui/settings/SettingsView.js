@@ -8,7 +8,10 @@ import {
   renderSubscreenFooter,
   renderSubscreenHeader,
 } from '../shared/subscreenTheme.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 import {
   SETTINGS_TABS,
   renderSettingsAudioSection,
@@ -59,8 +62,7 @@ export class SettingsView {
     this._handlers = handlers;
     this._opts = normalizeSessionOptions(session.options ?? {});
     this._render();
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
       panelSelector: '.sv-panel',
       onRequestClose: () => this._onBack?.(),
@@ -74,8 +76,7 @@ export class SettingsView {
   }
 
   destroy() {
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.remove();
   }
 

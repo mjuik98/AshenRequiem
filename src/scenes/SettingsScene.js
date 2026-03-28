@@ -20,8 +20,8 @@ import {
 } from '../app/meta/settingsApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { loadTitleSceneModule } from './sceneLoaders.js';
+import { createSettingsRuntimeDependencies } from './settingsRuntimeDependencies.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
-import { createDocumentAccessibilityRuntime } from '../ui/shared/accessibilityRuntime.js';
 
 export class SettingsScene {
   constructor(game) {
@@ -78,11 +78,7 @@ export class SettingsScene {
     saveSettingsAndApplyRuntime({
       session: this.game.session,
       nextOptions: newOpts,
-      renderer: this.game.renderer,
-      soundSystem: this.game.soundSystem,
-      accessibilityRuntime: createDocumentAccessibilityRuntime(),
-      inputManager: this.game.input,
-      resizeCanvas: this.game._resizeCanvas?.bind(this.game),
+      ...this._createRuntimeDeps(),
     });
 
     this._goToTitle();
@@ -93,11 +89,7 @@ export class SettingsScene {
       importSessionSnapshot({
         session: this.game.session,
         rawSnapshot,
-        renderer: this.game.renderer,
-        soundSystem: this.game.soundSystem,
-        accessibilityRuntime: createDocumentAccessibilityRuntime(),
-        inputManager: this.game.input,
-        resizeCanvas: this.game._resizeCanvas?.bind(this.game),
+        ...this._createRuntimeDeps(),
       });
 
       return {
@@ -143,11 +135,7 @@ export class SettingsScene {
   _handleReset() {
     resetSessionProgress({
       session: this.game.session,
-      renderer: this.game.renderer,
-      soundSystem: this.game.soundSystem,
-      accessibilityRuntime: createDocumentAccessibilityRuntime(),
-      inputManager: this.game.input,
-      resizeCanvas: this.game._resizeCanvas?.bind(this.game),
+      ...this._createRuntimeDeps(),
     });
 
     return {
@@ -183,11 +171,7 @@ export class SettingsScene {
       restoreStoredSessionSnapshot({
         session: this.game.session,
         target: 'backup',
-        renderer: this.game.renderer,
-        soundSystem: this.game.soundSystem,
-        accessibilityRuntime: createDocumentAccessibilityRuntime(),
-        inputManager: this.game.input,
-        resizeCanvas: this.game._resizeCanvas?.bind(this.game),
+        ...this._createRuntimeDeps(),
       });
       return {
         snapshot: exportSessionSnapshot({ session: this.game.session }),
@@ -212,5 +196,9 @@ export class SettingsScene {
     }, (e) => {
       logRuntimeError('SettingsScene', 'TitleScene 로드 실패:', e);
     });
+  }
+
+  _createRuntimeDeps() {
+    return createSettingsRuntimeDependencies(this.game);
   }
 }

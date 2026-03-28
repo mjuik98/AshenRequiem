@@ -137,6 +137,9 @@ npm run profile:json
 
 # 파이프라인 성능 예산 검사
 npm run profile:check
+
+# encounter/wave/stage authoring report 출력
+npm run encounter:report
 ```
 
 deterministic smoke 산출물은 `output/web-game/deterministic-smoke-core/`와 `output/web-game/deterministic-smoke-full/`로 분리된다.

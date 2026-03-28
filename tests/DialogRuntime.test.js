@@ -64,4 +64,47 @@ await test('bindDialogRuntime는 패널 내부에서 Tab 순환과 Escape close 
   }
 });
 
+await test('dialogViewLifecycle helper는 dialog runtime 교체와 dispose 정책을 중앙화한다', async () => {
+  const dom = installMockDom();
+
+  try {
+    const {
+      replaceDialogRuntime,
+      disposeDialogRuntime,
+    } = await import('../src/ui/shared/dialogViewLifecycle.js');
+
+    const calls = [];
+    const firstRuntime = {
+      dispose(options = {}) {
+        calls.push(['dispose-first', options.restoreFocus ?? true]);
+      },
+    };
+
+    const nextRuntime = { id: 'next' };
+    const bindRuntime = (options) => {
+      calls.push(['bind', options.panelSelector]);
+      return nextRuntime;
+    };
+
+    const replaced = replaceDialogRuntime(firstRuntime, {
+      root: document.createElement('div'),
+      panelSelector: '.panel',
+    }, { bindRuntime });
+
+    assert.equal(replaced, nextRuntime, '교체 helper가 새 runtime 인스턴스를 반환해야 함');
+
+    const hidden = disposeDialogRuntime(replaced);
+    const destroyed = disposeDialogRuntime(replaced, { restoreFocus: false });
+
+    assert.equal(hidden, null, 'dispose helper는 null을 반환해 호출부 null-reset을 일원화해야 함');
+    assert.equal(destroyed, null, 'dispose helper는 destroy 경로에서도 null을 반환해야 함');
+    assert.deepEqual(calls, [
+      ['dispose-first', false],
+      ['bind', '.panel'],
+    ]);
+  } finally {
+    dom.restore();
+  }
+});
+
 summary();

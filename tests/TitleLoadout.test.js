@@ -255,5 +255,53 @@ await test('타이틀 로드아웃은 archetype, risk relic, 추천 목표를 �
   assert.equal(config.recommendedGoals.length > 0, true, '추천 목표가 함께 노출되지 않음');
 });
 
+await test('타이틀 로드아웃은 quick start preset과 고급 설정 요약을 함께 노출한다', async () => {
+  let titleLoadout;
+
+  try {
+    titleLoadout = await import('../src/scenes/title/titleLoadout.js');
+  } catch (error) {
+    throw new Error(`titleLoadout import 실패: ${error.message}`);
+  }
+
+  const config = titleLoadout.buildTitleLoadoutConfig(
+    {
+      weaponData: [
+        { id: 'magic_bolt', name: '마법탄', isEvolved: false, behaviorId: 'targetProjectile' },
+        { id: 'boomerang', name: '부메랑', isEvolved: false, behaviorId: 'boomerang' },
+      ],
+      accessoryData: [
+        { id: 'ring_of_speed', name: '속도의 반지' },
+        { id: 'iron_heart', name: '강철 심장' },
+      ],
+      unlockData: [],
+      archetypeData: [{ id: 'vanguard', name: 'Vanguard' }, { id: 'spellweaver', name: 'Spellweaver' }],
+      riskRelicData: [{ id: 'glass_censer', name: 'Glass Censer' }],
+      stageData: [{ id: 'ash_plains', name: 'Ash Plains' }, { id: 'ember_hollow', name: 'Ember Hollow' }],
+    },
+    {
+      meta: {
+        selectedStartWeaponId: 'magic_bolt',
+        selectedStartAccessoryId: 'ring_of_speed',
+        selectedArchetypeId: 'spellweaver',
+        selectedRiskRelicId: 'glass_censer',
+        selectedStageId: 'ember_hollow',
+        selectedAscensionLevel: 2,
+        unlockedWeapons: ['magic_bolt', 'boomerang'],
+        unlockedAccessories: ['ring_of_speed', 'iron_heart'],
+        permanentUpgrades: {},
+      },
+    },
+  );
+
+  assert.equal(Array.isArray(config.quickStartPresets), true, 'quick start preset 목록이 노출되지 않음');
+  assert.equal(config.quickStartPresets.length >= 2, true, 'quick start preset이 최소 2개 이상 제공되어야 함');
+  assert.equal(typeof config.quickStartPresets[0]?.label, 'string', 'quick start preset label이 없음');
+  assert.equal(typeof config.quickStartPresets[0]?.runOptions?.stageId, 'string', 'quick start preset이 stage 선택을 포함하지 않음');
+  assert.equal(typeof config.quickStartPresets[0]?.weaponId, 'string', 'quick start preset이 weapon 선택을 포함하지 않음');
+  assert.equal(typeof config.advancedSummary, 'string', '고급 설정 요약 문자열이 노출되지 않음');
+  assert.equal(config.advancedSummary.includes('A2'), true, '고급 설정 요약에 현재 ascension 레벨이 반영되지 않음');
+});
+
 console.log(`\nTitleLoadout: ${passed}개 통과, ${failed}개 실패`);
 if (failed > 0) process.exit(1);

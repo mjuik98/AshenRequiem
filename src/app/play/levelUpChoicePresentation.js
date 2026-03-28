@@ -167,7 +167,38 @@ function resolveSummaryText(choice, {
     ?? null;
 }
 
-function resolvePriorityHint(relatedHints) {
+function isRecommendedBuildChoice(choice, recommendedBuild) {
+  if (!choice || !recommendedBuild) return false;
+
+  if (
+    (choice.type === 'weapon_new' || choice.type === 'weapon_upgrade' || choice.type === 'weapon')
+    && choice.weaponId === recommendedBuild.baseWeaponId
+  ) {
+    return true;
+  }
+
+  if (
+    choice.type === 'weapon_evolution'
+    && choice.resultWeaponId === recommendedBuild.targetEvolutionId
+  ) {
+    return true;
+  }
+
+  if (
+    (choice.type === 'accessory' || choice.type === 'accessory_upgrade')
+    && recommendedBuild.targetAccessoryIds?.includes(choice.accessoryId)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function resolvePriorityHint(relatedHints, { isRecommended = false } = {}) {
+  if (isRecommended) {
+    return { priorityHint: '추천 빌드 경로', priorityHintType: 'recommended' };
+  }
+
   if (relatedHints.includes('진화 연관')) {
     return { priorityHint: '진화 빌드 연결', priorityHintType: 'evolution' };
   }
@@ -208,6 +239,7 @@ export function decorateLevelUpChoices(choices, player, data) {
   const weaponById = new Map((data?.weaponData ?? []).map((weapon) => [weapon.id, weapon]));
   const accessoryById = new Map((data?.accessoryData ?? []).map((accessory) => [accessory.id, accessory]));
   const session = data?.session ?? null;
+  const recommendedBuild = data?.guidance?.recommendedBuild ?? null;
 
   return (choices ?? []).map((choice) => {
     const relatedHints = [];
@@ -225,7 +257,9 @@ export function decorateLevelUpChoices(choices, player, data) {
       weaponById,
       accessoryById,
     });
-    const priorityHintState = resolvePriorityHint(relatedHints);
+    const priorityHintState = resolvePriorityHint(relatedHints, {
+      isRecommended: isRecommendedBuildChoice(choice, recommendedBuild),
+    });
 
     return {
       ...choice,
@@ -248,7 +282,10 @@ export function buildLevelUpOverlayState(world, data) {
   const isChest = world.progression.pendingLevelUpType === 'chest';
 
   return {
-    choices: decorateLevelUpChoices(choices, world.entities.player, data),
+    choices: decorateLevelUpChoices(choices, world.entities.player, {
+      ...(data ?? {}),
+      guidance: world?.run?.guidance ?? null,
+    }),
     title: isChest ? '📦 상자 보상!' : '⬆ LEVEL UP',
     rerollsRemaining: world.progression.runRerollsRemaining ?? 0,
     banishesRemaining: world.progression.runBanishesRemaining ?? 0,

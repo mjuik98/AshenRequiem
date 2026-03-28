@@ -264,6 +264,73 @@ function renderRecommendedGoals(recommendedGoals = []) {
   `;
 }
 
+function renderQuickStartPresets(quickStartPresets = [], selectedQuickStartPresetId = null) {
+  if (!quickStartPresets.length) return '';
+
+  return `
+    <div class="sl-quickstart-block">
+      <div class="sl-section-title">Quick Start</div>
+      <div class="sl-preset-grid">
+        ${quickStartPresets.map((preset) => `
+          <button
+            class="sl-preset-card ${preset.id === selectedQuickStartPresetId ? 'selected' : ''} accent-${escapeHtml(preset.accent ?? 'stable')}"
+            data-preset-id="${escapeHtml(preset.id)}"
+            type="button"
+          >
+            <span class="sl-preset-kicker">${escapeHtml(preset.label)}</span>
+            <span class="sl-preset-title">${escapeHtml(preset.weaponId ?? '')}</span>
+            <span class="sl-preset-desc">${escapeHtml(preset.description ?? '')}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderAdvancedBlocks({
+  ascensionChoices = [],
+  selectedAscensionLevel = 0,
+  accessories = [],
+  selectedStartAccessoryId = null,
+  archetypes = [],
+  selectedArchetypeId = 'vanguard',
+  riskRelics = [],
+  selectedRiskRelicId = null,
+  stages = [],
+  selectedStageId = 'ash_plains',
+  selectedSeedMode = 'none',
+  selectedSeedText = '',
+  seedPreviewText = '',
+} = {}) {
+  return `
+    <div class="sl-ascension-block">
+      <div class="sl-section-title">Ascension</div>
+      <div class="sl-ascension-grid">${renderAscensionChoices(ascensionChoices, selectedAscensionLevel)}</div>
+      ${renderAscensionSummary(ascensionChoices, selectedAscensionLevel)}
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Starting Relic</div>
+      <div class="sl-inline-grid">${renderAccessoryChoices(accessories, selectedStartAccessoryId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Archetype</div>
+      <div class="sl-inline-grid">${renderArchetypeChoices(archetypes, selectedArchetypeId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Risk Relic</div>
+      <div class="sl-inline-grid">${renderRiskRelicChoices(riskRelics, selectedRiskRelicId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Stage</div>
+      <div class="sl-inline-grid">${renderStageChoices(stages, selectedStageId)}</div>
+    </div>
+    <div class="sl-config-block">
+      <div class="sl-section-title">Run Seed</div>
+      ${renderSeedChoices(selectedSeedMode, selectedSeedText, seedPreviewText)}
+    </div>
+  `;
+}
+
 function renderStartLoadoutCards(weapons = [], selectedWeaponId = null) {
   return weapons.map((weapon) => `
     <button
@@ -288,6 +355,8 @@ export function renderStartLoadoutMarkup({
   accessories = [],
   archetypes = [],
   riskRelics = [],
+  quickStartPresets = [],
+  selectedQuickStartPresetId = null,
   selectedWeaponId = null,
   ascensionChoices = [],
   selectedAscensionLevel = 0,
@@ -299,6 +368,8 @@ export function renderStartLoadoutMarkup({
   selectedSeedMode = 'none',
   selectedSeedText = '',
   seedPreviewText = '',
+  advancedSummary = '',
+  isAdvancedOpen = false,
   recommendedGoals = [],
   canStart = false,
 } = {}) {
@@ -335,34 +406,36 @@ export function renderStartLoadoutMarkup({
     copyClassName: 'sl-copy',
   });
   const bodyHtml = `
-    <div class="sl-ascension-block">
-      <div class="sl-section-title">Ascension</div>
-      <div class="sl-ascension-grid">${renderAscensionChoices(ascensionChoices, selectedAscensionLevel)}</div>
-      ${renderAscensionSummary(ascensionChoices, selectedAscensionLevel)}
-    </div>
-    <div class="sl-config-block">
-      <div class="sl-section-title">Starting Relic</div>
-      <div class="sl-inline-grid">${renderAccessoryChoices(accessories, selectedStartAccessoryId)}</div>
-    </div>
-    <div class="sl-config-block">
-      <div class="sl-section-title">Archetype</div>
-      <div class="sl-inline-grid">${renderArchetypeChoices(archetypes, selectedArchetypeId)}</div>
-    </div>
-    <div class="sl-config-block">
-      <div class="sl-section-title">Risk Relic</div>
-      <div class="sl-inline-grid">${renderRiskRelicChoices(riskRelics, selectedRiskRelicId)}</div>
-    </div>
-    <div class="sl-config-block">
-      <div class="sl-section-title">Stage</div>
-      <div class="sl-inline-grid">${renderStageChoices(stages, selectedStageId)}</div>
-    </div>
-    <div class="sl-config-block">
-      <div class="sl-section-title">Run Seed</div>
-      ${renderSeedChoices(selectedSeedMode, selectedSeedText, seedPreviewText)}
-    </div>
+    ${renderQuickStartPresets(quickStartPresets, selectedQuickStartPresetId)}
     ${renderRecommendedGoals(recommendedGoals)}
-    <div class="sl-grid">${renderStartLoadoutCards(weapons, selectedWeaponId)}</div>
+    <div class="sl-weapon-block">
+      <div class="sl-section-title">Starting Weapon</div>
+      <div class="sl-grid">${renderStartLoadoutCards(weapons, selectedWeaponId)}</div>
+    </div>
     ${emptyState}
+    <div class="sl-advanced-shell ${isAdvancedOpen ? 'open' : 'closed'}">
+      <button class="sl-advanced-toggle" data-action="toggle-advanced" type="button">
+        <span class="sl-advanced-label">${isAdvancedOpen ? '고급 설정 접기' : '고급 설정 펼치기'}</span>
+        <span class="sl-advanced-summary">${escapeHtml(advancedSummary)}</span>
+      </button>
+      <div class="sl-advanced-panel">
+        ${renderAdvancedBlocks({
+          ascensionChoices,
+          selectedAscensionLevel,
+          accessories,
+          selectedStartAccessoryId,
+          archetypes,
+          selectedArchetypeId,
+          riskRelics,
+          selectedRiskRelicId,
+          stages,
+          selectedStageId,
+          selectedSeedMode,
+          selectedSeedText,
+          seedPreviewText,
+        })}
+      </div>
+    </div>
   `;
   const footerHtml = `
     <footer class="sl-actions ui-modal-action-bar">

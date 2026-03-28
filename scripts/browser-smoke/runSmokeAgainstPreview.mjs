@@ -22,7 +22,7 @@ const VITE_CLI = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 const DEFAULT_PORT = 4173;
 const DEFAULT_HOST = '127.0.0.1';
 const BUILD_TIMEOUT_MS = 60_000;
-const SMOKE_TIMEOUT_MS = 180_000;
+const SMOKE_TIMEOUT_MS = 300_000;
 const DEBUG_SMOKE = isDebugSmokeEnabled();
 const debugLog = createSmokeLogger({ enabled: DEBUG_SMOKE, output: process.stdout });
 
@@ -62,6 +62,7 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === '--scenario' && next) {
       args.scenario = next;
+      args.suite = null;
       index += 1;
     } else if (value === '--all') {
       args.all = true;
@@ -254,10 +255,10 @@ export async function runSmokeAgainstPreview(
 
   if (options.all !== false) {
     smokeArgs.push('--all');
-  } else if (options.suite) {
-    smokeArgs.push('--suite', options.suite);
   } else if (options.scenario) {
     smokeArgs.push('--scenario', options.scenario);
+  } else if (options.suite) {
+    smokeArgs.push('--suite', options.suite);
   }
 
   debugLog('smoke:start', { url });

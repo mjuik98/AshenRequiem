@@ -52,12 +52,22 @@ export async function runPauseOverlayScenario(url, artifactDir, transport) {
   keyboardState.tabMovesWithinDialog = await transport.evalJson(`Boolean(document.querySelector('.pv-panel') && document.activeElement && document.activeElement !== document.querySelector('.pv-panel') && document.querySelector('.pv-panel').contains(document.activeElement))`);
   await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
   await transport.press('Escape');
-  const resumedState = await transport.pollEval(
+  let resumedState = await transport.pollEval(
     'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
     (value) => value?.ui?.pauseVisible === false,
     3000,
     150,
   );
+  if (resumedState?.ui?.pauseVisible !== false) {
+    await sleep(180);
+    await transport.press('Escape');
+    resumedState = await transport.pollEval(
+      'window.__ASHEN_DEBUG__?.getSnapshot?.() ?? null',
+      (value) => value?.ui?.pauseVisible === false,
+      3000,
+      150,
+    );
+  }
   keyboardState.escapeResumes = resumedState?.ui?.pauseVisible === false;
   const summary = {
     scenario: 'pause_overlay',
@@ -257,6 +267,80 @@ export async function runResultScreenScenario(url, artifactDir, transport) {
       tabMovesWithinDialog: keyboardState?.tabMovesWithinDialog === true,
     },
   };
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+export async function runCombatPressureScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  const state = await bootToPlay(url, transport);
+  await sleep(180);
+  const threatChip = await transport.evalJson(`document.querySelector('.hud-threat-chip')?.textContent?.trim() ?? ''`);
+  const bossChip = await transport.evalJson(`document.querySelector('.hud-boss-chip')?.textContent?.trim() ?? ''`);
+  const stageChip = await transport.evalJson(`document.querySelector('.hud-stage-chip')?.textContent?.trim() ?? ''`);
+  const objectiveChip = await transport.evalJson(`document.querySelector('.hud-objective-chip')?.textContent?.trim() ?? ''`);
+  const guidanceNote = await transport.evalJson(`document.querySelector('.hud-guidance-note')?.textContent?.trim() ?? ''`);
+  const encounter = await transport.evalJson('window.__ASHEN_DEBUG__?.getSnapshot?.()?.encounter ?? null');
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+
+  const summary = {
+    scenario: 'combat_pressure',
+    state,
+    encounter,
+    threatChip,
+    bossChip,
+    stageChip,
+    objectiveChip,
+    guidanceNote,
+    assertions: {
+      inPlayScene: state?.scene === 'PlayScene',
+      hasThreatChip: threatChip.includes('위협:'),
+      hasBossChip: bossChip.includes('보스:'),
+      hasStageChip: stageChip.includes('스테이지:'),
+      hasObjectiveChip: objectiveChip.includes('목표:'),
+      hasGuidanceNote: typeof guidanceNote === 'string' && guidanceNote.length > 0,
+      hasEncounterLabel: typeof encounter?.label === 'string' && encounter.label.length > 0,
+      hasObjectiveTitle: typeof encounter?.objectiveTitle === 'string' && encounter.objectiveTitle.length > 0,
+      hasStageDirectiveTitle: typeof encounter?.stageDirectiveTitle === 'string' && encounter.stageDirectiveTitle.length > 0,
+    },
+  };
+
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+export async function runBossReadabilityScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  await bootToPlay(url, transport);
+  const opened = await transport.evalJson('window.__ASHEN_DEBUG__?.openBossReadabilityOverlay?.() ?? false');
+  if (opened !== true) {
+    throw new Error('Boss readability overlay did not open');
+  }
+
+  await sleep(180);
+  const bossName = await transport.evalJson(`document.querySelector('.boss-hud .boss-name')?.textContent?.trim() ?? ''`);
+  const bossLabel = await transport.evalJson(`document.querySelector('.boss-hud .boss-hp-label')?.textContent?.trim() ?? ''`);
+  const stageChip = await transport.evalJson(`document.querySelector('.hud-stage-chip')?.textContent?.trim() ?? ''`);
+  const guidanceNote = await transport.evalJson(`document.querySelector('.hud-guidance-note')?.textContent?.trim() ?? ''`);
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+
+  const summary = {
+    scenario: 'boss_readability',
+    opened,
+    bossName,
+    bossLabel,
+    stageChip,
+    guidanceNote,
+    assertions: {
+      bossHudVisible: bossName.length > 0,
+      bossHpVisible: bossLabel.includes('/'),
+      stageContextVisible: stageChip.includes('스테이지:'),
+      guidanceNoteVisible: guidanceNote.length > 0,
+    },
+  };
+
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
   return summary;
 }

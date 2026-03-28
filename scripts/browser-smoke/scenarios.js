@@ -65,6 +65,18 @@ export const SCENARIOS = {
     suite: 'core',
     stepNames: ['play', 'result', 'keyboard'],
   },
+  combat_pressure: {
+    id: 'combat_pressure',
+    artifactSlug: 'combat-pressure',
+    suite: 'core',
+    stepNames: ['play', 'combat', 'guidance'],
+  },
+  boss_readability: {
+    id: 'boss_readability',
+    artifactSlug: 'boss-readability',
+    suite: 'extended',
+    stepNames: ['play', 'boss', 'hud'],
+  },
 };
 
 export function getOutputRootForRun({

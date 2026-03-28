@@ -57,7 +57,29 @@ export function getLiveProjectiles(projectiles) {
  * @returns {object[]}
  */
 export function getLivePickups(pickups) {
-  return (pickups || []).filter(p => !p.collected && isLive(p));
+  return (pickups || []).filter(isLivePickup);
+}
+
+/**
+ * 수집되지 않았고 제거 대기 중이 아닌 pickup인지 확인한다.
+ * @param {object} pickup
+ * @returns {boolean}
+ */
+export function isLivePickup(pickup) {
+  return pickup?.collected !== true && isLive(pickup);
+}
+
+/**
+ * 살아있는 pickup 중 특정 타입만 반환한다.
+ * @param {object[]} pickups
+ * @param {string} pickupType
+ * @returns {object[]}
+ */
+export function getLivePickupsByType(pickups, pickupType) {
+  return getLivePickups(pickups).filter((pickup) => {
+    if (!pickupType) return true;
+    return (pickup?.pickupType ?? 'xp') === pickupType;
+  });
 }
 
 /**

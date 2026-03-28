@@ -10,11 +10,11 @@ import {
   buildRecentRunEntry,
   buildRunResult,
 } from '../../domain/meta/progression/playResultDomain.js';
-import { buildUnlockGuideEntries } from '../../domain/meta/progression/unlockGuidanceDomain.js';
 import {
   applyDailyRewardToSession,
   buildDailyRewardResult,
 } from '../../domain/meta/progression/dailyChallengeDomain.js';
+import { buildMetaGoalRoadmap } from '../../domain/meta/progression/metaGoalDomain.js';
 
 function appendUnique(base = [], additions = []) {
   return [...new Set([...(base ?? []), ...(additions ?? [])])];
@@ -96,15 +96,23 @@ export function processPlayResult(world, session, runtimeState = {}, deps = {}) 
     world,
     runResult,
   }, deps);
-  const nextGoals = buildUnlockGuideEntries(session, undefined, 3)
-    .filter((entry) => !entry.done)
-    .slice(0, 3)
-    .map((entry) => ({
-      icon: entry.icon,
-      title: entry.title,
-      description: entry.description,
-      progressText: entry.progressText,
-    }));
+  const nextGoals = buildMetaGoalRoadmap({
+    session,
+    gameData: {
+      unlockData: deps?.gameData?.unlockData,
+      permanentUpgradeData: deps?.gameData?.permanentUpgradeData,
+      enemyData: deps?.gameData?.enemyData,
+      weaponData: deps?.gameData?.weaponData,
+      accessoryData: deps?.gameData?.accessoryData,
+    },
+    limit: 3,
+  }).map((entry) => ({
+    kind: entry.kind,
+    icon: entry.icon,
+    title: entry.title,
+    description: entry.description,
+    progressText: entry.progressText,
+  }));
 
   return buildPlayResultSummary(world, session, {
     startCurrency: runtimeState.startCurrency,

@@ -4,14 +4,16 @@ import {
   buildCodexRecordSummary,
   buildCodexUnlockEntries,
 } from './codexRecords.js';
+import { buildMetaGoalRoadmap } from '../../domain/meta/progression/metaGoalDomain.js';
 
 export function buildCodexRecordsModel({ session = null, gameData = null }) {
   const summary = buildCodexRecordSummary(session, gameData);
   const achievements = buildCodexAchievements(session, gameData);
   const unlocks = buildCodexUnlockEntries(session);
   const discovery = buildCodexDiscoverySummary({ session, gameData });
+  const roadmapGoals = buildMetaGoalRoadmap({ session, gameData, limit: 4 });
 
-  const focusGoals = [
+  const secondaryGoals = [
     ...achievements
       .filter((entry) => !entry.done)
       .map((entry) => ({
@@ -35,6 +37,11 @@ export function buildCodexRecordsModel({ session = null, gameData = null }) {
   ]
     .sort((left, right) => right.pct - left.pct)
     .slice(0, 4);
+
+  const focusGoals = [
+    ...roadmapGoals,
+    ...secondaryGoals.filter((entry) => !roadmapGoals.some((goal) => goal.title === entry.title)),
+  ].slice(0, 4);
 
   const discoveryFocus = discovery.entries.map((entry) => ({
     ...entry,

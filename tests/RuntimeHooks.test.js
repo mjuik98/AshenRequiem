@@ -152,4 +152,54 @@ test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 �
   }
 });
 
+test('debug host는 boss readability smoke를 위한 강제 보스 상태 helper를 노출한다', () => {
+  let updatedEnemies = null;
+  const game = { sceneManager: { currentScene: null } };
+  game.sceneManager.currentScene = {
+    sceneId: 'PlayScene',
+    _ui: {
+      isPaused: () => false,
+      isLevelUpVisible: () => false,
+      isResultVisible: () => false,
+      update(world) {
+        updatedEnemies = world.entities.enemies;
+      },
+    },
+    world: {
+      run: {
+        playMode: 'playing',
+        elapsedTime: 220,
+        killCount: 12,
+        runOutcome: null,
+        stageId: 'frost_harbor',
+        stage: { id: 'frost_harbor', name: 'Frost Harbor' },
+        guidance: {
+          primaryObjective: { title: '차가운 봉쇄선' },
+          stageDirective: { title: '교차 화망' },
+        },
+        encounterState: {
+          currentBeat: {
+            label: '봉쇄 구간',
+            summaryText: '교차 탄막과 보스가 동선을 잘라냅니다.',
+          },
+        },
+      },
+      entities: {
+        player: { level: 5, weapons: [], accessories: [] },
+        enemies: [],
+      },
+    },
+  };
+  registerRuntimeHooks(game, { enabled: true });
+
+  try {
+    assert.equal(typeof globalThis.__ASHEN_DEBUG__?.openBossReadabilityOverlay, 'function', 'boss readability helper가 노출되지 않음');
+    assert.equal(globalThis.__ASHEN_DEBUG__?.openBossReadabilityOverlay(), true, 'boss readability helper가 false를 반환함');
+    assert.equal(Array.isArray(updatedEnemies), true, 'boss readability helper가 UI update를 유도하지 않음');
+    assert.equal(updatedEnemies.some((enemy) => enemy.isBoss), true, 'boss readability helper가 boss enemy를 주입하지 않음');
+  } finally {
+    unregisterRuntimeHooks();
+  }
+});
+
 summary();

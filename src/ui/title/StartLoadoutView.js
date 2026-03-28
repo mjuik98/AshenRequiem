@@ -1,7 +1,10 @@
 import { bindStartLoadoutInteractions } from './startLoadoutInteractions.js';
 import { renderStartLoadoutMarkup } from './startLoadoutMarkup.js';
 import { ensureStartLoadoutStyles } from './startLoadoutStyles.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 
 export class StartLoadoutView {
   constructor(container) {
@@ -25,6 +28,10 @@ export class StartLoadoutView {
     this._ascensionChoices = [];
     this._stages = [];
     this._seedPreviewText = '';
+    this._quickStartPresets = [];
+    this._selectedQuickStartPresetId = null;
+    this._advancedSummary = '';
+    this._isAdvancedOpen = false;
     this._recommendedGoals = [];
     this._onStart = null;
     this._onCancel = null;
@@ -45,10 +52,13 @@ export class StartLoadoutView {
     selectedArchetypeId = 'vanguard',
     selectedRiskRelicId = null,
     stages = [],
+    quickStartPresets = [],
+    selectedQuickStartPresetId = null,
     selectedStageId = 'ash_plains',
     selectedSeedMode = 'none',
     selectedSeedText = '',
     seedPreviewText = '',
+    advancedSummary = '',
     recommendedGoals = [],
     canStart = false,
     onStart,
@@ -60,6 +70,7 @@ export class StartLoadoutView {
     this._riskRelics = riskRelics;
     this._ascensionChoices = ascensionChoices;
     this._stages = stages;
+    this._quickStartPresets = quickStartPresets;
     this._selectedWeaponId = weapons.some((weapon) => weapon?.id === selectedWeaponId)
       ? selectedWeaponId
       : weapons[0]?.id ?? null;
@@ -81,12 +92,15 @@ export class StartLoadoutView {
     this._selectedSeedMode = selectedSeedMode ?? 'none';
     this._selectedSeedText = selectedSeedText ?? '';
     this._seedPreviewText = seedPreviewText || this._buildSeedPreviewText();
+    this._advancedSummary = advancedSummary || this._buildAdvancedSummary();
+    this._selectedQuickStartPresetId = selectedQuickStartPresetId;
+    this._isAdvancedOpen = false;
+    this._syncQuickStartSelection(Boolean(advancedSummary));
     this._recommendedGoals = recommendedGoals;
     this._canStart = Boolean(canStart && this._selectedWeaponId);
     this._onStart = onStart;
     this._onCancel = onCancel;
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this._el,
       panelSelector: '.sl-panel',
       onRequestClose: () => {
@@ -99,15 +113,13 @@ export class StartLoadoutView {
   }
 
   hide() {
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this._el.style.display = 'none';
     this._el.innerHTML = '';
   }
 
   destroy() {
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
     this._el.remove();
   }
 
@@ -152,6 +164,8 @@ export class StartLoadoutView {
       accessories: this._accessories,
       archetypes: this._archetypes,
       riskRelics: this._riskRelics,
+      quickStartPresets: this._quickStartPresets,
+      selectedQuickStartPresetId: this._selectedQuickStartPresetId,
       selectedWeaponId: this._selectedWeaponId,
       ascensionChoices: this._ascensionChoices,
       selectedAscensionLevel: this._selectedAscensionLevel,
@@ -163,6 +177,8 @@ export class StartLoadoutView {
       selectedSeedMode: this._selectedSeedMode,
       selectedSeedText: this._selectedSeedText,
       seedPreviewText: this._seedPreviewText,
+      advancedSummary: this._advancedSummary,
+      isAdvancedOpen: this._isAdvancedOpen,
       recommendedGoals: this._recommendedGoals,
       canStart: this._canStart,
     });
@@ -177,28 +193,41 @@ export class StartLoadoutView {
       getSelectedStageId: () => this._selectedStageId,
       getSelectedSeedMode: () => this._selectedSeedMode,
       getSelectedSeedText: () => this._selectedSeedText,
+      onSelectQuickStartPreset: (presetId) => {
+        this._applyQuickStartPreset(presetId);
+      },
+      onToggleAdvanced: () => {
+        this._isAdvancedOpen = !this._isAdvancedOpen;
+        this._render();
+      },
       onSelectWeapon: (weaponId) => {
         this._selectedWeaponId = weaponId;
+        this._syncQuickStartSelection();
         this._render();
       },
       onSelectAscension: (ascensionLevel) => {
         this._selectedAscensionLevel = ascensionLevel;
+        this._syncQuickStartSelection();
         this._render();
       },
       onSelectAccessory: (accessoryId) => {
         this._selectedStartAccessoryId = accessoryId || null;
+        this._syncQuickStartSelection();
         this._render();
       },
       onSelectArchetype: (archetypeId) => {
         this._selectedArchetypeId = archetypeId;
+        this._syncQuickStartSelection();
         this._render();
       },
       onSelectRiskRelic: (riskRelicId) => {
         this._selectedRiskRelicId = riskRelicId || null;
+        this._syncQuickStartSelection();
         this._render();
       },
       onSelectStage: (stageId) => {
         this._selectedStageId = stageId;
+        this._syncQuickStartSelection();
         this._render();
       },
       onSelectSeedMode: (seedMode) => {
@@ -207,11 +236,13 @@ export class StartLoadoutView {
           this._selectedSeedText = '';
         }
         this._seedPreviewText = this._buildSeedPreviewText();
+        this._syncQuickStartSelection();
         this._render();
       },
       onChangeSeedText: (seedText) => {
         this._selectedSeedText = seedText;
         this._seedPreviewText = this._buildSeedPreviewText();
+        this._syncQuickStartSelection();
       },
       onCancel: () => {
         this.hide();
@@ -236,5 +267,50 @@ export class StartLoadoutView {
         : '커스텀 시드를 입력하면 동일한 런을 재현합니다.';
     }
     return '랜덤 시드로 새로운 런을 생성합니다.';
+  }
+
+  _buildAdvancedSummary() {
+    const selectedArchetype = this._archetypes.find((entry) => entry?.id === this._selectedArchetypeId);
+    const selectedStage = this._stages.find((entry) => entry?.id === this._selectedStageId);
+    return [
+      `A${this._selectedAscensionLevel}`,
+      selectedArchetype?.name ?? 'Archetype',
+      selectedStage?.name ?? 'Stage',
+    ].join(' · ');
+  }
+
+  _syncQuickStartSelection(preserveSummary = false) {
+    if (!preserveSummary) {
+      this._advancedSummary = this._buildAdvancedSummary();
+    }
+    const matchingPreset = this._quickStartPresets.find((preset) => (
+      preset?.weaponId === this._selectedWeaponId
+      && preset?.runOptions?.ascensionLevel === this._selectedAscensionLevel
+      && (preset?.runOptions?.startAccessoryId ?? null) === (this._selectedStartAccessoryId ?? null)
+      && (preset?.runOptions?.archetypeId ?? 'vanguard') === this._selectedArchetypeId
+      && (preset?.runOptions?.riskRelicId ?? null) === (this._selectedRiskRelicId ?? null)
+      && (preset?.runOptions?.stageId ?? 'ash_plains') === this._selectedStageId
+      && (preset?.runOptions?.seedMode ?? 'none') === this._selectedSeedMode
+      && (preset?.runOptions?.seedText ?? '') === this._selectedSeedText
+    ));
+    this._selectedQuickStartPresetId = matchingPreset?.id ?? null;
+  }
+
+  _applyQuickStartPreset(presetId) {
+    const preset = this._quickStartPresets.find((entry) => entry?.id === presetId);
+    if (!preset) return;
+
+    this._selectedQuickStartPresetId = preset.id;
+    this._selectedWeaponId = preset.weaponId ?? this._selectedWeaponId;
+    this._selectedAscensionLevel = preset.runOptions?.ascensionLevel ?? this._selectedAscensionLevel;
+    this._selectedStartAccessoryId = preset.runOptions?.startAccessoryId ?? null;
+    this._selectedArchetypeId = preset.runOptions?.archetypeId ?? this._selectedArchetypeId;
+    this._selectedRiskRelicId = preset.runOptions?.riskRelicId ?? null;
+    this._selectedStageId = preset.runOptions?.stageId ?? this._selectedStageId;
+    this._selectedSeedMode = preset.runOptions?.seedMode ?? 'none';
+    this._selectedSeedText = preset.runOptions?.seedText ?? '';
+    this._seedPreviewText = this._buildSeedPreviewText();
+    this._advancedSummary = this._buildAdvancedSummary();
+    this._render();
   }
 }

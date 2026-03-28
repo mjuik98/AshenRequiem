@@ -3,7 +3,10 @@ import {
   resetCodexViewState,
 } from './codexViewState.js';
 import { CODEX_VIEW_CSS, CODEX_VIEW_STYLE_ID } from './codexStyles.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 import {
   activateCodexTabRuntime,
   renderCodexPanelsRuntime,
@@ -41,8 +44,7 @@ export class CodexView {
 
     this._render();
     this.el.style.display = 'block';
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
       panelSelector: '.cx-panel',
       onRequestClose: () => this._onBack?.(),
@@ -51,8 +53,7 @@ export class CodexView {
   }
 
   destroy() {
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.remove();
   }
 

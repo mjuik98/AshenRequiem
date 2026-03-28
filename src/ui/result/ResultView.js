@@ -9,7 +9,10 @@
  */
 import { renderResultViewMarkup } from './resultViewMarkup.js';
 import { ensureResultViewStyles } from './resultViewStyles.js';
-import { bindDialogRuntime } from '../shared/dialogRuntime.js';
+import {
+  disposeDialogRuntime,
+  replaceDialogRuntime,
+} from '../shared/dialogViewLifecycle.js';
 
 export class ResultView {
   constructor(container) {
@@ -26,8 +29,7 @@ export class ResultView {
   show(stats, onRestartCallback, onTitleCallback = null) {
     this._onRestart = onRestartCallback;
     this._onTitle = onTitleCallback;
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = bindDialogRuntime({
+    this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
       panelSelector: '.result-card',
     });
@@ -52,8 +54,7 @@ export class ResultView {
   }
 
   hide() {
-    this._dialogRuntime?.dispose();
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.style.display = 'none';
     this.el.innerHTML = '';
     this._onRestart = null;
@@ -61,8 +62,7 @@ export class ResultView {
   }
 
   destroy() {
-    this._dialogRuntime?.dispose({ restoreFocus: false });
-    this._dialogRuntime = null;
+    this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
     this.el.remove();
   }
 }

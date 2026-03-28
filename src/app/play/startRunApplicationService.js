@@ -12,6 +12,7 @@ import {
   applyRunSessionState,
   queueRunStartEvents,
 } from './runSessionStateService.js';
+import { buildRunGuidanceSnapshot } from '../../domain/play/encounter/runGuidanceDomain.js';
 
 export function prepareStartRunState({
   session = null,
@@ -24,6 +25,7 @@ export function prepareStartRunState({
   applyStartAccessoriesImpl = applyPlayerStartAccessories,
   applyPermanentUpgradesImpl = applyPlayerPermanentUpgrades,
   initializeRunStateImpl = applyRunSessionState,
+  buildRunGuidanceImpl = buildRunGuidanceSnapshot,
   queueStartEventsImpl = queueRunStartEvents,
   restoreActiveRunSnapshotImpl = restoreActiveRunSnapshot,
 } = {}) {
@@ -52,12 +54,32 @@ export function prepareStartRunState({
   if (session?.activeRun) {
     initializeRunStateImpl(world, session);
     restoreActiveRunSnapshotImpl(world, player, session.activeRun);
+    world.run.guidance = buildRunGuidanceImpl({
+      session: {
+        ...session,
+        meta: {
+          ...(session?.meta ?? {}),
+          selectedStageId: world.run.stageId,
+        },
+      },
+      gameData,
+    });
   } else {
     applyArchetypeImpl(player, playerSpawnState.archetype ?? null);
     applyRiskRelicImpl(player, playerSpawnState.riskRelic ?? null);
     applyStartAccessoriesImpl(player, playerSpawnState.startAccessories ?? []);
     applyPermanentUpgradesImpl(player, playerSpawnState.permanentUpgrades);
     initializeRunStateImpl(world, session);
+    world.run.guidance = buildRunGuidanceImpl({
+      session: {
+        ...session,
+        meta: {
+          ...(session?.meta ?? {}),
+          selectedStageId: world.run.stageId,
+        },
+      },
+      gameData,
+    });
     queueStartEventsImpl(world, player);
   }
 
