@@ -81,6 +81,14 @@ test('meta shop helper modules expose model, markup, and style contracts', () =>
   assert.equal(typeof styles.META_SHOP_CSS, 'string', 'MetaShop CSS helper가 없음');
 });
 
+test('meta shop styles keep the panel as the scroll container', () => {
+  const styles = getMetaShopStyles();
+
+  assert.match(styles.META_SHOP_CSS, /\.ms-root\s*\{[\s\S]*overflow:\s*hidden;/, 'MetaShop root가 패널 외부 스크롤을 차단하지 않음');
+  assert.match(styles.META_SHOP_CSS, /\.ms-panel\s*\{[\s\S]*max-height:\s*calc\(100vh - 48px\);/, 'MetaShop panel 높이 제한이 없어 상단 복귀가 불안정함');
+  assert.match(styles.META_SHOP_CSS, /\.ms-panel\s*\{[\s\S]*overflow-y:\s*auto;/, 'MetaShop panel이 자체 스크롤 컨테이너가 아님');
+});
+
 test('meta shop model and markup keep purchase availability and shared footer contract', () => {
   const modelApi = getMetaShopModel();
   const markupApi = getMetaShopMarkup();
@@ -206,6 +214,32 @@ test('MetaShopView keeps the selected upgrade across refresh when it still exist
 
     assert.equal(view._selectedUpgradeId, 'perm_speed', 'refresh 이후 선택 업그레이드가 유지되지 않음');
     assert.equal(view.el.innerHTML.includes('is-selected'), true, '선택 카드 상태가 markup에 반영되지 않음');
+  } finally {
+    restore();
+  }
+});
+
+test('MetaShopView keeps the panel scroll position across refresh', () => {
+  const View = getMetaShopView();
+  const { document, restore } = installMockDom();
+
+  try {
+    const container = document.createElement('div');
+    const view = new View(container);
+    const session = makeSessionState({
+      meta: {
+        currency: 999,
+        permanentUpgrades: {},
+      },
+    });
+
+    view.show(session, () => {}, () => {});
+
+    const panel = view.el.querySelector('.ms-panel');
+    panel.scrollTop = 240;
+    view.refresh(session);
+
+    assert.equal(view.el.querySelector('.ms-panel')?.scrollTop, 240, 'refresh 이후 Meta Shop panel 스크롤 위치가 초기화됨');
   } finally {
     restore();
   }

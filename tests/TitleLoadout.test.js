@@ -255,7 +255,7 @@ await test('타이틀 로드아웃은 archetype, risk relic, 추천 목표를 �
   assert.equal(config.recommendedGoals.length > 0, true, '추천 목표가 함께 노출되지 않음');
 });
 
-await test('타이틀 로드아웃은 quick start preset과 고급 설정 요약을 함께 노출한다', async () => {
+await test('타이틀 로드아웃은 quick start preset 없이 고급 설정 요약만 노출한다', async () => {
   let titleLoadout;
 
   try {
@@ -294,11 +294,7 @@ await test('타이틀 로드아웃은 quick start preset과 고급 설정 요약
     },
   );
 
-  assert.equal(Array.isArray(config.quickStartPresets), true, 'quick start preset 목록이 노출되지 않음');
-  assert.equal(config.quickStartPresets.length >= 2, true, 'quick start preset이 최소 2개 이상 제공되어야 함');
-  assert.equal(typeof config.quickStartPresets[0]?.label, 'string', 'quick start preset label이 없음');
-  assert.equal(typeof config.quickStartPresets[0]?.runOptions?.stageId, 'string', 'quick start preset이 stage 선택을 포함하지 않음');
-  assert.equal(typeof config.quickStartPresets[0]?.weaponId, 'string', 'quick start preset이 weapon 선택을 포함하지 않음');
+  assert.equal('quickStartPresets' in config, false, 'quick start preset 설정이 더 이상 노출되면 안 됨');
   assert.equal(typeof config.advancedSummary, 'string', '고급 설정 요약 문자열이 노출되지 않음');
   assert.equal(config.advancedSummary.includes('A2'), true, '고급 설정 요약에 현재 ascension 레벨이 반영되지 않음');
 });

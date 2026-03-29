@@ -8,7 +8,6 @@ export function bindStartLoadoutInteractions(root, {
   getSelectedStageId = () => 'ash_plains',
   getSelectedSeedMode = () => 'none',
   getSelectedSeedText = () => '',
-  onSelectQuickStartPreset,
   onToggleAdvanced,
   onSelectWeapon,
   onSelectAscension,
@@ -24,12 +23,6 @@ export function bindStartLoadoutInteractions(root, {
   root?.querySelectorAll('[data-weapon-id]').forEach((button) => {
     button.addEventListener('click', () => {
       onSelectWeapon?.(button.dataset.weaponId ?? null);
-    });
-  });
-
-  root?.querySelectorAll('[data-preset-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      onSelectQuickStartPreset?.(button.dataset.presetId ?? null);
     });
   });
 

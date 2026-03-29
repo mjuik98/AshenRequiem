@@ -25,14 +25,6 @@ export const TITLE_SCREEN_HTML = `
           <span class="t-btn-badge">▶</span>
         </button>
 
-        <button class="t-btn" id="title-continue" data-action="continue" type="button" disabled>
-          <span class="t-btn-left">
-            <span class="t-btn-label">Continue</span>
-            <span class="t-btn-meta">이어할 런이 없습니다</span>
-          </span>
-          <span class="t-btn-badge">↺</span>
-        </button>
-
         <button class="t-btn" id="title-shop" data-action="shop" type="button">
           <span class="t-btn-left">
             <span class="t-btn-label">Meta Shop</span>

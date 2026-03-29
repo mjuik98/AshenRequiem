@@ -34,34 +34,10 @@ export function buildTitleSceneDom(scene, {
   scene._el = documentRef.createElement('div');
   scene._el.id = 'title-screen';
   scene._el.innerHTML = titleScreenHtml;
-  syncTitleContinueAction(scene, documentRef);
 
   documentRef.getElementById('ui-container')?.appendChild(scene._el);
   initBackgroundImpl(scene);
   return scene._el;
-}
-
-function formatContinueMeta(activeRun) {
-  if (!activeRun?.run) return '이어할 런이 없습니다';
-  const elapsed = Math.floor(activeRun.run.elapsedTime ?? 0);
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = String(elapsed % 60).padStart(2, '0');
-  const stageName = activeRun.run.stage?.name ?? activeRun.run.stageId ?? 'Unknown Stage';
-  return `${stageName} · ${minutes}:${seconds}`;
-}
-
-function syncTitleContinueAction(scene) {
-  const button = scene?._el?.querySelector?.('[data-action="continue"]');
-  if (!button) return;
-
-  const activeRun = scene?.game?.session?.activeRun ?? null;
-  const isEnabled = Boolean(activeRun?.run && activeRun?.player);
-  button.disabled = !isEnabled;
-  button.setAttribute('aria-disabled', String(!isEnabled));
-  const meta = button.querySelector('.t-btn-meta');
-  if (meta) {
-    meta.textContent = formatContinueMeta(activeRun);
-  }
 }
 
 export async function initTitleSceneBackground(scene, {

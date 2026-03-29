@@ -264,29 +264,6 @@ function renderRecommendedGoals(recommendedGoals = []) {
   `;
 }
 
-function renderQuickStartPresets(quickStartPresets = [], selectedQuickStartPresetId = null) {
-  if (!quickStartPresets.length) return '';
-
-  return `
-    <div class="sl-quickstart-block">
-      <div class="sl-section-title">Quick Start</div>
-      <div class="sl-preset-grid">
-        ${quickStartPresets.map((preset) => `
-          <button
-            class="sl-preset-card ${preset.id === selectedQuickStartPresetId ? 'selected' : ''} accent-${escapeHtml(preset.accent ?? 'stable')}"
-            data-preset-id="${escapeHtml(preset.id)}"
-            type="button"
-          >
-            <span class="sl-preset-kicker">${escapeHtml(preset.label)}</span>
-            <span class="sl-preset-title">${escapeHtml(preset.weaponId ?? '')}</span>
-            <span class="sl-preset-desc">${escapeHtml(preset.description ?? '')}</span>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
 function renderAdvancedBlocks({
   ascensionChoices = [],
   selectedAscensionLevel = 0,
@@ -355,8 +332,6 @@ export function renderStartLoadoutMarkup({
   accessories = [],
   archetypes = [],
   riskRelics = [],
-  quickStartPresets = [],
-  selectedQuickStartPresetId = null,
   selectedWeaponId = null,
   ascensionChoices = [],
   selectedAscensionLevel = 0,
@@ -406,7 +381,6 @@ export function renderStartLoadoutMarkup({
     copyClassName: 'sl-copy',
   });
   const bodyHtml = `
-    ${renderQuickStartPresets(quickStartPresets, selectedQuickStartPresetId)}
     ${renderRecommendedGoals(recommendedGoals)}
     <div class="sl-weapon-block">
       <div class="sl-section-title">Starting Weapon</div>

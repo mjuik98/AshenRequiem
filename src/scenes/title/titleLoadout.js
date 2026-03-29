@@ -30,7 +30,6 @@ export function buildTitleLoadoutConfig(gameData, session, callbacks = {}) {
     selectedSeedText: resolved.selectedSeedText,
     selectedSeedLabel: resolved.selectedSeedLabel,
     seedPreviewText: resolved.seedPreviewText,
-    quickStartPresets: resolved.quickStartPresets,
     advancedSummary: resolved.advancedSummary,
     recommendedGoals,
     onCancel: callbacks.onCancel,

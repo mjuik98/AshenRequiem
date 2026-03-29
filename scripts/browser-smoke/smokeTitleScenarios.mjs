@@ -60,7 +60,6 @@ export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, tra
     document.querySelector('.sl-panel') ? getComputedStyle(document.querySelector('.sl-panel')).overflowY : null,
     document.querySelector('.sl-actions') ? getComputedStyle(document.querySelector('.sl-actions')).position : null,
     Boolean(document.querySelector('.sl-panel') && document.activeElement && (document.activeElement === document.querySelector('.sl-panel') || document.querySelector('.sl-panel').contains(document.activeElement))),
-    document.querySelectorAll('[data-preset-id]').length,
     document.querySelector('.sl-advanced-summary')?.textContent?.trim() ?? '',
     document.querySelector('.sl-advanced-panel') ? getComputedStyle(document.querySelector('.sl-advanced-panel')).display : null
   ]`);
@@ -71,9 +70,8 @@ export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, tra
     panelOverflowY: dialogMetrics[6],
     actionsPosition: dialogMetrics[7],
     focusInsideDialog: dialogMetrics[8],
-    quickStartCount: dialogMetrics[9],
-    advancedSummary: dialogMetrics[10],
-    advancedDisplay: dialogMetrics[11],
+    advancedSummary: dialogMetrics[9],
+    advancedDisplay: dialogMetrics[10],
   };
 
   await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
@@ -141,7 +139,6 @@ export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, tra
       panelScrollable: dialogState?.panelScrollable === true && dialogState?.panelOverflowY === 'auto',
       stickyActions: dialogState?.actionsPosition === 'sticky',
       initialFocusInsideDialog: dialogState?.focusInsideDialog === true,
-      hasQuickStartPresets: dialogState?.quickStartCount >= 2,
       hasAdvancedSummary: typeof dialogState?.advancedSummary === 'string' && dialogState.advancedSummary.length > 0,
       advancedClosedByDefault: dialogState?.advancedDisplay === 'none',
       escapeCloses: closedByEscape === true,

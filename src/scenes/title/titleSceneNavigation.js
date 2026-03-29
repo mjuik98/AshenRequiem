@@ -1,6 +1,5 @@
 import {
   loadCodexSceneModule,
-  loadPlaySceneModule,
   loadSettingsSceneModule,
 } from '../sceneLoaders.js';
 import { logRuntimeError, logRuntimeWarn } from '../../utils/runtimeLogger.js';
@@ -38,23 +37,6 @@ export function runTitleAction(action, scene, {
     scene._nav.change(async () => {
       const nextScene = await createMetaShopSceneImpl(scene.game);
       scene.game.sceneManager.changeScene(nextScene);
-    });
-    return;
-  }
-
-  if (action === 'continue') {
-    if (!scene.game?.session?.activeRun) {
-      setMessage('이어할 런이 없습니다.');
-      return;
-    }
-
-    pulseFlash();
-    setMessage('이전 런 복원 중…');
-    scene._nav.load(loadPlaySceneModule, ({ PlayScene }) => {
-      scene.game.sceneManager.changeScene(new PlayScene(scene.game));
-    }, (error) => {
-      reportTitleLoadFailure('전투', error, setMessage);
-      logRuntimeError('TitleScene', 'Continue PlayScene 로드 실패:', error);
     });
     return;
   }

@@ -48,6 +48,7 @@ export class MetaShopView {
   // ── 내부 렌더 ──────────────────────────────────────────────────────
 
   _render(session) {
+    const panelScrollTop = this.el.querySelector('.ms-panel')?.scrollTop ?? 0;
     const viewModel = buildMetaShopViewModel(session, {
       selectedUpgradeId: this._selectedUpgradeId,
       activeCategory: this._activeCategory,
@@ -55,6 +56,10 @@ export class MetaShopView {
     });
     this._selectedUpgradeId = viewModel.selectedCard?.id ?? null;
     this.el.innerHTML = renderMetaShopMarkup(viewModel);
+    const panel = this.el.querySelector('.ms-panel');
+    if (panel) {
+      panel.scrollTop = panelScrollTop;
+    }
 
     const selectionCards = [
       ...(viewModel.availableCards ?? []),

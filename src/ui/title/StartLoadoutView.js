@@ -28,8 +28,6 @@ export class StartLoadoutView {
     this._ascensionChoices = [];
     this._stages = [];
     this._seedPreviewText = '';
-    this._quickStartPresets = [];
-    this._selectedQuickStartPresetId = null;
     this._advancedSummary = '';
     this._isAdvancedOpen = false;
     this._recommendedGoals = [];
@@ -52,8 +50,6 @@ export class StartLoadoutView {
     selectedArchetypeId = 'vanguard',
     selectedRiskRelicId = null,
     stages = [],
-    quickStartPresets = [],
-    selectedQuickStartPresetId = null,
     selectedStageId = 'ash_plains',
     selectedSeedMode = 'none',
     selectedSeedText = '',
@@ -70,7 +66,6 @@ export class StartLoadoutView {
     this._riskRelics = riskRelics;
     this._ascensionChoices = ascensionChoices;
     this._stages = stages;
-    this._quickStartPresets = quickStartPresets;
     this._selectedWeaponId = weapons.some((weapon) => weapon?.id === selectedWeaponId)
       ? selectedWeaponId
       : weapons[0]?.id ?? null;
@@ -93,9 +88,7 @@ export class StartLoadoutView {
     this._selectedSeedText = selectedSeedText ?? '';
     this._seedPreviewText = seedPreviewText || this._buildSeedPreviewText();
     this._advancedSummary = advancedSummary || this._buildAdvancedSummary();
-    this._selectedQuickStartPresetId = selectedQuickStartPresetId;
     this._isAdvancedOpen = false;
-    this._syncQuickStartSelection(Boolean(advancedSummary));
     this._recommendedGoals = recommendedGoals;
     this._canStart = Boolean(canStart && this._selectedWeaponId);
     this._onStart = onStart;
@@ -164,8 +157,6 @@ export class StartLoadoutView {
       accessories: this._accessories,
       archetypes: this._archetypes,
       riskRelics: this._riskRelics,
-      quickStartPresets: this._quickStartPresets,
-      selectedQuickStartPresetId: this._selectedQuickStartPresetId,
       selectedWeaponId: this._selectedWeaponId,
       ascensionChoices: this._ascensionChoices,
       selectedAscensionLevel: this._selectedAscensionLevel,
@@ -193,41 +184,35 @@ export class StartLoadoutView {
       getSelectedStageId: () => this._selectedStageId,
       getSelectedSeedMode: () => this._selectedSeedMode,
       getSelectedSeedText: () => this._selectedSeedText,
-      onSelectQuickStartPreset: (presetId) => {
-        this._applyQuickStartPreset(presetId);
-      },
       onToggleAdvanced: () => {
         this._isAdvancedOpen = !this._isAdvancedOpen;
         this._render();
       },
       onSelectWeapon: (weaponId) => {
         this._selectedWeaponId = weaponId;
-        this._syncQuickStartSelection();
         this._render();
       },
       onSelectAscension: (ascensionLevel) => {
         this._selectedAscensionLevel = ascensionLevel;
-        this._syncQuickStartSelection();
+        this._advancedSummary = this._buildAdvancedSummary();
         this._render();
       },
       onSelectAccessory: (accessoryId) => {
         this._selectedStartAccessoryId = accessoryId || null;
-        this._syncQuickStartSelection();
         this._render();
       },
       onSelectArchetype: (archetypeId) => {
         this._selectedArchetypeId = archetypeId;
-        this._syncQuickStartSelection();
+        this._advancedSummary = this._buildAdvancedSummary();
         this._render();
       },
       onSelectRiskRelic: (riskRelicId) => {
         this._selectedRiskRelicId = riskRelicId || null;
-        this._syncQuickStartSelection();
         this._render();
       },
       onSelectStage: (stageId) => {
         this._selectedStageId = stageId;
-        this._syncQuickStartSelection();
+        this._advancedSummary = this._buildAdvancedSummary();
         this._render();
       },
       onSelectSeedMode: (seedMode) => {
@@ -236,13 +221,11 @@ export class StartLoadoutView {
           this._selectedSeedText = '';
         }
         this._seedPreviewText = this._buildSeedPreviewText();
-        this._syncQuickStartSelection();
         this._render();
       },
       onChangeSeedText: (seedText) => {
         this._selectedSeedText = seedText;
         this._seedPreviewText = this._buildSeedPreviewText();
-        this._syncQuickStartSelection();
       },
       onCancel: () => {
         this.hide();
@@ -277,40 +260,5 @@ export class StartLoadoutView {
       selectedArchetype?.name ?? 'Archetype',
       selectedStage?.name ?? 'Stage',
     ].join(' · ');
-  }
-
-  _syncQuickStartSelection(preserveSummary = false) {
-    if (!preserveSummary) {
-      this._advancedSummary = this._buildAdvancedSummary();
-    }
-    const matchingPreset = this._quickStartPresets.find((preset) => (
-      preset?.weaponId === this._selectedWeaponId
-      && preset?.runOptions?.ascensionLevel === this._selectedAscensionLevel
-      && (preset?.runOptions?.startAccessoryId ?? null) === (this._selectedStartAccessoryId ?? null)
-      && (preset?.runOptions?.archetypeId ?? 'vanguard') === this._selectedArchetypeId
-      && (preset?.runOptions?.riskRelicId ?? null) === (this._selectedRiskRelicId ?? null)
-      && (preset?.runOptions?.stageId ?? 'ash_plains') === this._selectedStageId
-      && (preset?.runOptions?.seedMode ?? 'none') === this._selectedSeedMode
-      && (preset?.runOptions?.seedText ?? '') === this._selectedSeedText
-    ));
-    this._selectedQuickStartPresetId = matchingPreset?.id ?? null;
-  }
-
-  _applyQuickStartPreset(presetId) {
-    const preset = this._quickStartPresets.find((entry) => entry?.id === presetId);
-    if (!preset) return;
-
-    this._selectedQuickStartPresetId = preset.id;
-    this._selectedWeaponId = preset.weaponId ?? this._selectedWeaponId;
-    this._selectedAscensionLevel = preset.runOptions?.ascensionLevel ?? this._selectedAscensionLevel;
-    this._selectedStartAccessoryId = preset.runOptions?.startAccessoryId ?? null;
-    this._selectedArchetypeId = preset.runOptions?.archetypeId ?? this._selectedArchetypeId;
-    this._selectedRiskRelicId = preset.runOptions?.riskRelicId ?? null;
-    this._selectedStageId = preset.runOptions?.stageId ?? this._selectedStageId;
-    this._selectedSeedMode = preset.runOptions?.seedMode ?? 'none';
-    this._selectedSeedText = preset.runOptions?.seedText ?? '';
-    this._seedPreviewText = this._buildSeedPreviewText();
-    this._advancedSummary = this._buildAdvancedSummary();
-    this._render();
   }
 }

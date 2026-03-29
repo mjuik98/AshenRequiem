@@ -143,6 +143,11 @@ test('TitleScene 종료 버튼은 활성 상태이며 종료 실패 시 상태 h
     false,
     '종료 버튼이 아직 aria-disabled 상태로 남아 있음',
   );
+  assert.equal(
+    TITLE_SCREEN_HTML.includes('data-action="continue"'),
+    false,
+    '타이틀 화면에 제거된 Continue 액션이 아직 남아 있음',
+  );
   assert.equal(TITLE_SCREEN_HTML.includes('id="title-live"'), true, '타이틀 상태 메시지 영역이 없음');
   assert.equal(TITLE_SCREEN_HTML.includes('sr-only'), false, '타이틀 상태 메시지가 시각적으로 숨겨져 있음');
   assert.equal(TITLE_SCREEN_HTML.includes('t-hints'), false, '타이틀 하단 조작 힌트 블록이 아직 남아 있음');

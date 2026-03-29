@@ -35,55 +35,8 @@ export const START_LOADOUT_VIEW_CSS = `
   .sl-copy {
     margin: 8px 0 18px;
   }
-  .sl-quickstart-block,
   .sl-weapon-block {
     margin-bottom: 18px;
-  }
-  .sl-preset-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: 10px;
-  }
-  .sl-preset-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    min-height: 116px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: inherit;
-    cursor: pointer;
-    transition: border-color 0.16s, background 0.16s, transform 0.16s;
-  }
-  .sl-preset-card:hover,
-  .sl-preset-card.selected {
-    transform: translateY(-1px);
-    border-color: rgba(212, 175, 106, 0.56);
-    background: rgba(212, 175, 106, 0.12);
-  }
-  .sl-preset-card.accent-reward {
-    border-color: rgba(255, 183, 77, 0.24);
-  }
-  .sl-preset-card.accent-pressure {
-    border-color: rgba(239, 154, 154, 0.22);
-  }
-  .sl-preset-kicker {
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(242, 207, 132, 0.82);
-  }
-  .sl-preset-title {
-    font-size: 16px;
-    font-weight: 700;
-  }
-  .sl-preset-desc {
-    font-size: 12px;
-    line-height: 1.45;
-    color: rgba(244, 237, 224, 0.7);
   }
   .sl-ascension-block {
     margin-bottom: 18px;

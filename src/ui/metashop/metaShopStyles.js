@@ -8,9 +8,15 @@ export const META_SHOP_CSS = `
   .ms-root {
     align-items: flex-start;
     font-family: 'Noto Serif KR', 'Segoe UI', sans-serif;
+    overflow: hidden;
   }
   .ms-panel {
     width: min(820px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
   .ms-header {
     margin-bottom: 0;
