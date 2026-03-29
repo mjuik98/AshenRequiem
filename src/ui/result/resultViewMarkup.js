@@ -87,46 +87,6 @@ function renderAscension(stats) {
   `;
 }
 
-function renderDailyReward(dailyReward = null) {
-  if (!dailyReward?.seedLabel) return '';
-
-  const rewardText = dailyReward.awarded
-    ? `첫 승리 보상 +${escapeHtml(String(dailyReward.amount ?? 0))} 💰`
-    : dailyReward.alreadyClaimed
-      ? '오늘의 승리 보상은 이미 수령했습니다.'
-      : '오늘의 데일리 챌린지 기록입니다.';
-
-  return `
-    <div class="result-divider"></div>
-    <p class="result-section-title">데일리 챌린지</p>
-    <div class="result-unlocks">
-      <div class="result-unlock-chip">Seed ${escapeHtml(dailyReward.seedLabel)}</div>
-      ${dailyReward.streak ? `<div class="result-unlock-chip">연속 ${escapeHtml(String(dailyReward.streak))}일</div>` : ''}
-      <div class="result-unlock-chip">${rewardText}</div>
-      ${dailyReward.nextMilestone?.remaining > 0
-        ? `<div class="result-unlock-chip">다음 마일스톤 ${escapeHtml(String(dailyReward.nextMilestone.target))}일 · ${escapeHtml(String(dailyReward.nextMilestone.remaining))}일 남음</div>`
-        : ''}
-    </div>
-  `;
-}
-
-function renderRecommendations(recommendations = []) {
-  if (!recommendations.length) return '';
-
-  return `
-    <div class="result-divider"></div>
-    <p class="result-section-title">추천 조정</p>
-    <div class="result-unlocks">
-      ${recommendations.map((entry) => `
-        <div class="result-unlock-chip">
-          ${escapeHtml(entry.title ?? '')}
-          ${entry.description ? ` · ${escapeHtml(entry.description)}` : ''}
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
 function renderUnlocks(unlocks) {
   const chips = unlocks.map((unlock) => `
     <div class="result-unlock-chip">⚡ ${escapeHtml(unlock)}</div>
@@ -136,79 +96,6 @@ function renderUnlocks(unlocks) {
     <div class="result-divider"></div>
     <p class="result-section-title">이번 런 해금</p>
     <div class="result-unlocks">${chips}</div>
-  `;
-}
-
-function renderNextGoals(nextGoals = []) {
-  if (!nextGoals?.length) return '';
-
-  const chips = nextGoals.map((goal) => `
-    <div class="result-unlock-chip">
-      ${escapeHtml(goal.icon ?? '✦')} ${escapeHtml(goal.title ?? '')}
-      ${goal.progressText ? ` · ${escapeHtml(goal.progressText)}` : ''}
-    </div>
-  `).join('');
-
-  return `
-    <div class="result-divider"></div>
-    <p class="result-section-title">다음 목표</p>
-    <div class="result-unlocks">${chips}</div>
-  `;
-}
-
-function renderRunContext(stats) {
-  const parts = [
-    stats.archetypeName ? `Archetype ${stats.archetypeName}` : null,
-    stats.riskRelicName ? `Relic ${stats.riskRelicName}` : null,
-    stats.stageName ?? null,
-    stats.seedLabel ? `Seed ${stats.seedLabel}` : null,
-    stats.outcome === 'defeat' && stats.deathCause ? `마지막 타격 ${stats.deathCause}` : null,
-  ].filter(Boolean);
-
-  if (parts.length === 0) return '';
-
-  return `
-    <div class="result-divider"></div>
-    <p class="result-section-title">런 컨텍스트</p>
-    <div class="result-unlocks">
-      ${parts.map((part) => `<div class="result-unlock-chip">${escapeHtml(part)}</div>`).join('')}
-    </div>
-  `;
-}
-
-function renderDeathRecap(deathRecap = null) {
-  if (!deathRecap?.headline) return '';
-
-  return `
-    <div class="result-divider"></div>
-    <p class="result-section-title">전투 복기</p>
-    <div class="result-unlocks">
-      <div class="result-unlock-chip">${escapeHtml(deathRecap.headline)}</div>
-      ${deathRecap.detail ? `<div class="result-unlock-chip">${escapeHtml(deathRecap.detail)}</div>` : ''}
-      ${deathRecap.action ? `<div class="result-unlock-chip">${escapeHtml(deathRecap.action)}</div>` : ''}
-    </div>
-  `;
-}
-
-function renderRecentRuns(recentRuns = []) {
-  if (!recentRuns.length) return '';
-
-  const rows = recentRuns.slice(0, 5).map((run) => {
-    const minutes = Math.floor((run.survivalTime ?? 0) / 60);
-    const seconds = String(Math.floor((run.survivalTime ?? 0) % 60)).padStart(2, '0');
-    return `
-      <div class="result-weapon-chip">
-        <span class="result-weapon-name">${escapeHtml(run.stageName ?? run.stageId ?? 'Unknown Stage')}</span>
-        <span class="result-weapon-lv">${escapeHtml(`${minutes}:${seconds}`)}</span>
-        <span class="result-weapon-evo">${run.outcome === 'victory' ? '승리' : '패배'}</span>
-      </div>
-    `;
-  }).join('');
-
-  return `
-    <div class="result-divider"></div>
-    <p class="result-section-title">최근 런</p>
-    <div class="result-weapons">${rows}</div>
   `;
 }
 
@@ -254,28 +141,11 @@ export function renderResultViewMarkup(stats, { onTitleCallback = null } = {}) {
           stats.bestKills != null ? `이전 기록 ${Number(stats.bestKills).toLocaleString()}` : null,
         )}
       </div>
-
       ${renderWeapons(stats.weapons)}
       <div class="result-divider"></div>
       ${renderAscension(stats)}
       ${renderCurrency(stats.currencyEarned, stats.totalCurrency)}
-      ${renderDailyReward(stats.dailyReward)}
-      ${renderRunContext(stats)}
-      ${renderDeathRecap(stats.deathRecap)}
-      ${stats.analytics?.deathCauseSummary?.length
-        ? `
-          <div class="result-divider"></div>
-          <p class="result-section-title">최근 분석</p>
-          <div class="result-unlocks">
-            <div class="result-unlock-chip">주요 패배 원인 ${escapeHtml(stats.analytics.deathCauseSummary[0].deathCause)}</div>
-            <div class="result-unlock-chip">최근 승률 ${escapeHtml(String(Math.round(stats.analytics.winRate ?? 0)))}%</div>
-          </div>
-        `
-        : ''}
-      ${renderNextGoals(stats.nextGoals)}
-      ${renderRecommendations(stats.recommendations)}
       ${stats.newUnlocks?.length ? renderUnlocks(stats.newUnlocks) : ''}
-      ${renderRecentRuns(stats.recentRuns)}
     </div>
   `;
   const footerHtml = `

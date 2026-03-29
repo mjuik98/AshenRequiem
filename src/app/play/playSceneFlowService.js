@@ -45,6 +45,7 @@ export function togglePlayScenePause({
   data,
   session,
   isBlocked = () => false,
+  consumePausePress = () => {},
   onOptionsChange,
   transition = transitionPlayMode,
 }) {
@@ -59,6 +60,7 @@ export function togglePlayScenePause({
       isBlocked,
       transitionPlayMode: transition,
       hidePause: () => ui?.hidePause?.(),
+      consumePausePress,
       onOptionsChange,
     }));
     return 'paused';

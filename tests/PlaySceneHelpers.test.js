@@ -83,6 +83,7 @@ await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', asyn
   const world = makeWorld({ run: { playMode: 'playing' } });
   const transitions = [];
   let pauseHidden = 0;
+  let pausePressConsumed = 0;
 
   const config = overlays.createPauseOverlayConfig({
     world,
@@ -96,10 +97,14 @@ await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', asyn
     hidePause: () => {
       pauseHidden += 1;
     },
+    consumePausePress: () => {
+      pausePressConsumed += 1;
+    },
     onOptionsChange: () => {},
   });
 
   config.onResume();
+  assert.equal(pausePressConsumed, 1);
   assert.equal(transitions.at(-1), 'playing');
   assert.equal(pauseHidden, 1);
 

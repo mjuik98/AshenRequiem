@@ -113,6 +113,7 @@ test('prepareStartRunState는 world 생성, 플레이어 생성, 런 초기화, 
   assert.deepEqual(world.run.stage, { id: 'ember_hollow', rewardMult: 1.2, background: { fillStyle: '#120f18' } }, 'stage snapshot이 world에 주입되지 않음');
   assert.equal(world.run.seedMode, 'custom', '런 시작 시 seed mode가 world에 기록되지 않음');
   assert.equal(world.run.seedLabel, 'ashen-seed', '런 시작 시 seed label이 world에 기록되지 않음');
+  assert.deepEqual(world.runtime.replayTrace, [], '런 시작 시 replay trace 버퍼가 초기화되지 않음');
   assert.deepEqual(world.run.guidance, { primaryObjective: { id: 'unlock_boomerang', title: '곡예의 각성' } }, '런 시작 시 guidance snapshot이 world에 기록되지 않음');
   assert.deepEqual(world.progression.pendingEventQueue, [{ type: 'weaponAcquired', payload: { weaponId: 'magic_bolt' } }]);
   assert.deepEqual(calls, [

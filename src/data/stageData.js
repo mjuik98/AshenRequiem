@@ -7,6 +7,15 @@ export const stageData = [
       title: '수호 등불',
       detail: '짧은 무적 ward가 전장에 생성됩니다.',
     },
+    modifierDrafts: [
+      {
+        id: 'ash_kindled_front',
+        title: 'Kindled Front',
+        ruleText: 'ward pickup이 꺼진 직후 근거리 압박이 잠깐 강해집니다.',
+        counterplay: '등불이 켜진 순간 짧게 안쪽으로 진입하세요.',
+        pressureScore: 1.04,
+      },
+    ],
     enemyHpMult: 1.0,
     enemySpeedMult: 1.0,
     spawnRateMult: 1.0,
@@ -67,6 +76,15 @@ export const stageData = [
       title: '망령 매복',
       detail: '정예 매복과 유도 탄막이 번갈아 전장을 잠급니다.',
     },
+    modifierDrafts: [
+      {
+        id: 'moon_spectral_crosswind',
+        title: 'Spectral Crosswind',
+        ruleText: '원거리 적의 사격 타이밍이 더 짧고 탄속이 약간 빨라집니다.',
+        counterplay: '정면 후퇴보다 사선 회피와 측면 확보를 우선하세요.',
+        pressureScore: 1.11,
+      },
+    ],
     enemyHpMult: 1.05,
     enemySpeedMult: 1.12,
     spawnRateMult: 1.08,
@@ -137,6 +155,15 @@ export const stageData = [
       title: '잿불 보급',
       detail: '보상 캐시와 화염 고리가 함께 굴러가며 욕심을 유도합니다.',
     },
+    modifierDrafts: [
+      {
+        id: 'ember_greedy_cache',
+        title: 'Greedy Cache',
+        ruleText: '보상 pickup 밀도는 높지만 cache 근처에서 화염 고리 간격이 짧아집니다.',
+        counterplay: 'cache는 주변 각이 비는 순간만 회수하고 오래 머물지 마세요.',
+        pressureScore: 1.15,
+      },
+    ],
     enemyHpMult: 1.16,
     enemySpeedMult: 1.04,
     spawnRateMult: 1.14,
@@ -219,6 +246,15 @@ export const stageData = [
       title: '교차 화망',
       detail: '중앙 동선을 오래 점유하면 십자 차단 패턴에 노출됩니다.',
     },
+    modifierDrafts: [
+      {
+        id: 'frost_cold_front',
+        title: 'Cold Front',
+        ruleText: '원거리 적 투사체가 더 빠르게 합류하며 교차각이 오래 유지됩니다.',
+        counterplay: '거리보다 각도 정리를 우선하고, 중앙 점유 시간을 짧게 끊으세요.',
+        pressureScore: 1.18,
+      },
+    ],
     enemyHpMult: 1.12,
     enemySpeedMult: 1.09,
     spawnRateMult: 1.1,

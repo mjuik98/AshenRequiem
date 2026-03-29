@@ -182,6 +182,9 @@ export class PlayScene {
       data: this._gameData,
       session: this.game.session,
       isBlocked: () => this._isSceneChanging,
+      consumePausePress: () => {
+        this._pauseWasDown = true;
+      },
       onOptionsChange: (nextOptions) => this._updatePauseOptions(nextOptions),
     });
     if (pauseState === 'paused') {

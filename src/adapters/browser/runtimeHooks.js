@@ -17,6 +17,74 @@ function getSceneName(scene) {
   return scene?.sceneId ?? scene?.constructor?.name ?? 'UnknownScene';
 }
 
+function buildAuthoringSnapshot(game) {
+  const scene = game?.sceneManager?.currentScene ?? null;
+  const world = scene?.world ?? null;
+  if (!world) {
+    return {
+      currentBeatLabel: '',
+      counterplay: '',
+      replayTraceLength: 0,
+      stageModifierTitle: '',
+      stageModifierRule: '',
+    };
+  }
+
+  const replayTrace = world.runtime?.replayTrace ?? [];
+  return {
+    currentBeatLabel: world.run?.encounterState?.currentBeat?.label ?? '',
+    encounterSummary: world.run?.encounterState?.currentBeat?.summaryText ?? '',
+    bossEtaSeconds: world.run?.encounterState?.nextBossStartsIn ?? null,
+    stageModifierTitle: world.run?.guidance?.stageModifier?.title ?? '',
+    stageModifierRule: world.run?.guidance?.stageModifier?.ruleText ?? '',
+    counterplay: world.run?.guidance?.stageModifier?.counterplay ?? '',
+    replayTraceLength: replayTrace.length,
+    replayTraceTail: replayTrace.slice(-5),
+  };
+}
+
+function openEncounterAuthoringOverlay(game) {
+  const host = getHookHost();
+  const documentRef = host?.document ?? null;
+  if (!documentRef?.createElement || !documentRef.body?.appendChild) {
+    return false;
+  }
+
+  const existing = documentRef.getElementById('ashen-encounter-authoring-overlay');
+  if (existing?.remove) existing.remove();
+
+  const snapshot = buildAuthoringSnapshot(game);
+  const panel = documentRef.createElement('div');
+  panel.id = 'ashen-encounter-authoring-overlay';
+  Object.assign(panel.style, {
+    position: 'fixed',
+    top: '16px',
+    right: '16px',
+    zIndex: '9999',
+    width: '320px',
+    maxWidth: 'calc(100vw - 32px)',
+    padding: '14px 16px',
+    borderRadius: '16px',
+    background: 'rgba(9, 12, 18, 0.92)',
+    color: '#f4ede0',
+    border: '1px solid rgba(255,255,255,0.14)',
+    boxShadow: '0 16px 40px rgba(0,0,0,0.38)',
+    fontFamily: "'Segoe UI', sans-serif",
+    whiteSpace: 'pre-wrap',
+  });
+  panel.textContent = [
+    'Encounter Authoring',
+    `Beat: ${snapshot.currentBeatLabel || '-'}`,
+    `Boss ETA: ${Number.isFinite(snapshot.bossEtaSeconds) ? `${snapshot.bossEtaSeconds}s` : '-'}`,
+    `Modifier: ${snapshot.stageModifierTitle || '-'}`,
+    `Rule: ${snapshot.stageModifierRule || '-'}`,
+    `Counterplay: ${snapshot.counterplay || '-'}`,
+    `Replay Samples: ${snapshot.replayTraceLength}`,
+  ].join('\n');
+  documentRef.body.appendChild(panel);
+  return true;
+}
+
 function buildSnapshot(game) {
   const scene = game?.sceneManager?.currentScene ?? null;
   const world = scene?.world ?? null;
@@ -65,6 +133,7 @@ function buildSnapshot(game) {
     },
     seedMode: world.run.seedMode ?? null,
     seedLabel: world.run.seedLabel ?? '',
+    authoring: buildAuthoringSnapshot(game),
     ui: {
       pauseVisible: ui?.isPaused?.() ?? false,
       levelUpVisible: ui?.isLevelUpVisible?.() ?? false,
@@ -178,6 +247,10 @@ function openLevelUpOverlay(game, overrides = {}) {
   world.run ??= {};
   world.progression ??= {};
   world.run.playMode ??= PlayMode.PLAYING;
+  world.run.guidance = overrides.guidance ?? {
+    ...(world.run.guidance ?? {}),
+    recommendedBuild: null,
+  };
   player.weapons = [
     { id: 'flame_zone', level: 1, currentCooldown: 0 },
     { id: 'magic_bolt', level: 7, currentCooldown: 0 },
@@ -211,6 +284,9 @@ function buildDebugHost(game) {
     getSnapshot() {
       return buildSnapshot(game);
     },
+    getAuthoringSnapshot() {
+      return buildAuthoringSnapshot(game);
+    },
     openPauseOverlay() {
       return openPauseOverlay(game);
     },
@@ -222,6 +298,9 @@ function buildDebugHost(game) {
     },
     openBossReadabilityOverlay() {
       return openBossReadabilityOverlay(game);
+    },
+    openEncounterAuthoringOverlay() {
+      return openEncounterAuthoringOverlay(game);
     },
   };
 }

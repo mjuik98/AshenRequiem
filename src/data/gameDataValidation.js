@@ -5,6 +5,35 @@ function collectDuplicateIdErrors(items, label) {
     .map((id) => `[validate] ${label} 중복 id: ${id}`);
 }
 
+const ASSET_BUDGET_TIERS = new Set(['critical', 'standard', 'luxury']);
+const ASSET_QUALITY_POLICIES = new Set(['fixed', 'scalable', 'fallback']);
+const ASSET_SOURCE_TYPES = new Set(['dom', 'procedural', 'audio']);
+
+function validateAssetManifestEntries(assetManifest = []) {
+  const errors = [];
+
+  for (const entry of assetManifest) {
+    if (!entry?.id) continue;
+    if (typeof entry.preloadGroup !== 'string' || entry.preloadGroup.length <= 0) {
+      errors.push(`[validate] assetManifest "${entry.id}" preloadGroup가 비어 있음`);
+    }
+    if (!ASSET_BUDGET_TIERS.has(entry.budgetTier)) {
+      errors.push(`[validate] assetManifest "${entry.id}" budgetTier가 유효하지 않음`);
+    }
+    if (!Number.isFinite(entry.estimatedBytes) || entry.estimatedBytes <= 0) {
+      errors.push(`[validate] assetManifest "${entry.id}" estimatedBytes가 유효하지 않음`);
+    }
+    if (!ASSET_QUALITY_POLICIES.has(entry.qualityPolicy)) {
+      errors.push(`[validate] assetManifest "${entry.id}" qualityPolicy가 유효하지 않음`);
+    }
+    if (!ASSET_SOURCE_TYPES.has(entry.sourceType)) {
+      errors.push(`[validate] assetManifest "${entry.id}" sourceType이 유효하지 않음`);
+    }
+  }
+
+  return errors;
+}
+
 export function validateCoreGameData({
   upgradeData = [],
   weaponData = [],
@@ -18,6 +47,7 @@ export function validateCoreGameData({
   errors.push(...collectDuplicateIdErrors(upgradeData, 'upgradeData'));
   errors.push(...collectDuplicateIdErrors(weaponData, 'weaponData'));
   errors.push(...collectDuplicateIdErrors(assetManifest, 'assetManifest'));
+  errors.push(...validateAssetManifestEntries(assetManifest));
 
   for (const upgrade of upgradeData) {
     if (!upgrade.weaponId) continue;

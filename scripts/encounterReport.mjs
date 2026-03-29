@@ -46,6 +46,8 @@ function renderReport() {
     lines.push(`- Expected Reward Mult: x${stageMetrics?.expectedRewardMultiplier ?? 1}`);
     lines.push(`- Gimmicks Per Five Minutes: ${stageMetrics?.gimmicksPerFiveMinutes ?? 0}`);
     lines.push(`- Boss Window Lead: ${stageMetrics?.bossWindowLeadSeconds ?? 0}s`);
+    lines.push(`- Modifier Draft: ${stageMetrics?.stageModifierTitle || '-'}`);
+    lines.push(`- Counterplay: ${stageMetrics?.counterplay || '-'}`);
     lines.push('- Encounter Timeline:');
     for (const beat of stage.encounterTimeline ?? []) {
       lines.push(formatBeat(beat));

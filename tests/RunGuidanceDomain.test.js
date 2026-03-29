@@ -90,6 +90,14 @@ test('run guidance domain은 현재 스테이지 고유 규칙을 stage directiv
             title: '수호 등불',
             detail: '짧은 무적 ward가 전장에 생성됩니다.',
           },
+          modifierDrafts: [
+            {
+              id: 'ash_kindled_front',
+              title: 'Kindled Front',
+              ruleText: 'ward pickup이 꺼진 직후 근거리 압박이 잠깐 강해집니다.',
+              counterplay: '등불이 켜진 순간 짧게 안쪽으로 진입하세요.',
+            },
+          ],
         },
       ],
     },
@@ -97,6 +105,8 @@ test('run guidance domain은 현재 스테이지 고유 규칙을 stage directiv
 
   assert.equal(guidance.stageDirective?.title, '수호 등불', 'stage directive title이 노출되지 않음');
   assert.match(guidance.stageDirective?.detail ?? '', /ward|무적/, 'stage directive detail이 누락됨');
+  assert.equal(guidance.stageModifier?.title, 'Kindled Front', 'stage modifier title이 guidance에 노출되지 않음');
+  assert.match(guidance.stageModifier?.counterplay ?? '', /ward|등불/i, 'stage modifier counterplay가 guidance에 노출되지 않음');
 });
 
 test('run guidance domain은 시작 무기와 진화 레시피를 바탕으로 추천 빌드 경로를 제공한다', () => {

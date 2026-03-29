@@ -14,7 +14,8 @@ export function createGameRuntimeState({
   loadGameDataImpl = () => GameDataLoader.loadDefault(),
   createSceneManagerImpl = () => new SceneManager(),
   createRendererImpl = (canvas, ctx) => new CanvasRenderer(canvas, ctx),
-  createGameLoopImpl = (tickFn) => new GameLoop(tickFn),
+  createGameLoopImpl = (tickFn, options) => new GameLoop(tickFn, options),
+  getNowMsImpl = () => host?.performance?.now?.() ?? Date.now(),
 } = {}) {
   const canvas = documentRef.getElementById(canvasId);
   const ctx = canvas.getContext('2d');
@@ -33,6 +34,6 @@ export function createGameRuntimeState({
     gameData,
     sceneManager,
     renderer,
-    _loop: createGameLoopImpl(() => {}),
+    _loop: createGameLoopImpl(() => {}, { getNowMs: getNowMsImpl }),
   };
 }

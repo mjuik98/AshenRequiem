@@ -52,6 +52,19 @@ function buildRecommendedBuild({ session = null, stage = null, gameData = {} } =
   };
 }
 
+function buildStageModifier(stage = null) {
+  const modifier = stage?.modifierDrafts?.[0] ?? null;
+  if (!modifier) return null;
+
+  return {
+    id: modifier.id ?? `modifier_${stage?.id ?? 'stage'}`,
+    title: modifier.title ?? stage?.name ?? 'Stage Modifier',
+    ruleText: modifier.ruleText ?? '',
+    counterplay: modifier.counterplay ?? '',
+    pressureScore: modifier.pressureScore ?? 1,
+  };
+}
+
 export function buildRunGuidanceSnapshot({ session = null, gameData = {} } = {}) {
   const selectedStageId = session?.meta?.selectedStageId ?? null;
   const stageCatalog = Array.isArray(gameData?.stageData) && gameData.stageData.length > 0
@@ -76,8 +89,9 @@ export function buildRunGuidanceSnapshot({ session = null, gameData = {} } = {})
         detail: stage.stageDirective.detail ?? stage.description ?? '',
       }
     : null;
+  const stageModifier = buildStageModifier(stage);
 
   const recommendedBuild = buildRecommendedBuild({ session, stage, gameData });
 
-  return { primaryObjective, stageDirective, recommendedBuild };
+  return { primaryObjective, stageDirective, stageModifier, recommendedBuild };
 }

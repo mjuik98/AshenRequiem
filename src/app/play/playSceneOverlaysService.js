@@ -5,6 +5,7 @@ export function createPauseOverlayConfig({
   isBlocked,
   transitionPlayMode,
   hidePause,
+  consumePausePress = () => {},
   onOptionsChange,
 }) {
   return {
@@ -14,6 +15,7 @@ export function createPauseOverlayConfig({
     session,
     onResume: () => {
       if (!world || isBlocked()) return;
+      consumePausePress();
       transitionPlayMode(world, 'playing');
       hidePause();
     },

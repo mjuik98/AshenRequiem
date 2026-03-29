@@ -13,6 +13,7 @@ import {
   queueRunStartEvents,
 } from './runSessionStateService.js';
 import { buildRunGuidanceSnapshot } from '../../domain/play/encounter/runGuidanceDomain.js';
+import { ensureReplayTraceRuntime } from '../../core/replayTraceRuntime.js';
 
 export function prepareStartRunState({
   session = null,
@@ -37,6 +38,7 @@ export function prepareStartRunState({
   world.run ??= {};
   world.entities ??= {};
   world.entities.player = player;
+  ensureReplayTraceRuntime(world);
   if (playerSpawnState.rng) {
     world.runtime.rng = playerSpawnState.rng;
   }

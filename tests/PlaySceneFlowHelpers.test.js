@@ -70,6 +70,7 @@ test('play scene flow helper는 pause 오버레이 표시와 resume 전환을 �
   const transitions = [];
   const shownConfigs = [];
   let hiddenCount = 0;
+  let pausePressConsumed = 0;
 
   const paused = togglePlayScenePause({
     world,
@@ -84,6 +85,9 @@ test('play scene flow helper는 pause 오버레이 표시와 resume 전환을 �
     data: { weaponData: [] },
     session: makeSessionState(),
     isBlocked: () => false,
+    consumePausePress: () => {
+      pausePressConsumed += 1;
+    },
     onOptionsChange: () => {},
     transition: (targetWorld, mode) => {
       transitions.push(mode);
@@ -94,6 +98,11 @@ test('play scene flow helper는 pause 오버레이 표시와 resume 전환을 �
   assert.equal(paused, 'paused');
   assert.equal(transitions.at(-1), PlayMode.PAUSED);
   assert.equal(shownConfigs.length, 1);
+  shownConfigs[0].onResume();
+  assert.equal(pausePressConsumed, 1, 'pause overlay resume는 현재 pause key press를 소비해야 함');
+  assert.equal(hiddenCount, 1, 'pause overlay resume는 hidePause를 호출해야 함');
+  assert.equal(transitions.at(-1), PlayMode.PLAYING, 'pause overlay resume는 playing으로 복귀해야 함');
+  world.run.playMode = PlayMode.PAUSED;
 
   const resumed = togglePlayScenePause({
     world,
@@ -111,7 +120,7 @@ test('play scene flow helper는 pause 오버레이 표시와 resume 전환을 �
 
   assert.equal(resumed, 'resumed');
   assert.equal(transitions.at(-1), PlayMode.PLAYING);
-  assert.equal(hiddenCount, 1);
+  assert.equal(hiddenCount, 2);
 });
 
 test('play scene flow helper는 pause 옵션 저장과 result overlay 구성을 위임한다', () => {

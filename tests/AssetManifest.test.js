@@ -14,6 +14,11 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
   assert.equal(assetManifest.every((entry) => typeof entry.id === 'string' && entry.id.length > 0), true, 'assetManifest entry id가 비어 있음');
   assert.equal(assetManifest.every((entry) => typeof entry.category === 'string' && entry.category.length > 0), true, 'assetManifest entry category가 비어 있음');
   assert.equal(assetManifest.every((entry) => typeof entry.kind === 'string' && entry.kind.length > 0), true, 'assetManifest entry kind가 비어 있음');
+  assert.equal(assetManifest.every((entry) => typeof entry.preloadGroup === 'string' && entry.preloadGroup.length > 0), true, 'assetManifest preloadGroup이 비어 있음');
+  assert.equal(assetManifest.every((entry) => typeof entry.budgetTier === 'string' && entry.budgetTier.length > 0), true, 'assetManifest budgetTier가 비어 있음');
+  assert.equal(assetManifest.every((entry) => Number.isFinite(entry.estimatedBytes) && entry.estimatedBytes > 0), true, 'assetManifest estimatedBytes가 유효하지 않음');
+  assert.equal(assetManifest.every((entry) => typeof entry.qualityPolicy === 'string' && entry.qualityPolicy.length > 0), true, 'assetManifest qualityPolicy가 비어 있음');
+  assert.equal(assetManifest.every((entry) => typeof entry.sourceType === 'string' && entry.sourceType.length > 0), true, 'assetManifest sourceType이 비어 있음');
 
   const data = GameDataLoader.loadDefault();
   assert.deepEqual(data.assetManifest, assetManifest, 'GameDataLoader가 assetManifest를 기본 데이터에 포함하지 않음');

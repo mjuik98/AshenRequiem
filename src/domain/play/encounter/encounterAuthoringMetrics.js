@@ -99,6 +99,16 @@ function roundMetric(value) {
   return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
 }
 
+function buildStageModifierSummary(stage = {}) {
+  const modifier = stage?.modifierDrafts?.[0] ?? null;
+  return {
+    stageModifierTitle: modifier?.title ?? '',
+    stageModifierRule: modifier?.ruleText ?? '',
+    counterplay: modifier?.counterplay ?? '',
+    modifierPressure: roundMetric(modifier?.pressureScore ?? 0),
+  };
+}
+
 export function buildEncounterAuthoringMetrics({
   stageData = [],
   waveData = [],
@@ -130,6 +140,7 @@ export function buildEncounterAuthoringMetrics({
       * (stage.enemySpeedMult ?? 1)
       * (1 + ((baseEliteChance + (stage.eliteChanceBonus ?? 0)) * 2))
       * (1 + (gimmicksPerFiveMinutes / 20));
+    const modifierSummary = buildStageModifierSummary(stage);
 
     return {
       stageId: stage.id,
@@ -142,6 +153,7 @@ export function buildEncounterAuthoringMetrics({
       bossWindowLeadSeconds: roundMetric(Math.min(firstBossAt, timeline.bossWindowLeadSeconds)),
       beatCount: timeline.beatCount,
       stageDirectiveTitle: stage.stageDirective?.title ?? '',
+      ...modifierSummary,
     };
   });
 

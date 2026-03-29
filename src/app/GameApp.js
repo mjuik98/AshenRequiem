@@ -1,5 +1,6 @@
 import { validateGameData } from '../utils/validateGameData.js';
 import { registerRuntimeHooks, unregisterRuntimeHooks } from '../adapters/browser/runtimeHooks.js';
+import { recordReplaySample } from '../core/replayTraceRuntime.js';
 
 export class GameApp {
   constructor({
@@ -50,6 +51,10 @@ export class GameApp {
   tick(game = this._game, dt) {
     if (!game) return;
     game.inputState = game.input.poll();
+    const world = game.sceneManager?.currentScene?.world ?? null;
+    if (world) {
+      recordReplaySample(world, game.inputState, dt);
+    }
     game.sceneManager.update(dt);
     game.sceneManager.render();
   }

@@ -37,6 +37,7 @@ export class HudView {
         <span class="hud-threat-chip">위협: 안정</span>
         <span class="hud-boss-chip">보스: --</span>
         <span class="hud-stage-chip">스테이지: --</span>
+        <span class="hud-modifier-chip">변조: --</span>
         <span class="hud-objective-chip">목표: --</span>
       </div>
       <div class="hud-guidance-note"></div>
@@ -55,6 +56,7 @@ export class HudView {
     this._elThreatChip = this.el.querySelector('.hud-threat-chip');
     this._elBossChip   = this.el.querySelector('.hud-boss-chip');
     this._elStageChip  = this.el.querySelector('.hud-stage-chip');
+    this._elModifierChip = this.el.querySelector('.hud-modifier-chip');
     this._elObjectiveChip = this.el.querySelector('.hud-objective-chip');
     this._elGuidanceNote = this.el.querySelector('.hud-guidance-note');
     this._elChestQueue = this.el.querySelector('#hud-chest-queue');
@@ -86,6 +88,7 @@ export class HudView {
     const bossEta = encounterState.nextBossStartsIn;
     const objective = guidance.primaryObjective ?? null;
     const stageDirective = guidance.stageDirective ?? null;
+    const stageModifier = guidance.stageModifier ?? null;
     const threatLevel = currentBeat.intensity ?? 'steady';
     const bossImminent = Number.isFinite(bossEta) && bossEta <= 45;
     const guidanceNote = currentBeat.summaryText
@@ -97,6 +100,7 @@ export class HudView {
     this._elBossChip.textContent = `보스: ${Number.isFinite(bossEta) ? `${bossEta}s` : '대기'}`;
     this._elBossChip.dataset.state = bossImminent ? 'imminent' : 'idle';
     this._elStageChip.textContent = `스테이지: ${stageDirective?.title ?? world.run.stage?.name ?? '--'}`;
+    this._elModifierChip.textContent = `변조: ${stageModifier?.title ?? '--'}`;
     this._elObjectiveChip.textContent = `목표: ${objective?.title ?? '--'}`;
     this._elGuidanceNote.textContent = guidanceNote;
     this._elGuidanceNote.style.display = guidanceNote ? 'block' : 'none';
@@ -174,6 +178,7 @@ export class HudView {
       .hud-threat-chip { border-color: rgba(255,183,77,0.3); }
       .hud-boss-chip { border-color: rgba(255,82,82,0.28); }
       .hud-stage-chip { border-color: rgba(129,199,255,0.28); }
+      .hud-modifier-chip { border-color: rgba(255,224,130,0.28); }
       .hud-objective-chip { border-color: rgba(129,199,132,0.28); }
       .hud-guidance-note {
         display: none;
@@ -196,6 +201,7 @@ export class HudView {
       .ash-access-high-visibility .hud-threat-chip,
       .ash-access-high-visibility .hud-boss-chip,
       .ash-access-high-visibility .hud-stage-chip,
+      .ash-access-high-visibility .hud-modifier-chip,
       .ash-access-high-visibility .hud-objective-chip {
         background: rgba(3, 7, 12, 0.92);
         border-color: rgba(255,255,255,0.22);
@@ -209,6 +215,7 @@ export class HudView {
       .ash-access-large-text .hud-threat-chip,
       .ash-access-large-text .hud-boss-chip,
       .ash-access-large-text .hud-stage-chip,
+      .ash-access-large-text .hud-modifier-chip,
       .ash-access-large-text .hud-objective-chip {
         min-height: 32px;
         padding: 0 12px;

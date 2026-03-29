@@ -41,4 +41,42 @@ test('createGameInput는 forceTouchHud query flag가 있으면 touch adapter를 
   assert.deepEqual(calls, ['keyboard', 'touch'], 'forceTouchHud query flag가 touch adapter를 활성화하지 않음');
 });
 
+test('createGameInput는 gamepad adapter를 기본 입력 surface에 포함할 수 있다', () => {
+  const calls = [];
+
+  class FakeInputManager {
+    addAdapter(adapter) {
+      calls.push(adapter.kind);
+    }
+  }
+
+  class FakeKeyboardAdapter {
+    constructor() {
+      this.kind = 'keyboard';
+    }
+  }
+
+  class FakeGamepadAdapter {
+    constructor() {
+      this.kind = 'gamepad';
+    }
+  }
+
+  createGameInput({
+    canvas: {},
+    host: { navigator: { getGamepads() { return []; } } },
+    options: {},
+    inputManagerCtor: FakeInputManager,
+    keyboardAdapterCtor: FakeKeyboardAdapter,
+    gamepadAdapterCtor: FakeGamepadAdapter,
+    touchAdapterCtor: class FakeTouchAdapter {
+      constructor() {
+        this.kind = 'touch';
+      }
+    },
+  });
+
+  assert.deepEqual(calls, ['keyboard', 'gamepad'], 'gamepad adapter가 기본 입력 경로에 등록되지 않음');
+});
+
 summary();

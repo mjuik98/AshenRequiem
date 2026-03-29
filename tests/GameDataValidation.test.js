@@ -42,8 +42,8 @@ await test('shared validation module reports core duplicate/reference errors for
       },
     ],
     assetManifest: [
-      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette' },
-      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette' },
+      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette', preloadGroup: 'stage', budgetTier: 'critical', estimatedBytes: 1200, qualityPolicy: 'scalable', sourceType: 'procedural' },
+      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette', preloadGroup: '', budgetTier: '', estimatedBytes: -1, qualityPolicy: '', sourceType: '' },
     ],
   });
 
@@ -53,6 +53,9 @@ await test('shared validation module reports core duplicate/reference errors for
   assert.equal(report.errors.some((message) => message.includes('spawnPerSecond')), true);
   assert.equal(report.errors.some((message) => message.includes('backgroundKey')), true);
   assert.equal(report.errors.some((message) => message.includes('bossCueKey')), true);
+  assert.equal(report.errors.some((message) => message.includes('preloadGroup')), true);
+  assert.equal(report.errors.some((message) => message.includes('estimatedBytes')), true);
+  assert.equal(report.errors.some((message) => message.includes('qualityPolicy')), true);
 });
 
 console.log(`\nGameDataValidation: ${passed}개 통과, ${failed}개 실패`);

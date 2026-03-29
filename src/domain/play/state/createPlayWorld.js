@@ -28,6 +28,9 @@ export function createPlayWorld() {
   const runtime = {
     rng: createRng(),
     deltaTime: 0,
+    replayTrace: [],
+    replayFrame: 0,
+    maxReplaySamples: 240,
   };
   const run = {
     elapsedTime: 0,
@@ -47,7 +50,7 @@ export function createPlayWorld() {
     seedLabel: '',
     lastDamageSource: null,
     encounterState: createDefaultEncounterState(),
-    guidance: { primaryObjective: null, stageDirective: null, recommendedBuild: null },
+    guidance: { primaryObjective: null, stageDirective: null, stageModifier: null, recommendedBuild: null },
     playMode: 'playing',
     runOutcome: null,
   };

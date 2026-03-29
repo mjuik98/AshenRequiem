@@ -25,6 +25,8 @@ test('encounter authoring metrics helper exposes global and per-stage pacing sum
   assert.equal(typeof frostHarbor?.pressureScore, 'number', 'pressureScore가 stage metrics에 없음');
   assert.equal(typeof frostHarbor?.gimmicksPerFiveMinutes, 'number', 'gimmick cadence가 stage metrics에 없음');
   assert.equal(typeof frostHarbor?.expectedPeakSpawnPerSecond, 'number', 'stage peak spawn rate가 계산되지 않음');
+  assert.equal(typeof frostHarbor?.stageModifierTitle, 'string', 'stage modifier title이 stage metrics에 없음');
+  assert.equal(typeof frostHarbor?.counterplay, 'string', 'counterplay hint가 stage metrics에 없음');
 });
 
 test('encounter report script prints actionable authoring metrics, not only raw timelines', () => {
@@ -42,6 +44,8 @@ test('encounter report script prints actionable authoring metrics, not only raw 
   assert.equal(result.stdout.includes('Pressure Score'), true, 'stage pressure score 출력이 없음');
   assert.equal(result.stdout.includes('Expected Avg Spawn/s'), true, 'stage spawn summary 출력이 없음');
   assert.equal(result.stdout.includes('Boss Window Lead'), true, 'boss timing authoring metric이 없음');
+  assert.equal(result.stdout.includes('Modifier Draft'), true, 'stage modifier draft 출력이 없음');
+  assert.equal(result.stdout.includes('Counterplay'), true, 'counterplay 출력이 없음');
 });
 
 summary();
