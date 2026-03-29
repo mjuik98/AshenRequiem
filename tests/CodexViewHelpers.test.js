@@ -387,9 +387,9 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(model.analytics.favoriteLoadout.weaponId, 'magic_bolt');
   assert.equal(model.analytics.stageWeakness.stageId, 'moon_crypt');
   assert.equal(model.analytics.dailyStats.streak, 2);
-  assert.equal(model.favoriteLoadout.weaponName, 'Magic Bolt');
-  assert.equal(model.favoriteLoadout.archetypeName, 'Vanguard');
-  assert.equal(model.recommendations.length > 0, true);
+  assert.equal('favoriteLoadout' in model, false);
+  assert.equal('recommendations' in model, false);
+  assert.equal('recentRuns' in model, false);
 
   const discovery = codexRecords.buildCodexDiscoverySummary({
     session: {
@@ -468,14 +468,12 @@ await test('codex records helper packages summary, achievements, and unlock entr
   assert.equal(html.includes('cx-records-hero'), true);
   assert.equal(html.includes('cx-records-focus'), true);
   assert.equal(html.includes('다음 목표'), true);
-  assert.equal(html.includes('추천 조정'), true);
-  assert.equal(html.includes('취약 스테이지'), true);
-  assert.equal(html.includes('Moon Crypt'), true);
-  assert.equal(html.includes('주력 로드아웃'), true);
-  assert.equal(html.includes('주요 패배 원인'), true);
-  assert.equal(html.includes('magic_bolt'), false, '기록 탭 주력 로드아웃이 raw weapon id를 노출하면 안 됨');
-  assert.equal(html.includes('Magic Bolt'), true, '기록 탭 주력 로드아웃이 weapon name을 보여주지 않음');
-  assert.equal(html.includes('Vanguard'), true, '기록 탭 주력 archetype 이름이 표시되지 않음');
+  assert.equal(html.includes('데일리 챌린지'), false);
+  assert.equal(html.includes('추천 조정'), false);
+  assert.equal(html.includes('취약 스테이지'), false);
+  assert.equal(html.includes('주력 로드아웃'), false);
+  assert.equal(html.includes('주요 패배 원인'), false);
+  assert.equal(html.includes('최근 런'), false);
 });
 
 await test('codex styles live in a dedicated module', async () => {

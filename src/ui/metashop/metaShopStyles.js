@@ -18,6 +18,11 @@ export const META_SHOP_CSS = `
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
   }
+  /* Keep Meta Shop scrollable even if another subscreen re-injects .ss-panel later. */
+  .ms-panel.ss-panel {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
   .ms-header {
     margin-bottom: 0;
   }

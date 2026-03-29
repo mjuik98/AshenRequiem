@@ -7,7 +7,7 @@ import {
 import { buildMetaGoalRoadmap } from '../../domain/meta/progression/metaGoalDomain.js';
 
 export function buildCodexRecordsModel({ session = null, gameData = null }) {
-  const summary = buildCodexRecordSummary(session, gameData);
+  const summary = buildCodexRecordSummary(session);
   const achievements = buildCodexAchievements(session, gameData);
   const unlocks = buildCodexUnlockEntries(session);
   const discovery = buildCodexDiscoverySummary({ session, gameData });
@@ -52,7 +52,6 @@ export function buildCodexRecordsModel({ session = null, gameData = null }) {
   return {
     summary,
     analytics: summary.analytics,
-    recommendations: summary.recommendations ?? [],
     highlights: [
       { icon: '☠', value: summary.kills.toLocaleString(), label: '총 처치 수' },
       { icon: '⏱', value: `${summary.mm}:${summary.ss}`, label: '최장 생존' },
@@ -63,8 +62,6 @@ export function buildCodexRecordsModel({ session = null, gameData = null }) {
     unlocks,
     focusGoals,
     discoveryFocus,
-    recentRuns: summary.recentRuns ?? [],
-    favoriteLoadout: summary.favoriteLoadout,
   };
 }
 
@@ -76,10 +73,6 @@ export function renderCodexRecordsTab({ session = null, gameData = null }) {
     unlocks,
     focusGoals,
     discoveryFocus,
-    recentRuns,
-    analytics,
-    recommendations,
-    favoriteLoadout,
   } = buildCodexRecordsModel({ session, gameData });
 
   return `
@@ -133,105 +126,6 @@ export function renderCodexRecordsTab({ session = null, gameData = null }) {
       <div class="cx-rec"><div class="cx-rec-icon">🏃</div><div class="cx-rec-val">${summary.totalRuns}</div><div class="cx-rec-key">총 런 수</div></div>
       <div class="cx-rec"><div class="cx-rec-icon">⚔</div><div class="cx-rec-val">${summary.bossKills}</div><div class="cx-rec-key">보스 처치</div></div>
     </div>
-    <p class="cx-section-label">데일리 챌린지</p>
-    <div class="cx-records-focus">
-      <div class="cx-records-focus-card achievement">
-        <div class="cx-rec-icon">☀</div>
-        <div class="cx-records-focus-copy">
-          <div class="cx-records-focus-title">데일리 런 통계</div>
-          <div class="cx-records-focus-desc">
-            총 ${analytics.dailyStats.runs}회 시도 · ${analytics.dailyStats.victories}회 승리
-          </div>
-        </div>
-        <div class="cx-records-focus-meta">
-          <div class="cx-prog-text">보상 수령 ${analytics.dailyStats.claimedRewards}회</div>
-          <div class="cx-prog-text">승률 ${Math.round(analytics.dailyStats.winRate ?? 0)}%</div>
-        </div>
-      </div>
-    </div>
-    ${analytics.stageWeakness ? `
-      <p class="cx-section-label">취약 스테이지</p>
-      <div class="cx-records-focus">
-        <div class="cx-records-focus-card unlock">
-          <div class="cx-rec-icon">⚠</div>
-          <div class="cx-records-focus-copy">
-            <div class="cx-records-focus-title">${analytics.stageWeakness.stageName ?? analytics.stageWeakness.stageId}</div>
-            <div class="cx-records-focus-desc">승률 ${Math.round(analytics.stageWeakness.winRate ?? 0)}% · 패배 ${analytics.stageWeakness.defeats ?? 0}회</div>
-          </div>
-          <div class="cx-records-focus-meta">
-            <div class="cx-prog-text">추천 스테이지 조정</div>
-          </div>
-        </div>
-      </div>
-    ` : ''}
-    ${recommendations.length > 0 ? `
-      <p class="cx-section-label">추천 조정</p>
-      <div class="cx-records-focus">
-        ${recommendations.map((entry) => `
-          <div class="cx-records-focus-card ${entry.tone === 'warning' ? 'unlock' : 'achievement'}">
-            <div class="cx-rec-icon">${entry.tone === 'danger' ? '☠' : entry.tone === 'warning' ? '⚠' : '✦'}</div>
-            <div class="cx-records-focus-copy">
-              <div class="cx-records-focus-title">${entry.title}</div>
-              <div class="cx-records-focus-desc">${entry.description}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-    <p class="cx-section-label">주력 로드아웃</p>
-    <div class="cx-records-focus">
-      <div class="cx-records-focus-card achievement">
-        <div class="cx-rec-icon">⚔</div>
-        <div class="cx-records-focus-copy">
-          <div class="cx-records-focus-title">주력 로드아웃</div>
-          <div class="cx-records-focus-desc">
-            ${favoriteLoadout.weaponIcon} ${favoriteLoadout.weaponName ?? '-'} · ${favoriteLoadout.accessoryIcon} ${favoriteLoadout.accessoryName ?? '-'}
-          </div>
-        </div>
-        <div class="cx-records-focus-meta">
-          <div class="cx-prog-text">${favoriteLoadout.archetypeIcon} ${favoriteLoadout.archetypeName ?? '-'}</div>
-          <div class="cx-prog-text">${favoriteLoadout.riskRelicIcon} ${favoriteLoadout.riskRelicName ?? '-'}</div>
-        </div>
-      </div>
-    </div>
-    <p class="cx-section-label" style="margin-top:18px">주요 패배 원인</p>
-    <div class="cx-records-focus">
-      ${(analytics.deathCauseSummary.length > 0
-        ? analytics.deathCauseSummary.slice(0, 3)
-        : [{ deathCause: '기록 없음', count: 0 }]).map((entry) => `
-          <div class="cx-records-focus-card unlock">
-            <div class="cx-rec-icon">☠</div>
-            <div class="cx-records-focus-copy">
-              <div class="cx-records-focus-title">${entry.deathCause}</div>
-              <div class="cx-records-focus-desc">최근 런 기준 누적 패배 원인</div>
-            </div>
-            <div class="cx-records-focus-meta">
-              <div class="cx-prog-text">${entry.count}회</div>
-            </div>
-          </div>
-        `).join('')}
-    </div>
-    ${recentRuns.length > 0 ? `
-      <p class="cx-section-label" style="margin-top:18px">최근 런</p>
-      <div class="cx-records-focus">
-        ${recentRuns.map((run) => `
-          <div class="cx-records-focus-card ${run.outcome === 'victory' ? 'achievement' : 'unlock'}">
-            <div class="cx-rec-icon">${run.outcome === 'victory' ? '✦' : '☠'}</div>
-            <div class="cx-records-focus-copy">
-              <div class="cx-records-focus-title">${run.stageName ?? run.stageId ?? 'Unknown Stage'}</div>
-              <div class="cx-records-focus-desc">
-                ${run.killCount ?? 0}킬 · Lv.${run.level ?? 1}
-                ${run.seedLabel ? ` · ${run.seedLabel}` : ''}
-              </div>
-            </div>
-            <div class="cx-records-focus-meta">
-              <div class="cx-prog-text">${Math.floor((run.survivalTime ?? 0) / 60)}:${String(Math.floor((run.survivalTime ?? 0) % 60)).padStart(2, '0')}</div>
-              <div class="cx-prog-text">${run.outcome === 'victory' ? '승리' : `패배${run.deathCause ? ` · ${run.deathCause}` : ''}`}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
     <p class="cx-section-label">업적</p>
     <div class="cx-ach-list">
       ${achievements.map((entry) => `

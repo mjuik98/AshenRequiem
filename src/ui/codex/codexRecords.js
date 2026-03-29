@@ -6,58 +6,6 @@ import {
 } from '../../domain/meta/codex/codexDiscoveryDomain.js';
 import { buildUnlockGuideEntries } from '../../domain/meta/progression/unlockGuidanceDomain.js';
 import { buildRunAnalytics } from '../../domain/meta/progression/runAnalyticsDomain.js';
-import { buildRunRecommendations } from '../../domain/meta/progression/runRecommendationDomain.js';
-import { getArchetypeById } from '../../data/archetypeData.js';
-import { getRiskRelicById } from '../../data/riskRelicData.js';
-
-function humanizeId(value) {
-  if (typeof value !== 'string' || value.length === 0) return null;
-  return value
-    .split('_')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function resolveNamedEntry(id, entries = []) {
-  if (!id) {
-    return { id: null, name: '-', icon: '—' };
-  }
-
-  const matched = (entries ?? []).find((entry) => entry?.id === id) ?? null;
-  return {
-    id,
-    name: matched?.name ?? humanizeId(id) ?? id,
-    icon: matched?.icon ?? '—',
-  };
-}
-
-function buildFavoriteLoadoutPresentation(analytics, gameData = null) {
-  const favorite = analytics?.favoriteLoadout ?? {};
-  const weapon = resolveNamedEntry(favorite.weaponId, gameData?.weaponData ?? []);
-  const accessory = resolveNamedEntry(favorite.accessoryId, gameData?.accessoryData ?? []);
-  const archetype = favorite.archetypeId
-    ? getArchetypeById(favorite.archetypeId)
-    : null;
-  const relic = favorite.riskRelicId
-    ? getRiskRelicById(favorite.riskRelicId)
-    : null;
-
-  return {
-    weaponId: weapon.id,
-    weaponName: weapon.name,
-    weaponIcon: weapon.icon,
-    accessoryId: accessory.id,
-    accessoryName: accessory.name,
-    accessoryIcon: accessory.icon,
-    archetypeId: favorite.archetypeId ?? null,
-    archetypeName: archetype?.name ?? (humanizeId(favorite.archetypeId) ?? '-'),
-    archetypeIcon: archetype?.icon ?? '—',
-    riskRelicId: favorite.riskRelicId ?? null,
-    riskRelicName: relic?.name ?? (humanizeId(favorite.riskRelicId) ?? '-'),
-    riskRelicIcon: relic?.icon ?? '—',
-  };
-}
 
 function countDiscoveredEnemies(session, enemyData = []) {
   const kills = session?.meta?.enemyKills ?? {};
@@ -138,7 +86,7 @@ export function buildCodexDiscoverySummary({ session = null, gameData = null }) 
   };
 }
 
-export function buildCodexRecordSummary(session, gameData = null) {
+export function buildCodexRecordSummary(session) {
   const best = session?.best ?? {};
   const meta = session?.meta ?? {};
   const kills = Object.values(meta.enemyKills ?? {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
@@ -146,10 +94,7 @@ export function buildCodexRecordSummary(session, gameData = null) {
   const bossKills = (meta.killedBosses ?? []).length;
   const currency = meta.currency ?? 0;
   const survivalSec = best.survivalTime ?? 0;
-  const recentRuns = Array.isArray(meta.recentRuns) ? meta.recentRuns.slice(0, 5) : [];
   const analytics = buildRunAnalytics(meta);
-  const favoriteLoadout = buildFavoriteLoadoutPresentation(analytics, gameData);
-  const recommendations = buildRunRecommendations({ analytics });
 
   return {
     best,
@@ -158,10 +103,7 @@ export function buildCodexRecordSummary(session, gameData = null) {
     totalRuns,
     bossKills,
     currency,
-    recentRuns,
     analytics,
-    recommendations,
-    favoriteLoadout,
     survivalSec,
     mm: Math.floor(survivalSec / 60),
     ss: String(Math.floor(survivalSec % 60)).padStart(2, '0'),

@@ -89,6 +89,16 @@ test('meta shop styles keep the panel as the scroll container', () => {
   assert.match(styles.META_SHOP_CSS, /\.ms-panel\s*\{[\s\S]*overflow-y:\s*auto;/, 'MetaShop panel이 자체 스크롤 컨테이너가 아님');
 });
 
+test('meta shop styles keep panel scrolling even after shared subscreen css is injected later', () => {
+  const styles = getMetaShopStyles();
+
+  assert.match(
+    styles.META_SHOP_CSS,
+    /\.ms-panel\.ss-panel\s*\{[\s\S]*overflow-y:\s*auto;/,
+    'MetaShop panel이 later .ss-panel override 이후에도 스크롤을 강제하지 않음',
+  );
+});
+
 test('meta shop model and markup keep purchase availability and shared footer contract', () => {
   const modelApi = getMetaShopModel();
   const markupApi = getMetaShopMarkup();
