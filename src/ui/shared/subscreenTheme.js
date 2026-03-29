@@ -16,6 +16,8 @@ export const SUBSCREEN_THEME = Object.freeze({
   text: 'rgba(246,239,226,0.92)',
   muted: 'rgba(246,239,226,0.54)',
   shadow: '0 30px 90px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.04)',
+  scrollThumb: 'rgba(232,237,245,0.34)',
+  scrollThumbHover: 'rgba(232,237,245,0.52)',
 });
 
 export const SUBSCREEN_SHARED_CSS = `
@@ -159,11 +161,11 @@ export const SUBSCREEN_SHARED_CSS = `
 
   .ss-scroll {
     scrollbar-width: thin;
-    scrollbar-color: rgba(217,179,107,0.34) transparent;
+    scrollbar-color: ${SUBSCREEN_THEME.scrollThumb} transparent;
   }
 
   .ss-scroll::-webkit-scrollbar {
-    width: 7px;
+    width: 10px;
   }
 
   .ss-scroll::-webkit-scrollbar-track {
@@ -171,12 +173,14 @@ export const SUBSCREEN_SHARED_CSS = `
   }
 
   .ss-scroll::-webkit-scrollbar-thumb {
-    background: rgba(217,179,107,0.34);
+    background: ${SUBSCREEN_THEME.scrollThumb};
+    border: 2px solid transparent;
+    background-clip: padding-box;
     border-radius: 999px;
   }
 
   .ss-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(217,179,107,0.5);
+    background: ${SUBSCREEN_THEME.scrollThumbHover};
   }
 `;
 

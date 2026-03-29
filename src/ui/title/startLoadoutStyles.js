@@ -11,6 +11,7 @@ export const START_LOADOUT_VIEW_CSS = `
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: auto;
     z-index: 12;
   }
   .sl-backdrop {

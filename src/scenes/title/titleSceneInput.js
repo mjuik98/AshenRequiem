@@ -1,11 +1,17 @@
 import { matchesActionBinding } from '../../input/keyBindings.js';
 
+function isStartLoadoutOpen(scene) {
+  const loadoutEl = scene?._loadoutView?._el;
+  return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
+}
+
 export function bindTitleSceneInput(scene, {
   startGame,
   windowRef = window,
 } = {}) {
   scene._onKeyDown = (event) => {
     if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
+    if (isStartLoadoutOpen(scene)) return;
     if (matchesActionBinding('confirm', event, scene?.game?.session?.options?.keyBindings)) {
       event.preventDefault();
       startGame();

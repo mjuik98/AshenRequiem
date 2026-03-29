@@ -73,6 +73,11 @@ await test('StartLoadoutView styles는 긴 시작 로드아웃에서도 패널 �
   );
   assert.match(
     START_LOADOUT_VIEW_CSS,
+    /\.sl-root\s*\{[\s\S]*pointer-events:\s*auto/,
+    'StartLoadoutView 오버레이 루트가 포인터 이벤트를 잡아야 뒤의 타이틀 메뉴 클릭이 새지 않음',
+  );
+  assert.match(
+    START_LOADOUT_VIEW_CSS,
     /\.sl-actions\s*\{[\s\S]*position:\s*sticky[\s\S]*bottom:\s*0/,
     'StartLoadoutView 하단 액션 영역은 긴 레이아웃에서도 항상 접근 가능해야 함',
   );

@@ -35,7 +35,7 @@ export function renderMetaShopMarkup({
   `;
 
   return `
-    <div class="ms-panel ss-panel" role="dialog" aria-modal="true" aria-label="메타 상점" tabindex="-1">
+    <div class="ms-panel ss-panel ss-scroll" role="dialog" aria-modal="true" aria-label="메타 상점" tabindex="-1">
 
       ${renderSubscreenHeader({
         headerClass: 'ms-header',

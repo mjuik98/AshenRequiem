@@ -283,4 +283,87 @@ test('bindTitleSceneInput는 session key binding confirm 설정을 따른다', (
   assert.deepEqual(calls, ['start'], 'title confirm binding이 session key binding을 따르지 않음');
 });
 
+test('bindTitleSceneInput는 start loadout overlay가 열려 있으면 confirm을 무시한다', () => {
+  const input = getTitleSceneInput();
+  const listeners = new Map();
+  const calls = [];
+  const scene = {
+    _loadoutView: {
+      _el: {
+        style: {
+          display: 'flex',
+        },
+      },
+    },
+    game: {
+      session: {
+        options: {
+          keyBindings: {
+            confirm: ['f'],
+          },
+        },
+      },
+    },
+  };
+  const windowRef = {
+    addEventListener(type, listener) {
+      const entries = listeners.get(type) ?? [];
+      entries.push(listener);
+      listeners.set(type, entries);
+    },
+    removeEventListener() {},
+  };
+
+  input.bindTitleSceneInput(scene, {
+    startGame: () => calls.push('start'),
+    windowRef,
+  });
+
+  for (const listener of listeners.get('keydown') ?? []) {
+    listener({ key: 'f', code: 'KeyF', preventDefault() {}, target: { tagName: 'DIV' } });
+  }
+
+  assert.deepEqual(calls, [], 'start loadout overlay가 열린 상태에서 title confirm이 다시 실행되면 안 됨');
+});
+
+test('runTitleAction는 start loadout overlay가 열려 있으면 배경 메뉴 액션을 무시한다', () => {
+  const navigation = getTitleSceneNavigation();
+  const transitions = [];
+  const scene = {
+    _loadoutView: {
+      _el: {
+        style: {
+          display: 'flex',
+        },
+      },
+    },
+    _nav: {
+      change(callback) {
+        transitions.push(callback);
+      },
+      load(loader, commit) {
+        transitions.push([loader, commit]);
+      },
+    },
+    game: {
+      sceneManager: {
+        changeScene(nextScene) {
+          transitions.push(nextScene);
+        },
+      },
+    },
+  };
+
+  navigation.runTitleAction('shop', scene, {
+    pulseFlash: () => {},
+    setMessage: () => {},
+    windowRef: { close() {}, setTimeout() {}, closed: false },
+    attemptWindowCloseImpl: () => {},
+    openTitleStartLoadoutImpl: () => {},
+    createMetaShopSceneImpl: async () => ({ id: 'meta-shop-scene' }),
+  });
+
+  assert.deepEqual(transitions, [], 'start loadout overlay가 열린 상태에서 background 메뉴 액션이 실행되면 안 됨');
+});
+
 summary();

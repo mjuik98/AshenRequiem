@@ -4,6 +4,11 @@ import {
 } from '../sceneLoaders.js';
 import { logRuntimeError, logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
+function isStartLoadoutOpen(scene) {
+  const loadoutEl = scene?._loadoutView?._el;
+  return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
+}
+
 function formatTitleLoadFailureMessage(label, error) {
   const errorText = String(error?.message ?? error ?? '');
   if (errorText.includes('Failed to fetch dynamically imported module')) {
@@ -26,6 +31,10 @@ export function runTitleAction(action, scene, {
   loadCodexScene = loadCodexSceneModule,
   loadSettingsScene = loadSettingsSceneModule,
 } = {}) {
+  if (isStartLoadoutOpen(scene)) {
+    return;
+  }
+
   if (action === 'start') {
     pulseFlash();
     setMessage('시작 무기 선택 중…');
