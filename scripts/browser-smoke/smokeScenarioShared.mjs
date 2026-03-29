@@ -1,10 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export function withDebugRuntime(url) {
+export function withRuntimeFlags(url, flags = {}) {
   const nextUrl = new URL(url);
-  nextUrl.searchParams.set('debugRuntime', '1');
+  for (const [flagName, enabled] of Object.entries(flags)) {
+    if (enabled) {
+      nextUrl.searchParams.set(flagName, '1');
+    } else {
+      nextUrl.searchParams.delete(flagName);
+    }
+  }
   return nextUrl.toString();
+}
+
+export function withDebugRuntime(url) {
+  return withRuntimeFlags(url, { debugRuntime: true });
 }
 
 export function ensureScenarioDir(dirPath) {
@@ -29,8 +39,15 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function bootToPlay(url, transport) {
-  await transport.open(withDebugRuntime(url));
+export async function bootToPlay(url, transport, options = {}) {
+  const runtimeUrl = withRuntimeFlags(url, {
+    debugRuntime: true,
+    ...(options.runtimeFlags ?? {}),
+  });
+  await transport.open(runtimeUrl);
+  if (options.viewport?.width && options.viewport?.height && typeof transport.resize === 'function') {
+    await transport.resize(options.viewport.width, options.viewport.height);
+  }
   await transport.pollEval(
     `Boolean(document.querySelector('[data-action="start"]'))`,
     (value) => value === true,
@@ -58,6 +75,8 @@ export async function bootToPlay(url, transport) {
   if (loadoutVisible !== true) {
     throw new Error('Start loadout dialog did not open');
   }
+
+  await options.beforeStartRun?.(transport);
 
   let loadoutClicked = await transport.clickByText('시작하기');
   if (!loadoutClicked) {

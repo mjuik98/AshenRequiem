@@ -176,6 +176,20 @@ function renderRunContext(stats) {
   `;
 }
 
+function renderDeathRecap(deathRecap = null) {
+  if (!deathRecap?.headline) return '';
+
+  return `
+    <div class="result-divider"></div>
+    <p class="result-section-title">전투 복기</p>
+    <div class="result-unlocks">
+      <div class="result-unlock-chip">${escapeHtml(deathRecap.headline)}</div>
+      ${deathRecap.detail ? `<div class="result-unlock-chip">${escapeHtml(deathRecap.detail)}</div>` : ''}
+      ${deathRecap.action ? `<div class="result-unlock-chip">${escapeHtml(deathRecap.action)}</div>` : ''}
+    </div>
+  `;
+}
+
 function renderRecentRuns(recentRuns = []) {
   if (!recentRuns.length) return '';
 
@@ -247,6 +261,7 @@ export function renderResultViewMarkup(stats, { onTitleCallback = null } = {}) {
       ${renderCurrency(stats.currencyEarned, stats.totalCurrency)}
       ${renderDailyReward(stats.dailyReward)}
       ${renderRunContext(stats)}
+      ${renderDeathRecap(stats.deathRecap)}
       ${stats.analytics?.deathCauseSummary?.length
         ? `
           <div class="result-divider"></div>

@@ -77,6 +77,18 @@ export const SCENARIOS = {
     suite: 'extended',
     stepNames: ['play', 'boss', 'hud'],
   },
+  touch_hud_mobile: {
+    id: 'touch_hud_mobile',
+    artifactSlug: 'touch-hud-mobile',
+    suite: 'extended',
+    stepNames: ['play', 'touch', 'mobile'],
+  },
+  daily_seed_run: {
+    id: 'daily_seed_run',
+    artifactSlug: 'daily-seed-run',
+    suite: 'extended',
+    stepNames: ['title', 'loadout', 'daily', 'play'],
+  },
 };
 
 export function getOutputRootForRun({

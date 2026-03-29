@@ -78,6 +78,27 @@ function createProfilePickup(id, x, y) {
   };
 }
 
+function populateProfileWorld(world, {
+  enemyCount = 0,
+  projectileCount = 0,
+  pickupCount = 0,
+} = {}) {
+  world.entities.enemies = Array.from({ length: enemyCount }, (_, index) => createProfileEnemy(
+    index,
+    (index % 6) * 60 - 150,
+    Math.floor(index / 6) * 60 - 120,
+  ));
+  world.entities.projectiles = Array.from({ length: projectileCount }, (_, index) => createProfileProjectile(
+    index,
+    -80 + (index * 10),
+    -40 + ((index % 4) * 20),
+    120,
+    0,
+  ));
+  world.entities.pickups = Array.from({ length: pickupCount }, (_, index) => createProfilePickup(index, index * 18, 24));
+  return world;
+}
+
 function createProfileData() {
   const profileWeapon = {
     id: 'magic_bolt',
@@ -133,20 +154,43 @@ export const PROFILE_PRESETS = Object.freeze({
       maxPerFrameMs: 1.0,
     }),
     buildWorld(world) {
-      world.entities.enemies = Array.from({ length: 24 }, (_, index) => createProfileEnemy(
-        index,
-        (index % 6) * 60 - 150,
-        Math.floor(index / 6) * 60 - 120,
-      ));
-      world.entities.projectiles = Array.from({ length: 16 }, (_, index) => createProfileProjectile(
-        index,
-        -80 + (index * 10),
-        -40 + ((index % 4) * 20),
-        120,
-        0,
-      ));
-      world.entities.pickups = Array.from({ length: 8 }, (_, index) => createProfilePickup(index, index * 18, 24));
-      return world;
+      return populateProfileWorld(world, {
+        enemyCount: 24,
+        projectileCount: 16,
+        pickupCount: 8,
+      });
+    },
+    buildData() {
+      return createProfileData();
+    },
+  }),
+  mobile: Object.freeze({
+    id: 'mobile',
+    budget: Object.freeze({
+      maxPerFrameMs: 0.75,
+    }),
+    buildWorld(world) {
+      return populateProfileWorld(world, {
+        enemyCount: 14,
+        projectileCount: 8,
+        pickupCount: 4,
+      });
+    },
+    buildData() {
+      return createProfileData();
+    },
+  }),
+  stress: Object.freeze({
+    id: 'stress',
+    budget: Object.freeze({
+      maxPerFrameMs: 1.4,
+    }),
+    buildWorld(world) {
+      return populateProfileWorld(world, {
+        enemyCount: 36,
+        projectileCount: 28,
+        pickupCount: 14,
+      });
     },
     buildData() {
       return createProfileData();

@@ -47,7 +47,7 @@ export function createPlayWorld() {
     seedLabel: '',
     lastDamageSource: null,
     encounterState: createDefaultEncounterState(),
-    guidance: { primaryObjective: null, stageDirective: null },
+    guidance: { primaryObjective: null, stageDirective: null, recommendedBuild: null },
     playMode: 'playing',
     runOutcome: null,
   };

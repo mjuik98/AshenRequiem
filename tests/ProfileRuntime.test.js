@@ -53,6 +53,39 @@ test('profile runtime exposes named deterministic presets and json output can se
   assert.equal(Array.isArray(payload.systems), true);
 });
 
+test('profile runtime exposes device-oriented mobile/stress presets', () => {
+  const presetIds = getProfilePresetIds();
+
+  assert.equal(presetIds.includes('mobile'), true, 'mobile preset이 profile runtime에 등록되지 않음');
+  assert.equal(presetIds.includes('stress'), true, 'stress preset이 profile runtime에 등록되지 않음');
+
+  const mobileResult = spawnSync(
+    process.execPath,
+    ['scripts/profile.js', '5', '--preset', 'mobile', '--json'],
+    {
+      cwd: new URL('..', import.meta.url),
+      encoding: 'utf8',
+    },
+  );
+  assert.equal(mobileResult.status, 0, `mobile profile preset failed: ${mobileResult.stderr}`);
+  const mobilePayload = JSON.parse(mobileResult.stdout);
+  assert.equal(mobilePayload.preset, 'mobile');
+  assert.equal(typeof mobilePayload.budget?.maxPerFrameMs, 'number', 'mobile preset budget metadata가 없음');
+
+  const stressResult = spawnSync(
+    process.execPath,
+    ['scripts/profile.js', '5', '--preset', 'stress', '--json'],
+    {
+      cwd: new URL('..', import.meta.url),
+      encoding: 'utf8',
+    },
+  );
+  assert.equal(stressResult.status, 0, `stress profile preset failed: ${stressResult.stderr}`);
+  const stressPayload = JSON.parse(stressResult.stdout);
+  assert.equal(stressPayload.preset, 'stress');
+  assert.equal(typeof stressPayload.budget?.maxPerFrameMs, 'number', 'stress preset budget metadata가 없음');
+});
+
 test('profile script can fail verification when an asserted budget is exceeded', () => {
   const result = spawnSync(
     process.execPath,

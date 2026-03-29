@@ -344,3 +344,92 @@ export async function runBossReadabilityScenario(url, artifactDir, transport) {
   writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
   return summary;
 }
+
+export async function runTouchHudMobileScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  const state = await bootToPlay(url, transport, {
+    runtimeFlags: { forceTouchHud: true },
+    viewport: { width: 390, height: 844 },
+  });
+  await sleep(180);
+
+  const hudState = await transport.evalJson(`(() => {
+    const root = document.querySelector('.touch-hud');
+    const pauseButton = document.querySelector('.touch-pause-button');
+    const joystick = document.querySelector('.touch-joystick-base');
+    const moveGuide = document.querySelector('.touch-move-guide');
+    const actionGuide = document.querySelector('.touch-action-guide');
+    const viewportHeight = window.innerHeight;
+    return {
+      hudVisible: Boolean(root) && getComputedStyle(root).display !== 'none',
+      pauseButtonVisible: Boolean(pauseButton) && getComputedStyle(pauseButton).display !== 'none',
+      joystickVisible: Boolean(joystick) && getComputedStyle(joystick).display !== 'none',
+      moveGuideText: moveGuide?.textContent?.trim() ?? '',
+      actionGuideText: actionGuide?.textContent?.trim() ?? '',
+      pauseBottom: pauseButton?.getBoundingClientRect?.().bottom ?? null,
+      joystickBottom: joystick?.getBoundingClientRect?.().bottom ?? null,
+      viewportHeight,
+    };
+  })()`);
+
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+  const summary = {
+    scenario: 'touch_hud_mobile',
+    state,
+    hudState,
+    assertions: {
+      inPlayScene: state?.scene === 'PlayScene',
+      touchHudVisible: hudState?.hudVisible === true,
+      pauseButtonVisible: hudState?.pauseButtonVisible === true,
+      joystickVisible: hudState?.joystickVisible === true,
+      hasMoveGuide: typeof hudState?.moveGuideText === 'string' && hudState.moveGuideText.length > 0,
+      hasActionGuide: typeof hudState?.actionGuideText === 'string' && hudState.actionGuideText.length > 0,
+      pauseButtonInViewport: typeof hudState?.pauseBottom === 'number' && hudState.pauseBottom <= hudState.viewportHeight,
+      joystickInViewport: typeof hudState?.joystickBottom === 'number' && hudState.joystickBottom <= hudState.viewportHeight,
+    },
+  };
+
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}
+
+export async function runDailySeedScenario(url, artifactDir, transport) {
+  ensureScenarioDir(artifactDir);
+
+  const state = await bootToPlay(url, transport, {
+    beforeStartRun: async (activeTransport) => {
+      const selected = await activeTransport.evalJson(`(() => {
+        const button = document.querySelector('[data-seed-mode="daily"]');
+        if (!button) return null;
+        button.click();
+        return {
+          selectedSeedMode: button.dataset.seedMode ?? null,
+          seedPreview: document.querySelector('.sl-seed-preview')?.textContent?.trim() ?? '',
+        };
+      })()`);
+      return selected;
+    },
+  });
+  await sleep(180);
+
+  const dailyState = await transport.evalJson(`(() => ({
+    seedMode: window.__ASHEN_DEBUG__?.getSnapshot?.()?.seedMode ?? null,
+    seedLabel: window.__ASHEN_DEBUG__?.getSnapshot?.()?.seedLabel ?? '',
+  }))()`);
+  await transport.takeScreenshot(path.join(artifactDir, 'shot.png'));
+
+  const summary = {
+    scenario: 'daily_seed_run',
+    state,
+    dailyState,
+    assertions: {
+      inPlayScene: state?.scene === 'PlayScene',
+      dailySeedMode: dailyState?.seedMode === 'daily',
+      hasDailySeedLabel: typeof dailyState?.seedLabel === 'string' && dailyState.seedLabel.startsWith('daily-'),
+    },
+  };
+
+  writeScenarioJson(path.join(artifactDir, 'summary.json'), summary);
+  return summary;
+}

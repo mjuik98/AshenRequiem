@@ -58,6 +58,24 @@ export function buildRecentRunEntry(world, runResult) {
   };
 }
 
+function buildDeathRecap({ runResult, recommendations = [] } = {}) {
+  if (runResult?.outcome === 'victory') return null;
+
+  const cause = runResult?.deathCause ?? '알 수 없는 압박';
+  const stageName = runResult?.stageName ?? runResult?.stageId ?? '현재 스테이지';
+  const minutes = Math.floor((runResult?.survivalTime ?? 0) / 60);
+  const seconds = String(Math.floor((runResult?.survivalTime ?? 0) % 60)).padStart(2, '0');
+  const leadRecommendation = recommendations[0];
+
+  return {
+    headline: `${cause}에 밀려 전열이 무너졌습니다.`,
+    detail: `${stageName}에서 ${minutes}:${seconds} 지점에 전투가 종료됐습니다.`,
+    action: leadRecommendation?.title
+      ? `${leadRecommendation.title}부터 다시 점검하세요.`
+      : '방어 장신구와 회피 여유를 먼저 확보하세요.',
+  };
+}
+
 export function buildPlayResultSummary(world, session, {
   startCurrency = 0,
   prevBestTime = 0,
@@ -75,6 +93,7 @@ export function buildPlayResultSummary(world, session, {
   );
   const analytics = buildRunAnalytics(session?.meta ?? {});
   const recommendations = buildRunRecommendations({ analytics });
+  const deathRecap = buildDeathRecap({ runResult, recommendations });
 
   return {
     killCount: runResult.kills,
@@ -100,5 +119,6 @@ export function buildPlayResultSummary(world, session, {
     recentRuns: [...(session?.meta?.recentRuns ?? [])].slice(0, 5),
     analytics,
     recommendations,
+    deathRecap,
   };
 }

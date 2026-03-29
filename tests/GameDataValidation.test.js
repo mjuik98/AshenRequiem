@@ -32,12 +32,27 @@ await test('shared validation module reports core duplicate/reference errors for
     waveData: [
       { from: 10, to: 5, spawnPerSecond: -1 },
     ],
+    stageData: [
+      {
+        id: 'ash_plains',
+        assets: {
+          backgroundKey: 'missing_bg',
+          bossCueKey: 'missing_boss',
+        },
+      },
+    ],
+    assetManifest: [
+      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette' },
+      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette' },
+    ],
   });
 
   assert.equal(report.ok, false);
   assert.equal(report.errors.some((message) => message.includes('중복 id')), true);
   assert.equal(report.errors.some((message) => message.includes('존재하지 않는 weaponId')), true);
   assert.equal(report.errors.some((message) => message.includes('spawnPerSecond')), true);
+  assert.equal(report.errors.some((message) => message.includes('backgroundKey')), true);
+  assert.equal(report.errors.some((message) => message.includes('bossCueKey')), true);
 });
 
 console.log(`\nGameDataValidation: ${passed}개 통과, ${failed}개 실패`);

@@ -21,6 +21,7 @@ import { stageData }           from './stageData.js';
 import { archetypeData }       from './archetypeData.js';
 import { riskRelicData }       from './riskRelicData.js';
 import { unlockData }          from './unlockData.js';
+import { assetManifest }       from './assetManifest.js';
 
 function deepCloneValue(value, seen = new WeakMap()) {
   if (value === null || typeof value !== 'object') return value;
@@ -116,6 +117,7 @@ export const GameDataLoader = {
       archetypeData,
       riskRelicData,
       unlockData,
+      assetManifest,
     };
 
     const base = cloneGameData(originals);

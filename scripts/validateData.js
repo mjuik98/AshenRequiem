@@ -54,6 +54,8 @@ async function loadData() {
     { weaponData },
     { upgradeData },
     { waveData },
+    { stageData },
+    { assetManifest },
     { statusEffectData },
     { synergyData },
     { propDropData },
@@ -62,12 +64,24 @@ async function loadData() {
     import('../src/data/weaponData.js'),
     import('../src/data/upgradeData.js'),
     import('../src/data/waveData.js'),
+    import('../src/data/stageData.js'),
+    import('../src/data/assetManifest.js'),
     import('../src/data/statusEffectData.js'),
     import('../src/data/synergyData.js'),
     import('../src/data/propDropData.js'),
   ]);
 
-  return { enemyData, weaponData, upgradeData, waveData, statusEffectData, synergyData, propDropData };
+  return {
+    enemyData,
+    weaponData,
+    upgradeData,
+    waveData,
+    stageData,
+    assetManifest,
+    statusEffectData,
+    synergyData,
+    propDropData,
+  };
 }
 
 function validateEnemyData(enemyData, propDropData = []) {
@@ -209,6 +223,8 @@ async function main() {
     upgradeData: data.upgradeData,
     weaponData: data.weaponData,
     waveData: data.waveData,
+    stageData: data.stageData,
+    assetManifest: data.assetManifest,
   });
   coreReport.errors.forEach((message) => err(message.replace('[validate] ', '')));
   coreReport.warnings.forEach((message) => warn(message.replace('[validate] ', '')));

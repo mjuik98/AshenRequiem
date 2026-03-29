@@ -17,6 +17,11 @@ export const stageData = [
       gridColor: 'rgba(255,255,255,0.04)',
       accentColor: 'rgba(199,163,93,0.06)',
     },
+    assets: {
+      backgroundKey: 'stage_bg_ash_plains',
+      bossCueKey: 'boss_cue_ash_plains',
+      stageFxKey: 'stage_fx_ash_plains_echo',
+    },
     encounterTimeline: [
       { id: 'opening', from: 0, to: 75, intensity: 'warmup', label: '탐색 구간', summaryText: '빌드를 정리할 시간입니다.', spawnRateMult: 0.9, gimmickIntervalMult: 1.1 },
       { id: 'steady', from: 75, to: 180, intensity: 'steady', label: '안정 구간', summaryText: '기본 압박이 유지됩니다.', spawnRateMult: 1, gimmickIntervalMult: 1 },
@@ -71,6 +76,11 @@ export const stageData = [
       fillStyle: '#11101c',
       gridColor: 'rgba(196,210,255,0.05)',
       accentColor: 'rgba(112,124,182,0.08)',
+    },
+    assets: {
+      backgroundKey: 'stage_bg_moon_crypt',
+      bossCueKey: 'boss_cue_moon_crypt',
+      stageFxKey: 'stage_fx_moon_crypt_echo',
     },
     encounterTimeline: [
       { id: 'crypt_opening', from: 0, to: 60, intensity: 'warmup', label: '매복 전조', summaryText: '정찰형 적이 전장을 탐색합니다.', spawnRateMult: 0.95, gimmickIntervalMult: 1.05 },
@@ -136,6 +146,11 @@ export const stageData = [
       fillStyle: '#160d0d',
       gridColor: 'rgba(255,214,170,0.05)',
       accentColor: 'rgba(255,112,67,0.09)',
+    },
+    assets: {
+      backgroundKey: 'stage_bg_ember_hollow',
+      bossCueKey: 'boss_cue_ember_hollow',
+      stageFxKey: 'stage_fx_ember_hollow_echo',
     },
     encounterTimeline: [
       { id: 'ember_opening', from: 0, to: 70, intensity: 'warmup', label: '화염 전조', summaryText: '초반은 보상 회수에 유리합니다.', spawnRateMult: 0.95, gimmickIntervalMult: 1.05 },
@@ -213,6 +228,11 @@ export const stageData = [
       fillStyle: '#0b1322',
       gridColor: 'rgba(180,214,255,0.05)',
       accentColor: 'rgba(114,180,255,0.09)',
+    },
+    assets: {
+      backgroundKey: 'stage_bg_frost_harbor',
+      bossCueKey: 'boss_cue_frost_harbor',
+      stageFxKey: 'stage_fx_frost_harbor_echo',
     },
     encounterTimeline: [
       { id: 'harbor_opening', from: 0, to: 95, intensity: 'steady', label: '차가운 탐색', summaryText: '정면보다는 측선에 주의해야 합니다.', spawnRateMult: 1, gimmickIntervalMult: 1 },

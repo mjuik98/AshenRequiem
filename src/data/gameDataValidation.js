@@ -9,12 +9,15 @@ export function validateCoreGameData({
   upgradeData = [],
   weaponData = [],
   waveData = [],
+  stageData = [],
+  assetManifest = [],
 } = {}) {
   const errors = [];
   const warnings = [];
 
   errors.push(...collectDuplicateIdErrors(upgradeData, 'upgradeData'));
   errors.push(...collectDuplicateIdErrors(weaponData, 'weaponData'));
+  errors.push(...collectDuplicateIdErrors(assetManifest, 'assetManifest'));
 
   for (const upgrade of upgradeData) {
     if (!upgrade.weaponId) continue;
@@ -40,6 +43,21 @@ export function validateCoreGameData({
       errors.push(`[validate] waveData[${index}] from >= to`);
     }
   });
+
+  const assetIds = new Set(assetManifest.map((entry) => entry?.id).filter(Boolean));
+  for (const stage of stageData) {
+    if (!stage?.id) continue;
+    if (!stage.assets?.backgroundKey) {
+      errors.push(`[validate] stageData "${stage.id}" backgroundKey 없음`);
+    } else if (!assetIds.has(stage.assets.backgroundKey)) {
+      errors.push(`[validate] stageData "${stage.id}" → 존재하지 않는 backgroundKey "${stage.assets.backgroundKey}"`);
+    }
+    if (!stage.assets?.bossCueKey) {
+      errors.push(`[validate] stageData "${stage.id}" bossCueKey 없음`);
+    } else if (!assetIds.has(stage.assets.bossCueKey)) {
+      errors.push(`[validate] stageData "${stage.id}" → 존재하지 않는 bossCueKey "${stage.assets.bossCueKey}"`);
+    }
+  }
 
   return {
     ok: errors.length === 0,

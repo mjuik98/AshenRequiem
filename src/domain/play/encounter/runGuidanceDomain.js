@@ -30,6 +30,13 @@ function buildRecommendedBuild({ session = null, stage = null, gameData = {} } =
   const accessoryText = accessoryNames.length > 0
     ? `핵심 장신구 ${accessoryNames.join(', ')}`
     : '핵심 장신구 없이 완성 가능';
+  const rationale = [
+    `${baseWeaponName} 시작 무기를 이미 고른 상태라 진화 경로를 곧바로 탈 수 있습니다.`,
+    accessoryNames.length > 0
+      ? `${accessoryNames.join(', ')}를 확보하면 ${resultWeaponName} 타이밍이 빨라집니다.`
+      : `${resultWeaponName}는 추가 장신구 없이도 핵심 화력을 올릴 수 있습니다.`,
+    `${stageContext} 구간에서 빌드 파편을 모으기 좋습니다.`,
+  ];
 
   return {
     id: recipe.id ?? `recommended_${baseWeaponId}`,
@@ -41,6 +48,7 @@ function buildRecommendedBuild({ session = null, stage = null, gameData = {} } =
     targetEvolutionName: resultWeaponName,
     targetAccessoryIds: [...(recipe.requires?.accessoryIds ?? [])],
     targetAccessoryNames: accessoryNames,
+    rationale,
   };
 }
 

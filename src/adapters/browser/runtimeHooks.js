@@ -63,6 +63,8 @@ function buildSnapshot(game) {
       objectiveTitle: world.run.guidance?.primaryObjective?.title ?? '',
       stageDirectiveTitle: world.run.guidance?.stageDirective?.title ?? '',
     },
+    seedMode: world.run.seedMode ?? null,
+    seedLabel: world.run.seedLabel ?? '',
     ui: {
       pauseVisible: ui?.isPaused?.() ?? false,
       levelUpVisible: ui?.isLevelUpVisible?.() ?? false,

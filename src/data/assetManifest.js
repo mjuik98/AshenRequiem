@@ -1,0 +1,92 @@
+export const assetManifest = [
+  {
+    id: 'ui_overlay_loadout',
+    category: 'ui_surface',
+    kind: 'dom_theme',
+    description: 'Start loadout modal shell and chrome tokens.',
+  },
+  {
+    id: 'ui_overlay_pause',
+    category: 'ui_surface',
+    kind: 'dom_theme',
+    description: 'Pause modal shell and pause panel tokens.',
+  },
+  {
+    id: 'ui_overlay_result',
+    category: 'ui_surface',
+    kind: 'dom_theme',
+    description: 'Result modal shell and result feedback tokens.',
+  },
+  {
+    id: 'stage_bg_ash_plains',
+    category: 'stage_background',
+    kind: 'procedural_palette',
+    description: 'Ash Plains background palette and grid treatment.',
+  },
+  {
+    id: 'stage_bg_moon_crypt',
+    category: 'stage_background',
+    kind: 'procedural_palette',
+    description: 'Moon Crypt background palette and grid treatment.',
+  },
+  {
+    id: 'stage_bg_ember_hollow',
+    category: 'stage_background',
+    kind: 'procedural_palette',
+    description: 'Ember Hollow background palette and grid treatment.',
+  },
+  {
+    id: 'stage_bg_frost_harbor',
+    category: 'stage_background',
+    kind: 'procedural_palette',
+    description: 'Frost Harbor background palette and grid treatment.',
+  },
+  {
+    id: 'boss_cue_ash_plains',
+    category: 'audio_cue',
+    kind: 'procedural_sfx',
+    description: 'Ash Plains boss alert cue.',
+  },
+  {
+    id: 'boss_cue_moon_crypt',
+    category: 'audio_cue',
+    kind: 'procedural_sfx',
+    description: 'Moon Crypt boss alert cue.',
+  },
+  {
+    id: 'boss_cue_ember_hollow',
+    category: 'audio_cue',
+    kind: 'procedural_sfx',
+    description: 'Ember Hollow boss alert cue.',
+  },
+  {
+    id: 'boss_cue_frost_harbor',
+    category: 'audio_cue',
+    kind: 'procedural_sfx',
+    description: 'Frost Harbor boss alert cue.',
+  },
+  {
+    id: 'stage_fx_ash_plains_echo',
+    category: 'fx_surface',
+    kind: 'procedural_fx',
+    description: 'Ash Plains stage echo and ward accent treatment.',
+  },
+  {
+    id: 'stage_fx_moon_crypt_echo',
+    category: 'fx_surface',
+    kind: 'procedural_fx',
+    description: 'Moon Crypt stage echo and spectral barrage treatment.',
+  },
+  {
+    id: 'stage_fx_ember_hollow_echo',
+    category: 'fx_surface',
+    kind: 'procedural_fx',
+    description: 'Ember Hollow stage echo and ember hazard treatment.',
+  },
+  {
+    id: 'stage_fx_frost_harbor_echo',
+    category: 'fx_surface',
+    kind: 'procedural_fx',
+    description: 'Frost Harbor stage echo and crossfire treatment.',
+  },
+];

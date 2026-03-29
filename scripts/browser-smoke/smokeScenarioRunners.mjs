@@ -9,10 +9,12 @@ import {
 import {
   runBossReadabilityScenario,
   runCombatPressureScenario,
+  runDailySeedScenario,
   runLevelUpOverlayScenario,
   runPauseLayoutScenario,
   runPauseOverlayScenario,
   runResultScreenScenario,
+  runTouchHudMobileScenario,
 } from './smokePlayScenarios.mjs';
 
 const RUNNERS = {
@@ -28,6 +30,8 @@ const RUNNERS = {
   result_screen: runResultScreenScenario,
   combat_pressure: runCombatPressureScenario,
   boss_readability: runBossReadabilityScenario,
+  touch_hud_mobile: runTouchHudMobileScenario,
+  daily_seed_run: runDailySeedScenario,
 };
 
 export async function runSmokeScenario(url, scenarioId, artifactDir, transport) {

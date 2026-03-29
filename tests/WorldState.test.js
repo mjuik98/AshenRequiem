@@ -57,7 +57,7 @@ test('createWorld()는 encounter state와 run guidance 기본값을 포함한다
   );
   assert.deepEqual(
     world.run.guidance,
-    { primaryObjective: null, stageDirective: null },
+    { primaryObjective: null, stageDirective: null, recommendedBuild: null },
     'run guidance 기본값이 없음',
   );
 });

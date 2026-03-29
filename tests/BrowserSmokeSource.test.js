@@ -70,6 +70,8 @@ test('scenario 정의는 title/play/pause/result 흐름 이름을 가진다', ()
   assert.equal(scenariosSource.includes('title_settings_persist'), true, 'title_settings_persist 시나리오가 없음');
   assert.equal(scenariosSource.includes('combat_pressure'), true, 'combat_pressure 시나리오가 없음');
   assert.equal(scenariosSource.includes('boss_readability'), true, 'boss_readability 시나리오가 없음');
+  assert.equal(scenariosSource.includes('touch_hud_mobile'), true, 'touch_hud_mobile 시나리오가 없음');
+  assert.equal(scenariosSource.includes('daily_seed_run'), true, 'daily_seed_run 시나리오가 없음');
   assert.equal(scenariosSource.includes("'accessory'"), true, 'title_codex 시나리오가 accessory step을 포함하지 않음');
 });
 
@@ -366,6 +368,34 @@ test('pause/result smoke는 dialog keyboard 계약을 검증한다', () => {
     smokeSource.includes('.result-card'),
     true,
     'result smoke가 result dialog 패널을 확인하지 않음',
+  );
+});
+
+test('추가 gameplay smoke는 mobile touch HUD와 daily seed 경로를 검증한다', () => {
+  assert.equal(
+    smokeSource.includes('forceTouchHud'),
+    true,
+    'mobile touch smoke가 forceTouchHud runtime flag를 사용하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('.touch-hud'),
+    true,
+    'mobile touch smoke가 touch HUD 루트를 확인하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('.touch-pause-button'),
+    true,
+    'mobile touch smoke가 touch pause button을 확인하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('[data-seed-mode="daily"]'),
+    true,
+    'daily smoke가 daily seed 선택 경로를 검증하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('selectedSeedMode') || smokeSource.includes('seedLabel'),
+    true,
+    'daily smoke가 런타임 daily seed 결과를 확인하지 않음',
   );
 });
 
