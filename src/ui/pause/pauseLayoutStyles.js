@@ -19,7 +19,7 @@ export const PAUSE_LAYOUT_CSS = `
   }
   .pv-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 24px 14px;
+    padding: 18px 24px 12px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
   .pv-pause-badge { display: flex; align-items: center; gap: 9px; }
@@ -30,7 +30,7 @@ export const PAUSE_LAYOUT_CSS = `
   }
   .pv-pbar { width: 3px; height: 9px; background: rgba(212,175,106,0.7); border-radius: 1px; }
   .pv-pause-title { font-size: 12px; font-weight: 700; letter-spacing: 4px; color: #d4af6a; text-transform: uppercase; }
-  .pv-run-stats { display: flex; align-items: center; gap: 14px; }
+  .pv-run-stats { display: flex; align-items: center; gap: 12px; }
   .pv-run-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .pv-run-val { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.78); line-height: 1; }
   .pv-run-key { font-size: 9px; letter-spacing: 1.5px; color: rgba(255,255,255,0.25); text-transform: uppercase; }

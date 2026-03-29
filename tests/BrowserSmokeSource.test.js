@@ -75,31 +75,11 @@ test('scenario 정의는 title/play/pause/result 흐름 이름을 가진다', ()
   assert.equal(scenariosSource.includes("'accessory'"), true, 'title_codex 시나리오가 accessory step을 포함하지 않음');
 });
 
-test('combat pressure smoke는 HUD guidance surface를 검증한다', () => {
+test('combat pressure smoke는 상단 guidance HUD 대신 boss readability surface만 검증한다', () => {
   assert.equal(
-    smokeSource.includes('hud-threat-chip'),
+    smokeSource.includes('guidanceHudRemoved'),
     true,
-    'combat pressure smoke가 threat chip을 확인하지 않음',
-  );
-  assert.equal(
-    smokeSource.includes('hud-objective-chip'),
-    true,
-    'combat pressure smoke가 objective chip을 확인하지 않음',
-  );
-  assert.equal(
-    smokeSource.includes('hud-boss-chip'),
-    true,
-    'combat pressure smoke가 boss chip을 확인하지 않음',
-  );
-  assert.equal(
-    smokeSource.includes('hud-stage-chip'),
-    true,
-    'combat pressure smoke가 stage chip을 확인하지 않음',
-  );
-  assert.equal(
-    smokeSource.includes('hud-guidance-note'),
-    true,
-    'combat pressure smoke가 contextual guidance note를 확인하지 않음',
+    'combat pressure smoke가 guidance HUD 제거 여부를 검증하지 않음',
   );
   assert.equal(
     smokeSource.includes('boss-hud'),
@@ -110,6 +90,19 @@ test('combat pressure smoke는 HUD guidance surface를 검증한다', () => {
     smokeSource.includes('openBossReadabilityOverlay'),
     true,
     'boss readability smoke가 debug host boss helper를 사용하지 않음',
+  );
+});
+
+test('pause overlay smoke는 제거된 overview 카드가 다시 나타나지 않는지 검증한다', () => {
+  assert.equal(
+    smokeSource.includes('overviewRemoved'),
+    true,
+    'pause overlay smoke가 overview 제거 여부를 검증하지 않음',
+  );
+  assert.equal(
+    smokeSource.includes('pv-loadout-overview'),
+    true,
+    'pause overlay smoke가 overview DOM 부재를 확인하지 않음',
   );
 });
 

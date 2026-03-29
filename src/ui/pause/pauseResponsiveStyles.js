@@ -1,5 +1,7 @@
 export const PAUSE_RESPONSIVE_CSS = `
-  @media (max-width: 780px) { .pv-loadout-panel { grid-template-columns: 1fr; } }
+  @media (max-width: 780px) {
+    .pv-loadout-panel { grid-template-columns: 1fr; }
+  }
   @media (max-width: 540px) {
     .pv-stats-grid { grid-template-columns: 1fr 1fr; }
     .pv-sound-toggles { grid-template-columns: 1fr; }

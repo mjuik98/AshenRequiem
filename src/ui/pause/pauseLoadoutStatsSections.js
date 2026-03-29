@@ -1,13 +1,17 @@
 import { buildAccessoryCurrentDesc } from '../../data/accessoryDataHelpers.js';
 import {
   escapeHtml,
-  formatCompactNumber,
   formatSeconds,
+  getBehaviorLabel,
   getItemDefinition,
   getKindLabel,
+  matchesSlotCategory,
   getRelatedItems,
   getSlotIcon,
   getStatusLabel,
+  hasSynergyActive,
+  isEvolutionReady,
+  toArray,
 } from './pauseLoadoutModel.js';
 
 function hasLevelProgress(selectedItem) {
@@ -76,6 +80,106 @@ function renderWeaponStatRow(label, value, fillWidth, color) {
       <div class="pv-stat-bar-track"><div class="pv-stat-bar-fill" style="width:${fillWidth}%;background:${color}"></div></div>
       <span class="pv-stat-bar-val">${escapeHtml(String(value))}</span>
     </div>
+  `;
+}
+
+function findWeaponEvolutionRecipe(selectedItem, data) {
+  if (selectedItem?.kind !== 'weapon') return null;
+  return toArray(data?.weaponEvolutionData)
+    .find((candidate) => candidate?.requires?.weaponId === selectedItem.id) ?? null;
+}
+
+function findAccessoryEvolutionRecipes(selectedItem, data) {
+  if (selectedItem?.kind !== 'accessory') return [];
+  return toArray(data?.weaponEvolutionData)
+    .filter((candidate) => toArray(candidate?.requires?.accessoryIds).includes(selectedItem.id));
+}
+
+function resolveEvolutionResultLabel(recipe, indexes) {
+  if (!recipe) return null;
+  return indexes?.weaponById?.get(recipe?.resultWeaponId)?.name
+    ?? recipe?.resultWeaponId
+    ?? null;
+}
+
+function buildDetailTags(selectedItem, player, data, indexes) {
+  const tags = [];
+  if (selectedItem?.kind === 'weapon' && selectedItem?.source?.behaviorId) {
+    tags.push({ label: getBehaviorLabel(selectedItem.source.behaviorId), tone: 'type' });
+  }
+  if (selectedItem?.kind === 'accessory') {
+    tags.push({ label: '장신구', tone: 'type' });
+  }
+  if (selectedItem?.rarity === 'rare' || selectedItem?.source?.rarity === 'rare') {
+    tags.push({ label: '희귀', tone: 'rare' });
+  }
+  if (hasSynergyActive(selectedItem, player, indexes)) {
+    tags.push({ label: '시너지 활성', tone: 'synergy' });
+  }
+  if (isEvolutionReady(selectedItem, player, data)) {
+    tags.push({ label: '진화 준비', tone: 'evolution' });
+  }
+  if (selectedItem?.kind === 'empty') {
+    tags.push({ label: '빈 슬롯', tone: 'muted' });
+  }
+  return tags;
+}
+
+function renderDetailTags(selectedItem, player, data, indexes) {
+  const tags = buildDetailTags(selectedItem, player, data, indexes);
+  if (tags.length === 0) return '';
+
+  return `
+    <div class="pv-loadout-detail-tags">
+      ${tags.map(({ label, tone }) => `<span class="pv-loadout-detail-tag is-${tone}">${escapeHtml(label)}</span>`).join('')}
+    </div>
+  `;
+}
+
+export function renderPauseGuidanceBlock(selectedItem, player, data, indexes) {
+  let body = '연결 장비와 레벨 진행을 확인해 다음 파워 스파이크를 준비하세요.';
+
+  if (selectedItem?.kind === 'empty') {
+    body = matchesSlotCategory(selectedItem, 'weapon')
+      ? '다음 레벨업에서 새 무기를 채우면 시너지와 진화 경로가 크게 늘어납니다.'
+      : '다음 레벨업에서 장신구를 확보하면 기존 무기의 시너지와 진화를 바로 열 수 있습니다.';
+  } else if (selectedItem?.kind === 'weapon') {
+    const recipe = findWeaponEvolutionRecipe(selectedItem, data);
+    const resultLabel = resolveEvolutionResultLabel(recipe, indexes);
+    if (isEvolutionReady(selectedItem, player, data)) {
+      body = `${resultLabel ?? '진화 결과'} 준비 완료. 상자 획득 타이밍에 맞춰 즉시 파워 스파이크를 노리세요.`;
+    } else if (hasSynergyActive(selectedItem, player, indexes)) {
+      const synergy = (indexes?.synergiesByWeaponId?.get(selectedItem.id) ?? [])
+        .find((entry) => (player?.activeSynergies ?? []).includes(entry?.id));
+      body = `${synergy?.name ?? '활성 시너지'}가 켜져 있습니다. 연결 장비를 유지하면서 레벨을 밀어 다음 진화를 준비하세요.`;
+    } else {
+      const relatedItems = getRelatedItems(selectedItem, player, data, indexes);
+      const equippedRelatedCount = relatedItems.filter((item) => item.equipped).length;
+      if (relatedItems.length > 0) {
+        body = `연결 아이템 ${equippedRelatedCount}/${relatedItems.length}개 확보. 남은 조합을 맞추면 화력 상승 폭이 커집니다.`;
+      }
+    }
+  } else if (selectedItem?.kind === 'accessory') {
+    const matchedRecipes = findAccessoryEvolutionRecipes(selectedItem, data);
+    if (hasSynergyActive(selectedItem, player, indexes)) {
+      const synergy = (indexes?.synergiesByAccessoryId?.get(selectedItem.id) ?? [])
+        .find((entry) => (player?.activeSynergies ?? []).includes(entry?.id));
+      body = `${synergy?.name ?? '활성 시너지'} 유지 중. 연결 무기를 강화해 보조 효과를 전투력으로 바꾸세요.`;
+    } else if (matchedRecipes.length > 0) {
+      const weaponName = indexes?.weaponById?.get(matchedRecipes[0]?.requires?.weaponId)?.name
+        ?? matchedRecipes[0]?.requires?.weaponId
+        ?? '연결 무기';
+      body = `${weaponName}과 함께 진화 경로를 가집니다. 연결 무기를 먼저 확보하거나 유지하는 것이 효율적입니다.`;
+    } else if (selectedItem?.rarity === 'rare' || selectedItem?.source?.rarity === 'rare') {
+      body = '희귀 장신구입니다. 무기와 연결되면 즉시 체감되는 보정으로 이어질 가능성이 큽니다.';
+    }
+  }
+
+  return `
+    <section class="pv-loadout-guidance variant-guidance">
+      <h4 class="pv-loadout-section-title">다음 파워 스파이크</h4>
+      <div class="pv-loadout-guidance-copy">${escapeHtml(body)}</div>
+    </section>
   `;
 }
 
@@ -183,6 +287,7 @@ export function renderPauseLoadoutDetailHeader(selectedItem, player, data, index
             <div class="pv-loadout-detail-kind">${escapeHtml(kindLabel)}</div>
             <h3 class="pv-loadout-detail-name">${escapeHtml(title)}</h3>
             <div class="pv-loadout-detail-summary">${escapeHtml(summary || '선택된 항목 정보')}</div>
+            ${renderDetailTags(selectedItem, player, data, indexes)}
           </div>
         </div>
       </div>

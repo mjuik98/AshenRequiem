@@ -5,6 +5,7 @@ import {
   getSlotIcon,
   hasSynergyActive,
   isEvolutionReady,
+  matchesSlotCategory,
 } from './pauseLoadoutModel.js';
 
 function renderLevelDots(level, maxLevel) {
@@ -18,6 +19,23 @@ function renderLevelDots(level, maxLevel) {
   }
   html += '</div>';
   return html;
+}
+
+function truncateCardSummary(summary, maxLength = 72) {
+  if (!summary) return '';
+  const normalized = String(summary).replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function getCardSummary(item) {
+  if (item?.kind === 'weapon' || item?.kind === 'accessory') {
+    return truncateCardSummary(item?.description || item?.source?.description || '');
+  }
+  if (matchesSlotCategory(item, 'weapon')) return '다음 레벨업에서 새 무기를 채울 수 있습니다.';
+  if (matchesSlotCategory(item, 'accessory')) return '다음 레벨업에서 새 장신구를 채울 수 있습니다.';
+  if (item?.kind === 'locked') return '상점 해금 이후 이 슬롯을 사용할 수 있습니다.';
+  return '선택한 항목의 세부 정보를 확인할 수 있습니다.';
 }
 
 function renderSectionHeader(label, icon, count, maxCount) {
@@ -64,6 +82,7 @@ export function renderPauseSlotCard(item, selectedItemKey, player, data, indexes
     : item?.kind === 'accessory'
       ? (item?.rarity === 'rare' ? 'rare-acc' : 'acc')
       : '';
+  const summary = getCardSummary(item);
 
   return `
     <button
@@ -81,6 +100,7 @@ export function renderPauseSlotCard(item, selectedItemKey, player, data, indexes
       <div class="pv-slot-body">
         <div class="pv-slot-name">${escapeHtml(item?.name ?? getKindLabel(item?.kind))}</div>
         <div class="pv-slot-sub">${typePill}${levelText}</div>
+        <div class="pv-slot-desc">${escapeHtml(summary)}</div>
       </div>
       ${rightHtml}
     </button>

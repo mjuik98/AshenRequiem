@@ -4,6 +4,7 @@ import {
   formatCompactNumber,
   formatSeconds,
   getKindLabel,
+  matchesSlotCategory,
   toArray,
 } from './pauseLoadoutFormatting.js';
 import {
@@ -35,6 +36,7 @@ export {
   formatSeconds,
   getBehaviorLabel,
   getKindLabel,
+  matchesSlotCategory,
   getRelatedItems,
   getDefaultPauseSelection,
   getItemDefinition,

@@ -72,7 +72,6 @@ export function renderPauseTabPanels({
 export function renderPauseHeader({
   timeStr,
   killStr,
-  level,
   hp,
   maxHp,
   hpPct,
@@ -92,8 +91,6 @@ export function renderPauseHeader({
         <div class="pv-run-stat"><span class="pv-run-val">${escapeHtml(timeStr)}</span><span class="pv-run-key">생존</span></div>
         <div class="pv-run-div"></div>
         <div class="pv-run-stat"><span class="pv-run-val">${escapeHtml(String(killStr))}</span><span class="pv-run-key">킬</span></div>
-        <div class="pv-run-div"></div>
-        <div class="pv-run-stat"><span class="pv-run-val">Lv.${level}</span><span class="pv-run-key">레벨</span></div>
       </div>
     </header>
 

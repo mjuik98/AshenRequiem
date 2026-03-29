@@ -38,6 +38,13 @@ export function getKindLabel(kind) {
   }
 }
 
+export function matchesSlotCategory(item, slotCategory) {
+  if (!item || !slotCategory) return false;
+  return item.slotCategory === slotCategory
+    || (item.kind === slotCategory)
+    || (item.kind === 'empty' && item.name?.includes(slotCategory === 'weapon' ? '무기' : '장신구'));
+}
+
 export function normalizePauseSynergyRequirementId(requirement) {
   if (typeof requirement !== 'string') return null;
   if (requirement.startsWith('up_')) return requirement.slice(3);

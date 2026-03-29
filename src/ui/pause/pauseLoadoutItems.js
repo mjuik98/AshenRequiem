@@ -7,6 +7,7 @@ function buildEquippedItem(kind, entity, slotIndex) {
   const name = entity?.name ?? entity?.id ?? getKindLabel(kind);
   return {
     kind,
+    slotCategory: kind,
     id: entity?.id ?? null,
     selectionKey: `${kind}:${slotIndex}`,
     name,
@@ -24,6 +25,7 @@ function buildEquippedItem(kind, entity, slotIndex) {
 function buildPlaceholderItem(kind, label, slotIndex, extra = {}) {
   return {
     kind,
+    slotCategory: extra.slotCategory ?? null,
     id: null,
     selectionKey: `${kind}:${slotIndex}`,
     name: label,
@@ -41,7 +43,10 @@ function buildWeaponItems(player) {
   const items = weapons.map((weapon, index) => buildEquippedItem('weapon', weapon, index));
 
   for (let index = weapons.length; index < maxWeaponSlots; index += 1) {
-    items.push(buildPlaceholderItem('empty', '빈 무기 슬롯', index, { description: '비어 있는 무기 슬롯입니다.' }));
+    items.push(buildPlaceholderItem('empty', '빈 무기 슬롯', index, {
+      slotCategory: 'weapon',
+      description: '비어 있는 무기 슬롯입니다.',
+    }));
   }
 
   return items;
@@ -53,7 +58,10 @@ function buildAccessoryItems(player) {
   const items = accessories.map((accessory, index) => buildEquippedItem('accessory', accessory, index));
 
   for (let index = accessories.length; index < maxAccessorySlots; index += 1) {
-    items.push(buildPlaceholderItem('empty', '빈 장신구 슬롯', index, { description: '비어 있는 장신구 슬롯입니다.' }));
+    items.push(buildPlaceholderItem('empty', '빈 장신구 슬롯', index, {
+      slotCategory: 'accessory',
+      description: '비어 있는 장신구 슬롯입니다.',
+    }));
   }
 
   return items;

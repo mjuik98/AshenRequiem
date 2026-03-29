@@ -2,6 +2,7 @@ import {
   buildPauseLoadoutItems,
   findSelectedItem,
   getDefaultPauseSelection,
+  matchesSlotCategory,
 } from './pauseLoadoutModel.js';
 import { renderPauseLoadoutGrid } from './pauseLoadoutCards.js';
 import { renderPauseLoadoutDetail } from './pauseLoadoutDetailSections.js';
@@ -21,8 +22,8 @@ export function renderPauseLoadoutPanel({
   const selectedItem = findSelectedItem(loadoutItems, selectedItemKey)
     ?? getDefaultPauseSelection({ player });
   const selectedKey = selectedItem?.selectionKey ?? null;
-  const weaponItems = loadoutItems.filter((item) => item.kind === 'weapon' || (item.kind === 'empty' && item.name?.includes('무기')));
-  const accessoryItems = loadoutItems.filter((item) => item.kind === 'accessory' || (item.kind === 'empty' && item.name?.includes('장신구')));
+  const weaponItems = loadoutItems.filter((item) => matchesSlotCategory(item, 'weapon'));
+  const accessoryItems = loadoutItems.filter((item) => matchesSlotCategory(item, 'accessory'));
   const weaponCount = weaponItems.filter((item) => item.kind === 'weapon').length;
   const accessoryCount = accessoryItems.filter((item) => item.kind === 'accessory').length;
   const maxWeaponSlots = Math.max(0, player?.maxWeaponSlots ?? 3);

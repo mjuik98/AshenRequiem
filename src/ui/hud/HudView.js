@@ -33,14 +33,6 @@ export class HudView {
           </div>
         </div>
       </div>
-      <div class="hud-guidance-row">
-        <span class="hud-threat-chip">위협: 안정</span>
-        <span class="hud-boss-chip">보스: --</span>
-        <span class="hud-stage-chip">스테이지: --</span>
-        <span class="hud-modifier-chip">변조: --</span>
-        <span class="hud-objective-chip">목표: --</span>
-      </div>
-      <div class="hud-guidance-note"></div>
       <!-- FIX(4): 상자 대기 카운터 -->
       <div class="hud-chest-queue" id="hud-chest-queue">
         <span class="hud-chest-icon">📦</span>
@@ -53,12 +45,6 @@ export class HudView {
     this._elGold       = this.el.querySelector('.hud-gold');
     this._elCurse      = this.el.querySelector('.hud-curse');
     this._elXpBar      = this.el.querySelector('.hud-xp-bar');
-    this._elThreatChip = this.el.querySelector('.hud-threat-chip');
-    this._elBossChip   = this.el.querySelector('.hud-boss-chip');
-    this._elStageChip  = this.el.querySelector('.hud-stage-chip');
-    this._elModifierChip = this.el.querySelector('.hud-modifier-chip');
-    this._elObjectiveChip = this.el.querySelector('.hud-objective-chip');
-    this._elGuidanceNote = this.el.querySelector('.hud-guidance-note');
     this._elChestQueue = this.el.querySelector('#hud-chest-queue');
     this._elChestCount = this.el.querySelector('#hud-chest-count');
     this._elChestQueue.style.display = 'none';
@@ -82,28 +68,6 @@ export class HudView {
     this._elGold.textContent   = `골드: ${(world.run.runCurrencyEarned ?? 0).toLocaleString()}`;
     this._elCurse.textContent  = `저주: ${Math.round((player.curse ?? 0) * 100)}%`;
     this._elXpBar.style.width  = `${xpPct}%`;
-    const encounterState = world.run.encounterState ?? {};
-    const guidance = world.run.guidance ?? {};
-    const currentBeat = encounterState.currentBeat ?? {};
-    const bossEta = encounterState.nextBossStartsIn;
-    const objective = guidance.primaryObjective ?? null;
-    const stageDirective = guidance.stageDirective ?? null;
-    const stageModifier = guidance.stageModifier ?? null;
-    const threatLevel = currentBeat.intensity ?? 'steady';
-    const bossImminent = Number.isFinite(bossEta) && bossEta <= 45;
-    const guidanceNote = currentBeat.summaryText
-      || objective?.progressText
-      || stageDirective?.detail
-      || '';
-    this._elThreatChip.textContent = `위협: ${currentBeat.label ?? '안정'}`;
-    this._elThreatChip.dataset.level = threatLevel;
-    this._elBossChip.textContent = `보스: ${Number.isFinite(bossEta) ? `${bossEta}s` : '대기'}`;
-    this._elBossChip.dataset.state = bossImminent ? 'imminent' : 'idle';
-    this._elStageChip.textContent = `스테이지: ${stageDirective?.title ?? world.run.stage?.name ?? '--'}`;
-    this._elModifierChip.textContent = `변조: ${stageModifier?.title ?? '--'}`;
-    this._elObjectiveChip.textContent = `목표: ${objective?.title ?? '--'}`;
-    this._elGuidanceNote.textContent = guidanceNote;
-    this._elGuidanceNote.style.display = guidanceNote ? 'block' : 'none';
 
     // FIX(4): 상자 대기 카운터 업데이트
     const queueCount = world.progression.chestRewardQueue ?? 0;
@@ -142,12 +106,6 @@ export class HudView {
       .hud-top {
         padding-top: 8px;
       }
-      .hud-guidance-row {
-        display: flex;
-        gap: 8px;
-        padding: 2px 12px 0;
-        flex-wrap: wrap;
-      }
       .hud-stats {
         display: flex; justify-content: space-between; align-items: flex-start;
         font-size: 13px; color: #eee; font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
@@ -159,11 +117,7 @@ export class HudView {
         max-width: 420px;
       }
       .hud-level,
-      .hud-right-stats span,
-      .hud-threat-chip,
-      .hud-boss-chip,
-      .hud-stage-chip,
-      .hud-objective-chip {
+      .hud-right-stats span {
         display: inline-flex;
         align-items: center;
         min-height: 28px;
@@ -175,34 +129,8 @@ export class HudView {
       .hud-level { border-color: rgba(212,175,106,0.22); }
       .hud-gold { color: #ffd54f; }
       .hud-curse { color: #ef9a9a; }
-      .hud-threat-chip { border-color: rgba(255,183,77,0.3); }
-      .hud-boss-chip { border-color: rgba(255,82,82,0.28); }
-      .hud-stage-chip { border-color: rgba(129,199,255,0.28); }
-      .hud-modifier-chip { border-color: rgba(255,224,130,0.28); }
-      .hud-objective-chip { border-color: rgba(129,199,132,0.28); }
-      .hud-guidance-note {
-        display: none;
-        padding: 6px 14px 0;
-        font-size: 12px;
-        color: rgba(244, 237, 224, 0.82);
-        text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-      }
-      .hud-threat-chip[data-level="pressure"],
-      .hud-threat-chip[data-level="crisis"],
-      .hud-threat-chip[data-level="boss_setup"] {
-        border-color: rgba(255,183,77,0.52);
-      }
-      .hud-boss-chip[data-state="imminent"] {
-        border-color: rgba(255,82,82,0.56);
-        box-shadow: 0 0 18px rgba(255,82,82,0.18);
-      }
       .ash-access-high-visibility .hud-level,
-      .ash-access-high-visibility .hud-right-stats span,
-      .ash-access-high-visibility .hud-threat-chip,
-      .ash-access-high-visibility .hud-boss-chip,
-      .ash-access-high-visibility .hud-stage-chip,
-      .ash-access-high-visibility .hud-modifier-chip,
-      .ash-access-high-visibility .hud-objective-chip {
+      .ash-access-high-visibility .hud-right-stats span {
         background: rgba(3, 7, 12, 0.92);
         border-color: rgba(255,255,255,0.22);
         color: #ffffff;
@@ -211,17 +139,9 @@ export class HudView {
       .ash-access-high-visibility .hud-curse { color: #ffb4b4; }
       .ash-access-large-text .hud-stats { font-size: 15px; }
       .ash-access-large-text .hud-level,
-      .ash-access-large-text .hud-right-stats span,
-      .ash-access-large-text .hud-threat-chip,
-      .ash-access-large-text .hud-boss-chip,
-      .ash-access-large-text .hud-stage-chip,
-      .ash-access-large-text .hud-modifier-chip,
-      .ash-access-large-text .hud-objective-chip {
+      .ash-access-large-text .hud-right-stats span {
         min-height: 32px;
         padding: 0 12px;
-      }
-      .ash-access-large-text .hud-guidance-note {
-        font-size: 13px;
       }
 
       /* FIX(4): 상자 대기 카운터 */
