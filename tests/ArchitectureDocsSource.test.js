@@ -17,6 +17,10 @@ const architectureSource = readProjectSource('../docs/architecture-current.md');
 const maintenanceScriptsSource = readOptionalProjectSource('../docs/maintenance-scripts.md');
 const packageJson = readProjectJson('../package.json');
 
+function normalizeLineEndings(source) {
+  return source.replace(/\r\n/g, '\n');
+}
+
 test('architecture snapshot tooling exposes generated docs sections and an npm script', async () => {
   const snapshotModule = await import('../scripts/architectureSnapshot.mjs');
   const wrapperModule = await import('../scripts/compatibilityWrappers.mjs');
@@ -33,10 +37,11 @@ test('current architecture doc includes the generated scene, pipeline, and verif
   const snapshotModule = await import('../scripts/architectureSnapshot.mjs');
   const snapshot = await snapshotModule.getArchitectureSnapshot();
   const sections = snapshotModule.renderArchitectureSnapshotSections(snapshot);
+  const normalizedArchitectureSource = normalizeLineEndings(architectureSource);
 
-  assert.equal(architectureSource.includes(sections.sceneSection), true, 'architecture-current 문서의 scene section이 생성 스냅샷과 다름');
-  assert.equal(architectureSource.includes(sections.pipelineSection), true, 'architecture-current 문서의 pipeline section이 생성 스냅샷과 다름');
-  assert.equal(architectureSource.includes(sections.verifySection), true, 'architecture-current 문서의 verify section이 생성 스냅샷과 다름');
+  assert.equal(normalizedArchitectureSource.includes(normalizeLineEndings(sections.sceneSection)), true, 'architecture-current 문서의 scene section이 생성 스냅샷과 다름');
+  assert.equal(normalizedArchitectureSource.includes(normalizeLineEndings(sections.pipelineSection)), true, 'architecture-current 문서의 pipeline section이 생성 스냅샷과 다름');
+  assert.equal(normalizedArchitectureSource.includes(normalizeLineEndings(sections.verifySection)), true, 'architecture-current 문서의 verify section이 생성 스냅샷과 다름');
 });
 
 test('README links the snapshot workflow and keeps verify command terminology aligned', () => {

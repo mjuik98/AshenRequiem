@@ -13,17 +13,21 @@ function readSource(filePath) {
   return readFileSync(filePath, 'utf8');
 }
 
+function normalizeLineEndings(source) {
+  return source.replace(/\r\n/g, '\n');
+}
+
 export async function collectArchitectureDocViolations(rootDir = ROOT_DIR) {
-  const architectureSource = readSource(path.join(rootDir, 'docs', 'architecture-current.md'));
-  const wrapperSource = readSource(path.join(rootDir, 'docs', 'compatibility-wrappers.md'));
-  const readmeSource = readSource(path.join(rootDir, 'README.md'));
+  const architectureSource = normalizeLineEndings(readSource(path.join(rootDir, 'docs', 'architecture-current.md')));
+  const wrapperSource = normalizeLineEndings(readSource(path.join(rootDir, 'docs', 'compatibility-wrappers.md')));
+  const readmeSource = normalizeLineEndings(readSource(path.join(rootDir, 'README.md')));
   const snapshot = await getArchitectureSnapshot(rootDir);
   const sections = renderArchitectureSnapshotSections(snapshot);
   const wrapperSections = renderWrapperInventorySections();
   const violations = [];
 
   for (const [label, section] of Object.entries(sections)) {
-    if (!architectureSource.includes(section)) {
+    if (!architectureSource.includes(normalizeLineEndings(section))) {
       violations.push({
         rule: 'architecture-snapshot',
         message: `architecture-current is missing generated ${label}`,
@@ -41,7 +45,7 @@ export async function collectArchitectureDocViolations(rootDir = ROOT_DIR) {
   }
 
   for (const [label, section] of Object.entries(wrapperSections)) {
-    if (!wrapperSource.includes(section)) {
+    if (!wrapperSource.includes(normalizeLineEndings(section))) {
       violations.push({
         rule: 'wrapper-snapshot',
         message: `compatibility wrapper inventory is missing generated ${label}`,
