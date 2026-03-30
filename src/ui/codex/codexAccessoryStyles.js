@@ -63,10 +63,31 @@ export const CODEX_ACCESSORY_TAB_CSS = `
     color: rgba(244,237,224,0.38); margin-bottom: 8px;
   }
   .cx-detail-copyline { font-size: 12px; line-height: 1.6; color: rgba(244,237,224,0.84); }
-  .cx-detail-lines { display: flex; flex-direction: column; gap: 7px; }
-  .cx-detail-line {
-    padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,0.04);
-    color: rgba(244,237,224,0.8); font-size: 11px; line-height: 1.5;
+  .cx-detail-level-groups { display: flex; flex-direction: column; gap: 10px; }
+  .cx-level-group {
+    padding: 10px 12px; border-radius: 11px;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+  }
+  .cx-level-group-label {
+    margin-bottom: 8px; font-size: 11px; font-weight: 700;
+    color: rgba(244,237,224,0.88);
+  }
+  .cx-level-track {
+    display: flex; flex-wrap: wrap; gap: 7px;
+  }
+  .cx-level-chip {
+    display: flex; flex-direction: column; gap: 3px;
+    min-width: 68px; padding: 7px 9px; border-radius: 9px;
+    border: 0.5px solid rgba(126,205,232,0.16);
+    background: linear-gradient(180deg, rgba(126,205,232,0.08), rgba(126,205,232,0.03));
+  }
+  .cx-level-chip-kicker {
+    font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: rgba(191,229,240,0.7);
+  }
+  .cx-level-chip-value {
+    font-size: 11px; line-height: 1.4; color: rgba(244,237,224,0.86);
   }
   .cx-discovery-hint {
     padding: 10px 12px; border-radius: 10px; background: rgba(126,205,232,0.08);

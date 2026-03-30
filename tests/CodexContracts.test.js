@@ -92,7 +92,18 @@ test('Codex accessory runtime는 검색/필터 state와 상세 패널 구조를 
   const html = renderCodexAccessoryTab({
     accessoryData: [
       { id: 'iron_heart', name: 'Iron Heart', icon: '❤', rarity: 'common', description: '최대 HP +20', maxLevel: 5 },
-      { id: 'arcane_prism', name: 'Arcane Prism', icon: '🔮', rarity: 'rare', description: '추가 투사체', maxLevel: 5 },
+      {
+        id: 'arcane_prism',
+        name: 'Arcane Prism',
+        icon: '🔮',
+        rarity: 'rare',
+        description: '추가 투사체',
+        maxLevel: 5,
+        effects: [
+          { stat: 'bonusProjectileCount', value: 1, valuePerLevel: 1 },
+          { stat: 'projectileSpeedMult', value: 0.08, valuePerLevel: 0.08 },
+        ],
+      },
     ],
     weaponEvolutionData: [{ resultWeaponId: 'helios_lance', requires: { weaponId: 'solar_ray', accessoryIds: ['arcane_prism'] } }],
     weaponData: [{ id: 'solar_ray', name: 'Solar Ray', icon: '☀' }, { id: 'helios_lance', name: 'Helios Lance', icon: '✹' }],
@@ -122,6 +133,10 @@ test('Codex accessory runtime는 검색/필터 state와 상세 패널 구조를 
   assert.equal(html.includes('data-afilter="rare"'), true, '장신구 rarity filter 버튼이 없음');
   assert.equal(html.includes('data-efilter="utility"'), true, '장신구 effect filter 버튼이 없음');
   assert.equal(html.includes('data-status-filter="locked"'), true, '장신구 status filter 버튼이 없음');
+  assert.equal(html.includes('cx-level-group'), true, '장신구 상세 패널에 레벨 효과 그룹 마크업이 없음');
+  assert.equal(html.includes('cx-level-chip'), true, '장신구 상세 패널에 레벨 효과 칩 마크업이 없음');
+  assert.equal(html.includes('추가 투사체'), true, '장신구 상세 패널이 효과별 레벨 그룹 제목을 보여주지 않음');
+  assert.equal(html.includes('Lv5'), true, '장신구 상세 패널이 개별 레벨 라벨을 노출하지 않음');
 
   resetCodexViewState(state);
   assert.equal(state.activeTab, 'enemy', 'Codex state reset이 기본 탭을 복원하지 않음');

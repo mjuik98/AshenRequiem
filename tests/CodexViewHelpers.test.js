@@ -188,7 +188,18 @@ await test('codex accessory helper derives filterable grid/detail models and dis
 
   const accessoryData = [
     { id: 'iron_heart', name: 'Iron Heart', icon: '❤', rarity: 'common', description: '최대 HP +20', maxLevel: 5 },
-    { id: 'arcane_prism', name: 'Arcane Prism', icon: '🔮', rarity: 'rare', description: '추가 투사체', maxLevel: 5 },
+    {
+      id: 'arcane_prism',
+      name: 'Arcane Prism',
+      icon: '🔮',
+      rarity: 'rare',
+      description: '추가 투사체',
+      maxLevel: 5,
+      effects: [
+        { stat: 'bonusProjectileCount', value: 1, valuePerLevel: 1 },
+        { stat: 'projectileSpeedMult', value: 0.08, valuePerLevel: 0.08 },
+      ],
+    },
   ];
   const session = {
     meta: {
@@ -247,6 +258,14 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(detail.name, 'Arcane Prism');
   assert.equal(detail.linkedWeapons.length, 1);
   assert.equal(detail.unlocked, true);
+  assert.equal(Array.isArray(detail.levelGroups), true, '장신구 detail model이 구조화된 레벨 효과 그룹을 제공하지 않음');
+  assert.equal(detail.levelGroups.length, 2, '장신구 detail model이 효과별 레벨 그룹 수를 유지하지 않음');
+  assert.equal(detail.levelGroups[0].label, '추가 투사체', '첫 번째 레벨 효과 그룹 라벨이 잘못됨');
+  assert.deepEqual(
+    detail.levelGroups[0].levels.map((entry) => entry.label),
+    ['Lv1', 'Lv2', 'Lv3', 'Lv4', 'Lv5'],
+    '레벨 효과 그룹이 레벨 라벨을 순서대로 제공하지 않음',
+  );
 
   const lockedDetail = accessoryModel.buildCodexAccessoryDetailModel({
     accessoryData,
@@ -281,9 +300,14 @@ await test('codex accessory helper derives filterable grid/detail models and dis
   assert.equal(html.includes('선택한 장신구'), true);
   assert.equal(html.includes('cx-detail-layout'), true);
   assert.equal(html.includes('발견한 장신구'), true);
+  assert.equal(html.includes('cx-level-group'), true, '장신구 상세가 구조화된 레벨 효과 그룹 마크업을 렌더하지 않음');
+  assert.equal(html.includes('cx-level-chip'), true, '장신구 상세가 레벨 효과 칩 마크업을 렌더하지 않음');
+  assert.equal(html.includes('Lv1'), true, '장신구 상세에 개별 레벨 라벨이 없음');
+  assert.equal(html.includes('추가 투사체'), true, '장신구 상세에 효과별 레벨 그룹 제목이 없음');
   assert.equal(typeof accessoryTab.buildCodexAccessoryGridModel, 'function');
   assert.equal(typeof accessoryTab.renderCodexAccessoryTab, 'function');
   assert.equal(accessoryStyles.CODEX_ACCESSORY_TAB_CSS.includes('.cx-accessory-grid'), true);
+  assert.equal(accessoryStyles.CODEX_ACCESSORY_TAB_CSS.includes('.cx-level-group'), true, '장신구 스타일에 레벨 효과 그룹 훅이 없음');
 });
 
 await test('codex enemy detail render exposes a clear selected-detail heading', async () => {

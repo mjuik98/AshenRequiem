@@ -1,6 +1,6 @@
 import {
   buildAccessoryCurrentDesc,
-  buildAccessoryLevelDesc,
+  buildAccessoryLevelTimeline,
 } from '../../data/accessoryDataHelpers.js';
 import { isCodexAccessoryUnlocked } from './codexRecords.js';
 
@@ -182,7 +182,7 @@ export function buildCodexAccessoryDetailModel({
   return {
     ...card,
     displayName: card.unlocked ? accessory.name : '???',
-    levelLines: card.unlocked ? buildAccessoryLevelDesc(accessory) : [],
+    levelGroups: card.unlocked ? buildAccessoryLevelTimeline(accessory) : [],
     linkedWeapons: buildLinkedWeapons(accessory, weaponEvolutionData, weaponData),
     discoveryHint: createDiscoveryHint(card.unlocked, card.isCatalyst),
     description: card.unlocked

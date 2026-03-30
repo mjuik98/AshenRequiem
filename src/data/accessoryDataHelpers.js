@@ -53,19 +53,41 @@ function getAccessoryEffectValueAtLevel(effect, level) {
   return effect.value + perLevel * (level - 1);
 }
 
-export function buildAccessoryLevelDesc(accessoryDefinition) {
-  if (!accessoryDefinition?.effects?.length) return [accessoryDefinition?.description ?? ''];
+export function buildAccessoryLevelTimeline(accessoryDefinition) {
+  if (!accessoryDefinition?.effects?.length) {
+    return [{
+      stat: 'description',
+      label: '효과',
+      levels: [{
+        level: 1,
+        label: '기본',
+        valueText: accessoryDefinition?.description ?? '',
+      }],
+    }];
+  }
 
   const maxLevel = accessoryDefinition.maxLevel ?? 5;
   return accessoryDefinition.effects.map((effect) => {
     const label = STAT_LABELS[effect.stat] ?? effect.stat;
-    const parts = [];
-    for (let level = 1; level <= maxLevel; level += 1) {
-      const value = getAccessoryEffectValueAtLevel(effect, level);
-      parts.push(`Lv${level} ${formatAccessoryStatValue(effect.stat, value)}`);
-    }
-    return `${label}  ${parts.join(' → ')}`;
+    return {
+      stat: effect.stat,
+      label,
+      levels: Array.from({ length: maxLevel }, (_, index) => {
+        const level = index + 1;
+        const value = getAccessoryEffectValueAtLevel(effect, level);
+        return {
+          level,
+          label: `Lv${level}`,
+          valueText: formatAccessoryStatValue(effect.stat, value),
+        };
+      }),
+    };
   });
+}
+
+export function buildAccessoryLevelDesc(accessoryDefinition) {
+  return buildAccessoryLevelTimeline(accessoryDefinition)
+    .map((group) => `${group.label}  ${group.levels.map((entry) => `${entry.label} ${entry.valueText}`).join(' → ')}`);
 }
 
 export function buildAccessoryPickupDesc(accessoryDefinition) {

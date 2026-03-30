@@ -11,6 +11,15 @@ function escapeAttribute(value) {
     .replaceAll('>', '&gt;');
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function renderAccessoryFilters(search, rarityFilter, effectFilter, statusFilter) {
   const rarityFilters = [
     ['all', '전체'],
@@ -102,8 +111,20 @@ function renderAccessoryDetail(detail) {
         </div>
         <div class="cx-detail-block">
           <div class="cx-detail-label">레벨별 효과</div>
-          <div class="cx-detail-lines">
-            ${detail.levelLines.map((line) => `<div class="cx-detail-line">${line}</div>`).join('')}
+          <div class="cx-detail-level-groups">
+            ${detail.levelGroups.map((group) => `
+              <div class="cx-level-group">
+                <div class="cx-level-group-label">${escapeHtml(group.label)}</div>
+                <div class="cx-level-track">
+                  ${group.levels.map((entry) => `
+                    <div class="cx-level-chip">
+                      <span class="cx-level-chip-kicker">${escapeHtml(entry.label)}</span>
+                      <span class="cx-level-chip-value">${escapeHtml(entry.valueText)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
           </div>
         </div>
       ` : ''}
