@@ -52,6 +52,41 @@ test('src 내부 모듈은 compatibility shim 경로 대신 실 소유 모듈을
   });
 });
 
+test('core 계층은 scene/ui/browser adapter 구현에 직접 결합하지 않는다', () => {
+  const rootPath = resolveProjectPath('../src/core');
+  const files = collectFiles(rootPath);
+
+  files.forEach((filePath) => {
+    const source = readFileSync(filePath, 'utf8');
+    const normalizedPath = filePath.replaceAll('\\', '/');
+    const isCompatibilityWrapper =
+      normalizedPath.endsWith('/src/core/Game.js')
+      || normalizedPath.endsWith('/src/core/runtimeHooks.js');
+
+    if (isCompatibilityWrapper) return;
+
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*(?:scenes|ui)\//.test(source), false, `${filePath}가 core에서 scene/ui 계층을 직접 import함`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*adapters\/browser\//.test(source), false, `${filePath}가 core에서 browser adapter를 직접 import함`);
+  });
+});
+
+test('scene 계층은 다른 scene 구현을 정적 import하지 않는다', () => {
+  const rootPath = resolveProjectPath('../src/scenes');
+  const files = collectFiles(rootPath);
+
+  files.forEach((filePath) => {
+    const source = readFileSync(filePath, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const normalizedPath = filePath.replaceAll('\\', '/');
+    if (normalizedPath.endsWith('/src/scenes/sceneLoaders.js')) return;
+
+    assert.equal(
+      /import\s+.+from\s+['"][.\/]+(?:TitleScene|PlayScene|MetaShopScene|SettingsScene|CodexScene)\.js['"]/.test(source),
+      false,
+      `${filePath}가 다른 scene 구현을 정적 import함`,
+    );
+  });
+});
+
 test('zero-caller compatibility shim files are removed from the repo', () => {
   [
     '../src/scenes/play/playerSpawnRuntime.js',

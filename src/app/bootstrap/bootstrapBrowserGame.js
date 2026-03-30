@@ -1,11 +1,17 @@
 import { GameApp } from '../GameApp.js';
 import { createBrowserGameShell } from '../../adapters/browser/BrowserGameShell.js';
+import {
+  registerRuntimeHooks,
+  unregisterRuntimeHooks,
+} from '../../adapters/browser/runtimeHooks.js';
 import { TitleScene } from '../../scenes/TitleScene.js';
 
 export function bootstrapBrowserGame({
   createShellImpl = createBrowserGameShell,
   createAppImpl = (options) => new GameApp({
     createInitialSceneImpl: (game) => new TitleScene(game),
+    registerRuntimeHooksImpl: registerRuntimeHooks,
+    unregisterRuntimeHooksImpl: unregisterRuntimeHooks,
     ...(options ?? {}),
   }),
 } = {}) {

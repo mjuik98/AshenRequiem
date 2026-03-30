@@ -1,13 +1,12 @@
 import { validateGameData } from '../utils/validateGameData.js';
-import { registerRuntimeHooks, unregisterRuntimeHooks } from '../adapters/browser/runtimeHooks.js';
 import { recordReplaySample } from '../core/replayTraceRuntime.js';
 
 export class GameApp {
   constructor({
     createInitialSceneImpl = null,
     validateGameDataImpl = validateGameData,
-    registerRuntimeHooksImpl = registerRuntimeHooks,
-    unregisterRuntimeHooksImpl = unregisterRuntimeHooks,
+    registerRuntimeHooksImpl = () => false,
+    unregisterRuntimeHooksImpl = () => {},
   } = {}) {
     this._createInitialScene = createInitialSceneImpl;
     this._validateGameData = validateGameDataImpl;

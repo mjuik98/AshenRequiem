@@ -433,8 +433,8 @@ await test('UpgradeSystem은 choice/fallback/apply helper 모듈로 분리된다
   let upgradeSystem;
 
   try {
-    upgradeChoicePool = await import('../src/systems/progression/upgradeChoicePool.js');
-    upgradeFallbackChoices = await import('../src/systems/progression/upgradeFallbackChoices.js');
+    upgradeChoicePool = await import('../src/progression/upgradeChoicePool.js');
+    upgradeFallbackChoices = await import('../src/progression/upgradeFallbackChoices.js');
     upgradeApplyRuntime = await import('../src/systems/progression/upgradeApplyRuntime.js');
     upgradeSystem = await import('../src/systems/progression/UpgradeSystem.js');
   } catch (error) {

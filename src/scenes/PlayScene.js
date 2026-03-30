@@ -26,9 +26,7 @@ import {
   loadPlaySceneModule,
   loadTitleSceneModule,
 } from './sceneLoaders.js';
-import {
-  applySessionOptionsToRuntime,
-} from '../state/sessionOptions.js';
+import { applySessionOptionsToRuntime } from '../app/session/sessionRuntimeApplicationService.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
 import { createDocumentAccessibilityRuntime } from '../ui/shared/accessibilityRuntime.js';
 

@@ -1,5 +1,5 @@
-import { MetaShopScene } from './MetaShopScene.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
+import { loadMetaShopSceneModule } from './sceneLoaders.js';
 import {
   bindTitleSceneEvents,
   buildTitleSceneDom,
@@ -51,7 +51,10 @@ export class TitleScene {
 
   _bindEvents() {
     bindTitleSceneEvents(this, {
-      createMetaShopSceneImpl: (game) => new MetaShopScene(game),
+      createMetaShopSceneImpl: async (game) => {
+        const { MetaShopScene } = await loadMetaShopSceneModule();
+        return new MetaShopScene(game);
+      },
     });
   }
 

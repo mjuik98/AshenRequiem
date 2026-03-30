@@ -2,7 +2,7 @@ import {
   getAccessoryDef,
   getNextProgression,
   getWeaponDef,
-} from './upgradeChoicePool.js';
+} from '../../progression/upgradeChoicePool.js';
 export { applyAccessoryEffects } from '../../progression/accessoryEffectRuntime.js';
 import { applyAccessoryEffects } from '../../progression/accessoryEffectRuntime.js';
 

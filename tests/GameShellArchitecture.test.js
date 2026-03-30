@@ -35,6 +35,14 @@ test('Game facade는 thin helper export를 함께 노출한다', async () => {
   assert.equal(typeof gameApi.createGame, 'function', 'Game facade helper export가 없음');
 });
 
+test('browser bootstrap이 runtime hook 등록 책임을 소유한다', () => {
+  const bootstrapSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
+  const gameAppSource = readProjectSource('../src/app/GameApp.js');
+
+  assert.equal(bootstrapSource.includes("from '../../adapters/browser/runtimeHooks.js'"), true, 'browser bootstrap이 runtime hooks를 소유해야 함');
+  assert.equal(gameAppSource.includes("from '../adapters/browser/runtimeHooks.js'"), false, 'GameApp이 runtime hooks 구현을 직접 import하면 안 됨');
+});
+
 test('Game는 shell/app 조합 facade로 축소된다', () => {
   const source = readProjectSource('../src/core/Game.js');
 

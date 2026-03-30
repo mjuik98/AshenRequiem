@@ -7,12 +7,15 @@ const { test, summary } = createRunner('PlayRuntimeBuilder');
 
 let builderApi = null;
 let bootstrapApi = null;
+let composerApi = null;
 
 try {
   builderApi = await import('../src/core/PlayRuntimeBuilder.js');
+  composerApi = await import('../src/scenes/play/playRuntimeComposer.js');
   bootstrapApi = await import('../src/scenes/play/playSceneBootstrap.js');
 } catch (error) {
   builderApi = { error };
+  composerApi = { error };
   bootstrapApi = { error };
 }
 
@@ -27,6 +30,8 @@ function getBuilderApi() {
 test('play runtime builder는 world/context/ui/pipeline 조립 entrypoint를 노출한다', () => {
   const api = getBuilderApi();
   assert.equal(typeof api.buildPlayRuntime, 'function', 'buildPlayRuntime export가 필요함');
+  assert.ok(!composerApi.error, composerApi.error?.message ?? 'src/scenes/play/playRuntimeComposer.js가 아직 없음');
+  assert.equal(typeof composerApi.buildPlayRuntime, 'function', 'scene-owned play runtime composer가 buildPlayRuntime을 export해야 함');
 });
 
 test('buildPlayRuntime는 플레이 런타임 조립을 한 곳에서 수행한다', () => {
