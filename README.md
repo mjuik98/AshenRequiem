@@ -3,6 +3,9 @@
 > HTML / JavaScript 기반의 뱀서라이크(Vampire Survivors-like) 프로젝트입니다.
 > MVP를 넘어 **Phase 2 확장 구조를 실제로 운용 중인** 브라우저 액션 게임 프로젝트입니다.
 
+## Gameplay Demo
+![Gameplay Demo](./docs/assets/gameplay_demo.webp)
+
 ## 프로젝트 비전 및 목표
 
 브라우저 환경에서 동작하는 성능 좋고 확장성 있는 뱀서라이크 게임을 만듭니다.
