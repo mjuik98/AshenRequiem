@@ -7,9 +7,9 @@ import {
 } from './helpers/sourceInspection.js';
 import {
   SESSION_OPTION_DEFAULTS,
-  applySessionOptionsToRuntime,
   getEffectiveDevicePixelRatio,
 } from '../src/state/sessionOptions.js';
+import { applySessionOptionsToRuntime } from '../src/app/session/sessionRuntimeApplicationService.js';
 import { PAUSE_AUDIO_DEFAULTS } from '../src/ui/pause/pauseAudioControls.js';
 import { syncPlaySceneDevicePixelRatio } from '../src/app/play/playSceneFlowService.js';
 
@@ -57,6 +57,8 @@ const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplication
 const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
 const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
 const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
+const playRuntimeBuilderSource = readProjectSource('../src/core/PlayRuntimeBuilder.js');
+const playRuntimeComposerSource = readProjectSource('../src/scenes/play/playRuntimeComposer.js');
 const coreRuntimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
 const browserRuntimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
 const dialogViewLifecycleSource = readProjectSource('../src/ui/shared/dialogViewLifecycle.js');
@@ -64,7 +66,7 @@ const dialogViewLifecycleSource = readProjectSource('../src/ui/shared/dialogView
 console.log('\n[CentralizationSource]');
 
 test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
-  assert.equal(playSceneSource.includes('applySessionOptionsToRuntime'), true, 'PlayScene이 공통 옵션 적용 헬퍼를 사용하지 않음');
+  assert.equal(playSceneSource.includes('applySessionOptionsToRuntime'), true, 'PlayScene이 session runtime application service를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('saveSettingsAndApplyRuntime'), true, 'SettingsScene이 settings application service를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), false, 'SettingsScene이 세션 저장 facade를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('applySessionOptionsToRuntime'), false, 'SettingsScene이 옵션 적용 helper를 직접 import하면 안 됨');
@@ -138,6 +140,7 @@ test('Game과 씬 전환은 정적 Scene import와 부트 AssetManager 의존을
   assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(playSceneSource)), false, 'PlayScene가 TitleScene을 정적 import함');
   assert.equal(/import\s+\{\s*PlayScene\s*\}\s+from\s+'\.\.\/PlayScene\.js'/.test(stripLineComments(titleSceneRuntimeSource)), false, 'titleSceneRuntime이 PlayScene을 정적 import함');
   assert.equal(/import\s+\{\s*MetaShopScene\s*\}\s+from\s+'\.\.\/MetaShopScene\.js'/.test(stripLineComments(titleSceneRuntimeSource)), false, 'titleSceneRuntime이 MetaShopScene을 정적 import함');
+  assert.equal(/import\s+\{\s*MetaShopScene\s*\}\s+from\s+'\.\/MetaShopScene\.js'/.test(stripLineComments(readProjectSource('../src/scenes/TitleScene.js'))), false, 'TitleScene이 MetaShopScene을 정적 import함');
   assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(settingsSceneSource)), false, 'SettingsScene이 TitleScene을 정적 import함');
   assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(metaShopSceneSource)), false, 'MetaShopScene이 TitleScene을 정적 import함');
 
@@ -151,13 +154,18 @@ test('Game과 씬 전환은 정적 Scene import와 부트 AssetManager 의존을
 test('PlayScene 부트스트랩과 PlayContext 런타임 생성은 전용 helper로 분리된다', async () => {
   const playSceneBootstrap = await import('../src/scenes/play/playSceneBootstrap.js');
   const playContextRuntime = await import('../src/core/playContextRuntime.js');
+  const playRuntimeComposer = await import('../src/scenes/play/playRuntimeComposer.js');
 
   assert.equal(typeof playSceneBootstrap.bootstrapPlaySceneRuntime, 'function', 'PlayScene bootstrap helper가 없음');
   assert.equal(typeof playSceneBootstrap.createPlaySceneWorldState, 'function', 'PlayScene world bootstrap helper가 없음');
+  assert.equal(typeof playRuntimeComposer.buildPlayRuntime, 'function', 'scene-owned play runtime composer가 없음');
   assert.equal(typeof playContextRuntime.createPlayContextRuntimeState, 'function', 'PlayContext runtime helper가 없음');
   assert.equal(typeof playContextRuntime.createPlayContextServices, 'function', 'PlayContext services helper가 없음');
   assert.equal(playSceneSource.includes('bootstrapPlaySceneRuntime'), true, 'PlayScene이 bootstrap helper를 사용하지 않음');
   assert.equal(playContextSource.includes('createPlayContextRuntimeState'), true, 'PlayContext가 runtime helper를 사용하지 않음');
+  assert.equal(/from '\.\.\/ui\//.test(stripLineComments(playRuntimeBuilderSource)), false, 'core PlayRuntimeBuilder wrapper가 ui 구현을 직접 import하면 안 됨');
+  assert.equal(/from '\.\.\/scenes\//.test(stripLineComments(playRuntimeBuilderSource)), false, 'core PlayRuntimeBuilder wrapper가 scene 구현을 직접 import하면 안 됨');
+  assert.equal(playRuntimeComposerSource.includes("from '../../ui/dom/mountUI.js'"), true, 'scene-owned play runtime composer가 UI mount를 소유하지 않음');
 });
 
 test('play orchestration helper는 app/play 소유 모듈로 일원화되고 zero-caller wrapper는 제거된다', () => {
@@ -186,10 +194,11 @@ test('app 계층은 legacy session facade 대신 실제 session write service를
 test('browser runtime wiring은 bootstrap/play context 경계에서 주입되고 core runtime helper는 browser adapter를 직접 import하지 않는다', () => {
   assert.equal(gameAppSource.includes("from '../scenes/TitleScene.js'"), false, 'GameApp이 기본 초기 Scene에 직접 결합되면 안 됨');
   assert.equal(gameAppSource.includes("from '../core/runtimeHooks.js'"), false, 'GameApp이 core runtimeHooks shim에 직접 의존하면 안 됨');
-  assert.equal(gameAppSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'GameApp이 browser runtimeHooks adapter를 직접 사용해야 함');
+  assert.equal(gameAppSource.includes("from '../adapters/browser/runtimeHooks.js'"), false, 'GameApp이 browser runtimeHooks adapter를 직접 import하면 안 됨');
   assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'playContextRuntime이 browser runtime adapter를 직접 import하면 안 됨');
   assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/audioRuntime.js'"), false, 'playContextRuntime이 browser audio adapter를 직접 import하면 안 됨');
   assert.equal(bootstrapBrowserGameSource.includes("from '../../scenes/TitleScene.js'"), true, 'browser bootstrap이 기본 초기 Scene wiring을 소유해야 함');
+  assert.equal(bootstrapBrowserGameSource.includes("from '../../adapters/browser/runtimeHooks.js'"), true, 'browser bootstrap이 runtime hook wiring을 소유해야 함');
   assert.equal(coreRuntimeHooksSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'core/runtimeHooks는 adapter 소유 모듈을 재노출하는 shim이어야 함');
   assert.equal(browserRuntimeHooksSource.includes('export function registerRuntimeHooks'), true, 'browser runtimeHooks adapter가 실제 구현을 소유하지 않음');
 });

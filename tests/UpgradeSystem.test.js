@@ -53,13 +53,13 @@ let upgradeFallbackChoices = null;
 let upgradeApplyRuntime = null;
 
 try {
-  upgradeChoicePool = await import('../src/systems/progression/upgradeChoicePool.js');
+  upgradeChoicePool = await import('../src/progression/upgradeChoicePool.js');
 } catch (error) {
   upgradeChoicePool = { error };
 }
 
 try {
-  upgradeFallbackChoices = await import('../src/systems/progression/upgradeFallbackChoices.js');
+  upgradeFallbackChoices = await import('../src/progression/upgradeFallbackChoices.js');
 } catch (error) {
   upgradeFallbackChoices = { error };
 }

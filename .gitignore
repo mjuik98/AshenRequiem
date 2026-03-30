@@ -14,4 +14,9 @@ dist/
 .worktrees/
 .codex
 docs/
+!docs/
+docs/superpowers/
+!docs/architecture-current.md
+!docs/compatibility-wrappers.md
+!docs/maintenance-scripts.md
 output/

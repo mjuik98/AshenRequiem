@@ -68,12 +68,26 @@
 
 - `TitleScene`: 시작 화면과 진입 허브
 - `PlayScene`: 전투 런타임
-- `ResultScene`: 런 종료 결과
 - `MetaShopScene`: 영구 업그레이드 상점
 - `CodexScene`: 적/무기/기록 도감
 - `SettingsScene`: 옵션 설정
 
+런 종료 결과는 별도 `ResultScene`이 아니라 `PlayScene`의 결과 오버레이와 `playResultApplicationService` 경로로 처리됩니다.
 플레이 파이프라인, 이벤트 흐름, 세션 경계는 [docs/architecture-current.md](./docs/architecture-current.md)에 정리되어 있습니다.
+
+---
+
+## 폴더 구조
+
+```text
+src/         런타임 코드. scene / app / domain / system / ui / data 계층 포함
+tests/       Node 기반 단위·소스 계약 테스트
+scripts/     검증·프로파일·스모크·문서 snapshot 스크립트
+docs/        아키텍처 현재 상태, wrapper inventory, 유지보수 문서
+public/      Vite가 그대로 복사하는 정적 자산
+output/      deterministic smoke / playwright 산출물 (git 추적 제외)
+dist/        production build 산출물 (git 추적 제외)
+```
 
 ---
 
@@ -92,6 +106,9 @@ npm run dev
 주요 시스템들의 무결성과 데이터 정합성을 검증하기 위한 자동화된 테스트가 준비되어 있습니다.
 
 ```bash
+# 설치
+npm install
+
 # 데이터 무결성 검증 (순환 참조, 잘못된 ID 등)
 npm run validate
 
@@ -107,7 +124,11 @@ npm run check:architecture-docs
 # wrapper inventory snapshot 재생성
 npm run compatibility:wrappers
 
+# 프로덕션 build
+npm run build
+
 # 전체 단위 테스트 실행 (Node.js Test Runner)
+# pretest로 validate가 자동 실행된다.
 npm test
 
 # 빌드 후 실제 브라우저에서 core deterministic smoke 실행
@@ -129,9 +150,6 @@ npm run verify:smoke
 # CI 기준선: single build + core browser smoke
 npm run verify:ci
 
-# 확장 smoke suite 수동 실행
-npm run test:smoke:full
-
 # 파이프라인 성능 요약(JSON)
 npm run profile:json
 
@@ -144,3 +162,24 @@ npm run encounter:report
 
 deterministic smoke 산출물은 `output/web-game/deterministic-smoke-core/`와 `output/web-game/deterministic-smoke-full/`로 분리된다.
 CI/extended smoke는 prebuilt smoke 스크립트를 사용해 동일 `dist`를 재사용한다.
+
+## 환경 변수 및 디버그 플래그
+
+일상적인 실행에는 별도 `.env`가 필요하지 않습니다. 현재 문서화해야 할 런타임/검증용 입력은 아래와 같습니다.
+
+| Name | Scope | Purpose |
+|---|---|---|
+| `TEST_DIR` | `scripts/runTests.js` | 기본 `tests/` 대신 다른 테스트 디렉터리를 실행 |
+| `TEST_MATCH` | `scripts/runTests.js` | 파일명 일부 일치 기준으로 테스트 실행 범위를 좁힘 |
+| `TEST_TIMEOUT_MS` | `scripts/runTests.js` | 테스트 파일별 timeout override |
+| `TEST_JOBS` | `scripts/runTests.js` | 병렬 worker 수 override |
+| `ASHEN_SMOKE_DEBUG=1` | browser smoke | smoke wrapper의 상세 debug log 활성화 |
+| `?debugRuntime` | 브라우저 query flag | 안정된 `__ASHEN_DEBUG__` host를 노출해 deterministic smoke/debug helper 활성화 |
+| `__ASHEN_PROFILE_PIPELINE__ = true` | browser global | `PlayScene` pipeline profiler를 opt-in으로 활성화 |
+
+## 문서 유지 규칙
+
+- 설계 규칙은 [AGENTS.md](./AGENTS.md)를 SSOT로 유지합니다.
+- 현재 구현 사실은 [docs/architecture-current.md](./docs/architecture-current.md)에 맞춥니다.
+- wrapper inventory는 [docs/compatibility-wrappers.md](./docs/compatibility-wrappers.md)와 `npm run compatibility:wrappers` 출력으로 맞춥니다.
+- maintenance script 분류는 [docs/maintenance-scripts.md](./docs/maintenance-scripts.md)를 갱신합니다.

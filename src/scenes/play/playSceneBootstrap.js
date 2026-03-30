@@ -1,10 +1,8 @@
-import { buildPlayRuntime } from '../../core/PlayRuntimeBuilder.js';
 import { PlayContext } from '../../core/PlayContext.js';
 import { prepareStartRunState } from '../../app/play/startRunApplicationService.js';
 import { normalizeSessionOptions } from '../../state/sessionOptions.js';
 import { createPlayBrowserRuntimeServices } from '../../adapters/browser/playRuntimeServices.js';
-import { mountUI } from '../../ui/dom/mountUI.js';
-import { PlayUI } from './PlayUI.js';
+import { buildPlayRuntime } from './playRuntimeComposer.js';
 import {
   shouldEnablePipelineProfiling,
 } from './playSceneRuntime.js';
@@ -26,8 +24,8 @@ export function bootstrapPlaySceneRuntime({
   normalizeSessionOptionsImpl = normalizeSessionOptions,
   shouldEnablePipelineProfilingImpl = shouldEnablePipelineProfiling,
   createPlayContextImpl = PlayContext.create,
-  mountUiImpl = mountUI,
-  createPlayUiImpl = (container) => new PlayUI(container),
+  mountUiImpl = undefined,
+  createPlayUiImpl = undefined,
   buildPlayRuntimeImpl = buildPlayRuntime,
   createRuntimeServicesImpl = createPlayBrowserRuntimeServices,
 } = {}) {
@@ -37,8 +35,8 @@ export function bootstrapPlaySceneRuntime({
     normalizeSessionOptionsImpl,
     shouldEnableProfilingImpl: shouldEnablePipelineProfilingImpl,
     createPlayContextImpl,
-    mountUiImpl,
-    createPlayUiImpl,
+    ...(typeof mountUiImpl === 'function' ? { mountUiImpl } : {}),
+    ...(typeof createPlayUiImpl === 'function' ? { createPlayUiImpl } : {}),
     runtimeServices: createRuntimeServicesImpl(),
   });
 }

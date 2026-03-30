@@ -1,8 +1,8 @@
 import { createSessionState } from '../../state/createSessionState.js';
 import {
-  applySessionOptionsToRuntime,
   normalizeSessionOptions,
 } from '../../state/sessionOptions.js';
+import { applySessionOptionsToRuntime } from '../session/sessionRuntimeApplicationService.js';
 import {
   inspectStoredSessionSnapshots as inspectStoredSessionSnapshotsImpl,
   parseSessionState,

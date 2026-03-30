@@ -5,8 +5,8 @@ let SESSION_OPTION_DEFAULTS;
 let normalizeSessionOptions;
 let mergeSessionOptions;
 let getEffectiveDevicePixelRatio;
-let applySessionOptionsToRuntime;
 let createSettingsRuntimeDependencies;
+let applySessionOptionsToRuntime;
 
 try {
   ({
@@ -14,10 +14,16 @@ try {
     normalizeSessionOptions,
     mergeSessionOptions,
     getEffectiveDevicePixelRatio,
-    applySessionOptionsToRuntime,
   } = await import('../src/state/sessionOptions.js'));
 } catch (e) {
   console.warn('[테스트] sessionOptions import 실패 — 스킵:', e.message);
+  process.exit(1);
+}
+
+try {
+  ({ applySessionOptionsToRuntime } = await import('../src/app/session/sessionRuntimeApplicationService.js'));
+} catch (e) {
+  console.warn('[테스트] sessionRuntimeApplicationService import 실패 — 스킵:', e.message);
   process.exit(1);
 }
 

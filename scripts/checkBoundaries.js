@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT_DIR, collectSourceImports } from './importGraph.mjs';
+import fs from 'node:fs';
+import { ROOT_DIR, collectSourceImports, walkFiles, toProjectRelative } from './importGraph.mjs';
 
 export const SHIM_IMPORT_PATTERNS = [
   'state/createWorld.js',
@@ -25,6 +26,10 @@ const PLAY_RESULT_DOMAIN_PATH = 'src/domain/meta/progression/playResultDomain.js
 const RENDER_SYSTEM_PATH = 'src/systems/render/RenderSystem.js';
 const SOUND_SFX_CONTROLLER_PATH = 'src/systems/sound/soundSfxController.js';
 const PLAY_CONTEXT_RUNTIME_PATH = 'src/core/playContextRuntime.js';
+const CORE_ALLOWED_IMPORT_SOURCES = new Set([
+  'src/core/Game.js',
+  'src/core/runtimeHooks.js',
+]);
 
 function findShimViolations(imports) {
   return imports
@@ -63,6 +68,45 @@ function findSceneToSystemsViolations(imports) {
       targetFile,
       message: `scene module imports systems implementation directly: ${sourceFile} -> ${targetFile}`,
     }));
+}
+
+function findCoreBoundaryViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile.startsWith('src/core/') && !CORE_ALLOWED_IMPORT_SOURCES.has(sourceFile))
+    .filter(({ targetFile }) => (
+      targetFile.startsWith('src/scenes/')
+      || targetFile.startsWith('src/ui/')
+      || targetFile.startsWith('src/adapters/browser/')
+    ))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'core-boundary',
+      sourceFile,
+      targetFile,
+      message: `core module crosses presentation/browser boundary: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findSceneToSceneViolations() {
+  const scenesRoot = path.join(ROOT_DIR, 'src', 'scenes');
+  if (!fs.existsSync(scenesRoot)) return [];
+
+  return walkFiles(scenesRoot).flatMap((filePath) => {
+    const sourceFile = toProjectRelative(filePath, ROOT_DIR);
+    if (sourceFile === 'src/scenes/sceneLoaders.js') return [];
+
+    const source = fs.readFileSync(filePath, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const matches = [...source.matchAll(/import\s+.+from\s+['"]([^'"]+)['"]/g)];
+
+    return matches
+      .map((match) => match[1])
+      .filter((specifier) => /^\.\/(?:TitleScene|PlayScene|MetaShopScene|SettingsScene|CodexScene)\.js$/.test(specifier))
+      .map((specifier) => ({
+        rule: 'scene-to-scene',
+        sourceFile,
+        targetFile: `src/scenes/${specifier.replace('./', '')}`,
+        message: `scene module imports another scene implementation directly: ${sourceFile} -> src/scenes/${specifier.replace('./', '')}`,
+      }));
+  });
 }
 
 function findAppToScenesViolations(imports) {
@@ -142,7 +186,9 @@ export function collectBoundaryViolations() {
   return [
     ...findShimViolations(sourceImports),
     ...findDomainViolations(sourceImports),
+    ...findCoreBoundaryViolations(sourceImports),
     ...findSceneToSystemsViolations(sourceImports),
+    ...findSceneToSceneViolations(),
     ...findAppToScenesViolations(sourceImports),
     ...findAppToSessionFacadeViolations(sourceImports),
     ...findPlayResultDomainViolations(sourceImports),

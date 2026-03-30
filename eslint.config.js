@@ -52,11 +52,30 @@ export default [
     },
   },
   {
+    files: ['src/core/**/*.js'],
+    ignores: ['src/core/Game.js', 'src/core/runtimeHooks.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/scenes/**',
+          '**/ui/**',
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
     files: ['src/scenes/**/*.js'],
+    ignores: ['src/scenes/sceneLoaders.js'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
           '**/systems/**',
+          '**/TitleScene.js',
+          '**/PlayScene.js',
+          '**/MetaShopScene.js',
+          '**/SettingsScene.js',
+          '**/CodexScene.js',
         ],
       }],
     },

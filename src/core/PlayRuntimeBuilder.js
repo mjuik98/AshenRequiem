@@ -1,17 +1,14 @@
 import { PlayContext } from './PlayContext.js';
 import { normalizeSessionOptions } from '../state/sessionOptions.js';
-import { mountUI } from '../ui/dom/mountUI.js';
-import { PlayUI } from '../scenes/play/PlayUI.js';
-import { shouldEnablePipelineProfiling } from '../scenes/play/playSceneRuntime.js';
 
 export function buildPlayRuntime({
   game,
   createWorldStateImpl,
   normalizeSessionOptionsImpl = normalizeSessionOptions,
-  shouldEnableProfilingImpl = shouldEnablePipelineProfiling,
+  shouldEnableProfilingImpl = () => false,
   createPlayContextImpl = PlayContext.create,
-  mountUiImpl = mountUI,
-  createPlayUiImpl = (container) => new PlayUI(container),
+  mountUiImpl,
+  createPlayUiImpl,
   runtimeServices = null,
 } = {}) {
   const session = game?.session ?? null;
@@ -26,6 +23,12 @@ export function buildPlayRuntime({
     session,
     ...(runtimeServices ?? {}),
   });
+  if (typeof mountUiImpl !== 'function') {
+    throw new Error('buildPlayRuntime requires mountUiImpl to be provided by the scene/bootstrap boundary.');
+  }
+  if (typeof createPlayUiImpl !== 'function') {
+    throw new Error('buildPlayRuntime requires createPlayUiImpl to be provided by the scene/bootstrap boundary.');
+  }
   const ui = createPlayUiImpl(mountUiImpl());
 
   ui.showHud();
