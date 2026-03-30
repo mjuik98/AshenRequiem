@@ -104,17 +104,6 @@ export const PAUSE_LOADOUT_CSS = `
   .variant-links { border-bottom-color: rgba(126,205,232,0.18); }
   .variant-synergy { border-bottom-color: rgba(126,205,232,0.24); }
   .variant-evolution { border-bottom-color: rgba(212,175,106,0.26); }
-  .variant-guidance { border-bottom: 0; padding-bottom: 0; }
-  .pv-loadout-guidance {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(212,175,106,0.08), rgba(126,205,232,0.05));
-    border: 1px solid rgba(212,175,106,0.18);
-  }
-  .pv-loadout-guidance-copy { font-size: 12px; line-height: 1.55; color: rgba(244,237,224,0.84); }
   .variant-links .pv-loadout-chip-row,
   .variant-links .pv-loadout-link-list { position: relative; }
   .variant-synergy .pv-loadout-synergy-row { background: linear-gradient(180deg, rgba(126,205,232,0.09), rgba(126,205,232,0.03)); border-color: rgba(126,205,232,0.16); }

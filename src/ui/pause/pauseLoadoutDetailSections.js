@@ -6,7 +6,6 @@ import {
 import {
   renderPauseAccessoryStatsSection,
   renderPauseLoadoutDetailHeader,
-  renderPauseGuidanceBlock,
   renderPauseStatusBlock,
   renderPauseWeaponStatsSection,
 } from './pauseLoadoutStatsSections.js';
@@ -28,6 +27,5 @@ export function renderPauseLoadoutDetail(selectedItem, player, data, indexes) {
     ${renderPauseLinkedItemsSection(selectedItem, player, data, indexes)}
     ${renderPauseSynergySection(selectedItem, player, indexes)}
     ${renderPauseEvolutionSection(selectedItem, player, data, indexes)}
-    ${renderPauseGuidanceBlock(selectedItem, player, data, indexes)}
   `;
 }

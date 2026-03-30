@@ -30,7 +30,6 @@ export class StartLoadoutView {
     this._seedPreviewText = '';
     this._advancedSummary = '';
     this._isAdvancedOpen = false;
-    this._recommendedGoals = [];
     this._onStart = null;
     this._onCancel = null;
     this._dialogRuntime = null;
@@ -55,7 +54,6 @@ export class StartLoadoutView {
     selectedSeedText = '',
     seedPreviewText = '',
     advancedSummary = '',
-    recommendedGoals = [],
     canStart = false,
     onStart,
     onCancel,
@@ -89,7 +87,6 @@ export class StartLoadoutView {
     this._seedPreviewText = seedPreviewText || this._buildSeedPreviewText();
     this._advancedSummary = advancedSummary || this._buildAdvancedSummary();
     this._isAdvancedOpen = false;
-    this._recommendedGoals = recommendedGoals;
     this._canStart = Boolean(canStart && this._selectedWeaponId);
     this._onStart = onStart;
     this._onCancel = onCancel;
@@ -170,7 +167,6 @@ export class StartLoadoutView {
       seedPreviewText: this._seedPreviewText,
       advancedSummary: this._advancedSummary,
       isAdvancedOpen: this._isAdvancedOpen,
-      recommendedGoals: this._recommendedGoals,
       canStart: this._canStart,
     });
 

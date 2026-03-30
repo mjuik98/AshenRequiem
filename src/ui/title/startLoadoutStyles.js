@@ -234,46 +234,6 @@ export const START_LOADOUT_VIEW_CSS = `
     font-size: 12px;
     color: rgba(244, 237, 224, 0.64);
   }
-  .sl-goal-block {
-    margin: 0 0 18px;
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(212, 175, 106, 0.18);
-    background: rgba(255, 255, 255, 0.025);
-  }
-  .sl-goal-list {
-    display: grid;
-    gap: 10px;
-  }
-  .sl-goal-card {
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
-  }
-  .sl-goal-icon {
-    font-size: 18px;
-  }
-  .sl-goal-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .sl-goal-title {
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .sl-goal-desc {
-    font-size: 12px;
-    color: rgba(244, 237, 224, 0.68);
-  }
-  .sl-goal-meta {
-    font-size: 12px;
-    color: rgba(242, 207, 132, 0.9);
-  }
   .sl-card {
     padding: 16px;
     border-radius: 16px;
@@ -330,9 +290,9 @@ export const START_LOADOUT_VIEW_CSS = `
   .sl-advanced-toggle {
     width: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
     padding: 14px 16px;
     border: 0;
     background: transparent;
@@ -340,15 +300,35 @@ export const START_LOADOUT_VIEW_CSS = `
     text-align: left;
     cursor: pointer;
   }
-  .sl-advanced-label {
+  .sl-advanced-heading {
     font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(212, 175, 106, 0.78);
+  }
+  .sl-advanced-toggle-copy {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+  }
+  .sl-advanced-label {
+    font-size: 11px;
+    font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: rgba(242, 207, 132, 0.78);
+    white-space: nowrap;
   }
   .sl-advanced-summary {
     font-size: 13px;
     color: rgba(244, 237, 224, 0.76);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .sl-advanced-panel {
     padding: 0 16px 16px;
@@ -408,6 +388,19 @@ export const START_LOADOUT_VIEW_CSS = `
     .sl-asc-summary-head {
       flex-direction: column;
       align-items: flex-start;
+    }
+    .sl-advanced-toggle {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .sl-advanced-toggle-copy {
+      width: 100%;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sl-advanced-summary {
+      white-space: normal;
     }
     .sl-actions {
       flex-direction: column-reverse;

@@ -161,6 +161,12 @@ await test('StartLoadoutView는 quick start UI 없이 고급 설정 요약만 �
       riskRelics: [{ id: 'glass_censer', name: 'Glass Censer' }],
       stages: [{ id: 'ash_plains', name: 'Ash Plains' }, { id: 'ember_hollow', name: 'Ember Hollow' }],
       advancedSummary: 'A1 · Spellweaver · Ember Hollow',
+      recommendedGoals: [{
+        icon: '◈',
+        title: '재를 가르는 것',
+        description: 'ASCENSION 2 이상으로 승리',
+        progressText: 'A0 / A2',
+      }],
       canStart: true,
       onStart: () => {},
       onCancel: () => {},
@@ -169,6 +175,10 @@ await test('StartLoadoutView는 quick start UI 없이 고급 설정 요약만 �
     assert.equal(view._el.innerHTML.includes('Quick Start'), false, 'quick start 섹션이 제거되지 않음');
     assert.equal(view._el.innerHTML.includes('data-preset-id='), false, 'quick start preset 버튼이 남아 있으면 안 됨');
     assert.equal(view._el.innerHTML.includes('data-action="toggle-advanced"'), true, '고급 설정 토글이 렌더되지 않음');
+    assert.equal(view._el.innerHTML.includes('Recommended Goals'), false, 'recommended goals 섹션은 START GAME 본문에서 제거되어야 함');
+    assert.equal(view._el.innerHTML.includes('재를 가르는 것'), false, 'recommended goal 카드가 START GAME 본문에 남아 있으면 안 됨');
+    assert.equal(view._el.innerHTML.includes('sl-advanced-heading'), true, '고급 설정 헤더 영역이 별도 행으로 렌더되지 않음');
+    assert.equal(view._el.innerHTML.includes('sl-advanced-toggle-copy'), true, '고급 설정 토글 우측 보조 정보 영역이 없음');
     assert.equal(view._el.innerHTML.includes('A1 · Spellweaver · Ember Hollow'), true, '고급 설정 요약이 렌더되지 않음');
   } finally {
     dom.restore();

@@ -242,28 +242,6 @@ function renderSeedChoices(selectedSeedMode = 'none', selectedSeedText = '', see
   `;
 }
 
-function renderRecommendedGoals(recommendedGoals = []) {
-  if (!recommendedGoals.length) return '';
-
-  return `
-    <div class="sl-goal-block">
-      <div class="sl-section-title">Recommended Goals</div>
-      <div class="sl-goal-list">
-        ${recommendedGoals.map((goal) => `
-          <div class="sl-goal-card">
-            <span class="sl-goal-icon">${escapeHtml(goal.icon ?? '✦')}</span>
-            <span class="sl-goal-copy">
-              <span class="sl-goal-title">${escapeHtml(goal.title ?? goal.rewardText ?? '목표')}</span>
-              <span class="sl-goal-desc">${escapeHtml(goal.description ?? '')}</span>
-            </span>
-            <span class="sl-goal-meta">${escapeHtml(goal.progressText ?? `${Math.round(goal.pct ?? 0)}%`)}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
 function renderAdvancedBlocks({
   ascensionChoices = [],
   selectedAscensionLevel = 0,
@@ -345,7 +323,6 @@ export function renderStartLoadoutMarkup({
   seedPreviewText = '',
   advancedSummary = '',
   isAdvancedOpen = false,
-  recommendedGoals = [],
   canStart = false,
 } = {}) {
   const emptyState = weapons.length === 0
@@ -381,7 +358,6 @@ export function renderStartLoadoutMarkup({
     copyClassName: 'sl-copy',
   });
   const bodyHtml = `
-    ${renderRecommendedGoals(recommendedGoals)}
     <div class="sl-weapon-block">
       <div class="sl-section-title">Starting Weapon</div>
       <div class="sl-grid">${renderStartLoadoutCards(weapons, selectedWeaponId)}</div>
@@ -389,8 +365,11 @@ export function renderStartLoadoutMarkup({
     ${emptyState}
     <div class="sl-advanced-shell ${isAdvancedOpen ? 'open' : 'closed'}">
       <button class="sl-advanced-toggle" data-action="toggle-advanced" type="button">
-        <span class="sl-advanced-label">${isAdvancedOpen ? '고급 설정 접기' : '고급 설정 펼치기'}</span>
-        <span class="sl-advanced-summary">${escapeHtml(advancedSummary)}</span>
+        <span class="sl-advanced-heading">고급 설정</span>
+        <span class="sl-advanced-toggle-copy">
+          <span class="sl-advanced-summary">${escapeHtml(advancedSummary)}</span>
+          <span class="sl-advanced-label">${isAdvancedOpen ? '접기' : '펼치기'}</span>
+        </span>
       </button>
       <div class="sl-advanced-panel">
         ${renderAdvancedBlocks({
