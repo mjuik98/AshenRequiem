@@ -36,8 +36,8 @@ export const stageData = [
         grid: 'rgba(255,255,255,0.04)',
       },
       images: {
-        baseSrc: '/assets/backgrounds/ashen-ritual-flagstone-tile.png',
-        overlaySrc: '/assets/backgrounds/ashen-ember-overlay-tile.png',
+        baseSrc: '/assets/backgrounds/ash-plains-base-tile.png',
+        overlaySrc: '/assets/backgrounds/ash-plains-overlay-tile.png',
         overlayAlpha: 0.18,
       },
       layers: [
@@ -124,8 +124,8 @@ export const stageData = [
         grid: 'rgba(196,210,255,0.05)',
       },
       images: {
-        baseSrc: '/assets/backgrounds/moon-crypt-runestone-floor-tile.png',
-        overlaySrc: '/assets/backgrounds/moon-crypt-spectral-mist-overlay-tile.png',
+        baseSrc: '/assets/backgrounds/moon-crypt-base-tile.png',
+        overlaySrc: '/assets/backgrounds/moon-crypt-overlay-tile.png',
         overlayAlpha: 0.2,
       },
       layers: [
@@ -222,8 +222,8 @@ export const stageData = [
         grid: 'rgba(255,214,170,0.05)',
       },
       images: {
-        baseSrc: '/assets/backgrounds/ashen-stone-floor-tile.png',
-        overlaySrc: '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+        baseSrc: '/assets/backgrounds/ember-hollow-base-tile.png',
+        overlaySrc: '/assets/backgrounds/ember-hollow-overlay-tile.png',
         overlayAlpha: 0.16,
       },
       layers: [

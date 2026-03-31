@@ -68,17 +68,27 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
   const ashPlains = data.stageData.find((stage) => stage.id === 'ash_plains');
   assert.equal(typeof ashPlains?.background?.images?.baseSrc, 'string', 'Ash Plains background가 base image tile을 노출하지 않음');
   assert.equal(typeof ashPlains?.background?.images?.overlaySrc, 'string', 'Ash Plains background가 overlay image tile을 노출하지 않음');
+  assert.equal(
+    ashPlains?.background?.images?.baseSrc,
+    '/assets/backgrounds/ash-plains-base-tile.png',
+    'Ash Plains base tile 경로가 기대값과 다름',
+  );
+  assert.equal(
+    ashPlains?.background?.images?.overlaySrc,
+    '/assets/backgrounds/ash-plains-overlay-tile.png',
+    'Ash Plains overlay tile 경로가 기대값과 다름',
+  );
   const emberHollow = data.stageData.find((stage) => stage.id === 'ember_hollow');
   assert.equal(typeof emberHollow?.background?.images?.baseSrc, 'string', 'Ember Hollow background가 base image tile을 노출하지 않음');
   assert.equal(typeof emberHollow?.background?.images?.overlaySrc, 'string', 'Ember Hollow background가 overlay image tile을 노출하지 않음');
   assert.equal(
     emberHollow?.background?.images?.baseSrc,
-    '/assets/backgrounds/ashen-stone-floor-tile.png',
+    '/assets/backgrounds/ember-hollow-base-tile.png',
     'Ember Hollow base tile 경로가 기대값과 다름',
   );
   assert.equal(
     emberHollow?.background?.images?.overlaySrc,
-    '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+    '/assets/backgrounds/ember-hollow-overlay-tile.png',
     'Ember Hollow overlay tile 경로가 기대값과 다름',
   );
   const moonCrypt = data.stageData.find((stage) => stage.id === 'moon_crypt');
@@ -86,12 +96,12 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
   assert.equal(typeof moonCrypt?.background?.images?.overlaySrc, 'string', 'Moon Crypt background가 overlay image tile을 노출하지 않음');
   assert.equal(
     moonCrypt?.background?.images?.baseSrc,
-    '/assets/backgrounds/moon-crypt-runestone-floor-tile.png',
+    '/assets/backgrounds/moon-crypt-base-tile.png',
     'Moon Crypt base tile 경로가 기대값과 다름',
   );
   assert.equal(
     moonCrypt?.background?.images?.overlaySrc,
-    '/assets/backgrounds/moon-crypt-spectral-mist-overlay-tile.png',
+    '/assets/backgrounds/moon-crypt-overlay-tile.png',
     'Moon Crypt overlay tile 경로가 기대값과 다름',
   );
 });

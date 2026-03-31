@@ -1,15 +1,15 @@
 Expected background tile filenames:
 
 Ash Plains
-- `ashen-ritual-flagstone-tile.png`
-- `ashen-ember-overlay-tile.png`
+- `ash-plains-base-tile.png`
+- `ash-plains-overlay-tile.png`
 
 Ember Hollow
-- `ashen-stone-floor-tile.png`
-- `spectral-cosmos-overlay-tile.png`
+- `ember-hollow-base-tile.png`
+- `ember-hollow-overlay-tile.png`
 
 Moon Crypt
-- `moon-crypt-runestone-floor-tile.png`
-- `moon-crypt-spectral-mist-overlay-tile.png`
+- `moon-crypt-base-tile.png`
+- `moon-crypt-overlay-tile.png`
 
 Drop the final seamless PNG assets into this folder with those names.

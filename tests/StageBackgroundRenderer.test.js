@@ -92,8 +92,8 @@ test('stage background renderer repeats ready image tiles when seamless image so
         ember: 'rgba(0,0,0,0)',
       },
       images: {
-        baseSrc: '/assets/backgrounds/ashen-stone-floor-tile.png',
-        overlaySrc: '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+        baseSrc: '/assets/backgrounds/ember-hollow-base-tile.png',
+        overlaySrc: '/assets/backgrounds/ember-hollow-overlay-tile.png',
         overlayAlpha: 0.18,
       },
       layers: [],
