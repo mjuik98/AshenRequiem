@@ -1,0 +1,164 @@
+import {
+  VFX_ATLAS_DEFS,
+  getProjectileSpriteFrame,
+  getEffectSpriteFrame,
+} from './vfxSpriteManifest.js';
+
+function defaultImageFactory() {
+  const ImageCtor = globalThis?.Image;
+  if (typeof ImageCtor !== 'function') return null;
+  return new ImageCtor();
+}
+
+function bindImageEvent(image, type, handler) {
+  if (typeof image?.addEventListener === 'function') {
+    image.addEventListener(type, handler);
+    return;
+  }
+  image[`on${type}`] = handler;
+}
+
+function createEmptyAtlasState() {
+  return {
+    status: 'idle',
+    image: null,
+  };
+}
+
+function computeRotation(entity, frame) {
+  if (frame.rotateFromAngle && Number.isFinite(entity?.angle)) {
+    return entity.angle;
+  }
+  if (frame.rotateWithVelocity) {
+    const dirX = entity?.dirX ?? 0;
+    const dirY = entity?.dirY ?? 0;
+    if (dirX !== 0 || dirY !== 0) {
+      return Math.atan2(dirY, dirX);
+    }
+  }
+  if (frame.drawMode === 'beam' && Number.isFinite(entity?.beamAngle)) {
+    return entity.beamAngle;
+  }
+  return 0;
+}
+
+function applyGlow(ctx, color, blur = 18) {
+  ctx.shadowColor = color ?? 'rgba(255,255,255,0.6)';
+  ctx.shadowBlur = blur;
+}
+
+export function createVfxSpriteRuntime({
+  imageFactory = defaultImageFactory,
+} = {}) {
+  const atlasStates = new Map();
+
+  function ensureAtlas(atlasKey) {
+    const atlasDef = VFX_ATLAS_DEFS[atlasKey];
+    if (!atlasDef) return null;
+
+    let state = atlasStates.get(atlasKey);
+    if (!state) {
+      state = createEmptyAtlasState();
+      atlasStates.set(atlasKey, state);
+    }
+
+    if (state.status !== 'idle') return state;
+
+    const image = imageFactory?.();
+    if (!image) {
+      state.status = 'error';
+      return state;
+    }
+
+    state.status = 'loading';
+    state.image = image;
+
+    bindImageEvent(image, 'load', () => {
+      state.status = 'ready';
+    });
+    bindImageEvent(image, 'error', () => {
+      state.status = 'error';
+    });
+
+    image.src = atlasDef.src;
+
+    if (image.complete && (image.naturalWidth ?? 0) > 0) {
+      state.status = 'ready';
+    }
+
+    return state;
+  }
+
+  function peekAtlasStatus(atlasKey) {
+    return atlasStates.get(atlasKey)?.status ?? 'idle';
+  }
+
+  function drawFrame(ctx, atlasKey, frame, entity, camera) {
+    if (!ctx?.drawImage || !frame) return false;
+
+    const atlasState = ensureAtlas(atlasKey);
+    if (!atlasState || atlasState.status !== 'ready' || !atlasState.image) {
+      return false;
+    }
+
+    const sx = (entity?.x ?? 0) - (camera?.x ?? 0);
+    const sy = (entity?.y ?? 0) - (camera?.y ?? 0);
+    const rotation = computeRotation(entity, frame);
+
+    let width = Math.max(18, (entity?.radius ?? 6) * (frame.sizeMult ?? 3));
+    let height = width;
+
+    if (frame.drawMode === 'beam') {
+      width = Math.max(frame.w * 0.9, entity?.beamLength ?? width * 3);
+      height = Math.max(frame.minThickness ?? 14, (entity?.radius ?? 8) * 1.8);
+    } else if (frame.drawMode === 'zone') {
+      width = Math.max(frame.w * 0.8, (entity?.radius ?? 16) * (frame.sizeMult ?? 2.2));
+      height = width;
+    } else if (frame.drawMode === 'burst') {
+      const progress = Math.min(1, (entity?.lifetime ?? 0) / Math.max(entity?.maxLifetime ?? 0.5, 0.001));
+      width = Math.max(frame.w * 0.8, (entity?.radius ?? 18) * (frame.sizeMult ?? 2.6) * (1 + progress * 0.85));
+      height = width;
+      ctx.globalAlpha = Math.max(0.2, 1 - progress * 0.7);
+    }
+
+    ctx.save();
+    applyGlow(ctx, entity?.color, frame.drawMode === 'beam' ? 20 : 14);
+    ctx.translate(sx, sy);
+    if (rotation) {
+      ctx.rotate(rotation);
+    }
+    ctx.drawImage(
+      atlasState.image,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      -width / 2,
+      -height / 2,
+      width,
+      height,
+    );
+    ctx.restore();
+    return true;
+  }
+
+  function drawProjectileSprite(ctx, projectile, camera) {
+    const frame = getProjectileSpriteFrame(projectile?.behaviorId ?? 'default');
+    if (!frame) return false;
+    return drawFrame(ctx, frame.atlas, frame, projectile, camera);
+  }
+
+  function drawEffectSprite(ctx, effect, camera) {
+    const frame = getEffectSpriteFrame(effect?.effectType);
+    if (!frame) return false;
+    return drawFrame(ctx, frame.atlas, frame, effect, camera);
+  }
+
+  return {
+    peekAtlasStatus,
+    drawProjectileSprite,
+    drawEffectSprite,
+  };
+}
+
+export const sharedVfxSpriteRuntime = createVfxSpriteRuntime();

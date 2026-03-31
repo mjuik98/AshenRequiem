@@ -18,12 +18,15 @@
  *   registerProjectileDraw('myBehaviorId', (ctx, proj, camera, lowQuality) => { ... });
  */
 
+import { sharedVfxSpriteRuntime } from '../sprites/vfxSpriteRuntime.js';
+
 // ── draw 구현체 ───────────────────────────────────────────────────────────
 
 /**
  * 기본 원형 투사체
  */
-function drawDefault(ctx, proj, camera) {
+function drawDefault(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   ctx.beginPath();
@@ -35,7 +38,8 @@ function drawDefault(ctx, proj, camera) {
 /**
  * targetProjectile — 조준 투사체 (기본과 동일, 색상 차별화)
  */
-function drawTargetProjectile(ctx, proj, camera, lowQuality) {
+function drawTargetProjectile(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const r  = proj.radius ?? 5;
@@ -52,7 +56,8 @@ function drawTargetProjectile(ctx, proj, camera, lowQuality) {
 /**
  * orbit — 궤도 투사체
  */
-function drawOrbit(ctx, proj, camera, lowQuality) {
+function drawOrbit(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const r  = proj.radius ?? 7;
@@ -69,7 +74,8 @@ function drawOrbit(ctx, proj, camera, lowQuality) {
 /**
  * areaBurst — 범위 폭발 투사체
  */
-function drawAreaBurst(ctx, proj, camera, lowQuality) {
+function drawAreaBurst(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const progress = proj.lifetime ? Math.min(1, proj.age / proj.lifetime) : 0;
@@ -92,7 +98,8 @@ function drawAreaBurst(ctx, proj, camera, lowQuality) {
 /**
  * boomerang — 부메랑 투사체 (타원형 + 회전)
  */
-function drawBoomerang(ctx, proj, camera, lowQuality) {
+function drawBoomerang(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   ctx.save();
@@ -133,7 +140,8 @@ function drawChainLightning(ctx, proj, camera) {
   ctx.restore();
 }
 
-function drawLaserBeam(ctx, proj, camera, lowQuality) {
+function drawLaserBeam(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   ctx.save();
@@ -153,7 +161,8 @@ function drawLaserBeam(ctx, proj, camera, lowQuality) {
   ctx.restore();
 }
 
-function drawGroundZone(ctx, proj, camera, lowQuality) {
+function drawGroundZone(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const pulse = 1 + Math.sin((proj.lifetime ?? 0) * 8) * 0.06;
@@ -170,7 +179,8 @@ function drawGroundZone(ctx, proj, camera, lowQuality) {
   ctx.restore();
 }
 
-function drawRicochetProjectile(ctx, proj, camera, lowQuality) {
+function drawRicochetProjectile(ctx, proj, camera, lowQuality, spriteRuntime = sharedVfxSpriteRuntime) {
+  if (!lowQuality && spriteRuntime?.drawProjectileSprite?.(ctx, proj, camera)) return;
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const r = proj.radius ?? 6;

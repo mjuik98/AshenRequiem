@@ -166,6 +166,36 @@ test('chainLightning draw 함수가 연쇄 포인트 기반으로 예외 없이 
   });
 });
 
+test('burst draw 함수는 sprite draw가 false면 기존 vector path로 폴백한다', () => {
+  const { ctx, calls } = makeCtx();
+  const fn = getEffectDraw('burst');
+
+  fn(
+    ctx,
+    makeEffect({ effectType: 'burst', lifetime: 0.1, maxLifetime: 0.45 }),
+    camera,
+    1,
+    { drawEffectSprite: () => false },
+  );
+
+  assert.equal(calls.some((call) => call.fn === 'arc'), true, 'sprite 미사용 시 기존 burst vector path가 실행되어야 함');
+});
+
+test('burst draw 함수는 sprite draw가 true면 vector path를 건너뛴다', () => {
+  const { ctx, calls } = makeCtx();
+  const fn = getEffectDraw('burst');
+
+  fn(
+    ctx,
+    makeEffect({ effectType: 'burst', lifetime: 0.1, maxLifetime: 0.45 }),
+    camera,
+    1,
+    { drawEffectSprite: () => true },
+  );
+
+  assert.equal(calls.some((call) => call.fn === 'arc'), false, 'sprite draw 성공 시 vector burst path를 다시 그리면 안 됨');
+});
+
 // ── 결과 ─────────────────────────────────────────────────────────────
 
 console.log(`\n최종 결과: ${passed}개 통과, ${failed}개 실패`);
