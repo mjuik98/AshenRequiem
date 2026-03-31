@@ -4,6 +4,7 @@
  * MERGED:
  *   - Phase 2 Final: projectileCount 필드 추가, 진화 무기 5종 추가
  *   - Phase 4: orbitsPlayer 속성 등 버그 수정 사항 유지
+ *   - Aiming update: aimSpread / aimPattern 으로 조준형 다중 투사체 제어
  */
 export const weaponData = [
   // ── 기본 무기 ──────────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ export const weaponData = [
     description: '가까운 적을 향해 발사되며 돌아오는 관통 부메랑',
     damage: 8, cooldown: 1.4, projectileSpeed: 280, range: 400,
     radius: 10, pierce: 3, maxRange: 600, projectileColor: '#ffd54f',
+    aimSpread: 0.2,
     projectileCount: 1,
     behaviorId: 'boomerang', maxLevel: 7,
   },
@@ -81,7 +83,7 @@ export const weaponData = [
     icon: '🗡',
     description: '직선으로 날아가며 여러 적을 꿰뚫는 창을 발사',
     damage: 9, cooldown: 0.95, projectileSpeed: 440, range: 540,
-    radius: 7, pierce: 4, spread: 0, projectileColor: '#d4a373',
+    radius: 7, pierce: 4, aimSpread: 0, projectileColor: '#d4a373',
     projectileCount: 1,
     behaviorId: 'targetProjectile', maxLevel: 7,
   },
@@ -183,6 +185,7 @@ export const weaponData = [
     description: '무한 관통 흡혈 부메랑 — 부메랑의 최종 진화',
     damage: 18, cooldown: 0.9, projectileSpeed: 360, range: 500,
     radius: 14, pierce: 10, maxRange: 900, projectileColor: '#ff1744',
+    aimSpread: 0.2,
     projectileCount: 1,
     behaviorId: 'boomerang', maxLevel: 7,
     isEvolved: true,
@@ -214,7 +217,7 @@ export const weaponData = [
     icon: '✶',
     description: '별빛 창을 연속으로 발사해 전열을 관통한다 — 관통 창의 최종 진화',
     damage: 14, cooldown: 0.75, projectileSpeed: 520, range: 640,
-    radius: 9, pierce: 7, spread: 0.06, projectileColor: '#f4a261',
+    radius: 9, pierce: 7, aimPattern: 'wide-spread', aimSpread: 0.06, projectileColor: '#f4a261',
     projectileCount: 2,
     behaviorId: 'targetProjectile', maxLevel: 7,
     isEvolved: true,
@@ -245,7 +248,7 @@ export const weaponData = [
     icon: '❖',
     description: '다수의 수정 파편이 더 멀리, 더 많이 튕긴다 — 수정 파편의 최종 진화',
     damage: 8, cooldown: 0.82, projectileSpeed: 360, range: 440,
-    radius: 7, pierce: 6, bounceCount: 5, projectileColor: '#90caf9',
+    radius: 7, pierce: 6, bounceCount: 5, aimPattern: 'wide-spread', aimSpread: 0.06, projectileColor: '#90caf9',
     projectileCount: 2,
     behaviorId: 'ricochetProjectile', maxLevel: 7,
     isEvolved: true,
@@ -255,7 +258,7 @@ export const weaponData = [
     icon: '✪',
     description: '성광 원환이 적들 사이를 안정적으로 순회한다 — 성광 탄환의 최종 진화',
     damage: 7, cooldown: 0.72, projectileSpeed: 340, range: 420,
-    radius: 11, pierce: 5, bounceCount: 4, projectileColor: '#fff8d6',
+    radius: 11, pierce: 5, bounceCount: 4, aimPattern: 'wide-spread', aimSpread: 0.05, projectileColor: '#fff8d6',
     projectileCount: 2,
     behaviorId: 'ricochetProjectile', maxLevel: 7,
     isEvolved: true,

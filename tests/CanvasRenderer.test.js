@@ -72,6 +72,26 @@ test('low quality에서도 ricochetProjectile은 원형 대신 전용 외형을 
   assert.equal(calls.some((call) => call.fn === 'lineTo'), true, 'low quality에서 다이아 형태 경로가 유지되지 않음');
 });
 
+test('wide-spread targetProjectile은 고품질 렌더에서 확산 방향 streak를 추가한다', () => {
+  const { ctx, calls } = makeCtx();
+  const renderer = new CanvasRenderer({ width: 1280, height: 720 }, ctx);
+
+  renderer.drawProjectiles([{
+    isAlive: true,
+    behaviorId: 'targetProjectile',
+    aimPattern: 'wide-spread',
+    x: 120,
+    y: 80,
+    dirX: 1,
+    dirY: 0.25,
+    radius: 6,
+    color: '#f4a261',
+  }], camera, false);
+
+  assert.equal(calls.some((call) => call.fn === 'lineTo'), true, 'wide-spread streak 경로가 그려지지 않음');
+  assert.equal(calls.some((call) => call.fn === 'stroke'), true, 'wide-spread streak가 stroke되지 않음');
+});
+
 test('drawBackground는 seamless background runtime이 처리하면 legacy grid fallback을 건너뛴다', () => {
   const { ctx, calls } = makeCtx();
   const runtimeCalls = { draw: 0 };

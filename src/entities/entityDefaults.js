@@ -25,6 +25,8 @@ export const PROJECTILE_DEFAULTS = {
   radius:             5,
   color:              '#ffee58',
   pierce:             1,
+  aimPattern:         null,
+  aimSpread:          0,
   maxRange:           400,
   distanceTraveled:   0,
   behaviorId:         'targetProjectile',

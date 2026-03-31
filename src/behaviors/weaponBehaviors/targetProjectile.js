@@ -12,7 +12,7 @@
  *
  * ── 개선 이력 ──────────────────────────────────────────────────────
  * Before:
- *   spread 계산 + spawnQueue.push 루프를 이 파일에 직접 인라인.
+ *   aimSpread/aimPattern 계산 + spawnQueue.push 루프를 이 파일에 직접 인라인.
  *   areaBurst.js 에 동일 루프가 복붙되어 중복 존재.
  *
  * After:
@@ -39,4 +39,3 @@ export function targetProjectile({ weapon, player, enemies, spawnQueue }) {
   spawnDirectionalProjectiles(weapon, player, target, spawnQueue);
   return true;
 }
-

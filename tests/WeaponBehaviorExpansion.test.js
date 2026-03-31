@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { makeEnemy, makePlayer, makeProjectile } from './fixtures/index.js';
+import { makeEnemy, makePlayer, makeProjectile, makeWorld } from './fixtures/index.js';
 import { createRunner } from './helpers/testRunner.js';
 
 const { test, summary } = createRunner('최종 결과');
@@ -8,24 +8,71 @@ let getRegisteredBehaviorIds;
 let getWeaponDataById;
 let laserBeam;
 let groundZone;
+let targetProjectile;
 let ricochetProjectile;
 let boomerang;
 let ProjectileSystem;
+let createCollisionSystem;
 
 try {
   ({ getRegisteredBehaviorIds } = await import('../src/behaviors/weaponBehaviorRegistry.js'));
   ({ getWeaponDataById } = await import('../src/data/weaponDataHelpers.js'));
   ({ laserBeam } = await import('../src/behaviors/weaponBehaviors/laserBeam.js'));
   ({ groundZone } = await import('../src/behaviors/weaponBehaviors/groundZone.js'));
+  ({ targetProjectile } = await import('../src/behaviors/weaponBehaviors/targetProjectile.js'));
   ({ ricochetProjectile } = await import('../src/behaviors/weaponBehaviors/ricochetProjectile.js'));
   ({ boomerang } = await import('../src/behaviors/weaponBehaviors/boomerangWeapon.js'));
   ({ ProjectileSystem } = await import('../src/systems/combat/ProjectileSystem.js'));
+  ({ createCollisionSystem } = await import('../src/systems/combat/CollisionSystem.js'));
 } catch (error) {
   console.warn('[테스트] 신규 무기 behavior import 실패:', error.message);
   process.exit(1);
 }
 
 console.log('\n[WeaponBehaviorExpansion]');
+
+function distanceFromRayToTarget(projectileConfig, player, target) {
+  const dx = projectileConfig.dirX ?? 0;
+  const dy = projectileConfig.dirY ?? 0;
+  const px = target.x - player.x;
+  const py = target.y - player.y;
+  const cross = Math.abs(px * dy - py * dx);
+  return cross / (Math.hypot(dx, dy) || 1);
+}
+
+function staysWithinHitRadius(projectileConfig, player, target) {
+  return distanceFromRayToTarget(projectileConfig, player, target)
+    <= (target.radius ?? 0) + (projectileConfig.radius ?? 0);
+}
+
+function runUntilHit(projectileConfigs, player, target, maxSteps = 120) {
+  const collisionSystem = createCollisionSystem();
+  const projectiles = projectileConfigs.map((config) => makeProjectile(config));
+  const world = makeWorld({
+    entities: {
+      player,
+      enemies: [target],
+      projectiles,
+      pickups: [],
+    },
+    presentation: {
+      camera: { x: -320, y: -240, width: 1280, height: 720 },
+    },
+    runtime: {
+      deltaTime: 0.016,
+    },
+  });
+
+  for (let step = 0; step < maxSteps; step++) {
+    ProjectileSystem.update({ world });
+    collisionSystem.update({ world });
+    if (world.queues.events.hits.length > 0) {
+      return world.queues.events.hits;
+    }
+  }
+
+  return world.queues.events.hits;
+}
 
 test('신규 weapon behavior가 레지스트리에 등록된다', () => {
   const ids = getRegisteredBehaviorIds();
@@ -118,6 +165,118 @@ test('ricochetProjectile은 bounceRemaining을 가진 투사체를 생성한다'
   assert.equal(spawnQueue[0].config.bounceRemaining, 3, 'bounceRemaining 누락');
 });
 
+test('targetProjectile은 짝수 발사 수여도 모든 투사체가 타겟 반경 안을 지나간다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 320, y: 0, radius: 6 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'piercing_spear',
+    behaviorId: 'targetProjectile',
+    damage: 9,
+    range: 540,
+    radius: 7,
+    projectileSpeed: 440,
+    projectileCount: 2,
+    aimSpread: 0.2,
+    projectileColor: '#d4a373',
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'targetProjectile 발동 실패');
+  assert.equal(spawnQueue.length, 2, '짝수 발사 spawn 수 불일치');
+  assert.equal(
+    spawnQueue.every(({ config }) => staysWithinHitRadius(config, player, target)),
+    true,
+    '짝수 발사 투사체가 타겟 반경을 벗어남',
+  );
+});
+
+test('targetProjectile은 플레이어와 타겟이 겹치면 facing 방향 기반의 유효한 방향으로 발사한다', () => {
+  const player = makePlayer({ x: 0, y: 0, facingX: 0, facingY: -1, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 0, y: 0, radius: 12 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'magic_bolt',
+    behaviorId: 'targetProjectile',
+    damage: 4,
+    range: 240,
+    radius: 5,
+    projectileSpeed: 350,
+    projectileCount: 2,
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, '겹침 상태에서 targetProjectile 발동 실패');
+  assert.equal(
+    spawnQueue.every(({ config }) => Number.isFinite(config.dirX) && Number.isFinite(config.dirY)),
+    true,
+    '겹침 상태에서 유효하지 않은 방향 벡터 생성',
+  );
+  assert.equal(
+    spawnQueue.every(({ config }) => Math.hypot(config.dirX, config.dirY) > 0.9),
+    true,
+    '겹침 상태에서 0 벡터에 가까운 방향 생성',
+  );
+  assert.equal(
+    spawnQueue.every(({ config }) => config.dirY < -0.5),
+    true,
+    '겹침 상태에서 facing 방향을 따르지 않음',
+  );
+});
+
+test('targetProjectile은 aimPattern=wide-spread 일 때 기존 팬 아웃을 유지한다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 320, y: 0, radius: 6 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'astral_pike',
+    behaviorId: 'targetProjectile',
+    damage: 14,
+    range: 640,
+    radius: 9,
+    projectileSpeed: 520,
+    projectileCount: 2,
+    aimPattern: 'wide-spread',
+    aimSpread: 0.2,
+    projectileColor: '#f4a261',
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'wide-spread targetProjectile 발동 실패');
+  assert.equal(spawnQueue.length, 2, 'wide-spread spawn 수 불일치');
+  assert.equal(
+    spawnQueue.some(({ config }) => !staysWithinHitRadius(config, player, target)),
+    true,
+    'wide-spread가 짝수 발사에서도 강제 명중 형태로 압축됨',
+  );
+});
+
+test('targetProjectile의 guaranteed-hit 짝수 발사는 실제 충돌 시스템에서도 hit 이벤트를 만든다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 160, y: 0, radius: 6 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'magic_bolt',
+    behaviorId: 'targetProjectile',
+    damage: 4,
+    range: 320,
+    radius: 5,
+    projectileSpeed: 350,
+    projectileCount: 2,
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'guaranteed-hit targetProjectile 발동 실패');
+
+  const hits = runUntilHit(
+    spawnQueue.map(({ config }) => config),
+    player,
+    target,
+  );
+
+  assert.equal(hits.length >= 1, true, '실제 충돌 시스템에서 hit 이벤트가 발생하지 않음');
+});
+
 test('boomerang은 weapon.projectileCount 만큼 동시 투척한다', () => {
   const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
   const enemies = [makeEnemy({ x: 140, y: 10 })];
@@ -137,6 +296,59 @@ test('boomerang은 weapon.projectileCount 만큼 동시 투척한다', () => {
   const fired = boomerang({ weapon, player, enemies, spawnQueue });
   assert.equal(fired, true, 'boomerang 발동 실패');
   assert.equal(spawnQueue.length, 3, `boomerang 동시 투척 수 불일치 (실제: ${spawnQueue.length})`);
+});
+
+test('boomerang은 짝수 발사 수여도 모든 투사체가 타겟 반경 안을 지나간다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 320, y: 0, radius: 6 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'boomerang',
+    behaviorId: 'boomerang',
+    damage: 8,
+    range: 360,
+    radius: 10,
+    projectileSpeed: 280,
+    projectileCount: 2,
+    maxRange: 600,
+    projectileColor: '#ffd54f',
+  };
+
+  const fired = boomerang({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'boomerang 발동 실패');
+  assert.equal(spawnQueue.length, 2, '짝수 boomerang spawn 수 불일치');
+  assert.equal(
+    spawnQueue.every(({ config }) => staysWithinHitRadius(config, player, target)),
+    true,
+    '짝수 boomerang 투사체가 타겟 반경을 벗어남',
+  );
+});
+
+test('ricochetProjectile은 짝수 발사 수여도 모든 투사체가 타겟 반경 안을 지나간다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 320, y: 0, radius: 6 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'prism_volley',
+    behaviorId: 'ricochetProjectile',
+    damage: 8,
+    range: 440,
+    radius: 7,
+    projectileSpeed: 360,
+    projectileCount: 2,
+    aimSpread: 0.2,
+    bounceCount: 5,
+    projectileColor: '#90caf9',
+  };
+
+  const fired = ricochetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'ricochetProjectile 발동 실패');
+  assert.equal(spawnQueue.length, 2, '짝수 ricochet spawn 수 불일치');
+  assert.equal(
+    spawnQueue.every(({ config }) => staysWithinHitRadius(config, player, target)),
+    true,
+    '짝수 ricochet 투사체가 타겟 반경을 벗어남',
+  );
 });
 
 test('groundZone 투사체는 tick interval마다 hitTargets를 초기화한다', () => {

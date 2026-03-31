@@ -39,3 +39,6 @@ export { EVENT_TYPES } from './events.js';
 
 // ── entities.js ────────────────────────────────────────────────────────
 export { PLAYER_DEFAULTS, PICKUP_DEFAULTS, PICKUP_BEHAVIOR } from './entities.js';
+
+// ── aiming.js ─────────────────────────────────────────────────────────
+export { AIMING, AIM_PATTERN } from './aiming.js';

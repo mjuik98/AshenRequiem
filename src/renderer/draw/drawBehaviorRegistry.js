@@ -19,6 +19,30 @@
  */
 
 import { sharedVfxSpriteRuntime } from '../sprites/vfxSpriteRuntime.js';
+import { AIMING, AIM_PATTERN } from '../../data/constants/aiming.js';
+
+function drawWideSpreadStreak(ctx, proj, camera) {
+  if (proj.aimPattern !== AIM_PATTERN.WIDE_SPREAD) return;
+
+  const sx = proj.x - camera.x;
+  const sy = proj.y - camera.y;
+  const dirX = proj.dirX ?? 1;
+  const dirY = proj.dirY ?? 0;
+  const length = Math.hypot(dirX, dirY) || 1;
+  const ux = dirX / length;
+  const uy = dirY / length;
+  const streakLength = (proj.radius ?? 5) * AIMING.WIDE_SPREAD_STREAK_LENGTH_MULT;
+
+  ctx.save();
+  ctx.globalAlpha = AIMING.WIDE_SPREAD_STREAK_ALPHA;
+  ctx.strokeStyle = proj.color ?? '#f4a261';
+  ctx.lineWidth = AIMING.WIDE_SPREAD_STREAK_WIDTH;
+  ctx.beginPath();
+  ctx.moveTo(sx - ux * streakLength, sy - uy * streakLength);
+  ctx.lineTo(sx + ux * (proj.radius ?? 5) * 0.35, sy + uy * (proj.radius ?? 5) * 0.35);
+  ctx.stroke();
+  ctx.restore();
+}
 
 // ── draw 구현체 ───────────────────────────────────────────────────────────
 
@@ -43,6 +67,7 @@ function drawTargetProjectile(ctx, proj, camera, lowQuality, spriteRuntime = sha
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const r  = proj.radius ?? 5;
+  if (!lowQuality) drawWideSpreadStreak(ctx, proj, camera);
   ctx.beginPath();
   ctx.arc(sx, sy, r, 0, Math.PI * 2);
   ctx.fillStyle = proj.color ?? '#ffdd44';
@@ -184,6 +209,7 @@ function drawRicochetProjectile(ctx, proj, camera, lowQuality, spriteRuntime = s
   const sx = proj.x - camera.x;
   const sy = proj.y - camera.y;
   const r = proj.radius ?? 6;
+  if (!lowQuality) drawWideSpreadStreak(ctx, proj, camera);
   ctx.save();
   ctx.translate(sx, sy);
   ctx.rotate(Math.atan2(proj.dirY ?? 0, proj.dirX ?? 1));

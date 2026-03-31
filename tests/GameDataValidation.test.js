@@ -128,5 +128,20 @@ await test('shared validation module rejects malformed seamless tile background 
   assert.equal(report.errors.some((message) => message.includes('images.overlayAlpha')), true);
 });
 
+await test('shared validation module rejects invalid weapon aiming contracts', async () => {
+  const validation = await import('../src/data/gameDataValidation.js');
+
+  const report = validation.validateCoreGameData({
+    weaponData: [
+      { id: 'bad_pattern', maxLevel: 7, behaviorId: 'targetProjectile', aimPattern: 'fan', aimSpread: 0.1 },
+      { id: 'bad_spread', maxLevel: 7, behaviorId: 'targetProjectile', aimPattern: 'wide-spread', aimSpread: -0.1 },
+    ],
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.errors.some((message) => message.includes('aimPattern')), true);
+  assert.equal(report.errors.some((message) => message.includes('aimSpread')), true);
+});
+
 console.log(`\nGameDataValidation: ${passed}개 통과, ${failed}개 실패`);
 if (failed > 0) process.exit(1);

@@ -115,6 +115,22 @@ test('permanentUpgradeData에 reroll_charge와 banish_charge가 존재한다', (
   assert.ok(permanentUpgradeData.find(item => item.id === 'banish_charge'), 'banish_charge 데이터 없음');
 });
 
+test('meta shop utility/curse 업그레이드는 확장된 최대 레벨과 효과 값을 유지한다', () => {
+  const permCurse = permanentUpgradeData.find((item) => item.id === 'perm_curse');
+  const rerollCharge = permanentUpgradeData.find((item) => item.id === 'reroll_charge');
+  const banishCharge = permanentUpgradeData.find((item) => item.id === 'banish_charge');
+
+  assert.ok(permCurse, 'perm_curse 데이터 없음');
+  assert.equal(permCurse.maxLevel, 10, '불길한 계약 maxLevel이 10이 아님');
+  assert.equal(permCurse.effect?.valuePerLevel, 0.10, '불길한 계약 레벨당 효과가 +10%가 아님');
+
+  assert.ok(rerollCharge, 'reroll_charge 데이터 없음');
+  assert.equal(rerollCharge.maxLevel, 10, '전술 재편 maxLevel이 10이 아님');
+
+  assert.ok(banishCharge, 'banish_charge 데이터 없음');
+  assert.equal(banishCharge.maxLevel, 10, '추방의 인장 maxLevel이 10이 아님');
+});
+
 test('선택지에 중복 id 없음 (heal 폴백 제외)', () => {
   if (!UpgradeSystem) return;
   const choices = UpgradeSystem.generateChoices(makePlayer(), {}, makeUpgradeRuntimeData());

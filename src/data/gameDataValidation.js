@@ -1,3 +1,5 @@
+import { AIM_PATTERN } from './constants/aiming.js';
+
 function collectDuplicateIdErrors(items, label) {
   const ids = items.map((entry) => entry.id);
   return ids
@@ -9,6 +11,7 @@ const ASSET_BUDGET_TIERS = new Set(['critical', 'standard', 'luxury']);
 const ASSET_QUALITY_POLICIES = new Set(['fixed', 'scalable', 'fallback']);
 const ASSET_SOURCE_TYPES = new Set(['dom', 'procedural', 'audio', 'image']);
 const STAGE_BACKGROUND_MODES = new Set(['legacy_grid', 'seamless_tile']);
+const AIM_PATTERNS = new Set(Object.values(AIM_PATTERN));
 
 function validateAssetManifestEntries(assetManifest = []) {
   const errors = [];
@@ -122,6 +125,12 @@ export function validateCoreGameData({
     }
     if (weapon.behaviorId && typeof weapon.behaviorId !== 'string') {
       errors.push(`[validate] weaponData "${weapon.id}" behaviorId가 문자열이 아님`);
+    }
+    if (weapon.aimPattern !== undefined && !AIM_PATTERNS.has(weapon.aimPattern)) {
+      errors.push(`[validate] weaponData "${weapon.id}" aimPattern이 유효하지 않음`);
+    }
+    if (weapon.aimSpread !== undefined && (!Number.isFinite(weapon.aimSpread) || weapon.aimSpread < 0)) {
+      errors.push(`[validate] weaponData "${weapon.id}" aimSpread가 유효하지 않음`);
     }
   }
 

@@ -11,8 +11,8 @@
  * 투사체 이동/귀환 로직: src/systems/combat/ProjectileSystem.js 참조
  * weaponData.js 항목: { id: 'boomerang', behaviorId: 'boomerang', ... }
  */
-import { getLiveEnemies, findClosestEnemy } from './weaponBehaviorUtils.js';
-import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
+import { getLiveEnemies, findClosestEnemy, buildTargetedDirections, getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
+import { AIM_PATTERN } from '../../data/constants/aiming.js';
 import { spawnProjectile } from '../../state/spawnRequest.js';
 
 /**
@@ -29,26 +29,15 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
   const nearest = findClosestEnemy(player, alive, range);
   if (!nearest) return false;
 
-  const dx  = nearest.x - player.x;
-  const dy  = nearest.y - player.y;
-  const len = Math.sqrt(dx * dx + dy * dy) || 1;
-
-  // 보너스 투사체 반영을 위해 spawnDirectionalProjectiles 패턴 사용
-  // 단, boomerang은 고유 config가 있으므로 직접 루프 구현
   const bonus = player?.bonusProjectileCount ?? 0;
   const count = (weapon.projectileCount ?? 1) + Math.floor(bonus);
-  const spread = 0.2; // 약 11.5도
+  const defaultAimSpread = 0.2;
   const lifetimeMult = getProjectileLifetimeMult(player);
   const maxRange = (weapon.maxRange ?? 600) * lifetimeMult;
+  const directions = buildTargetedDirections(weapon, player, nearest, count, defaultAimSpread);
 
   for (let i = 0; i < count; i++) {
-    const offset = (i - (count - 1) / 2) * spread;
-    const cos = Math.cos(offset);
-    const sin = Math.sin(offset);
-
-    // 기본 방향 벡터 (dirX, dirY)를 offset만큼 회전
-    const rx = (dx / len) * cos - (dy / len) * sin;
-    const ry = (dx / len) * sin + (dy / len) * cos;
+    const direction = directions[i];
 
     spawnQueue.push(spawnProjectile({
       x: player.x,
@@ -56,14 +45,16 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
       config: {
         x:                player.x,
         y:                player.y,
-        dirX:             rx,
-        dirY:             ry,
-        angle:            Math.atan2(ry, rx),
+        dirX:             direction.x,
+        dirY:             direction.y,
+        angle:            Math.atan2(direction.y, direction.x),
         speed:            weapon.projectileSpeed ?? weapon.speed ?? 280,
         damage:           weapon.damage          ?? 8,
         radius:           weapon.radius          ?? 10,
         color:            weapon.projectileColor ?? weapon.color ?? '#ffd54f',
         pierce:           weapon.pierce          ?? 3,
+        aimPattern:       weapon.aimPattern ?? AIM_PATTERN.GUARANTEED_HIT,
+        aimSpread:        weapon.aimSpread ?? defaultAimSpread,
         maxRange,
         behaviorId:       'boomerang',
         ownerId:          player.id,
