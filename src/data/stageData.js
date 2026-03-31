@@ -22,9 +22,23 @@ export const stageData = [
     rewardMult: 1.0,
     eliteChanceBonus: 0.0,
     background: {
+      mode: 'seamless_tile',
+      tileSize: 1024,
       fillStyle: '#0d1117',
       gridColor: 'rgba(255,255,255,0.04)',
       accentColor: 'rgba(199,163,93,0.06)',
+      palette: {
+        base: '#0d1117',
+        stone: '#232730',
+        crack: '#171a20',
+        dust: 'rgba(216,212,196,0.05)',
+        ember: 'rgba(199,163,93,0.06)',
+        grid: 'rgba(255,255,255,0.04)',
+      },
+      layers: [
+        { id: 'stone_base', type: 'stone_noise', alpha: 1, drift: 0 },
+        { id: 'ash_drift', type: 'ash_drift', alpha: 0.22, drift: 0.08 },
+      ],
     },
     assets: {
       backgroundKey: 'stage_bg_ash_plains',
@@ -91,9 +105,23 @@ export const stageData = [
     rewardMult: 1.1,
     eliteChanceBonus: 0.03,
     background: {
+      mode: 'seamless_tile',
+      tileSize: 1024,
       fillStyle: '#11101c',
       gridColor: 'rgba(196,210,255,0.05)',
       accentColor: 'rgba(112,124,182,0.08)',
+      palette: {
+        base: '#11101c',
+        stone: '#24263a',
+        crack: '#18192a',
+        dust: 'rgba(214,220,255,0.05)',
+        ember: 'rgba(112,124,182,0.08)',
+        grid: 'rgba(196,210,255,0.05)',
+      },
+      layers: [
+        { id: 'crypt_stone', type: 'stone_noise', alpha: 1, drift: 0 },
+        { id: 'spectral_dust', type: 'mist_drift', alpha: 0.2, drift: 0.05 },
+      ],
     },
     assets: {
       backgroundKey: 'stage_bg_moon_crypt',
@@ -170,9 +198,23 @@ export const stageData = [
     rewardMult: 1.18,
     eliteChanceBonus: 0.05,
     background: {
+      mode: 'seamless_tile',
+      tileSize: 1024,
       fillStyle: '#160d0d',
       gridColor: 'rgba(255,214,170,0.05)',
       accentColor: 'rgba(255,112,67,0.09)',
+      palette: {
+        base: '#160d0d',
+        stone: '#2b201d',
+        crack: '#1f1414',
+        dust: 'rgba(255,221,188,0.05)',
+        ember: 'rgba(255,112,67,0.09)',
+        grid: 'rgba(255,214,170,0.05)',
+      },
+      layers: [
+        { id: 'ember_stone', type: 'stone_noise', alpha: 1, drift: 0 },
+        { id: 'ember_haze', type: 'ash_drift', alpha: 0.24, drift: 0.09 },
+      ],
     },
     assets: {
       backgroundKey: 'stage_bg_ember_hollow',
@@ -261,9 +303,23 @@ export const stageData = [
     rewardMult: 1.15,
     eliteChanceBonus: 0.04,
     background: {
+      mode: 'seamless_tile',
+      tileSize: 1024,
       fillStyle: '#0b1322',
       gridColor: 'rgba(180,214,255,0.05)',
       accentColor: 'rgba(114,180,255,0.09)',
+      palette: {
+        base: '#0b1322',
+        stone: '#1d2a38',
+        crack: '#101923',
+        dust: 'rgba(214,231,255,0.05)',
+        ember: 'rgba(114,180,255,0.09)',
+        grid: 'rgba(180,214,255,0.05)',
+      },
+      layers: [
+        { id: 'harbor_stone', type: 'stone_noise', alpha: 1, drift: 0 },
+        { id: 'cold_mist', type: 'mist_drift', alpha: 0.18, drift: 0.04 },
+      ],
     },
     assets: {
       backgroundKey: 'stage_bg_frost_harbor',

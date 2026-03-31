@@ -8,11 +8,20 @@ function cloneAccessories(accessories = []) {
   return (accessories ?? []).map((accessory) => ({ ...accessory }));
 }
 
+function cloneStageBackground(background = null) {
+  if (!background || typeof background !== 'object') return undefined;
+  return {
+    ...background,
+    palette: background.palette ? { ...background.palette } : undefined,
+    layers: Array.isArray(background.layers) ? background.layers.map((layer) => ({ ...layer })) : undefined,
+  };
+}
+
 function cloneRunStage(stage = null) {
   if (!stage || typeof stage !== 'object') return null;
   return {
     ...stage,
-    background: stage.background ? { ...stage.background } : undefined,
+    background: cloneStageBackground(stage.background),
   };
 }
 

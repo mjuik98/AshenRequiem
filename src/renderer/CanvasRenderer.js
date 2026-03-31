@@ -4,6 +4,7 @@ import { drawPlayer }             from './draw/drawPlayer.js';
 import { drawEnemy }              from './draw/drawEnemy.js';
 import { drawProjectile }         from './draw/drawProjectile.js';
 import { drawEffect, drawPickup } from './draw/drawEffect.js';
+import { createStageBackgroundRenderer } from './background/createStageBackgroundRenderer.js';
 
 function drawProjectileLowQuality(ctx, proj, camera) {
   if (!proj?.isAlive) return;
@@ -80,12 +81,13 @@ function drawProjectileLowQuality(ctx, proj, camera) {
  *     - 'medium' → RenderSystem의 자동 판단 유지 (기존 동작)
  */
 export class CanvasRenderer {
-  constructor(canvas, ctx) {
+  constructor(canvas, ctx, { backgroundRenderer = createStageBackgroundRenderer() } = {}) {
     this.canvas = canvas;
     this.ctx    = ctx;
     this._lowQuality    = false;
     this._qualityPreset = 'medium';  // 설정 화면에서 지정하는 품질 프리셋
     this._glowEnabled   = true;
+    this._backgroundRenderer = backgroundRenderer;
   }
 
   // ── 품질 프리셋 ──────────────────────────────────────────────────────────
@@ -114,7 +116,7 @@ export class CanvasRenderer {
     ctx.restore();
   }
 
-  drawBackground(camera, stage = null) {
+  drawLegacyBackground(camera, stage = null) {
     const ctx      = this.ctx;
     const w        = GameConfig.canvasWidth;
     const h        = GameConfig.canvasHeight;
@@ -158,6 +160,16 @@ export class CanvasRenderer {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, w, h);
     }
+  }
+
+  drawBackground(camera, stage = null) {
+    const viewport = {
+      width: GameConfig.canvasWidth,
+      height: GameConfig.canvasHeight,
+    };
+    const handled = this._backgroundRenderer?.draw?.(this.ctx, camera, stage, viewport) === true;
+    if (handled) return;
+    this.drawLegacyBackground(camera, stage);
   }
 
   // ── IRenderer 구현 ───────────────────────────────────────────────────────

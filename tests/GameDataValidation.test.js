@@ -58,5 +58,70 @@ await test('shared validation module reports core duplicate/reference errors for
   assert.equal(report.errors.some((message) => message.includes('qualityPolicy')), true);
 });
 
+await test('asset validation accepts raster image sourceType for VFX atlases', async () => {
+  const validation = await import('../src/data/gameDataValidation.js');
+
+  const report = validation.validateCoreGameData({
+    assetManifest: [
+      {
+        id: 'vfx_projectiles_atlas',
+        category: 'fx_surface',
+        kind: 'sprite_atlas',
+        preloadGroup: 'combat_vfx',
+        budgetTier: 'standard',
+        estimatedBytes: 4096,
+        qualityPolicy: 'scalable',
+        sourceType: 'image',
+      },
+    ],
+  });
+
+  assert.equal(report.errors.some((message) => message.includes('sourceType')), false, 'image sourceType이 허용되어야 함');
+});
+
+await test('shared validation module rejects malformed seamless tile background contracts', async () => {
+  const validation = await import('../src/data/gameDataValidation.js');
+
+  const report = validation.validateCoreGameData({
+    stageData: [
+      {
+        id: 'ash_plains',
+        background: {
+          mode: 'seamless_tile',
+          tileSize: 0,
+          palette: {
+            base: '#0d1117',
+          },
+        },
+        assets: {
+          backgroundKey: 'stage_bg_ash_plains',
+          bossCueKey: 'boss_cue_ash_plains',
+        },
+      },
+      {
+        id: 'moon_crypt',
+        background: {
+          mode: 'unknown_mode',
+        },
+        assets: {
+          backgroundKey: 'stage_bg_moon_crypt',
+          bossCueKey: 'boss_cue_moon_crypt',
+        },
+      },
+    ],
+    assetManifest: [
+      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette', preloadGroup: 'stage_ash_plains', budgetTier: 'critical', estimatedBytes: 1200, qualityPolicy: 'fixed', sourceType: 'procedural' },
+      { id: 'boss_cue_ash_plains', category: 'audio_cue', kind: 'procedural_sfx', preloadGroup: 'stage_ash_plains', budgetTier: 'standard', estimatedBytes: 600, qualityPolicy: 'fallback', sourceType: 'audio' },
+      { id: 'stage_bg_moon_crypt', category: 'stage_background', kind: 'procedural_palette', preloadGroup: 'stage_moon_crypt', budgetTier: 'critical', estimatedBytes: 1200, qualityPolicy: 'fixed', sourceType: 'procedural' },
+      { id: 'boss_cue_moon_crypt', category: 'audio_cue', kind: 'procedural_sfx', preloadGroup: 'stage_moon_crypt', budgetTier: 'standard', estimatedBytes: 600, qualityPolicy: 'fallback', sourceType: 'audio' },
+    ],
+  });
+
+  assert.equal(report.ok, false);
+  assert.equal(report.errors.some((message) => message.includes('tileSize')), true);
+  assert.equal(report.errors.some((message) => message.includes('background.mode')), true);
+  assert.equal(report.errors.some((message) => message.includes('palette')), true);
+});
+
 console.log(`\nGameDataValidation: ${passed}개 통과, ${failed}개 실패`);
 if (failed > 0) process.exit(1);

@@ -7,7 +7,8 @@ function collectDuplicateIdErrors(items, label) {
 
 const ASSET_BUDGET_TIERS = new Set(['critical', 'standard', 'luxury']);
 const ASSET_QUALITY_POLICIES = new Set(['fixed', 'scalable', 'fallback']);
-const ASSET_SOURCE_TYPES = new Set(['dom', 'procedural', 'audio']);
+const ASSET_SOURCE_TYPES = new Set(['dom', 'procedural', 'audio', 'image']);
+const STAGE_BACKGROUND_MODES = new Set(['legacy_grid', 'seamless_tile']);
 
 function validateAssetManifestEntries(assetManifest = []) {
   const errors = [];
@@ -29,6 +30,38 @@ function validateAssetManifestEntries(assetManifest = []) {
     if (!ASSET_SOURCE_TYPES.has(entry.sourceType)) {
       errors.push(`[validate] assetManifest "${entry.id}" sourceType이 유효하지 않음`);
     }
+  }
+
+  return errors;
+}
+
+function validateStageBackground(stage = {}) {
+  const errors = [];
+  const background = stage.background;
+  if (!background || typeof background !== 'object') return errors;
+
+  const mode = background.mode ?? 'legacy_grid';
+  if (!STAGE_BACKGROUND_MODES.has(mode)) {
+    errors.push(`[validate] stageData "${stage.id}" background.mode가 유효하지 않음`);
+    return errors;
+  }
+
+  if (mode !== 'seamless_tile') return errors;
+
+  if (!Number.isFinite(background.tileSize) || background.tileSize <= 0) {
+    errors.push(`[validate] stageData "${stage.id}" background.tileSize가 유효하지 않음`);
+  }
+
+  if (!background.palette || typeof background.palette !== 'object') {
+    errors.push(`[validate] stageData "${stage.id}" background.palette가 없음`);
+    return errors;
+  }
+
+  if (typeof background.palette.base !== 'string' || background.palette.base.length <= 0) {
+    errors.push(`[validate] stageData "${stage.id}" background.palette.base가 비어 있음`);
+  }
+  if (typeof background.palette.ember !== 'string' || background.palette.ember.length <= 0) {
+    errors.push(`[validate] stageData "${stage.id}" background.palette.ember가 비어 있음`);
   }
 
   return errors;
@@ -77,6 +110,7 @@ export function validateCoreGameData({
   const assetIds = new Set(assetManifest.map((entry) => entry?.id).filter(Boolean));
   for (const stage of stageData) {
     if (!stage?.id) continue;
+    errors.push(...validateStageBackground(stage));
     if (!stage.assets?.backgroundKey) {
       errors.push(`[validate] stageData "${stage.id}" backgroundKey 없음`);
     } else if (!assetIds.has(stage.assets.backgroundKey)) {

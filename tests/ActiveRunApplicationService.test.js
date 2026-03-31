@@ -15,7 +15,20 @@ test('active run service는 world/player snapshot을 캡처하고 복원한다',
       killCount: 45,
       runCurrencyEarned: 12,
       stageId: 'ember_hollow',
-      stage: { id: 'ember_hollow', name: 'Ember Hollow' },
+      stage: {
+        id: 'ember_hollow',
+        name: 'Ember Hollow',
+        background: {
+          mode: 'seamless_tile',
+          tileSize: 1024,
+          palette: {
+            base: '#121317',
+            stone: '#23262c',
+            ember: 'rgba(110,30,18,0.12)',
+          },
+          layers: [{ id: 'ash_overlay', type: 'ash_drift', alpha: 0.22 }],
+        },
+      },
       seedMode: 'custom',
       seedLabel: 'ashen-seed',
       lastDamageSource: { attackerId: 'boss_lich', label: 'boss_lich' },
@@ -37,6 +50,13 @@ test('active run service는 world/player snapshot을 캡처하고 복원한다',
   assert.equal(snapshot.run.stageId, 'ember_hollow');
   assert.equal(snapshot.player.level, 5);
   assert.deepEqual(snapshot.player.acquiredUpgrades, ['up_magic_bolt']);
+  assert.deepEqual(snapshot.run.stage.background.palette, {
+    base: '#121317',
+    stone: '#23262c',
+    ember: 'rgba(110,30,18,0.12)',
+  });
+  assert.notEqual(snapshot.run.stage.background.palette, world.run.stage.background.palette, 'background.palette는 deep clone이어야 함');
+  assert.notEqual(snapshot.run.stage.background.layers, world.run.stage.background.layers, 'background.layers는 deep clone이어야 함');
 
   const freshWorld = makeWorld({ run: {}, entities: { player: makePlayer({ weapons: [], accessories: [] }) } });
   const restored = api.restoreActiveRunSnapshot(freshWorld, freshWorld.entities.player, snapshot);
@@ -45,6 +65,11 @@ test('active run service는 world/player snapshot을 캡처하고 복원한다',
   assert.equal(freshWorld.run.elapsedTime, 123, 'run snapshot이 복원되지 않음');
   assert.equal(freshWorld.entities.player.level, 5, 'player snapshot이 복원되지 않음');
   assert.equal(freshWorld.entities.player.acquiredUpgrades.has('up_magic_bolt'), true, 'Set 기반 업그레이드가 복원되지 않음');
+  assert.deepEqual(freshWorld.run.stage.background.palette, {
+    base: '#121317',
+    stone: '#23262c',
+    ember: 'rgba(110,30,18,0.12)',
+  });
 });
 
 test('active run service는 세션에 snapshot 저장/삭제를 캡슐화한다', () => {

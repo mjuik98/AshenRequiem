@@ -55,6 +55,7 @@
 - [x] 데일리 챌린지 승리 보상과 Codex daily 통계
 - [x] daily streak / milestone 보상과 결과·Codex 추천 조정
 - [x] 추가 stage / 무기 / 장신구 데이터 확장
+- [x] seamless procedural stage background pipeline
 - [x] 파이프라인 성능 예산 검증 (`profile:check`)
 - [x] deterministic browser smoke 시나리오
 

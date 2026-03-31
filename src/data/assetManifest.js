@@ -41,7 +41,7 @@ export const assetManifest = [
     estimatedBytes: 24000,
     qualityPolicy: 'fixed',
     sourceType: 'procedural',
-    description: 'Ash Plains background palette and grid treatment.',
+    description: 'Ash Plains seamless procedural floor tile theme and ash overlay treatment.',
   },
   {
     id: 'stage_bg_moon_crypt',
@@ -52,7 +52,7 @@ export const assetManifest = [
     estimatedBytes: 26000,
     qualityPolicy: 'fixed',
     sourceType: 'procedural',
-    description: 'Moon Crypt background palette and grid treatment.',
+    description: 'Moon Crypt seamless procedural floor tile theme and spectral overlay treatment.',
   },
   {
     id: 'stage_bg_ember_hollow',
@@ -63,7 +63,7 @@ export const assetManifest = [
     estimatedBytes: 25500,
     qualityPolicy: 'fixed',
     sourceType: 'procedural',
-    description: 'Ember Hollow background palette and grid treatment.',
+    description: 'Ember Hollow seamless procedural floor tile theme and ember haze treatment.',
   },
   {
     id: 'stage_bg_frost_harbor',
@@ -74,7 +74,7 @@ export const assetManifest = [
     estimatedBytes: 27000,
     qualityPolicy: 'fixed',
     sourceType: 'procedural',
-    description: 'Frost Harbor background palette and grid treatment.',
+    description: 'Frost Harbor seamless procedural floor tile theme and cold mist treatment.',
   },
   {
     id: 'boss_cue_ash_plains',
@@ -163,5 +163,27 @@ export const assetManifest = [
     qualityPolicy: 'scalable',
     sourceType: 'procedural',
     description: 'Frost Harbor stage echo and crossfire treatment.',
+  },
+  {
+    id: 'vfx_projectiles_atlas',
+    category: 'fx_surface',
+    kind: 'sprite_atlas',
+    preloadGroup: 'combat_vfx',
+    budgetTier: 'standard',
+    estimatedBytes: 8192,
+    qualityPolicy: 'scalable',
+    sourceType: 'image',
+    description: 'Projectile VFX sprite atlas for combat readability and mood.',
+  },
+  {
+    id: 'vfx_effects_atlas',
+    category: 'fx_surface',
+    kind: 'sprite_atlas',
+    preloadGroup: 'combat_vfx',
+    budgetTier: 'standard',
+    estimatedBytes: 8192,
+    qualityPolicy: 'scalable',
+    sourceType: 'image',
+    description: 'Impact and burst VFX sprite atlas for combat effects.',
   },
 ];
