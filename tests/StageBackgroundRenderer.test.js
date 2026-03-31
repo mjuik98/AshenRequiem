@@ -14,7 +14,7 @@ function makeCtx() {
     lineWidth: 1,
   };
   const methods = new Set([
-    'save', 'restore', 'translate', 'fillRect', 'beginPath', 'moveTo', 'lineTo', 'stroke',
+    'save', 'restore', 'translate', 'fillRect', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'drawImage',
   ]);
 
   return {
@@ -71,6 +71,37 @@ test('stage background renderer repeats seamless tiles using camera modulo offse
   assert.equal(drawn, true);
   assert.equal(calls.some((call) => call.fn === 'translate'), true, 'camera offset translate가 호출되어야 함');
   assert.equal(calls.filter((call) => call.fn === 'fillRect').length >= 4, true, '반복 타일 fillRect가 여러 번 호출되어야 함');
+});
+
+test('stage background renderer repeats ready image tiles when seamless image sources are present', async () => {
+  const { createStageBackgroundRenderer } = await import('../src/renderer/background/createStageBackgroundRenderer.js');
+  const { ctx, calls } = makeCtx();
+  const imageFactory = () => ({
+    complete: true,
+    naturalWidth: 1024,
+    addEventListener() {},
+  });
+  const renderer = createStageBackgroundRenderer({ imageFactory });
+
+  const drawn = renderer.draw(ctx, { x: 256, y: 128 }, {
+    background: {
+      mode: 'seamless_tile',
+      tileSize: 1024,
+      palette: {
+        base: '#111111',
+        ember: 'rgba(0,0,0,0)',
+      },
+      images: {
+        baseSrc: '/assets/backgrounds/ashen-stone-floor-tile.png',
+        overlaySrc: '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+        overlayAlpha: 0.18,
+      },
+      layers: [],
+    },
+  }, { width: 800, height: 600 });
+
+  assert.equal(drawn, true);
+  assert.equal(calls.some((call) => call.fn === 'drawImage'), true, '준비된 이미지 타일은 drawImage로 반복 렌더링되어야 함');
 });
 
 summary();

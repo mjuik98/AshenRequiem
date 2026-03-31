@@ -25,7 +25,7 @@ Last verified against code: 2026-03-31
 - HUD guidance는 `위협 / 보스 / 스테이지 규칙 / 목표` chip과 단일 contextual note로 재정렬돼, 요약 문구는 chip 내부가 아니라 note row에 배치된다.
 - stage catalog는 `assets.backgroundKey`, `assets.bossCueKey`, `assets.stageFxKey`를 통해 first-class asset manifest key를 참조하며, `GameDataLoader.loadDefault()`는 `assetManifest`도 함께 적재한다.
 - asset manifest entry는 이제 stable key 외에도 `preloadGroup`, `budgetTier`, `estimatedBytes`, `qualityPolicy`, `sourceType` shipping metadata를 가진다. `gameDataValidation`은 잘못된 preload/budget/quality/source policy를 함께 검증한다.
-- stage background는 더 이상 `CanvasRenderer` 내부의 단순 fill/grid만으로 고정되지 않는다. `stageData.background`는 `mode/tileSize/palette/layers` 토큰을 제공하고, `CanvasRenderer`는 `src/renderer/background/createStageBackgroundRenderer.js` runtime에 seamless tile 렌더링을 위임한 뒤 legacy grid 경로로만 폴백한다.
+- stage background는 더 이상 `CanvasRenderer` 내부의 단순 fill/grid만으로 고정되지 않는다. `stageData.background`는 `mode/tileSize/palette/layers/images` 토큰을 제공하고, `CanvasRenderer`는 `src/renderer/background/createStageBackgroundRenderer.js` runtime에 seamless tile 렌더링을 위임한 뒤 legacy grid 경로로만 폴백한다.
 - 투사체/이펙트 렌더러는 `src/renderer/sprites/vfxSpriteManifest.js`와 `src/renderer/sprites/vfxSpriteRuntime.js`를 통해 raster atlas를 lazy-load하고, atlas가 준비되지 않았거나 실패하면 기존 vector draw registry 경로로 폴백한다.
 - combat VFX atlas는 `public/assets/vfx/projectiles-atlas.png`, `public/assets/vfx/effects-atlas.png`에 위치하며 `assetManifest`에서 `vfx_projectiles_atlas`, `vfx_effects_atlas` shipping key로 관리된다.
 - browser smoke는 이제 combat pressure 외에도 `touch_hud_mobile`, `daily_seed_run` extended 시나리오를 포함하며, authoring용 `npm run encounter:report`는 wave/stage/boss pacing뿐 아니라 pressure/reward/gimmick metrics까지 출력한다.
@@ -124,7 +124,7 @@ Detected top-level scene modules in `src/scenes/`:
 - deterministic smoke 시나리오는 `combat_pressure`, `boss_readability` 외에 `touch_hud_mobile`, `daily_seed_run`을 추가로 등록했고, `bootToPlay()` helper는 runtime flag/viewport/beforeStartRun hook을 받아 selector click 폴백과 함께 loadout 사전 조작을 지원한다.
 - 결과 화면은 이번 런 요약 외에도 unlock guidance 기반의 `다음 목표` chips, daily challenge streak/reward 상태, analytics 기반 `추천 조정`, `전투 복기` 섹션을 함께 보여준다. Codex 기록 탭은 하이라이트, 장기 목표, 발견 진행, 업적, 해금 보상 중심의 요약 화면을 렌더한다.
 - stage catalog는 `ash_plains`, `moon_crypt`, `ember_hollow`, `frost_harbor` 4개를 포함하고, 각 stage는 `bossEcho` signature gimmick을 가진다. boss phase action은 `projectile_nova`와 `stage_echo`까지 확장됐다.
-- 각 stage는 `background.mode === "seamless_tile"` 기반의 declarative floor theme를 가지며, `palette`/`layers` 토큰은 절차적 배경 renderer가 소비한다. active run snapshot은 이 nested background shape를 deep clone으로 저장/복원한다.
+- 각 stage는 `background.mode === "seamless_tile"` 기반의 declarative floor theme를 가지며, `palette`/`layers`/`images` 토큰은 stage background renderer가 소비한다. `ash_plains`, `moon_crypt`, `ember_hollow`는 image tile set을, 나머지 stage는 절차적 palette/layer 토큰을 사용한다. active run snapshot은 이 nested background shape를 deep clone으로 저장/복원한다.
 - 각 stage는 `encounterTimeline`을 가지며, beat별 `spawnRateMult`, `gimmickIntervalMult`, `label`, `summaryText`가 전투 리듬과 HUD 문구를 함께 정의한다.
 - 각 stage는 `stageDirective`를 함께 가져, 런 시작 guidance와 HUD stage chip이 스테이지 고유 규칙을 한 줄로 설명한다. `ash_plains`는 ward pickup gimmick(`ashen_lantern`)도 함께 가진다.
 - 각 stage는 `modifierDrafts`도 함께 가져, 런 guidance가 `stageModifier` snapshot을 만들고 HUD/debug/report surface가 `ruleText`와 `counterplay`를 노출한다.
@@ -153,7 +153,7 @@ Detected top-level scene modules in `src/scenes/`:
 - 추가 스테이지/보스 패턴: `StageRuntimeSystem`의 `hazard_ring`, `cross_barrage`, boss phase action `projectile_arc`, `projectile_nova`, 관련 stage/boss data 반영
 - encounter pacing + HUD guidance: `EncounterDirectorSystem`, `runGuidanceDomain`, `HudView`, stage encounter timeline, `combat_pressure` smoke, `encounter:report`
 - encounter authoring metrics + asset manifest: `encounterAuthoringMetrics`, `assetManifest`, `validateCoreGameData`, `validateData`
-- seamless procedural stage background pipeline: `stageData.background`, `stageBackgroundTheme`, `createStageBackgroundRenderer`, `CanvasRenderer.drawBackground`
+- seamless stage background pipeline with image/procedural fallback: `stageData.background`, `stageBackgroundTheme`, `createStageBackgroundRenderer`, `CanvasRenderer.drawBackground`, `public/assets/backgrounds/*.png`
 - projectile/effect sprite atlases with vector fallback: `vfxSpriteManifest`, `vfxSpriteRuntime`, `drawBehaviorRegistry`, `drawEffectRegistry`, `public/assets/vfx/*.png`
 - game studio operability extensions: `GamepadAdapter`, replay trace runtime, authoring snapshot/overlay, asset shipping metadata validation
 - 추천 빌드 guidance + 메타 roadmap: `runGuidanceDomain.recommendedBuild`, `levelUpChoicePresentation`, `metaGoalDomain`, `playResultSessionService`, `codexRecordsTab`, `metaShopModel`

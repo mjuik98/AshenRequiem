@@ -91,6 +91,10 @@ await test('shared validation module rejects malformed seamless tile background 
           tileSize: 0,
           palette: {
             base: '#0d1117',
+            ember: 'rgba(0,0,0,0)',
+          },
+          images: {
+            overlayAlpha: 2,
           },
         },
         assets: {
@@ -120,7 +124,8 @@ await test('shared validation module rejects malformed seamless tile background 
   assert.equal(report.ok, false);
   assert.equal(report.errors.some((message) => message.includes('tileSize')), true);
   assert.equal(report.errors.some((message) => message.includes('background.mode')), true);
-  assert.equal(report.errors.some((message) => message.includes('palette')), true);
+  assert.equal(report.errors.some((message) => message.includes('images.baseSrc')), true);
+  assert.equal(report.errors.some((message) => message.includes('images.overlayAlpha')), true);
 });
 
 console.log(`\nGameDataValidation: ${passed}개 통과, ${failed}개 실패`);

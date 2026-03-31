@@ -16,6 +16,11 @@ test('buildStageBackgroundTheme normalizes seamless tile defaults and clones lay
       crack: '#2b2b2b',
       ember: 'rgba(120,32,20,0.14)',
     },
+    images: {
+      baseSrc: '/assets/backgrounds/ashen-stone-floor-tile.png',
+      overlaySrc: '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+      overlayAlpha: 0.2,
+    },
     layers: [{ id: 'ash', type: 'ash_drift', alpha: 0.24 }],
   };
 
@@ -26,6 +31,12 @@ test('buildStageBackgroundTheme normalizes seamless tile defaults and clones lay
   assert.equal(theme.palette.base, '#111111');
   assert.equal(theme.palette.crack, '#2b2b2b');
   assert.equal(theme.palette.ember, 'rgba(120,32,20,0.14)');
+  assert.deepEqual(theme.images, {
+    baseSrc: '/assets/backgrounds/ashen-stone-floor-tile.png',
+    overlaySrc: '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+    overlayAlpha: 0.2,
+  });
+  assert.notEqual(theme.images, input.images, 'images는 defensive copy여야 함');
   assert.deepEqual(theme.layers, [{ id: 'ash', type: 'ash_drift', alpha: 0.24 }]);
   assert.notEqual(theme.layers, input.layers, 'layers는 defensive copy여야 함');
 });

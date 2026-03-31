@@ -2,6 +2,15 @@ function cloneLayers(layers = []) {
   return layers.map((layer) => ({ ...layer }));
 }
 
+function cloneImages(images) {
+  if (!images || typeof images !== 'object') return null;
+  return {
+    baseSrc: typeof images.baseSrc === 'string' ? images.baseSrc : null,
+    overlaySrc: typeof images.overlaySrc === 'string' ? images.overlaySrc : null,
+    overlayAlpha: Number.isFinite(images.overlayAlpha) ? images.overlayAlpha : 0.18,
+  };
+}
+
 export function buildStageBackgroundTheme(background = {}) {
   const mode = background.mode ?? 'legacy_grid';
 
@@ -16,6 +25,7 @@ export function buildStageBackgroundTheme(background = {}) {
       crack: background.palette?.crack ?? null,
       dust: background.palette?.dust ?? null,
     },
+    images: cloneImages(background.images),
     layers: cloneLayers(Array.isArray(background.layers) ? background.layers : []),
   };
 }

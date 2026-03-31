@@ -35,6 +35,11 @@ export const stageData = [
         ember: 'rgba(199,163,93,0.06)',
         grid: 'rgba(255,255,255,0.04)',
       },
+      images: {
+        baseSrc: '/assets/backgrounds/ashen-ritual-flagstone-tile.png',
+        overlaySrc: '/assets/backgrounds/ashen-ember-overlay-tile.png',
+        overlayAlpha: 0.18,
+      },
       layers: [
         { id: 'stone_base', type: 'stone_noise', alpha: 1, drift: 0 },
         { id: 'ash_drift', type: 'ash_drift', alpha: 0.22, drift: 0.08 },
@@ -117,6 +122,11 @@ export const stageData = [
         dust: 'rgba(214,220,255,0.05)',
         ember: 'rgba(112,124,182,0.08)',
         grid: 'rgba(196,210,255,0.05)',
+      },
+      images: {
+        baseSrc: '/assets/backgrounds/moon-crypt-runestone-floor-tile.png',
+        overlaySrc: '/assets/backgrounds/moon-crypt-spectral-mist-overlay-tile.png',
+        overlayAlpha: 0.2,
       },
       layers: [
         { id: 'crypt_stone', type: 'stone_noise', alpha: 1, drift: 0 },
@@ -210,6 +220,11 @@ export const stageData = [
         dust: 'rgba(255,221,188,0.05)',
         ember: 'rgba(255,112,67,0.09)',
         grid: 'rgba(255,214,170,0.05)',
+      },
+      images: {
+        baseSrc: '/assets/backgrounds/ashen-stone-floor-tile.png',
+        overlaySrc: '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+        overlayAlpha: 0.16,
       },
       layers: [
         { id: 'ember_stone', type: 'stone_noise', alpha: 1, drift: 0 },

@@ -19,6 +19,21 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
   assert.equal(assetManifest.every((entry) => Number.isFinite(entry.estimatedBytes) && entry.estimatedBytes > 0), true, 'assetManifest estimatedBytes가 유효하지 않음');
   assert.equal(assetManifest.every((entry) => typeof entry.qualityPolicy === 'string' && entry.qualityPolicy.length > 0), true, 'assetManifest qualityPolicy가 비어 있음');
   assert.equal(assetManifest.every((entry) => typeof entry.sourceType === 'string' && entry.sourceType.length > 0), true, 'assetManifest sourceType이 비어 있음');
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'stage_bg_ash_plains' && entry.sourceType === 'image'),
+    true,
+    'Ash Plains background asset entry가 image sourceType으로 전환되지 않음',
+  );
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'stage_bg_moon_crypt' && entry.sourceType === 'image'),
+    true,
+    'Moon Crypt background asset entry가 image sourceType으로 전환되지 않음',
+  );
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'stage_bg_ember_hollow' && entry.sourceType === 'image'),
+    true,
+    'Ember Hollow background asset entry가 image sourceType으로 전환되지 않음',
+  );
   assert.equal(assetManifest.some((entry) => entry.id === 'vfx_projectiles_atlas' && entry.sourceType === 'image'), true, 'projectile atlas asset entry가 누락됨');
   assert.equal(assetManifest.some((entry) => entry.id === 'vfx_effects_atlas' && entry.sourceType === 'image'), true, 'effect atlas asset entry가 누락됨');
 
@@ -49,6 +64,35 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
     )),
     true,
     'seamless stage background contract가 stageData에 반영되지 않음',
+  );
+  const ashPlains = data.stageData.find((stage) => stage.id === 'ash_plains');
+  assert.equal(typeof ashPlains?.background?.images?.baseSrc, 'string', 'Ash Plains background가 base image tile을 노출하지 않음');
+  assert.equal(typeof ashPlains?.background?.images?.overlaySrc, 'string', 'Ash Plains background가 overlay image tile을 노출하지 않음');
+  const emberHollow = data.stageData.find((stage) => stage.id === 'ember_hollow');
+  assert.equal(typeof emberHollow?.background?.images?.baseSrc, 'string', 'Ember Hollow background가 base image tile을 노출하지 않음');
+  assert.equal(typeof emberHollow?.background?.images?.overlaySrc, 'string', 'Ember Hollow background가 overlay image tile을 노출하지 않음');
+  assert.equal(
+    emberHollow?.background?.images?.baseSrc,
+    '/assets/backgrounds/ashen-stone-floor-tile.png',
+    'Ember Hollow base tile 경로가 기대값과 다름',
+  );
+  assert.equal(
+    emberHollow?.background?.images?.overlaySrc,
+    '/assets/backgrounds/spectral-cosmos-overlay-tile.png',
+    'Ember Hollow overlay tile 경로가 기대값과 다름',
+  );
+  const moonCrypt = data.stageData.find((stage) => stage.id === 'moon_crypt');
+  assert.equal(typeof moonCrypt?.background?.images?.baseSrc, 'string', 'Moon Crypt background가 base image tile을 노출하지 않음');
+  assert.equal(typeof moonCrypt?.background?.images?.overlaySrc, 'string', 'Moon Crypt background가 overlay image tile을 노출하지 않음');
+  assert.equal(
+    moonCrypt?.background?.images?.baseSrc,
+    '/assets/backgrounds/moon-crypt-runestone-floor-tile.png',
+    'Moon Crypt base tile 경로가 기대값과 다름',
+  );
+  assert.equal(
+    moonCrypt?.background?.images?.overlaySrc,
+    '/assets/backgrounds/moon-crypt-spectral-mist-overlay-tile.png',
+    'Moon Crypt overlay tile 경로가 기대값과 다름',
   );
 });
 
