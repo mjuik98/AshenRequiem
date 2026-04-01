@@ -129,3 +129,5 @@ Original prompt: 1. 장신구 레벨업 시 선형적으로 밸런스 변경 (30
 - 2026-03-28: 타이틀 하위 서브스크린 `MetaShopView`/`SettingsView`/`CodexView`에 `dialogRuntime` 공통 포커스 계약을 적용했다. 각 패널은 `role="dialog" aria-modal="true" tabindex="-1"`를 갖고 초기 포커스, `Escape` 닫기, 이전 포커스 복원을 공유한다.
 - 2026-03-28: `actionButtonTheme`가 modal tone alias(`loadout`, `pause`, `reward`, `result-victory`, `result-defeat`)를 직접 지원하도록 확장했다. 이전에는 일부 버튼이 정의되지 않은 tone을 넘겨도 `accent`로 fallback되고 있었다.
 - 2026-03-28: `runSmokeAgainstPreview.mjs`에 정적 `dist/` fallback 서버를 추가했다. `vite preview`가 준비되지 않는 로컬 환경에서도 같은 포트로 deterministic smoke를 계속 돌릴 수 있다.
+- 2026-04-01: 스테이지 배경 타일 조사. `stageData.background.images` 경로와 렌더러 연결은 정상이며, fresh `npm run smoke:core:prebuilt -- --scenario title_to_play` 스크린샷에서도 Ash Plains가 해당 경로의 이미지 타일로 렌더된다. 다만 `public/assets/backgrounds/ember-hollow-base-tile.png`는 `ashen-stone-floor-tile.png`, `ember-hollow-overlay-tile.png`는 `spectral-cosmos-overlay-tile.png`와 각각 동일 해시로 확인돼, 현재 증상은 렌더링 경로보다 자산 파일 내용 불일치 가능성이 높다.
+- 2026-04-01: legacy background alias PNG 6개를 제거하고 `public/assets/backgrounds/README.md`를 final `base/overlay` 파일명 기준으로만 정리했다. `tests/BackgroundAssetCleanup.test.js`를 추가해 alias 재유입을 막는다.
