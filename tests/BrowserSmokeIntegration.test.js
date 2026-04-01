@@ -81,6 +81,20 @@ await test('smoke wrapper는 Windows npm 실행을 shell 없이 cmd 경유로 �
   assert.equal(invocation.shell, false);
 });
 
+await test('playwright smoke invocation은 Windows에서 repo-local cli를 우선 사용한다', async () => {
+  const cliPaths = await import('../scripts/browser-smoke/smokeCliPaths.mjs');
+  const invocation = cliPaths.buildPlaywrightInvocation(['snapshot'], {
+    platform: 'win32',
+    env: {},
+    cwd: process.cwd(),
+    processPath: process.execPath,
+  });
+
+  assert.equal(invocation.command, process.execPath);
+  assert.equal(invocation.args[0].endsWith('/node_modules/@playwright/cli/playwright-cli.js') || invocation.args[0].endsWith('\\node_modules\\@playwright\\cli\\playwright-cli.js'), true);
+  assert.equal(invocation.args[1], 'snapshot');
+});
+
 await test('package.json은 smoke 실행과 전체 verify 스크립트를 노출한다', async () => {
   const pkg = await import('../package.json', { with: { type: 'json' } });
   assert.equal(typeof pkg.default.scripts['test:smoke'], 'string');
@@ -358,6 +372,31 @@ await test('playwright transport는 timeout 시 자식 프로세스를 정리하
   );
 
   assert.deepEqual(killCalls, [321], 'timeout 시 자식 프로세스 정리가 호출되지 않음');
+});
+
+await test('playwright session transport는 eval 직렬화 오류 시 run-code JSON fallback으로 복구한다', async () => {
+  const sessionTransport = await import('../scripts/browser-smoke/smokeSessionTransport.mjs');
+  const calls = [];
+  const transport = sessionTransport.createPlaywrightSessionTransport('ashen-test', {
+    runCommand: async (args) => {
+      calls.push(args);
+      if (args[2] === 'eval') {
+        return '### Error\nError: Passed function is not well-serializable!';
+      }
+      if (args[2] === 'run-code') {
+        return '__ASHEN_RUN_CODE_JSON__{"clicked":true}';
+      }
+      throw new Error(`unexpected command: ${args.join(' ')}`);
+    },
+  });
+
+  const result = await transport.evalJson(`document.querySelector('[data-action="start"]') ? true : false`);
+
+  assert.deepEqual(result, { clicked: true });
+  assert.equal(calls[0][2], 'eval');
+  assert.equal(calls[1][2], 'run-code');
+  assert.equal(calls[1][3].startsWith('async (page) => {'), true, 'run-code fallback는 page 함수를 전달해야 함');
+  assert.equal(calls[1][3].includes('page.evaluate((source) => globalThis.eval(source)'), true, 'run-code fallback가 page.evaluate로 복구해야 함');
 });
 
 console.log(`\nBrowserSmokeIntegration: ${passed}개 통과, ${failed}개 실패`);

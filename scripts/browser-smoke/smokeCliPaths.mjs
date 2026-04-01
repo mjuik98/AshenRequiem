@@ -1,5 +1,14 @@
 import fs from 'node:fs';
 
+export function resolveLocalPlaywrightCliPath({
+  cwd = process.cwd(),
+  existsSync = fs.existsSync,
+} = {}) {
+  const normalizedCwd = cwd.replaceAll('\\', '/').replace(/\/+$/, '');
+  const localCliPath = `${normalizedCwd}/node_modules/@playwright/cli/playwright-cli.js`;
+  return existsSync(localCliPath) ? localCliPath : null;
+}
+
 function quoteShellArg(value) {
   const stringValue = String(value);
   return `'${stringValue.replaceAll("'", `'\"'\"'`)}'`;
@@ -79,9 +88,13 @@ export function buildPlaywrightInvocation(args, {
   pwcliPath = null,
 } = {}) {
   if (platform === 'win32') {
+    const resolvedCliScriptPath = cliScriptPath
+      ?? resolveLocalPlaywrightCliPath({ cwd })
+      ?? resolveWindowsPlaywrightCliPath({ env });
+
     return {
       command: processPath,
-      args: [cliScriptPath ?? resolveWindowsPlaywrightCliPath({ env }), ...args],
+      args: [resolvedCliScriptPath, ...args],
     };
   }
 

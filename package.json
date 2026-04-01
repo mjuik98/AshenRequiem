@@ -37,6 +37,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/cli": "^0.1.3",
     "eslint": "^10.1.0",
     "typescript": "^5.9.2",
     "vite": "^8.0.0"

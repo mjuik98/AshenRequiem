@@ -4,8 +4,10 @@ import { DEFAULT_CLI_TIMEOUT_MS, runPlaywrightCliCommand } from './smokeCliRunne
 import {
   assertNoCliError,
   parseEvalResult,
+  parseRunCodeJson,
   parseScreenshotPath,
   parseSnapshotPath,
+  RUN_CODE_JSON_MARKER,
 } from './smokeCliParsers.mjs';
 
 function findRefByText(snapshotPath, buttonText) {
@@ -25,6 +27,21 @@ function findRefByText(snapshotPath, buttonText) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isEvalSerializationError(error) {
+  return error instanceof Error
+    && error.message.includes('Passed function is not well-serializable');
+}
+
+function buildEvalFallbackSource(expression) {
+  const serializedExpression = JSON.stringify(String(expression));
+  return [
+    'async (page) => {',
+    `  const __value = await page.evaluate((source) => globalThis.eval(source), ${serializedExpression});`,
+    `  console.log('${RUN_CODE_JSON_MARKER}' + JSON.stringify(__value ?? null));`,
+    '}',
+  ].join('\n');
 }
 
 export function createPlaywrightSessionTransport(sessionId, {
@@ -67,8 +84,16 @@ export function createPlaywrightSessionTransport(sessionId, {
       await run(['open', url], { timeoutMs: Math.max(timeoutMs, 30_000) });
     },
     async evalJson(expression) {
-      const stdout = await run(['eval', expression]);
-      return parseEvalResult(stdout);
+      try {
+        const stdout = await run(['eval', expression]);
+        return parseEvalResult(stdout);
+      } catch (error) {
+        if (!isEvalSerializationError(error)) {
+          throw error;
+        }
+        const stdout = await run(['run-code', buildEvalFallbackSource(expression)]);
+        return parseRunCodeJson(stdout);
+      }
     },
     async click(ref) {
       await run(['click', ref]);

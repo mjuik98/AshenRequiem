@@ -20,3 +20,5 @@ docs/superpowers/
 !docs/compatibility-wrappers.md
 !docs/maintenance-scripts.md
 output/
+progress.md
+status.txt

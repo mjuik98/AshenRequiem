@@ -1,3 +1,5 @@
+export const RUN_CODE_JSON_MARKER = '__ASHEN_RUN_CODE_JSON__';
+
 export function assertNoCliError(stdout, context) {
   if (stdout.includes('### Error')) {
     throw new Error(`Playwright ${context} failed:\n${stdout.trim()}`);
@@ -25,4 +27,17 @@ export function parseSnapshotPath(stdout) {
 export function parseScreenshotPath(stdout) {
   const match = stdout.match(/\((\.playwright-cli\\[^)]+\.png)\)/);
   return match ? match[1].replaceAll('\\', '/') : null;
+}
+
+export function parseRunCodeJson(stdout) {
+  assertNoCliError(stdout, 'run-code');
+  const markerIndex = stdout.lastIndexOf(RUN_CODE_JSON_MARKER);
+  if (markerIndex === -1) return null;
+  const raw = stdout
+    .slice(markerIndex + RUN_CODE_JSON_MARKER.length)
+    .trim()
+    .split(/\r?\n/, 1)[0]
+    ?.trim();
+  if (!raw) return null;
+  return JSON.parse(raw);
 }

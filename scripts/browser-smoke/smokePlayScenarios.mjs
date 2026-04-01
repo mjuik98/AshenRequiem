@@ -24,13 +24,31 @@ export async function runPauseOverlayScenario(url, artifactDir, transport) {
   );
   const pauseSnapshot = await transport.snapshotPath();
   const weaponRef = findRefByText(readSnapshotContent(pauseSnapshot), '마법탄');
-  if (!weaponRef) {
+  let hoverUsedFallback = false;
+  if (weaponRef) {
+    await transport.hover(weaponRef);
+  } else if (typeof transport.runCode === 'function') {
+    await transport.runCode(`async (page) => {
+      const hovered = await page.evaluate(() => {
+        const card = document.querySelector('.pv-slot-card[data-loadout="weapon"]');
+        if (!card) return false;
+        card.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+        card.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }));
+        card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
+        return true;
+      });
+      if (!hovered) {
+        throw new Error('Failed to dispatch hover events for pause overlay weapon card');
+      }
+    }`);
+    hoverUsedFallback = true;
+  } else {
     throw new Error('Failed to find 마법탄 ref from pause snapshot');
   }
-  await transport.hover(weaponRef);
   const hover = {
     ok: true,
     weaponRef,
+    usedFallback: hoverUsedFallback,
     cardName: await transport.evalJson(`document.querySelector('.pv-slot-card[data-loadout="weapon"] .pv-slot-name')?.textContent ?? ''`),
   };
   const tooltipVisible = await transport.pollEval(

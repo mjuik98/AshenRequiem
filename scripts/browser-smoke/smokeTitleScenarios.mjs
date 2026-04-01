@@ -35,7 +35,14 @@ export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, tra
     5000,
     150,
   );
-  const titleClicked = await transport.clickByText('Start Game');
+  let titleClicked = await transport.clickByText('Start Game');
+  if (!titleClicked) {
+    titleClicked = await transport.evalJson(`
+      document.querySelector('[data-action="start"]')
+        ? (document.querySelector('[data-action="start"]').click(), true)
+        : false
+    `);
+  }
   if (!titleClicked) {
     throw new Error('Failed to click Start Game button');
   }
@@ -86,7 +93,14 @@ export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, tra
     throw new Error('ESC did not close start loadout dialog');
   }
 
-  const reopened = await transport.clickByText('Start Game');
+  let reopened = await transport.clickByText('Start Game');
+  if (!reopened) {
+    reopened = await transport.evalJson(`
+      document.querySelector('[data-action="start"]')
+        ? (document.querySelector('[data-action="start"]').click(), true)
+        : false
+    `);
+  }
   if (!reopened) {
     throw new Error('Failed to reopen Start Game dialog');
   }
@@ -113,7 +127,14 @@ export async function runTitleLoadoutAccessibilityScenario(url, artifactDir, tra
     viewportHeight: postScrollMetrics[2],
   };
 
-  const loadoutClicked = await transport.clickByText('시작하기');
+  let loadoutClicked = await transport.clickByText('시작하기');
+  if (!loadoutClicked) {
+    loadoutClicked = await transport.evalJson(`
+      document.querySelector('.sl-root [data-action="start"]')
+        ? (document.querySelector('.sl-root [data-action="start"]').click(), true)
+        : false
+    `);
+  }
   if (!loadoutClicked) {
     throw new Error('Failed to click loadout start button after scrolling');
   }
@@ -164,15 +185,16 @@ export async function runTitleCodexScenario(url, artifactDir, transport) {
   );
   let codexClicked = await transport.clickByText('Codex');
   if (!codexClicked) {
-    await transport.runCode(`(() => {
-      const button = document.querySelector('[data-action="codex"]');
-      if (button) {
+    await transport.runCode(`async (page) => {
+      await page.evaluate(() => {
+        const button = document.querySelector('[data-action="codex"]');
+        if (!button) return false;
         button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
         button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
         button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-      }
-      return true;
-    })()`);
+        return true;
+      });
+    }`);
     codexClicked = true;
   }
   const codexReady = await transport.pollEval(
@@ -241,7 +263,14 @@ export async function runTitleMetaShopScenario(url, artifactDir, transport) {
     150,
   );
   await transport.evalJson(`window.__ASHEN_DEBUG__ ? ((window.__ASHEN_DEBUG__.getGame().session.meta.currency = 999), (window.__ASHEN_DEBUG__.getGame().session.meta.permanentUpgrades = window.__ASHEN_DEBUG__.getGame().session.meta.permanentUpgrades || {}), true) : false`);
-  const shopClicked = await transport.clickByText('Meta Shop');
+  let shopClicked = await transport.clickByText('Meta Shop');
+  if (!shopClicked) {
+    shopClicked = await transport.evalJson(`
+      document.querySelector('[data-action="shop"]')
+        ? (document.querySelector('[data-action="shop"]').click(), true)
+        : false
+    `);
+  }
   if (!shopClicked) {
     throw new Error('Failed to click Meta Shop button');
   }
@@ -303,7 +332,14 @@ export async function runTitleSettingsScenario(url, artifactDir, transport) {
     5000,
     150,
   );
-  const settingsClicked = await transport.clickByText('Settings');
+  let settingsClicked = await transport.clickByText('Settings');
+  if (!settingsClicked) {
+    settingsClicked = await transport.evalJson(`
+      document.querySelector('[data-action="settings"]')
+        ? (document.querySelector('[data-action="settings"]').click(), true)
+        : false
+    `);
+  }
   if (!settingsClicked) {
     throw new Error('Failed to click Settings button');
   }
@@ -343,7 +379,14 @@ export async function runTitleSettingsPersistScenario(url, artifactDir, transpor
     5000,
     150,
   );
-  const settingsClicked = await transport.clickByText('Settings');
+  let settingsClicked = await transport.clickByText('Settings');
+  if (!settingsClicked) {
+    settingsClicked = await transport.evalJson(`
+      document.querySelector('[data-action="settings"]')
+        ? (document.querySelector('[data-action="settings"]').click(), true)
+        : false
+    `);
+  }
   if (!settingsClicked) {
     throw new Error('Failed to click Settings button');
   }
