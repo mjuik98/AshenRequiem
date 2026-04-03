@@ -30,6 +30,7 @@
 - **Renderer / UI**: 규칙 개입 없이 화면 출력 및 입력 전달 전담
 
 이 아키텍처를 바탕으로 데이터 베이스(`src/data/`) 확장만으로도 새로운 몬스터와 무기, 업그레이드를 손쉽게 추가할 수 있습니다.
+브라우저 bootstrap의 scene factory는 `TitleScene`만 초기 진입 번들에 유지하고 `PlayScene`/`MetaShopScene`/`SettingsScene`/`CodexScene`은 필요 시점에 lazy import해 초기 다운로드 크기를 줄입니다.
 
 > 🛠 **AI 에이전트 및 개발자 가이드**: 
 > 규칙과 설계 원칙은 [AGENTS.md](./AGENTS.md)를, 현재 구현 사실과 파이프라인 스냅샷은 [docs/architecture-current.md](./docs/architecture-current.md)를 기준으로 확인합니다.
@@ -140,6 +141,8 @@ npm run compatibility:wrappers
 
 # 프로덕션 build
 npm run build
+# build 결과 청크로 scene lazy-loading 경계를 점검 가능
+# (TitleScene은 entry, play/meta/settings/codex는 on-demand chunk)
 
 # 전체 단위 테스트 실행 (Node.js Test Runner)
 # pretest로 validate가 자동 실행된다.

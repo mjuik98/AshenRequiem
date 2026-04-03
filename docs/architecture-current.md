@@ -7,6 +7,7 @@ Last verified against code: 2026-04-03
 ## Current Product Surface
 
 - 런타임 엔트리포인트는 `src/main.js`이며 브라우저 부트스트랩은 `src/app/bootstrap/bootstrapBrowserGame.js`를 통해 `BrowserGameShell`, `GameApp`, `sceneFactory`를 조합한다. 기본 초기 씬과 이후 scene transition 생성은 모두 이 bootstrap 경계가 주입한 `game.sceneFactory`가 소유한다.
+- `src/app/bootstrap/createSceneFactory.js`는 `TitleScene`만 정적 import하고 `PlayScene`, `MetaShopScene`, `SettingsScene`, `CodexScene`은 dynamic import로 생성한다. 초기 entry chunk는 title shell 위주로 유지하고, 전투/메타/UI surface는 실제 진입 시점까지 지연 로드된다.
 - `GameApp`은 더 이상 browser runtime hook 구현을 직접 import하지 않는다. debug/runtime hook 등록 해제는 `bootstrapBrowserGame()`이 `src/adapters/browser/runtimeHooks.js`를 주입해 소유하고, runtime hook은 `PlayScene.getDebugSurface()` explicit contract를 통해 UI/controller snapshot만 읽는다. `PlayScene` 내부 bootstrap state, overlay controller, debug surface 조립은 `src/scenes/play/playSceneRuntimeState.js`가 담당한다.
 - `src/scenes/sceneLoaders.js`는 더 이상 내부 runtime의 scene transition SSOT가 아니다. scene 구현은 injected `sceneFactory`를 사용하고, `sceneLoaders.js`는 테스트/호환용 facade만 유지한다. `PlayUI`의 lazy overlay import는 `src/scenes/overlayViewLoaders.js`가 별도 소유한다.
 - `src/core/Game.js`는 더 이상 메인 엔트리의 직접 부트스트랩이 아니라 호환 facade 역할만 맡는다.

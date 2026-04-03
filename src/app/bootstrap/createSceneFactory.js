@@ -1,15 +1,20 @@
-import { CodexScene } from '../../scenes/CodexScene.js';
-import { MetaShopScene } from '../../scenes/MetaShopScene.js';
-import { PlayScene } from '../../scenes/PlayScene.js';
-import { SettingsScene } from '../../scenes/SettingsScene.js';
 import { TitleScene } from '../../scenes/TitleScene.js';
+
+async function instantiateScene(loadModule, exportName, ...args) {
+  const sceneModule = await loadModule();
+  const SceneType = sceneModule?.[exportName];
+  if (typeof SceneType !== 'function') {
+    throw new Error(`Scene module "${exportName}" did not export a constructor.`);
+  }
+  return new SceneType(...args);
+}
 
 export function createSceneFactory({
   createTitleSceneImpl = (game) => new TitleScene(game),
-  createPlaySceneImpl = (game) => new PlayScene(game),
-  createMetaShopSceneImpl = (game) => new MetaShopScene(game),
-  createSettingsSceneImpl = (game) => new SettingsScene(game),
-  createCodexSceneImpl = (game, from = 'title') => new CodexScene(game, from),
+  createPlaySceneImpl = (game) => instantiateScene(() => import('../../scenes/PlayScene.js'), 'PlayScene', game),
+  createMetaShopSceneImpl = (game) => instantiateScene(() => import('../../scenes/MetaShopScene.js'), 'MetaShopScene', game),
+  createSettingsSceneImpl = (game) => instantiateScene(() => import('../../scenes/SettingsScene.js'), 'SettingsScene', game),
+  createCodexSceneImpl = (game, from = 'title') => instantiateScene(() => import('../../scenes/CodexScene.js'), 'CodexScene', game, from),
 } = {}) {
   return {
     createTitleScene(game) {
