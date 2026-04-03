@@ -1,9 +1,4 @@
 import {
-  loadCodexSceneModule,
-  loadMetaShopSceneModule,
-  loadSettingsSceneModule,
-} from '../sceneLoaders.js';
-import {
   ensureTitleLoadoutView,
   openTitleStartLoadout,
 } from './titleLoadoutFlow.js';
@@ -89,12 +84,9 @@ export function bindTitleSceneEvents(scene, {
   createTitleStatusControllerImpl = createTitleStatusController,
   attemptWindowCloseImpl = attemptWindowClose,
   openTitleStartLoadoutImpl = openTitleStartLoadout,
-  createMetaShopSceneImpl = async (game) => {
-    const { MetaShopScene } = await loadMetaShopSceneModule();
-    return new MetaShopScene(game);
-  },
-  loadCodexScene = loadCodexSceneModule,
-  loadSettingsScene = loadSettingsSceneModule,
+  createMetaShopSceneImpl = (game) => scene?.game?.sceneFactory?.createMetaShopScene?.(game) ?? null,
+  createCodexSceneImpl = (game, from = 'title') => scene?.game?.sceneFactory?.createCodexScene?.(game, from) ?? null,
+  createSettingsSceneImpl = (game) => scene?.game?.sceneFactory?.createSettingsScene?.(game) ?? null,
 } = {}) {
   const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
   const liveEl = runtimeTarget.shellRefs?.live ?? runtimeTarget.root?.querySelector('#title-live');
@@ -114,8 +106,8 @@ export function bindTitleSceneEvents(scene, {
     attemptWindowCloseImpl,
     openTitleStartLoadoutImpl,
     createMetaShopSceneImpl,
-    loadCodexScene,
-    loadSettingsScene,
+    createCodexSceneImpl,
+    createSettingsSceneImpl,
   });
 
   bindTitleSceneInput(scene, {

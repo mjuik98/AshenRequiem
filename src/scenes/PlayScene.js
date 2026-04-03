@@ -19,10 +19,6 @@ import {
   togglePlayScenePause,
 } from '../app/play/playSceneFlowService.js';
 import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
-import {
-  loadPlaySceneModule,
-  loadTitleSceneModule,
-} from './sceneLoaders.js';
 import { applySessionOptionsToRuntime } from '../app/session/sessionRuntimeApplicationService.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
 import {
@@ -173,12 +169,12 @@ export class PlayScene {
         this._isSceneChanging = value;
       },
       restart: async () => {
-        const { PlayScene: NextPlayScene } = await loadPlaySceneModule();
-        this.game.sceneManager.changeScene(new NextPlayScene(this.game));
+        const nextScene = await this.game?.sceneFactory?.createPlayScene?.(this.game);
+        this.game.sceneManager.changeScene(nextScene);
       },
       goToTitle: async () => {
-        const { TitleScene } = await loadTitleSceneModule();
-        this.game.sceneManager.changeScene(new TitleScene(this.game));
+        const nextScene = await this.game?.sceneFactory?.createTitleScene?.(this.game);
+        this.game.sceneManager.changeScene(nextScene);
       },
       onError: (error) => logRuntimeError('PlayScene', '결과 화면 씬 전환 실패:', error),
     });

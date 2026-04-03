@@ -1,5 +1,4 @@
 import { createTitleLoadoutApplicationService } from '../../app/title/titleLoadoutApplicationService.js';
-import { loadPlaySceneModule } from '../sceneLoaders.js';
 import { buildTitleLoadoutConfig } from './titleLoadout.js';
 import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
@@ -23,15 +22,16 @@ export async function openTitleStartLoadout(scene, {
   pulseFlash,
   buildTitleLoadoutConfigImpl = buildTitleLoadoutConfig,
   ensureTitleLoadoutViewImpl = ensureTitleLoadoutView,
-  createTitleLoadoutServiceImpl = (game) => createTitleLoadoutApplicationService(game, {
-    createPlaySceneImpl,
-  }),
-  createPlaySceneImpl = async (game) => {
-    const { PlayScene } = await loadPlaySceneModule();
-    return new PlayScene(game);
-  },
+  createTitleLoadoutServiceImpl = null,
+  createPlaySceneImpl = null,
   setTimeoutFn = globalThis.setTimeout,
 } = {}) {
+  const resolvedCreatePlayScene = createPlaySceneImpl
+    ?? ((game) => scene?.game?.sceneFactory?.createPlayScene?.(game) ?? null);
+  const resolvedCreateTitleLoadoutService = createTitleLoadoutServiceImpl
+    ?? ((game) => createTitleLoadoutApplicationService(game, {
+      createPlaySceneImpl: resolvedCreatePlayScene,
+    }));
   const loadoutView = await ensureTitleLoadoutViewImpl(scene);
   if (!loadoutView) return null;
   const loadoutConfig = buildTitleLoadoutConfigImpl(scene.game.gameData, scene.game.session, {
@@ -44,7 +44,7 @@ export async function openTitleStartLoadout(scene, {
         return;
       }
 
-      const titleLoadoutService = createTitleLoadoutServiceImpl(scene.game);
+      const titleLoadoutService = resolvedCreateTitleLoadoutService(scene.game);
       const startResult = titleLoadoutService.startRun(weaponId, runOptions);
       if (!startResult?.saved) {
         setMessage('시작 가능한 기본 무기가 없습니다.');

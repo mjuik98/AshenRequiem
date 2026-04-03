@@ -6,8 +6,9 @@ Last verified against code: 2026-04-03
 
 ## Current Product Surface
 
-- 런타임 엔트리포인트는 `src/main.js`이며 브라우저 부트스트랩은 `src/app/bootstrap/bootstrapBrowserGame.js`를 통해 `BrowserGameShell`과 `GameApp`을 조합하고, 기본 초기 씬 팩토리(`TitleScene`)도 이 경계에서 주입한다.
+- 런타임 엔트리포인트는 `src/main.js`이며 브라우저 부트스트랩은 `src/app/bootstrap/bootstrapBrowserGame.js`를 통해 `BrowserGameShell`, `GameApp`, `sceneFactory`를 조합한다. 기본 초기 씬과 이후 scene transition 생성은 모두 이 bootstrap 경계가 주입한 `game.sceneFactory`가 소유한다.
 - `GameApp`은 더 이상 browser runtime hook 구현을 직접 import하지 않는다. debug/runtime hook 등록 해제는 `bootstrapBrowserGame()`이 `src/adapters/browser/runtimeHooks.js`를 주입해 소유하고, runtime hook은 `PlayScene.getDebugSurface()` explicit contract를 통해 UI/controller snapshot만 읽는다. `PlayScene` 내부 bootstrap state, overlay controller, debug surface 조립은 `src/scenes/play/playSceneRuntimeState.js`가 담당한다.
+- `src/scenes/sceneLoaders.js`는 더 이상 내부 runtime의 scene transition SSOT가 아니다. scene 구현은 injected `sceneFactory`를 사용하고, `sceneLoaders.js`는 테스트/호환용 facade만 유지한다. `PlayUI`의 lazy overlay import는 `src/scenes/overlayViewLoaders.js`가 별도 소유한다.
 - `src/core/Game.js`는 더 이상 메인 엔트리의 직접 부트스트랩이 아니라 호환 facade 역할만 맡는다.
 - 타이틀 화면에서는 게임 시작, 영구 업그레이드 상점, 도감, 설정으로 진입할 수 있다.
 - 타이틀의 시작 로드아웃 모달에서는 시작 무기, 시작 장신구, archetype, risk relic, 스테이지, 시드, Ascension 난이도 레벨을 함께 선택한다.
@@ -17,6 +18,7 @@ Last verified against code: 2026-04-03
 - 타이틀/플레이 오버레이와 타이틀 하위 서브스크린은 공통 keyboard dialog contract를 공유한다. `src/ui/shared/dialogRuntime.js`가 panel focus, Tab 순환, Escape dismiss, 이전 포커스 복원을 맡고 각 view는 panel selector와 close callback만 주입한다.
 - `StartLoadoutView`, `LevelUpView`, `ResultView`의 interactive runtime은 각각 `startLoadoutViewRuntime.js`, `levelUpViewRuntime.js`, `resultViewRuntime.js`가 delegated listener와 rerender orchestration을 소유한다. view class는 state, markup rerender, dialog lifecycle만 유지한다.
 - 설정 화면은 옵션 저장 외에도 세션 snapshot export/import/reset UX를 제공하며, 실제 직렬화/파싱과 슬롯 inspection/restore는 분해된 session helper를 통해 `src/state/session/sessionRepository.js` facade가 노출한다. public orchestration은 `src/app/meta/settingsApplicationService.js`가 유지하되, preview diff / session codec / mutation apply는 `settingsPreviewDiff.js`, `settingsSessionCodec.js`, `settingsSessionMutation.js` helper로 분리됐다.
+- `settingsApplicationService`는 이제 공개 facade만 유지하고, 읽기 책임은 `settingsQueryService.js`, 쓰기 + runtime 반영 책임은 `settingsCommandService.js`가 나눠 가진다.
 - `SettingsView`와 `MetaShopView`의 interactive runtime은 각각 `settingsViewRuntime.js`, `metaShopViewRuntime.js`가 root-level delegated listener로 소유한다. view class는 dialog lifecycle과 state만 유지하고, shell/section partial update는 `settingsViewRenderState.js`, `metaShopViewRenderState.js`가 담당한다.
 - 세션 저장소 경계는 이제 primary/backup/corrupt 슬롯 inspection과 backup restore helper까지 제공한다. Settings 데이터 탭은 이 저장소 요약과 import preview diff를 호출해 운영 중 복구 UX를 제공한다.
 - 플레이 시작 조립은 `src/app/play/startRunApplicationService.js`가 world 생성, player spawn state 해석, 영구 업그레이드 적용, 런 초기화, run-start event 큐잉을 한 경로로 수행한다. 런 초기화와 run-start event 큐잉의 세부 helper 소유권은 `src/app/play/runSessionStateService.js`에 있다.
@@ -180,7 +182,7 @@ Detected top-level scene modules in `src/scenes/`:
 - 성능 기준선과 브라우저 smoke 검증: `profile:check`, `verify:fast`, `verify:ci`, GitHub Actions verify workflow
 - 남은 호환 facade/wrapper 판정은 `docs/compatibility-wrappers.md`에 기록한다.
 - wrapper inventory의 generated usage snapshot은 `npm run compatibility:wrappers` 기준으로 관리된다.
-- 아키텍처 import 경계 검사는 `check:boundaries` 스크립트가 담당하고, 문서 drift 검사는 `check:architecture-docs`가 담당한다. 둘은 `npm run lint` baseline으로 묶여 `verify:fast`/`verify:ci`에 포함된다.
+- 아키텍처 import cycle 검사는 `check:cycles`, resolved import 경계 검사는 `check:boundaries`, 문서 drift 검사는 `check:architecture-docs`가 담당한다. 셋은 `npm run lint` baseline으로 묶여 `verify:fast`/`verify:ci`에 포함된다.
 - 편집 시점 import 경계 가드는 `eslint.config.js`의 `no-restricted-imports` 규칙으로도 중복 적용된다.
 
 ## Current UI Overlay Contracts
@@ -203,7 +205,9 @@ Detected top-level scene modules in `src/scenes/`:
 - `npm run verify:ci`
   CI baseline. Runs typecheck, `profile:check`, `lint`, unit tests, core browser smoke, and build.
 - `npm run lint`
-  architecture lint baseline. Runs import-boundary checks and architecture document drift checks.
+  architecture lint baseline. Runs import-cycle checks, import-boundary checks, and architecture document drift checks.
+- `npm run check:cycles`
+  verifies that src import cycles stay below the explicit allowlist baseline.
 - `npm run check:architecture-docs`
   verifies that generated snapshot sections and wrapper inventory stay aligned with checked-in docs.
 - `npm run test:smoke`
@@ -218,8 +222,9 @@ Detected top-level scene modules in `src/scenes/`:
 ## Generated Verification Snapshot
 
 - `npm run lint`: `npm run lint:architecture`
-- `npm run lint:architecture`: `npm run lint:eslint && npm run check:boundaries && npm run check:architecture-docs`
+- `npm run lint:architecture`: `npm run lint:eslint && npm run check:cycles && npm run check:boundaries && npm run check:architecture-docs`
 - `npm run lint:eslint`: `eslint .`
+- `npm run check:cycles`: `node scripts/checkCycles.mjs`
 - `npm run check:architecture-docs`: `node scripts/checkArchitectureDocs.mjs`
 - `npm run verify`: `npm run verify:fast`
 - `npm run verify:fast`: `npm run typecheck && npm run profile:check && npm run lint && npm test && npm run build`

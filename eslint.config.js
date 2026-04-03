@@ -22,6 +22,7 @@ export default [
           '**/core/Game.js',
           '**/core/runtimeHooks.js',
           '**/scenes/play/PlayResultHandler.js',
+          '**/scenes/sceneLoaders.js',
         ],
       }],
     },
@@ -88,6 +89,7 @@ export default [
         patterns: [
           '**/scenes/**',
           '**/state/sessionFacade.js',
+          '**/scenes/sceneLoaders.js',
         ],
       }],
     },

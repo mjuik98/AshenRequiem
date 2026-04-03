@@ -87,6 +87,27 @@ test('scene 계층은 다른 scene 구현을 정적 import하지 않는다', () 
   });
 });
 
+test('src 내부 모듈은 sceneLoaders facade 대신 scene factory 또는 overlay loader를 사용한다', () => {
+  const rootPath = resolveProjectPath('../src');
+  const files = collectFiles(rootPath);
+
+  files.forEach((filePath) => {
+    const normalizedPath = filePath.replaceAll('\\', '/');
+    const source = readFileSync(filePath, 'utf8');
+    const isAllowedFacade =
+      normalizedPath.endsWith('/src/scenes/sceneLoaders.js')
+      || normalizedPath.endsWith('/src/scenes/overlayViewLoaders.js');
+
+    if (isAllowedFacade) return;
+
+    assert.equal(
+      /from\s+['"][.\/]+(?:\.\.\/)*scenes\/sceneLoaders\.js['"]/.test(source),
+      false,
+      `${filePath}가 sceneLoaders facade에 직접 의존하면 안 됨`,
+    );
+  });
+});
+
 test('zero-caller compatibility shim files are removed from the repo', () => {
   [
     '../src/scenes/play/playerSpawnRuntime.js',

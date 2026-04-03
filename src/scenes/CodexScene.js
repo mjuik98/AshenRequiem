@@ -82,15 +82,11 @@ export class CodexScene {
 
   /** 진입 출처에 따라 적절한 씬으로 복귀한다. */
   async _goBack() {
-    await this._nav.load(async () => {
-      if (this._from === 'metashop') {
-        return import('./MetaShopScene.js');
-      } else {
-        return import('./TitleScene.js');
-      }
-    }, (mod) => {
-      const SceneClass = this._from === 'metashop' ? mod.MetaShopScene : mod.TitleScene;
-      this.game.sceneManager.changeScene(new SceneClass(this.game));
+    await this._nav.change(() => {
+      const nextScene = this._from === 'metashop'
+        ? this.game?.sceneFactory?.createMetaShopScene?.(this.game)
+        : this.game?.sceneFactory?.createTitleScene?.(this.game);
+      this.game.sceneManager.changeScene(nextScene);
     }, (e) => {
       logRuntimeError('CodexScene', '씬 전환 실패:', e);
     });

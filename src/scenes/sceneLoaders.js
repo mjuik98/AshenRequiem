@@ -1,3 +1,7 @@
+/**
+ * Legacy compatibility facade for scene/view lazy loaders.
+ * Internal runtime modules should prefer injected sceneFactory or overlayViewLoaders.
+ */
 export function loadTitleSceneModule() {
   return import('./TitleScene.js');
 }
@@ -18,14 +22,8 @@ export function loadCodexSceneModule() {
   return import('./CodexScene.js');
 }
 
-export function loadPauseViewModule() {
-  return import('../ui/pause/PauseView.js');
-}
-
-export function loadResultViewModule() {
-  return import('../ui/result/ResultView.js');
-}
-
-export function loadLevelUpViewModule() {
-  return import('../ui/levelup/LevelUpView.js');
-}
+export {
+  loadPauseViewModule,
+  loadResultViewModule,
+  loadLevelUpViewModule,
+} from './overlayViewLoaders.js';

@@ -1,0 +1,94 @@
+import { parseSessionState, restoreStoredSessionSnapshot as restoreStoredSessionSnapshotImpl } from '../../state/session/sessionRepository.js';
+import { updateSessionOptionsAndSave } from '../session/sessionPersistenceService.js';
+import { applySessionOptionsToRuntime } from '../session/sessionRuntimeApplicationService.js';
+import { buildResetState } from './settingsSessionCodec.js';
+import { applySessionStateMutation } from './settingsSessionMutation.js';
+
+export function saveSettingsAndApplyRuntime({
+  session,
+  nextOptions,
+  renderer = null,
+  soundSystem = null,
+  accessibilityRuntime = null,
+  inputManager = null,
+  resizeCanvas = null,
+} = {}) {
+  const resolvedOptions = updateSessionOptionsAndSave(session, nextOptions);
+
+  if (typeof resizeCanvas === 'function') {
+    resizeCanvas();
+  }
+
+  applySessionOptionsToRuntime(resolvedOptions, {
+    renderer,
+    soundSystem,
+    accessibilityRuntime,
+    inputManager,
+  });
+  return resolvedOptions;
+}
+
+export function importSessionSnapshot({
+  session,
+  rawSnapshot = '',
+  renderer = null,
+  soundSystem = null,
+  accessibilityRuntime = null,
+  inputManager = null,
+  resizeCanvas = null,
+} = {}) {
+  const importedSession = parseSessionState(rawSnapshot);
+  applySessionStateMutation({
+    session,
+    nextState: importedSession,
+    renderer,
+    soundSystem,
+    accessibilityRuntime,
+    inputManager,
+    resizeCanvas,
+  });
+  return session;
+}
+
+export function resetSessionProgress({
+  session,
+  renderer = null,
+  soundSystem = null,
+  accessibilityRuntime = null,
+  inputManager = null,
+  resizeCanvas = null,
+} = {}) {
+  applySessionStateMutation({
+    session,
+    nextState: buildResetState(session),
+    renderer,
+    soundSystem,
+    accessibilityRuntime,
+    inputManager,
+    resizeCanvas,
+  });
+  return session;
+}
+
+export function restoreStoredSessionSnapshot({
+  session,
+  target = 'backup',
+  storage = null,
+  renderer = null,
+  soundSystem = null,
+  accessibilityRuntime = null,
+  inputManager = null,
+  resizeCanvas = null,
+} = {}) {
+  const restoredSession = restoreStoredSessionSnapshotImpl(target, { storage });
+  applySessionStateMutation({
+    session,
+    nextState: restoredSession,
+    renderer,
+    soundSystem,
+    accessibilityRuntime,
+    inputManager,
+    resizeCanvas,
+  });
+  return session;
+}

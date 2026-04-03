@@ -9,12 +9,14 @@
 | Path | Role | Used By |
 |---|---|---|
 | `scripts/importGraph.mjs` | repo import graph 수집/해석 helper | `scripts/checkBoundaries.js`, `scripts/compatibilityWrappers.mjs` |
+| `scripts/checkCycles.mjs` | src import cycle 검사 helper/entrypoint | `npm run check:cycles`, `npm run lint` |
 
 정책:
 
 - `scripts/importGraph.mjs`는 low-signal dead script가 아니다.
 - import boundary와 wrapper inventory baseline이 이 helper에 의존하므로 제거 대상이 아니라 내부 shared utility로 유지한다.
-- baseline 연결은 `npm run lint` → `check:boundaries`, `npm run compatibility:wrappers` 경로가 SSOT다.
+- `scripts/checkCycles.mjs`는 JSDoc type cycle allowlist를 제외한 실제 src import cycle을 막는 baseline entrypoint다.
+- baseline 연결은 `npm run lint` → `check:cycles`, `check:boundaries`, `npm run compatibility:wrappers` 경로가 SSOT다.
 
 ## Manual-Only Maintenance Tools
 

@@ -30,6 +30,7 @@ test('architecture snapshot tooling exposes generated docs sections and an npm s
   assert.equal(typeof wrapperModule.renderWrapperInventorySections, 'function', 'wrapper inventory section renderer가 없음');
   assert.equal(typeof packageJson.scripts['architecture:snapshot'], 'string', 'package.json에 architecture:snapshot 스크립트가 없음');
   assert.equal(typeof packageJson.scripts['compatibility:wrappers'], 'string', 'package.json에 compatibility:wrappers 스크립트가 없음');
+  assert.equal(typeof packageJson.scripts['check:cycles'], 'string', 'package.json에 check:cycles 스크립트가 없음');
   assert.equal(typeof packageJson.scripts['check:architecture-docs'], 'string', 'package.json에 check:architecture-docs 스크립트가 없음');
 });
 
@@ -52,15 +53,18 @@ test('README links the snapshot workflow and keeps verify command terminology al
   assert.equal(readmeSource.includes('npm run verify:smoke'), true, 'README가 로컬 smoke verify 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run verify:ci'), true, 'README가 CI verify 명령을 안내하지 않음');
   assert.equal(readmeSource.includes('npm run lint'), true, 'README가 lint baseline을 안내하지 않음');
+  assert.equal(readmeSource.includes('npm run check:cycles'), true, 'README가 import cycle 검사를 안내하지 않음');
   assert.equal(readmeSource.includes('npm run check:architecture-docs'), true, 'README가 architecture doc drift 검사를 안내하지 않음');
 });
 
 test('maintenance script inventory documents internal helpers and manual-only tools separately', () => {
   assert.equal(maintenanceScriptsSource.includes('Maintenance Scripts'), true, 'maintenance script inventory 문서 헤더가 없음');
   assert.equal(maintenanceScriptsSource.includes('scripts/importGraph.mjs'), true, 'importGraph helper 역할이 문서화되지 않음');
+  assert.equal(maintenanceScriptsSource.includes('scripts/checkCycles.mjs'), true, 'checkCycles helper 역할이 문서화되지 않음');
   assert.equal(maintenanceScriptsSource.includes('scripts/addTsCheck.js'), true, 'addTsCheck tool 역할이 문서화되지 않음');
   assert.equal(/manual-only|수동 유지보수/i.test(maintenanceScriptsSource), true, 'manual-only maintenance tool 구분이 문서화되지 않음');
   assert.equal(/check:boundaries/.test(maintenanceScriptsSource), true, 'maintenance scripts 문서가 실제 baseline 연결을 설명하지 않음');
+  assert.equal(/check:cycles/.test(maintenanceScriptsSource), true, 'maintenance scripts 문서가 cycle baseline 연결을 설명하지 않음');
 });
 
 test('compatibility wrapper inventory documents remaining public shims and their disposition', async () => {

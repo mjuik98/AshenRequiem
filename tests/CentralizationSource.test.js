@@ -61,8 +61,10 @@ const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplication
 const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
 const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
 const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
+const createSceneFactorySource = readProjectSource('../src/app/bootstrap/createSceneFactory.js');
 const playRuntimeBuilderSource = readProjectSource('../src/core/PlayRuntimeBuilder.js');
 const playRuntimeComposerSource = readProjectSource('../src/scenes/play/playRuntimeComposer.js');
+const overlayViewLoadersSource = readProjectSource('../src/scenes/overlayViewLoaders.js');
 const coreRuntimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
 const browserRuntimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
 const dialogViewLifecycleSource = readProjectSource('../src/ui/shared/dialogViewLifecycle.js');
@@ -168,6 +170,22 @@ test('Game과 씬 전환은 정적 Scene import와 부트 AssetManager 의존을
   assert.equal(typeof sceneLoaders.loadPauseViewModule, 'function', 'PauseView loader helper가 없음');
   assert.equal(typeof sceneLoaders.loadResultViewModule, 'function', 'ResultView loader helper가 없음');
   assert.equal(typeof sceneLoaders.loadLevelUpViewModule, 'function', 'LevelUpView loader helper가 없음');
+  assert.equal(createSceneFactorySource.includes('createSceneFactory'), true, 'bootstrap-owned scene factory helper가 없음');
+  assert.equal(bootstrapBrowserGameSource.includes('createSceneFactory'), true, 'browser bootstrap이 scene factory wiring을 소유하지 않음');
+  assert.equal(titleSceneNavigationSource.includes('sceneFactory'), true, 'titleSceneNavigation이 injected scene factory를 사용하지 않음');
+  assert.equal(titleSceneRuntimeSource.includes('sceneFactory'), true, 'titleSceneRuntime이 injected scene factory를 사용하지 않음');
+  assert.equal(playSceneSource.includes('sceneFactory'), true, 'PlayScene이 injected scene factory를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('sceneFactory'), true, 'SettingsScene이 injected scene factory를 사용하지 않음');
+  assert.equal(metaShopSceneSource.includes('sceneFactory'), true, 'MetaShopScene이 injected scene factory를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('sceneFactory'), true, 'CodexScene이 injected scene factory를 사용하지 않음');
+  assert.equal(titleSceneNavigationSource.includes('sceneLoaders'), false, 'titleSceneNavigation이 sceneLoaders facade에 직접 의존하면 안 됨');
+  assert.equal(titleSceneRuntimeSource.includes('sceneLoaders'), false, 'titleSceneRuntime이 sceneLoaders facade에 직접 의존하면 안 됨');
+  assert.equal(titleLoadoutFlowSource.includes('sceneLoaders'), false, 'titleLoadoutFlow가 sceneLoaders facade에 직접 의존하면 안 됨');
+  assert.equal(playSceneSource.includes('sceneLoaders'), false, 'PlayScene이 sceneLoaders facade에 직접 의존하면 안 됨');
+  assert.equal(playUiSource.includes("from '../overlayViewLoaders.js'"), true, 'PlayUI가 전용 overlay loader 모듈을 사용하지 않음');
+  assert.equal(overlayViewLoadersSource.includes('loadPauseViewModule'), true, 'overlay view loader helper가 PauseView loader를 제공하지 않음');
+  assert.equal(overlayViewLoadersSource.includes('loadResultViewModule'), true, 'overlay view loader helper가 ResultView loader를 제공하지 않음');
+  assert.equal(overlayViewLoadersSource.includes('loadLevelUpViewModule'), true, 'overlay view loader helper가 LevelUpView loader를 제공하지 않음');
 
   assert.equal(/import\s+\{\s*TitleScene\s*\}\s+from\s+'\.\/TitleScene\.js'/.test(stripLineComments(playSceneSource)), false, 'PlayScene가 TitleScene을 정적 import함');
   assert.equal(/import\s+\{\s*PlayScene\s*\}\s+from\s+'\.\.\/PlayScene\.js'/.test(stripLineComments(titleSceneRuntimeSource)), false, 'titleSceneRuntime이 PlayScene을 정적 import함');
@@ -229,7 +247,7 @@ test('browser runtime wiring은 bootstrap/play context 경계에서 주입되고
   assert.equal(gameAppSource.includes("from '../adapters/browser/runtimeHooks.js'"), false, 'GameApp이 browser runtimeHooks adapter를 직접 import하면 안 됨');
   assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'playContextRuntime이 browser runtime adapter를 직접 import하면 안 됨');
   assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/audioRuntime.js'"), false, 'playContextRuntime이 browser audio adapter를 직접 import하면 안 됨');
-  assert.equal(bootstrapBrowserGameSource.includes("from '../../scenes/TitleScene.js'"), true, 'browser bootstrap이 기본 초기 Scene wiring을 소유해야 함');
+  assert.equal(bootstrapBrowserGameSource.includes("from './createSceneFactory.js'"), true, 'browser bootstrap이 scene factory wiring을 직접 소유해야 함');
   assert.equal(bootstrapBrowserGameSource.includes("from '../../adapters/browser/runtimeHooks.js'"), true, 'browser bootstrap이 runtime hook wiring을 소유해야 함');
   assert.equal(coreRuntimeHooksSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'core/runtimeHooks는 adapter 소유 모듈을 재노출하는 shim이어야 함');
   assert.equal(browserRuntimeHooksSource.includes('export function registerRuntimeHooks'), true, 'browser runtimeHooks adapter가 실제 구현을 소유하지 않음');

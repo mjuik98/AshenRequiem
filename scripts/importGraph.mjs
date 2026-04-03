@@ -31,8 +31,9 @@ export function toProjectRelative(filePath, rootDir = ROOT_DIR) {
 
 export function extractImports(source) {
   const fromMatches = [...source.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((match) => match[1]);
+  const bareMatches = [...source.matchAll(/import\s+['"]([^'"]+)['"]/g)].map((match) => match[1]);
   const dynamicMatches = [...source.matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)].map((match) => match[1]);
-  return [...fromMatches, ...dynamicMatches];
+  return [...new Set([...fromMatches, ...bareMatches, ...dynamicMatches])];
 }
 
 export function resolveImportTarget(sourceFile, specifier, rootDir = ROOT_DIR) {

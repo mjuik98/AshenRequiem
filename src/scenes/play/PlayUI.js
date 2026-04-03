@@ -16,7 +16,7 @@ import {
   loadLevelUpViewModule,
   loadPauseViewModule,
   loadResultViewModule,
-} from '../sceneLoaders.js';
+} from '../overlayViewLoaders.js';
 import { logRuntimeError } from '../../utils/runtimeLogger.js';
 
 export class PlayUI {

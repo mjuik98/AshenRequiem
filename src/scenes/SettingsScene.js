@@ -19,7 +19,6 @@ import {
   saveSettingsAndApplyRuntime,
 } from '../app/meta/settingsApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
-import { loadTitleSceneModule } from './sceneLoaders.js';
 import { createSettingsRuntimeDependencies } from './settingsRuntimeDependencies.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
 
@@ -191,8 +190,9 @@ export class SettingsScene {
 
   /** TitleScene으로 복귀 */
   async _goToTitle() {
-    await this._nav.load(loadTitleSceneModule, ({ TitleScene }) => {
-      this.game.sceneManager.changeScene(new TitleScene(this.game));
+    await this._nav.change(() => {
+      const nextScene = this.game?.sceneFactory?.createTitleScene?.(this.game);
+      this.game.sceneManager.changeScene(nextScene);
     }, (e) => {
       logRuntimeError('SettingsScene', 'TitleScene 로드 실패:', e);
     });

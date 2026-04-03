@@ -129,6 +129,9 @@ npm run typecheck
 # 아키텍처 lint baseline (import 경계 + 문서 drift)
 npm run lint
 
+# import cycle 검사
+npm run check:cycles
+
 # 문서 drift만 빠르게 검사
 npm run check:architecture-docs
 

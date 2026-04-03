@@ -8,7 +8,6 @@ import { MetaShopView }            from '../ui/metashop/MetaShopView.js';
 import { mountUI }                 from '../ui/dom/mountUI.js';
 import { purchaseMetaShopUpgrade } from '../app/meta/metaShopApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
-import { loadTitleSceneModule } from './sceneLoaders.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
 
 export class MetaShopScene {
@@ -55,8 +54,9 @@ export class MetaShopScene {
 
   /** 메인화면(TitleScene)으로 복귀 */
   async _goToTitle() {
-    await this._nav.load(loadTitleSceneModule, ({ TitleScene }) => {
-      this.game.sceneManager.changeScene(new TitleScene(this.game));
+    await this._nav.change(() => {
+      const nextScene = this.game?.sceneFactory?.createTitleScene?.(this.game);
+      this.game.sceneManager.changeScene(nextScene);
     }, (e) => {
       logRuntimeError('MetaShopScene', 'TitleScene 로드 실패:', e);
     });

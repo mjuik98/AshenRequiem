@@ -31,10 +31,14 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 5. **테스트 전용 메서드 금지 (R-시리즈)**
    - `_testWithData` 등 테스트를 위한 우회 메서드를 프로덕션 코드에 노출하지 않는다.
 6. **아키텍처 경계는 edit-time + verify-time 이중 가드로 유지한다**
-   - edit-time: `lint:eslint`의 `no-restricted-imports` 규칙으로 `domain -> presentation/browser`, `scene -> systems`, `app -> scenes(session bootstrap 제외)`, `app -> sessionFacade`, compatibility wrapper direct import를 막는다.
-   - verify-time: `check:boundaries`와 `check:architecture-docs`가 resolved import 경계와 문서 drift를 최종 판정한다.
+   - edit-time: `lint:eslint`의 `no-restricted-imports` 규칙으로 `domain -> presentation/browser`, `scene -> systems`, `app -> scenes(session bootstrap 제외)`, `app -> sessionFacade`, compatibility wrapper direct import, internal `sceneLoaders` direct import를 막는다.
+   - verify-time: `check:cycles`, `check:boundaries`, `check:architecture-docs`가 import cycle, resolved import 경계, 문서 drift를 최종 판정한다.
    - 새 compatibility wrapper를 추가하거나 disposition이 바뀌면 `docs/compatibility-wrappers.md`와 관련 스크립트 snapshot을 함께 갱신한다.
    - browser debug/runtime hook 구현은 `src/adapters/browser/runtimeHooks.js`가 소유하고, `src/core/runtimeHooks.js`는 호환 re-export shim으로만 유지한다.
+7. **씬 전환 wiring은 bootstrap scene factory가 소유한다**
+   - `Scene`/`title runtime`/`play runtime` 내부 모듈은 `src/scenes/sceneLoaders.js`를 직접 import하지 않는다.
+   - 다음 씬 생성은 `bootstrapBrowserGame()`이 주입한 `game.sceneFactory` 경로를 통해 수행한다.
+   - `src/scenes/sceneLoaders.js`는 테스트/호환용 facade로만 유지하고, overlay lazy import는 별도 loader module이 소유한다.
 
 ---
 

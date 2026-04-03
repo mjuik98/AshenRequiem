@@ -8,15 +8,21 @@ const { test, summary } = createRunner('MetaApplicationServices');
 
 test('settings application service는 preview/codec/mutation helper로 internals를 분리한다', async () => {
   const settingsAppSource = readProjectSource('../src/app/meta/settingsApplicationService.js');
+  const settingsQuerySource = readProjectSource('../src/app/meta/settingsQueryService.js');
+  const settingsCommandSource = readProjectSource('../src/app/meta/settingsCommandService.js');
 
   await import('../src/app/meta/settingsApplicationService.js');
+  await import('../src/app/meta/settingsQueryService.js');
+  await import('../src/app/meta/settingsCommandService.js');
   await import('../src/app/meta/settingsPreviewDiff.js');
   await import('../src/app/meta/settingsSessionCodec.js');
   await import('../src/app/meta/settingsSessionMutation.js');
 
-  assert.equal(settingsAppSource.includes("from './settingsPreviewDiff.js'"), true, 'settings application service가 preview helper를 사용하지 않음');
-  assert.equal(settingsAppSource.includes("from './settingsSessionCodec.js'"), true, 'settings application service가 session codec helper를 사용하지 않음');
-  assert.equal(settingsAppSource.includes("from './settingsSessionMutation.js'"), true, 'settings application service가 mutation helper를 사용하지 않음');
+  assert.equal(settingsAppSource.includes("from './settingsQueryService.js'"), true, 'settings application facade가 query service를 사용하지 않음');
+  assert.equal(settingsAppSource.includes("from './settingsCommandService.js'"), true, 'settings application facade가 command service를 사용하지 않음');
+  assert.equal(settingsQuerySource.includes("from './settingsPreviewDiff.js'"), true, 'settings query service가 preview helper를 사용하지 않음');
+  assert.equal(settingsCommandSource.includes("from './settingsSessionMutation.js'"), true, 'settings command service가 mutation helper를 사용하지 않음');
+  assert.equal(settingsCommandSource.includes("from '../session/sessionRuntimeApplicationService.js'"), true, 'settings command service가 runtime apply helper를 사용하지 않음');
 });
 
 test('settings application service는 저장과 runtime 반영을 한 곳에서 처리한다', async () => {

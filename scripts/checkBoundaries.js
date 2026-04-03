@@ -30,6 +30,7 @@ const CORE_ALLOWED_IMPORT_SOURCES = new Set([
   'src/core/Game.js',
   'src/core/runtimeHooks.js',
 ]);
+const SCENE_LOADERS_FACADE_PATH = 'src/scenes/sceneLoaders.js';
 
 function findShimViolations(imports) {
   return imports
@@ -181,6 +182,21 @@ function findPlayContextRuntimeBrowserViolations(imports) {
     }));
 }
 
+function findInternalSceneLoaderFacadeViolations(imports) {
+  return imports
+    .filter(({ sourceFile, targetFile }) => (
+      sourceFile.startsWith('src/')
+      && sourceFile !== SCENE_LOADERS_FACADE_PATH
+      && targetFile === SCENE_LOADERS_FACADE_PATH
+    ))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'internal-scene-loader-facade',
+      sourceFile,
+      targetFile,
+      message: `internal module must use scene factory or overlay loaders instead of sceneLoaders facade: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 export function collectBoundaryViolations() {
   const sourceImports = collectSourceImports();
   return [
@@ -195,6 +211,7 @@ export function collectBoundaryViolations() {
     ...findRenderSystemBrowserViolations(sourceImports),
     ...findSoundSfxBrowserViolations(sourceImports),
     ...findPlayContextRuntimeBrowserViolations(sourceImports),
+    ...findInternalSceneLoaderFacadeViolations(sourceImports),
   ];
 }
 
