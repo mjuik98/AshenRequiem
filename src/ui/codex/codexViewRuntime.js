@@ -1,6 +1,5 @@
 import { buildCodexDiscoverySummary } from './codexRecords.js';
 import {
-  bindCodexTabButtons,
   syncCodexTabPanels,
 } from './codexViewBindings.js';
 import {
@@ -11,11 +10,11 @@ import {
 } from './codexViewControllers.js';
 import {
   getCodexTabSummaryText,
-  renderCodexViewShell,
 } from './codexViewShell.js';
 import {
-  setCodexActiveTab,
-} from './codexViewState.js';
+  syncCodexShellState,
+} from './codexViewRenderState.js';
+import { setCodexActiveTab } from './codexViewState.js';
 
 export function renderCodexPanelsRuntime(view, {
   renderCodexEnemyPanelImpl = renderCodexEnemyPanel,
@@ -84,8 +83,7 @@ export function showCodexWeaponRuntime(view, weaponId, {
 
 export function renderCodexViewRuntime(view, {
   buildCodexDiscoverySummaryImpl = buildCodexDiscoverySummary,
-  renderCodexViewShellImpl = renderCodexViewShell,
-  bindCodexTabButtonsImpl = bindCodexTabButtons,
+  syncCodexShellStateImpl = syncCodexShellState,
   renderCodexPanelsRuntimeImpl = renderCodexPanelsRuntime,
   activateCodexTabRuntimeImpl = activateCodexTabRuntime,
 } = {}) {
@@ -97,17 +95,48 @@ export function renderCodexViewRuntime(view, {
   const totalWeapons = discovery.entries.find((entry) => entry.label === '무기')?.total ?? 0;
   const totalAccessories = discovery.entries.find((entry) => entry.label === '장신구')?.total ?? 0;
 
-  view.el.innerHTML = renderCodexViewShellImpl({
+  syncCodexShellStateImpl(view, {
     discovery,
     activeTab: view._state.activeTab,
     totalEnemies,
     totalWeapons,
     totalAccessories,
   });
-
-  bindCodexTabButtonsImpl(view.el, (tabName) => activateCodexTabRuntimeImpl(view, tabName));
   renderCodexPanelsRuntimeImpl(view);
+  activateCodexTabRuntimeImpl(view, view._state.activeTab);
+}
 
-  view.el.querySelector('#cx-back-btn')
-    ?.addEventListener('click', () => view._onBack?.());
+export function bindCodexViewRuntime(view) {
+  const root = view?.el;
+  if (!root?.addEventListener) return () => {};
+
+  const onClick = (event) => {
+    const tabButton = event.target?.closest?.('.cx-tab');
+    if (tabButton && root.contains?.(tabButton)) {
+      activateCodexTabRuntime(view, tabButton.dataset.tab ?? 'enemy');
+      return;
+    }
+
+    const backButton = event.target?.closest?.('#cx-back-btn');
+    if (backButton && root.contains?.(backButton)) {
+      view._onBack?.();
+    }
+  };
+
+  const onKeyDown = (event) => {
+    const tabButton = event.target?.closest?.('.cx-tab');
+    if (!tabButton || !root.contains?.(tabButton)) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      activateCodexTabRuntime(view, tabButton.dataset.tab ?? 'enemy');
+    }
+  };
+
+  root.addEventListener('click', onClick);
+  root.addEventListener('keydown', onKeyDown);
+
+  return () => {
+    root.removeEventListener('click', onClick);
+    root.removeEventListener('keydown', onKeyDown);
+  };
 }

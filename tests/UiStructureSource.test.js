@@ -19,8 +19,11 @@ const settingsViewSource = readProjectSource('../src/ui/settings/SettingsView.js
 const startLoadoutMarkupSource = readProjectSource('../src/ui/title/startLoadoutMarkup.js');
 const startLoadoutStylesSource = readProjectSource('../src/ui/title/startLoadoutStyles.js');
 const startLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
+const startLoadoutViewRuntimeSource = readProjectSource('../src/ui/title/startLoadoutViewRuntime.js');
 const levelUpContentSource = readProjectSource('../src/ui/levelup/levelUpContent.js');
 const levelUpStylesSource = readProjectSource('../src/ui/levelup/levelUpViewStyles.js');
+const levelUpViewRuntimeSource = readProjectSource('../src/ui/levelup/levelUpViewRuntime.js');
+const resultViewRuntimeSource = readProjectSource('../src/ui/result/resultViewRuntime.js');
 
 console.log('\n[UiStructureSource]');
 
@@ -74,6 +77,27 @@ await test('PauseView는 섹션 렌더와 툴팁 builder를 별도 모듈로 위
   assert.equal(typeof pauseViewLifecycle.resetPauseViewRuntime, 'function', 'pause lifecycle reset helper가 없음');
   assert.equal(typeof pauseAudioController.bindPauseAudioControls, 'function', 'pause audio controller helper가 없음');
   assert.equal(typeof pauseTooltipBindings.bindPauseTooltipEntries, 'function', 'pause tooltip binding helper가 없음');
+});
+
+await test('Boss overlay view는 markup/style helper 모듈로 분리된다', async () => {
+  let bossHudMarkup;
+  let bossHudStyles;
+  let bossAnnouncementMarkup;
+  let bossAnnouncementStyles;
+
+  try {
+    bossHudMarkup = await import('../src/ui/boss/bossHudMarkup.js');
+    bossHudStyles = await import('../src/ui/boss/bossHudStyles.js');
+    bossAnnouncementMarkup = await import('../src/ui/boss/bossAnnouncementMarkup.js');
+    bossAnnouncementStyles = await import('../src/ui/boss/bossAnnouncementStyles.js');
+  } catch (error) {
+    throw new Error(`boss helper import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof bossHudMarkup.buildBossHudMarkup, 'function', 'boss HUD markup helper가 없음');
+  assert.equal(typeof bossHudStyles.ensureBossHudStyles, 'function', 'boss HUD style helper가 없음');
+  assert.equal(typeof bossAnnouncementMarkup.buildBossAnnouncementMarkup, 'function', 'boss announcement markup helper가 없음');
+  assert.equal(typeof bossAnnouncementStyles.ensureBossAnnouncementStyles, 'function', 'boss announcement style helper가 없음');
 });
 
 await test('PauseView는 shell과 interaction controller로 렌더 조립을 추가 분리한다', async () => {
@@ -170,6 +194,7 @@ await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임�
   let playSceneOverlays;
   let levelUpInteractions;
   let levelUpStyles;
+  let levelUpRuntime;
 
   try {
     levelUpController = await import('../src/scenes/play/levelUpController.js');
@@ -177,6 +202,7 @@ await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임�
     playSceneOverlays = await import('../src/scenes/play/playSceneOverlays.js');
     levelUpInteractions = await import('../src/ui/levelup/levelUpViewInteractions.js');
     levelUpStyles = await import('../src/ui/levelup/levelUpViewStyles.js');
+    levelUpRuntime = await import('../src/ui/levelup/levelUpViewRuntime.js');
   } catch (error) {
     throw new Error(`playScene helper import 실패: ${error.message}`);
   }
@@ -187,8 +213,11 @@ await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임�
   assert.equal(typeof playSceneOverlays.createResultSceneActions, 'function', 'result overlay helper가 export되지 않음');
   assert.equal(typeof levelUpInteractions.bindLevelUpCardInteractions, 'function', 'LevelUpView interaction helper가 없음');
   assert.equal(typeof levelUpStyles.ensureLevelUpViewStyles, 'function', 'LevelUpView style helper가 없음');
+  assert.equal(typeof levelUpRuntime.bindLevelUpViewRuntime, 'function', 'LevelUpView runtime helper가 없음');
+  assert.equal(typeof levelUpRuntime.renderLevelUpViewRuntime, 'function', 'LevelUpView render helper가 없음');
   assert.match(levelUpViewSource, /from '\.\/levelUpViewInteractions\.js'/, 'LevelUpView가 interaction helper를 사용하지 않음');
   assert.match(levelUpViewSource, /from '\.\/levelUpViewStyles\.js'/, 'LevelUpView가 style helper를 사용하지 않음');
+  assert.match(levelUpViewSource, /from '\.\/levelUpViewRuntime\.js'/, 'LevelUpView가 runtime helper를 사용하지 않음');
 });
 
 await test('Pause/Result 액션 버튼은 공통 토큰 모듈을 사용한다', async () => {
@@ -298,12 +327,14 @@ await test('StartLoadoutView는 markup/style/interaction helper로 분리된다'
   let startLoadoutMarkup;
   let startLoadoutStyles;
   let startLoadoutInteractions;
+  let startLoadoutViewRuntime;
 
   try {
     startLoadoutView = await import('../src/ui/title/StartLoadoutView.js');
     startLoadoutMarkup = await import('../src/ui/title/startLoadoutMarkup.js');
     startLoadoutStyles = await import('../src/ui/title/startLoadoutStyles.js');
     startLoadoutInteractions = await import('../src/ui/title/startLoadoutInteractions.js');
+    startLoadoutViewRuntime = await import('../src/ui/title/startLoadoutViewRuntime.js');
   } catch (error) {
     throw new Error(`StartLoadoutView helper import 실패: ${error.message}`);
   }
@@ -313,6 +344,45 @@ await test('StartLoadoutView는 markup/style/interaction helper로 분리된다'
   assert.equal(typeof startLoadoutMarkup.getStartLoadoutWeaponEmoji, 'function', 'StartLoadout emoji helper가 없음');
   assert.equal(typeof startLoadoutStyles.ensureStartLoadoutStyles, 'function', 'StartLoadout style helper가 없음');
   assert.equal(typeof startLoadoutInteractions.bindStartLoadoutInteractions, 'function', 'StartLoadout interaction helper가 없음');
+  assert.equal(typeof startLoadoutViewRuntime.bindStartLoadoutViewRuntime, 'function', 'StartLoadout runtime helper가 없음');
+  assert.equal(typeof startLoadoutViewRuntime.renderStartLoadoutViewRuntime, 'function', 'StartLoadout render helper가 없음');
+  assert.match(startLoadoutViewSource, /from '\.\/startLoadoutViewRuntime\.js'/, 'StartLoadoutView가 runtime helper를 사용하지 않음');
+  assert.match(startLoadoutViewRuntimeSource, /bindStartLoadoutInteractions/, 'StartLoadout runtime helper가 interaction facade를 사용하지 않음');
+});
+
+await test('overlay runtime과 session/data facade는 전용 helper module로 분해된다', async () => {
+  let titleSceneRuntimeState;
+  let resultViewRuntime;
+  let sessionStorageKeys;
+  let sessionStateCodec;
+  let sessionRecoveryPolicy;
+  let permanentUpgradeCatalog;
+  let permanentUpgradeApplicator;
+
+  try {
+    titleSceneRuntimeState = await import('../src/scenes/title/titleSceneRuntimeState.js');
+    resultViewRuntime = await import('../src/ui/result/resultViewRuntime.js');
+    sessionStorageKeys = await import('../src/state/session/sessionStorageKeys.js');
+    sessionStateCodec = await import('../src/state/session/sessionStateCodec.js');
+    sessionRecoveryPolicy = await import('../src/state/session/sessionRecoveryPolicy.js');
+    permanentUpgradeCatalog = await import('../src/data/permanentUpgradeCatalog.js');
+    permanentUpgradeApplicator = await import('../src/data/permanentUpgradeApplicator.js');
+  } catch (error) {
+    throw new Error(`overlay/session/data helper import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof titleSceneRuntimeState.createTitleSceneRuntimeState, 'function', 'TitleScene runtime state helper가 없음');
+  assert.equal(typeof resultViewRuntime.bindResultViewRuntime, 'function', 'ResultView runtime helper가 없음');
+  assert.equal(typeof resultViewRuntime.renderResultViewRuntime, 'function', 'ResultView render helper가 없음');
+  assert.equal(typeof sessionStorageKeys.buildSessionStorageKeys, 'function', 'session storage keys helper가 없음');
+  assert.equal(typeof sessionStateCodec.serializeSessionState, 'function', 'session codec serialize helper가 없음');
+  assert.equal(typeof sessionStateCodec.parseSessionState, 'function', 'session codec parse helper가 없음');
+  assert.equal(typeof sessionRecoveryPolicy.inspectStoredSessionSnapshots, 'function', 'session recovery inspect helper가 없음');
+  assert.equal(typeof sessionRecoveryPolicy.restoreStoredSessionSnapshot, 'function', 'session recovery restore helper가 없음');
+  assert.equal(typeof permanentUpgradeCatalog.getPermanentUpgradeById, 'function', 'permanent upgrade lookup helper가 없음');
+  assert.equal(typeof permanentUpgradeApplicator.applyPermanentUpgrades, 'function', 'permanent upgrade applicator helper가 없음');
+  assert.match(resultViewSource, /from '\.\/resultViewRuntime\.js'/, 'ResultView가 runtime helper를 사용하지 않음');
+  assert.match(resultViewRuntimeSource, /renderResultViewMarkup/, 'ResultView runtime helper가 markup helper를 사용하지 않음');
 });
 
 await test('pause loadout model은 format/relationship helper로 추가 분리된다', async () => {
@@ -542,6 +612,76 @@ await test('Game는 deterministic runtime hook 모듈을 등록한다', async ()
   assert.equal(typeof runtimeHooks.registerRuntimeHooks, 'function', 'registerRuntimeHooks가 export되지 않음');
   assert.equal(typeof runtimeHooks.unregisterRuntimeHooks, 'function', 'unregisterRuntimeHooks가 export되지 않음');
   assert.equal(typeof Game, 'function', 'Game 클래스가 export되지 않음');
+});
+
+await test('SettingsView와 MetaShopView는 delegated runtime helper 모듈을 사용한다', async () => {
+  let settingsViewRuntime;
+  let metaShopViewRuntime;
+
+  try {
+    settingsViewRuntime = await import('../src/ui/settings/settingsViewRuntime.js');
+    metaShopViewRuntime = await import('../src/ui/metashop/metaShopViewRuntime.js');
+  } catch (error) {
+    throw new Error(`settings/meta shop runtime helper import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof settingsViewRuntime.bindSettingsViewRuntime, 'function', 'SettingsView runtime binding helper가 없음');
+  assert.equal(typeof settingsViewRuntime.syncSettingsViewRuntime, 'function', 'SettingsView runtime sync helper가 없음');
+  assert.equal(typeof metaShopViewRuntime.bindMetaShopViewRuntime, 'function', 'MetaShopView runtime binding helper가 없음');
+  assert.match(settingsViewSource, /from '\.\/settingsViewRuntime\.js'/, 'SettingsView가 delegated runtime helper를 사용하지 않음');
+  assert.match(metaShopViewSource, /from '\.\/metaShopViewRuntime\.js'/, 'MetaShopView가 delegated runtime helper를 사용하지 않음');
+});
+
+await test('TouchAdapter와 runtime hook adapter는 UI/runtime helper 모듈로 분해된다', async () => {
+  let touchHudRuntime;
+  let runtimeDebugSurface;
+  let runtimeSnapshot;
+  let runtimeOverlayHelpers;
+  let runtimeScenarioHelpers;
+  let runtimeHostRegistration;
+
+  try {
+    touchHudRuntime = await import('../src/input/touchHudRuntime.js');
+    runtimeDebugSurface = await import('../src/adapters/browser/runtimeHooks/runtimeDebugSurface.js');
+    runtimeSnapshot = await import('../src/adapters/browser/runtimeHooks/runtimeSnapshot.js');
+    runtimeOverlayHelpers = await import('../src/adapters/browser/runtimeHooks/runtimeOverlayHelpers.js');
+    runtimeScenarioHelpers = await import('../src/adapters/browser/runtimeHooks/runtimeScenarioHelpers.js');
+    runtimeHostRegistration = await import('../src/adapters/browser/runtimeHooks/runtimeHostRegistration.js');
+  } catch (error) {
+    throw new Error(`touch/runtime helper import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof touchHudRuntime.createTouchHudRuntime, 'function', 'touch HUD runtime helper가 없음');
+  assert.equal(typeof touchHudRuntime.syncTouchHudRuntime, 'function', 'touch HUD sync helper가 없음');
+  assert.equal(typeof runtimeDebugSurface.getSceneDebugSurface, 'function', 'runtime debug surface helper가 없음');
+  assert.equal(typeof runtimeSnapshot.buildSnapshot, 'function', 'runtime snapshot helper가 없음');
+  assert.equal(typeof runtimeOverlayHelpers.openPauseOverlay, 'function', 'runtime overlay helper가 없음');
+  assert.equal(typeof runtimeScenarioHelpers.openBossReadabilityOverlay, 'function', 'runtime scenario helper가 없음');
+  assert.equal(typeof runtimeHostRegistration.registerRuntimeHooks, 'function', 'runtime host registration helper가 없음');
+});
+
+await test('stage/session authoring은 registry와 per-feature helper 모듈로 분해된다', async () => {
+  let ashPlainsStage;
+  let moonCryptStage;
+  let emberHollowStage;
+  let frostHarborStage;
+  let sessionMigrationSteps;
+
+  try {
+    ashPlainsStage = await import('../src/data/stages/ashPlainsStage.js');
+    moonCryptStage = await import('../src/data/stages/moonCryptStage.js');
+    emberHollowStage = await import('../src/data/stages/emberHollowStage.js');
+    frostHarborStage = await import('../src/data/stages/frostHarborStage.js');
+    sessionMigrationSteps = await import('../src/state/session/migrations/sessionMigrationSteps.js');
+  } catch (error) {
+    throw new Error(`stage/session decomposition import 실패: ${error.message}`);
+  }
+
+  assert.equal(typeof ashPlainsStage.ashPlainsStage, 'object', 'Ash Plains stage module이 없음');
+  assert.equal(typeof moonCryptStage.moonCryptStage, 'object', 'Moon Crypt stage module이 없음');
+  assert.equal(typeof emberHollowStage.emberHollowStage, 'object', 'Ember Hollow stage module이 없음');
+  assert.equal(typeof frostHarborStage.frostHarborStage, 'object', 'Frost Harbor stage module이 없음');
+  assert.equal(Array.isArray(sessionMigrationSteps.SESSION_MIGRATION_STEPS), true, 'session migration step registry가 없음');
 });
 
 await test('TitleScene는 상태/종료 처리 helper를 별도 모듈로 위임한다', async () => {

@@ -10,7 +10,6 @@
  * - 비동기 import 레이스 방지용 플래그 추가
  * - devicePixelRatio 변화를 추적해 렌더 파이프라인에 반영
  */
-import { createPlayResultApplicationService } from '../app/play/playResultApplicationService.js';
 import { saveActiveRunAndPersist } from '../app/play/activeRunApplicationService.js';
 import {
   persistPauseSceneOptions,
@@ -19,33 +18,26 @@ import {
   syncPlaySceneDevicePixelRatio,
   togglePlayScenePause,
 } from '../app/play/playSceneFlowService.js';
-import { createLevelUpController }      from './play/levelUpController.js';
 import { bootstrapPlaySceneRuntime }    from './play/playSceneBootstrap.js';
-import { PlayModeStateMachine }         from '../core/PlayModeStateMachine.js';
 import {
   loadPlaySceneModule,
   loadTitleSceneModule,
 } from './sceneLoaders.js';
 import { applySessionOptionsToRuntime } from '../app/session/sessionRuntimeApplicationService.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
-import { createDocumentAccessibilityRuntime } from '../ui/shared/accessibilityRuntime.js';
+import {
+  createPlaySceneRuntimeState,
+  disposePlaySceneRuntimeState,
+  getPlaySceneDebugSurface,
+} from './play/playSceneRuntimeState.js';
 
 export class PlayScene {
   constructor(game) {
     this.game               = game;
     this.sceneId            = 'PlayScene';
     this.world              = null;
-    this._ctx               = null;
-    this._pipeline          = null;
-    this._pipelineCtx       = null;
-    this._systems           = null;
+    this._runtimeState      = createPlaySceneRuntimeState();
     this._dpr               = 1;
-
-    this._ui                = null;
-    this._resultHandler     = null;
-    this._uiState           = null;
-    this._gameData          = null;
-    this._levelUpController = null;
 
     this._pauseWasDown      = false;
     this._isSceneChanging   = false;
@@ -55,40 +47,21 @@ export class PlayScene {
   enter() {
     const runtime = bootstrapPlaySceneRuntime({ game: this.game });
     this.world = runtime.world;
-    this._gameData = runtime.gameData;
-    this._ctx = runtime.ctx;
-    this._ui = runtime.ui;
-    this._pipeline = runtime.pipeline;
-    this._pipelineCtx = runtime.pipelineCtx;
-    this._systems = runtime.systems;
+    this._runtimeState = createPlaySceneRuntimeState({
+      runtime,
+      session: this.game.session,
+      getWorld: () => this.world,
+      isBlocked: () => this._isSceneChanging,
+      showResult: () => this._showResultUI(),
+    });
 
     // CHANGE(Settings): 볼륨·품질 설정 반영
     this._applySessionOptions();
 
-    this._resultHandler = createPlayResultApplicationService(this.game.session);
-    this._levelUpController = createLevelUpController({
-      getWorld: () => this.world,
-      getData: () => ({
-        ...this._gameData,
-        session: this.game.session,
-      }),
-      isBlocked: () => this._isSceneChanging,
-      showLevelUp: (config) => this._ui.showLevelUp(config),
-    });
-
-    this._uiState = new PlayModeStateMachine({
-      onLevelUp: () => this._levelUpController?.show(),
-      onDead:    () => this._showResultUI(),
-      onResume:  () => {
-        this._ui.hidePause();
-        this._ui.hideLevelUp();
-      },
-    });
-
     this._dpr = syncPlaySceneDevicePixelRatio({
       sessionOptions: this.game.session?.options,
       currentDpr: 1,
-      devicePixelRatio: window.devicePixelRatio || 1,
+      devicePixelRatio: this._runtimeState.devicePixelRatioReader?.() ?? 1,
     }).dpr;
 
     this._pauseWasDown    = false;
@@ -105,19 +78,19 @@ export class PlayScene {
    */
   _applySessionOptions() {
     applySessionOptionsToRuntime(this.game.session?.options, {
-      soundSystem: this._ctx.soundSystem,
+      soundSystem: this._runtimeState.ctx?.soundSystem,
       renderer: this.game.renderer,
-      accessibilityRuntime: createDocumentAccessibilityRuntime(),
+      accessibilityRuntime: this._runtimeState.accessibilityRuntime,
     });
   }
 
   update(dt) {
-    if (!this.world || !this._ctx || !this._uiState || this._isSceneChanging) return;
+    if (!this.world || !this._runtimeState.ctx || !this._runtimeState.uiState || this._isSceneChanging) return;
 
     const dprState = syncPlaySceneDevicePixelRatio({
       sessionOptions: this.game.session?.options,
       currentDpr: this._dpr,
-      devicePixelRatio: window.devicePixelRatio || 1,
+      devicePixelRatio: this._runtimeState.devicePixelRatioReader?.() ?? 1,
     });
     if (dprState.changed) {
       this._dpr = dprState.dpr;
@@ -131,13 +104,13 @@ export class PlayScene {
     }
     this._pauseWasDown = pauseDown;
 
-    if (this._uiState.tick(this.world.run.playMode)) return;
+    if (this._runtimeState.uiState.tick(this.world.run.playMode)) return;
 
     runPlaySceneFrame({
       world: this.world,
-      pipeline: this._pipeline,
-      pipelineCtx: this._pipelineCtx,
-      ui: this._ui,
+      pipeline: this._runtimeState.pipeline,
+      pipelineCtx: this._runtimeState.pipelineCtx,
+      ui: this._runtimeState.ui,
       dt,
       dpr: this._dpr,
     });
@@ -151,20 +124,13 @@ export class PlayScene {
 
   render() {}
 
+  getDebugSurface() {
+    return getPlaySceneDebugSurface(this._runtimeState);
+  }
+
   exit() {
     this._checkpointActiveRun(true);
-    this._ui?.destroy();
-    this._uiState?.reset();
-    this._ctx?.dispose();
-    this._ui               = null;
-    this._resultHandler    = null;
-    this._uiState          = null;
-    this._ctx              = null;
-    this._pipeline         = null;
-    this._pipelineCtx      = null;
-    this._systems          = null;
-    this._gameData         = null;
-    this._levelUpController = null;
+    this._runtimeState      = disposePlaySceneRuntimeState(this._runtimeState);
     this.world             = null;
     this._pauseWasDown     = false;
     this._isSceneChanging  = false;
@@ -176,8 +142,8 @@ export class PlayScene {
   _handlePauseToggle() {
     const pauseState = togglePlayScenePause({
       world: this.world,
-      ui: this._ui,
-      data: this._gameData,
+      ui: this._runtimeState.ui,
+      data: this._runtimeState.gameData,
       session: this.game.session,
       isBlocked: () => this._isSceneChanging,
       consumePausePress: () => {
@@ -200,8 +166,8 @@ export class PlayScene {
   _showResultUI() {
     showPlaySceneResult({
       world: this.world,
-      resultHandler: this._resultHandler,
-      ui: this._ui,
+      resultHandler: this._runtimeState.resultHandler,
+      ui: this._runtimeState.ui,
       isBlocked: () => this._isSceneChanging,
       setBlocked: (value) => {
         this._isSceneChanging = value;

@@ -6,6 +6,12 @@ console.log('\n[LevelUpViewAccessibility]');
 
 const { test, summary } = createRunner('LevelUpViewAccessibility');
 
+await test('LevelUpView runtime helper는 delegated runtime entrypoint를 노출한다', async () => {
+  const runtime = await import('../src/ui/levelup/levelUpViewRuntime.js');
+  assert.equal(typeof runtime.bindLevelUpViewRuntime, 'function');
+  assert.equal(typeof runtime.renderLevelUpViewRuntime, 'function');
+});
+
 await test('LevelUpView는 dialog 포커스를 잡고 닫을 때 이전 포커스를 복원한다', async () => {
   const dom = installMockDom();
 

@@ -14,6 +14,14 @@ import {
   SETTINGS_VIEW_CSS,
   SETTINGS_VIEW_STYLE_ID,
 } from '../src/ui/settings/settingsViewStyles.js';
+import {
+  bindSettingsViewRuntime,
+  syncSettingsViewRuntime,
+} from '../src/ui/settings/settingsViewRuntime.js';
+import {
+  renderSettingsShell,
+  syncSettingsShellState,
+} from '../src/ui/settings/settingsViewRenderState.js';
 
 const { test, summary } = createRunner('SettingsViewHelpers');
 
@@ -89,6 +97,13 @@ test('settings styles는 별도 모듈에서 관리되고 모바일 레이아웃
   assert.equal(SETTINGS_VIEW_CSS.includes('.sv-data-status-box'), true);
   assert.equal(SETTINGS_VIEW_CSS.includes('@media (max-width: 780px)'), true);
   assert.equal(SETTINGS_VIEW_CSS.includes('@keyframes sv-enter'), true);
+});
+
+test('settings runtime helper는 delegated interaction binding과 rerender 동기화 contract를 노출한다', () => {
+  assert.equal(typeof bindSettingsViewRuntime, 'function', 'settings runtime binding helper가 없음');
+  assert.equal(typeof syncSettingsViewRuntime, 'function', 'settings runtime sync helper가 없음');
+  assert.equal(typeof renderSettingsShell, 'function', 'settings shell render helper가 없음');
+  assert.equal(typeof syncSettingsShellState, 'function', 'settings shell sync helper가 없음');
 });
 
 summary();

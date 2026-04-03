@@ -11,6 +11,8 @@ let MetaShopView = null;
 let metaShopModel = null;
 let metaShopMarkup = null;
 let metaShopStyles = null;
+let metaShopViewRuntime = null;
+let metaShopViewRenderState = null;
 
 try {
   ({ MetaShopView } = await import('../src/ui/metashop/MetaShopView.js'));
@@ -34,6 +36,18 @@ try {
   metaShopStyles = await import('../src/ui/metashop/metaShopStyles.js');
 } catch (error) {
   metaShopStyles = { error };
+}
+
+try {
+  metaShopViewRuntime = await import('../src/ui/metashop/metaShopViewRuntime.js');
+} catch (error) {
+  metaShopViewRuntime = { error };
+}
+
+try {
+  metaShopViewRenderState = await import('../src/ui/metashop/metaShopViewRenderState.js');
+} catch (error) {
+  metaShopViewRenderState = { error };
 }
 
 function getMetaShopView() {
@@ -68,17 +82,38 @@ function getMetaShopStyles() {
   return metaShopStyles;
 }
 
+function getMetaShopViewRuntime() {
+  assert.ok(
+    !metaShopViewRuntime.error,
+    metaShopViewRuntime.error?.message ?? 'src/ui/metashop/metaShopViewRuntime.js가 아직 없음',
+  );
+  return metaShopViewRuntime;
+}
+
+function getMetaShopViewRenderState() {
+  assert.ok(
+    !metaShopViewRenderState.error,
+    metaShopViewRenderState.error?.message ?? 'src/ui/metashop/metaShopViewRenderState.js가 아직 없음',
+  );
+  return metaShopViewRenderState;
+}
+
 test('meta shop helper modules expose model, markup, and style contracts', () => {
   const View = getMetaShopView();
   const model = getMetaShopModel();
   const markup = getMetaShopMarkup();
   const styles = getMetaShopStyles();
+  const runtime = getMetaShopViewRuntime();
+  const renderState = getMetaShopViewRenderState();
 
   assert.equal(typeof View, 'function', 'MetaShopView class가 export되지 않음');
   assert.equal(typeof model.buildMetaShopViewModel, 'function', 'MetaShop model helper가 없음');
   assert.equal(typeof markup.renderMetaShopMarkup, 'function', 'MetaShop markup helper가 없음');
   assert.equal(typeof styles.ensureMetaShopStyles, 'function', 'MetaShop style helper가 없음');
   assert.equal(typeof styles.META_SHOP_CSS, 'string', 'MetaShop CSS helper가 없음');
+  assert.equal(typeof runtime.bindMetaShopViewRuntime, 'function', 'MetaShop runtime binding helper가 없음');
+  assert.equal(typeof renderState.renderMetaShopShell, 'function', 'MetaShop shell render helper가 없음');
+  assert.equal(typeof renderState.syncMetaShopShellState, 'function', 'MetaShop shell sync helper가 없음');
 });
 
 test('meta shop styles keep the panel as the scroll container', () => {

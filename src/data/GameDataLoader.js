@@ -78,6 +78,41 @@ function cloneGameData(originals) {
   return cloned;
 }
 
+function cloneStageBackgroundFiles(files) {
+  if (!files || typeof files !== 'object') return null;
+  if (typeof files.baseSrc !== 'string' || files.baseSrc.length <= 0) return null;
+  return {
+    baseSrc: files.baseSrc,
+    overlaySrc: typeof files.overlaySrc === 'string' ? files.overlaySrc : null,
+    overlayAlpha: Number.isFinite(files.overlayAlpha) ? files.overlayAlpha : 0.18,
+  };
+}
+
+function hydrateStageBackgroundAssets(stageEntries = [], assetEntries = []) {
+  const backgroundFilesByKey = new Map(
+    assetEntries
+      .filter((entry) => entry?.category === 'stage_background')
+      .map((entry) => [entry.id, cloneStageBackgroundFiles(entry.files)]),
+  );
+
+  return stageEntries.map((stage) => {
+    if (!stage?.background || typeof stage.background !== 'object') return stage;
+
+    const hydratedImages = backgroundFilesByKey.get(stage.assets?.backgroundKey) ?? null;
+    const nextBackground = { ...stage.background };
+    if (hydratedImages) {
+      nextBackground.images = hydratedImages;
+    } else if (!nextBackground.images || typeof nextBackground.images !== 'object') {
+      delete nextBackground.images;
+    }
+
+    return {
+      ...stage,
+      background: nextBackground,
+    };
+  });
+}
+
 export const GameDataLoader = {
   clone(data = {}) {
     return deepCloneValue(data);
@@ -121,6 +156,10 @@ export const GameDataLoader = {
     };
 
     const base = cloneGameData(originals);
-    return { ...base, ...overrides };
+    const merged = { ...base, ...overrides };
+    return {
+      ...merged,
+      stageData: hydrateStageBackgroundAssets(merged.stageData ?? [], merged.assetManifest ?? []),
+    };
   },
 };

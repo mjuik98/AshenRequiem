@@ -2,10 +2,53 @@ import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { installMockDom } from './helpers/mockDom.js';
 import { InputState } from '../src/input/InputState.js';
+import {
+  createTouchHudRuntime,
+  syncTouchHudRuntime,
+} from '../src/input/touchHudRuntime.js';
 
 console.log('\n[TouchAdapter]');
 
 const { test, summary } = createRunner('TouchAdapter');
+
+test('touch HUD runtime helper는 HUD 생성과 knob 동기화를 독립적으로 제공한다', () => {
+  const dom = installMockDom();
+
+  try {
+    const container = document.createElement('div');
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    let pauseTapped = 0;
+
+    const runtime = createTouchHudRuntime(canvas, {
+      onPauseTap(event) {
+        event?.preventDefault?.();
+        pauseTapped += 1;
+      },
+    });
+
+    assert.equal(Boolean(runtime.root), true, 'touch HUD root가 생성되지 않음');
+    assert.equal(Boolean(runtime.pauseButton), true, 'touch HUD pause button이 생성되지 않음');
+
+    syncTouchHudRuntime(runtime, {
+      active: true,
+      originX: 30,
+      originY: 50,
+      currentX: 120,
+      currentY: 110,
+    });
+
+    assert.equal(runtime.joystickBase.style.display, 'block', '활성 조이스틱이 표시되지 않음');
+    assert.equal(runtime.joystickKnob.style.display, 'block', '활성 knob가 표시되지 않음');
+    runtime.pauseButton.click();
+    assert.equal(pauseTapped, 1, 'pause button이 helper callback을 호출하지 않음');
+
+    runtime.destroy();
+    assert.equal(runtime.root.parentNode, null, 'helper destroy가 HUD root를 제거하지 않음');
+  } finally {
+    dom.restore();
+  }
+});
 
 test('TouchAdapter는 시각 조이스틱 HUD를 만들고 pause 버튼 입력을 pause action으로 전달한다', async () => {
   const dom = installMockDom();

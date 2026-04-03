@@ -181,4 +181,16 @@ test('createSettingsRuntimeDependencies()는 SettingsScene 런타임 의존성 �
   assert.equal(typeof deps.resizeCanvas, 'function');
 });
 
+test('createSettingsRuntimeDependencies()는 기본 경로에서 game accessibility runtime을 재사용한다', () => {
+  const accessibilityRuntime = { id: 'shared-accessibility-runtime' };
+  const deps = createSettingsRuntimeDependencies({
+    renderer: null,
+    soundSystem: null,
+    input: null,
+    accessibilityRuntime,
+  });
+
+  assert.equal(deps.accessibilityRuntime, accessibilityRuntime, 'Settings runtime deps가 game accessibility runtime을 재사용하지 않음');
+});
+
 summary();

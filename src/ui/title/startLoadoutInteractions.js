@@ -1,3 +1,21 @@
+function resolveValue(valueOrFactory) {
+  return typeof valueOrFactory === 'function' ? valueOrFactory() : valueOrFactory;
+}
+
+function findTarget(root, target, datasetKey) {
+  if (!root?.contains?.(target)) return null;
+  if (typeof target?.closest === 'function') {
+    const matched = target.closest(`[data-${datasetKey.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)}]`);
+    if (matched && root.contains(matched)) return matched;
+  }
+  return Object.hasOwn(target?.dataset ?? {}, datasetKey) ? target : null;
+}
+
+function findActionTarget(root, target, action) {
+  const matched = findTarget(root, target, 'action');
+  return matched?.dataset?.action === action ? matched : null;
+}
+
 export function bindStartLoadoutInteractions(root, {
   canStart = false,
   getSelectedWeaponId = () => null,
@@ -20,76 +38,92 @@ export function bindStartLoadoutInteractions(root, {
   onCancel,
   onStart,
 } = {}) {
-  root?.querySelectorAll('[data-weapon-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      onSelectWeapon?.(button.dataset.weaponId ?? null);
-    });
-  });
+  if (!root?.addEventListener) return () => {};
 
-  root?.querySelectorAll('[data-action="cancel"]').forEach((button) => {
-    button.addEventListener('click', () => {
+  const onClick = (event) => {
+    const target = event?.target ?? null;
+
+    if (findActionTarget(root, target, 'cancel')) {
       onCancel?.();
-    });
-  });
+      return;
+    }
 
-  root?.querySelector('[data-action="toggle-advanced"]')?.addEventListener('click', () => {
-    onToggleAdvanced?.();
-  });
+    if (findActionTarget(root, target, 'toggle-advanced')) {
+      onToggleAdvanced?.();
+      return;
+    }
 
-  root?.querySelectorAll('[data-ascension-level]').forEach((button) => {
-    button.addEventListener('click', () => {
-      onSelectAscension?.(Number.parseInt(button.dataset.ascensionLevel ?? '0', 10));
-    });
-  });
+    if (findActionTarget(root, target, 'start')) {
+      const selectedWeaponId = getSelectedWeaponId();
+      const selectedAscensionLevel = getSelectedAscensionLevel();
+      if (!resolveValue(canStart) || !selectedWeaponId) return;
+      onStart?.(selectedWeaponId, {
+        ascensionLevel: selectedAscensionLevel,
+        startAccessoryId: getSelectedStartAccessoryId(),
+        archetypeId: getSelectedArchetypeId(),
+        riskRelicId: getSelectedRiskRelicId(),
+        stageId: getSelectedStageId(),
+        seedMode: getSelectedSeedMode(),
+        seedText: getSelectedSeedText(),
+      });
+      return;
+    }
 
-  root?.querySelectorAll('[data-accessory-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const accessoryId = button.dataset.accessoryId;
+    const weaponTarget = findTarget(root, target, 'weaponId');
+    if (weaponTarget) {
+      onSelectWeapon?.(weaponTarget.dataset.weaponId ?? null);
+      return;
+    }
+
+    const ascensionTarget = findTarget(root, target, 'ascensionLevel');
+    if (ascensionTarget) {
+      onSelectAscension?.(Number.parseInt(ascensionTarget.dataset.ascensionLevel ?? '0', 10));
+      return;
+    }
+
+    const accessoryTarget = findTarget(root, target, 'accessoryId');
+    if (accessoryTarget) {
+      const accessoryId = accessoryTarget.dataset.accessoryId;
       onSelectAccessory?.(accessoryId === 'none' ? null : accessoryId ?? null);
-    });
-  });
+      return;
+    }
 
-  root?.querySelectorAll('[data-archetype-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      onSelectArchetype?.(button.dataset.archetypeId ?? 'vanguard');
-    });
-  });
+    const archetypeTarget = findTarget(root, target, 'archetypeId');
+    if (archetypeTarget) {
+      onSelectArchetype?.(archetypeTarget.dataset.archetypeId ?? 'vanguard');
+      return;
+    }
 
-  root?.querySelectorAll('[data-risk-relic-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const riskRelicId = button.dataset.riskRelicId;
+    const riskRelicTarget = findTarget(root, target, 'riskRelicId');
+    if (riskRelicTarget) {
+      const riskRelicId = riskRelicTarget.dataset.riskRelicId;
       onSelectRiskRelic?.(riskRelicId === 'none' ? null : riskRelicId ?? null);
-    });
-  });
+      return;
+    }
 
-  root?.querySelectorAll('[data-stage-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      onSelectStage?.(button.dataset.stageId ?? 'ash_plains');
-    });
-  });
+    const stageTarget = findTarget(root, target, 'stageId');
+    if (stageTarget) {
+      onSelectStage?.(stageTarget.dataset.stageId ?? 'ash_plains');
+      return;
+    }
 
-  root?.querySelectorAll('[data-seed-mode]').forEach((button) => {
-    button.addEventListener('click', () => {
-      onSelectSeedMode?.(button.dataset.seedMode ?? 'none');
-    });
-  });
+    const seedModeTarget = findTarget(root, target, 'seedMode');
+    if (seedModeTarget) {
+      onSelectSeedMode?.(seedModeTarget.dataset.seedMode ?? 'none');
+    }
+  };
 
-  root?.querySelector('[data-seed-text]')?.addEventListener('input', (event) => {
-    onChangeSeedText?.(event?.target?.value ?? '');
-  });
+  const onInput = (event) => {
+    const target = findTarget(root, event?.target ?? null, 'seedText');
+    if (!target) return;
+    onChangeSeedText?.(target.value ?? '');
+  };
 
-  root?.querySelector('[data-action="start"]')?.addEventListener('click', () => {
-    const selectedWeaponId = getSelectedWeaponId();
-    const selectedAscensionLevel = getSelectedAscensionLevel();
-    if (!canStart || !selectedWeaponId) return;
-    onStart?.(selectedWeaponId, {
-      ascensionLevel: selectedAscensionLevel,
-      startAccessoryId: getSelectedStartAccessoryId(),
-      archetypeId: getSelectedArchetypeId(),
-      riskRelicId: getSelectedRiskRelicId(),
-      stageId: getSelectedStageId(),
-      seedMode: getSelectedSeedMode(),
-      seedText: getSelectedSeedText(),
-    });
-  });
+  root.addEventListener('click', onClick);
+  root.addEventListener('input', onInput);
+
+  return () => {
+    root.removeEventListener('click', onClick);
+    root.removeEventListener('input', onInput);
+  };
 }

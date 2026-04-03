@@ -21,10 +21,13 @@ const metaShopSceneSource = readProjectSource('../src/scenes/MetaShopScene.js');
 const titleSceneRuntimeSource = readProjectSource('../src/scenes/title/titleSceneRuntime.js');
 const levelUpViewSource = readProjectSource('../src/ui/levelup/LevelUpView.js');
 const settingsViewSource = readProjectSource('../src/ui/settings/SettingsView.js');
+const settingsViewRuntimeSource = readProjectSource('../src/ui/settings/settingsViewRuntime.js');
+const metaShopViewSource = readProjectSource('../src/ui/metashop/MetaShopView.js');
 const pauseViewSource = readProjectSource('../src/ui/pause/PauseView.js');
 const pauseAudioSource = readProjectSource('../src/ui/pause/pauseAudioControls.js');
 const resultViewSource = readProjectSource('../src/ui/result/ResultView.js');
 const startLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
+const startLoadoutViewRuntimeSource = readProjectSource('../src/ui/title/startLoadoutViewRuntime.js');
 const codexViewSource = readProjectSource('../src/ui/codex/CodexView.js');
 const codexSceneSource = readProjectSource('../src/scenes/CodexScene.js');
 const codexHandlerSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
@@ -34,6 +37,7 @@ const enemyMovementSystemSource = readProjectSource('../src/systems/movement/Ene
 const statusEffectSystemSource = readProjectSource('../src/systems/combat/StatusEffectSystem.js');
 const entityUtilsSource = readProjectSource('../src/utils/entityUtils.js');
 const bossHudViewSource = readProjectSource('../src/ui/boss/BossHudView.js');
+const bossAnnouncementViewSource = readProjectSource('../src/ui/boss/BossAnnouncementView.js');
 const accessoryDataSource = readProjectSource('../src/data/accessoryData.js');
 const weaponDataSource = readProjectSource('../src/data/weaponData.js');
 const accessoryModelSource = readProjectSource('../src/ui/codex/codexAccessoryModel.js');
@@ -62,6 +66,20 @@ const playRuntimeComposerSource = readProjectSource('../src/scenes/play/playRunt
 const coreRuntimeHooksSource = readProjectSource('../src/core/runtimeHooks.js');
 const browserRuntimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
 const dialogViewLifecycleSource = readProjectSource('../src/ui/shared/dialogViewLifecycle.js');
+const touchAdapterSource = readProjectSource('../src/input/TouchAdapter.js');
+const stageDataSource = readProjectSource('../src/data/stageData.js');
+const sessionMigrationsSource = readProjectSource('../src/state/session/sessionMigrations.js');
+const titleSceneSource = readProjectSource('../src/scenes/TitleScene.js');
+const titleSceneNavigationSource = readProjectSource('../src/scenes/title/titleSceneNavigation.js');
+const titleSceneInputSource = readProjectSource('../src/scenes/title/titleSceneInput.js');
+const titleSceneRuntimeStateSource = readProjectSource('../src/scenes/title/titleSceneRuntimeState.js');
+const playSceneRuntimeStateSource = readProjectSource('../src/scenes/play/playSceneRuntimeState.js');
+const gameCanvasRuntimeSource = readProjectSource('../src/core/gameCanvasRuntime.js');
+const runtimeHostSource = readProjectSource('../src/core/runtimeHost.js');
+const runtimeEnvSource = readProjectSource('../src/adapters/browser/runtimeEnv.js');
+const sessionRepositorySource = readProjectSource('../src/state/session/sessionRepository.js');
+const sessionRecoveryPolicySource = readProjectSource('../src/state/session/sessionRecoveryPolicy.js');
+const permanentUpgradeDataSource = readProjectSource('../src/data/permanentUpgradeData.js');
 
 console.log('\n[CentralizationSource]');
 
@@ -70,7 +88,11 @@ test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
   assert.equal(settingsSceneSource.includes('saveSettingsAndApplyRuntime'), true, 'SettingsScene이 settings application service를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), false, 'SettingsScene이 세션 저장 facade를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('applySessionOptionsToRuntime'), false, 'SettingsScene이 옵션 적용 helper를 직접 import하면 안 됨');
-  assert.equal(settingsViewSource.includes('SESSION_OPTION_DEFAULTS'), true, 'SettingsView가 공통 옵션 기본값을 사용하지 않음');
+  assert.equal(
+    settingsViewSource.includes('SESSION_OPTION_DEFAULTS') || settingsViewRuntimeSource.includes('SESSION_OPTION_DEFAULTS'),
+    true,
+    'SettingsView runtime이 공통 옵션 기본값을 사용하지 않음',
+  );
   assert.equal(pauseViewSource.includes('PAUSE_AUDIO_DEFAULTS'), true, 'PauseView가 공통 pause 오디오 기본값 helper를 사용하지 않음');
   assert.equal(pauseAudioSource.includes('SESSION_OPTION_DEFAULTS'), true, 'Pause audio helper가 공통 옵션 기본값을 사용하지 않음');
   assert.equal(PAUSE_AUDIO_DEFAULTS.masterVolume, SESSION_OPTION_DEFAULTS.masterVolume, 'Pause audio 기본값이 세션 옵션 기본값과 어긋남');
@@ -106,6 +128,16 @@ test('dialog overlay view는 공통 lifecycle helper로 dialog runtime attach/de
   assert.equal(startLoadoutViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'StartLoadoutView가 공통 dialog lifecycle helper를 사용하지 않음');
   assert.equal(codexViewSource.includes("from '../shared/dialogViewLifecycle.js'"), true, 'CodexView가 공통 dialog lifecycle helper를 사용하지 않음');
   assert.equal(codexSceneSource.includes("dialogViewLifecycle"), false, 'scene가 dialog lifecycle helper를 직접 소유하면 안 됨');
+});
+
+test('overlay view runtime은 delegated helper 모듈로 중앙화된다', () => {
+  assert.equal(startLoadoutViewSource.includes("from './startLoadoutViewRuntime.js'"), true, 'StartLoadoutView가 runtime helper를 사용하지 않음');
+  assert.equal(levelUpViewSource.includes("from './levelUpViewRuntime.js'"), true, 'LevelUpView가 runtime helper를 사용하지 않음');
+  assert.equal(resultViewSource.includes("from './resultViewRuntime.js'"), true, 'ResultView가 runtime helper를 사용하지 않음');
+  assert.equal(startLoadoutViewRuntimeSource.includes('bindStartLoadoutInteractions'), true, 'StartLoadout runtime helper가 interaction facade를 사용하지 않음');
+  assert.equal(startLoadoutViewSource.includes('bindStartLoadoutInteractions('), false, 'StartLoadoutView가 interaction binding을 직접 소유하면 안 됨');
+  assert.equal(levelUpViewSource.includes('bindLevelUpCardInteractions('), false, 'LevelUpView가 카드 interaction binding을 직접 소유하면 안 됨');
+  assert.equal(resultViewSource.includes("querySelector('.result-restart-btn')?.addEventListener"), false, 'ResultView가 버튼 리스너를 직접 다시 바인딩하면 안 됨');
 });
 
 test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => {
@@ -201,6 +233,45 @@ test('browser runtime wiring은 bootstrap/play context 경계에서 주입되고
   assert.equal(bootstrapBrowserGameSource.includes("from '../../adapters/browser/runtimeHooks.js'"), true, 'browser bootstrap이 runtime hook wiring을 소유해야 함');
   assert.equal(coreRuntimeHooksSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'core/runtimeHooks는 adapter 소유 모듈을 재노출하는 shim이어야 함');
   assert.equal(browserRuntimeHooksSource.includes('export function registerRuntimeHooks'), true, 'browser runtimeHooks adapter가 실제 구현을 소유하지 않음');
+  assert.equal(browserRuntimeHooksSource.includes('._ui'), false, 'browser runtimeHooks adapter가 scene private _ui 슬롯에 직접 의존하면 안 됨');
+  assert.equal(browserRuntimeHooksSource.includes('._gameData'), false, 'browser runtimeHooks adapter가 scene private _gameData 슬롯에 직접 의존하면 안 됨');
+  assert.equal(browserRuntimeHooksSource.includes('._levelUpController'), false, 'browser runtimeHooks adapter가 scene private _levelUpController 슬롯에 직접 의존하면 안 됨');
+  assert.equal(browserRuntimeHooksSource.includes("from './runtimeHooks/runtimeHostRegistration.js'"), true, 'browser runtimeHooks adapter가 host registration helper를 사용하지 않음');
+});
+
+test('TitleScene runtime state와 PlayScene browser service는 명시 helper로 중앙화된다', () => {
+  assert.equal(titleSceneSource.includes('createTitleSceneRuntimeState'), true, 'TitleScene이 runtime state helper를 사용하지 않음');
+  assert.equal(titleSceneNavigationSource.includes('scene._nav'), false, 'titleSceneNavigation이 scene private nav 슬롯에 직접 의존하면 안 됨');
+  assert.equal(titleSceneNavigationSource.includes('scene._el'), false, 'titleSceneNavigation이 scene private DOM 슬롯에 직접 의존하면 안 됨');
+  assert.equal(titleSceneInputSource.includes('scene._background'), false, 'titleSceneInput이 scene private background 슬롯에 직접 의존하면 안 됨');
+  assert.equal(titleSceneInputSource.includes('scene._onKeyDown'), false, 'titleSceneInput이 listener private slot을 직접 쓰면 안 됨');
+  assert.equal(titleLoadoutFlowSource.includes('scene._loadoutView'), false, 'titleLoadoutFlow가 loadout view private slot에 직접 의존하면 안 됨');
+  assert.equal(titleSceneRuntimeStateSource.includes('createSceneNavigationGuard'), true, 'title runtime state helper가 navigation guard를 소유하지 않음');
+  assert.equal(playSceneSource.includes('createDocumentAccessibilityRuntime()'), false, 'PlayScene이 accessibility runtime을 직접 생성하면 안 됨');
+  assert.equal(playSceneSource.includes('window.devicePixelRatio'), false, 'PlayScene에 직접 devicePixelRatio 접근이 남아 있으면 안 됨');
+  assert.equal(playSceneSource.includes('createPlaySceneRuntimeState'), true, 'PlayScene이 runtime state helper를 사용하지 않음');
+  assert.equal(playSceneRuntimeStateSource.includes('runtime.accessibilityRuntime'), true, 'PlayScene runtime state helper가 injected accessibility runtime을 사용하지 않음');
+  assert.equal(playSceneRuntimeStateSource.includes('runtime.devicePixelRatioReader'), true, 'PlayScene runtime state helper가 injected devicePixelRatio reader를 사용하지 않음');
+});
+
+test('browser env와 session/data facade는 shared helper를 단일 소스로 사용한다', () => {
+  assert.equal(gameCanvasRuntimeSource.includes("from './runtimeHost.js'"), true, 'gameCanvasRuntime이 runtimeHost SSOT를 사용하지 않음');
+  assert.equal(gameCanvasRuntimeSource.includes('function getRuntimeHost('), false, 'gameCanvasRuntime에 runtime host 중복 helper가 남아 있음');
+  assert.equal(runtimeEnvSource.includes("from '../../core/runtimeHost.js'"), true, 'runtimeEnv가 shared runtime host helper를 사용하지 않음');
+  assert.equal(runtimeHostSource.includes('export function getDevicePixelRatio'), true, 'runtimeHost가 DPR helper를 소유하지 않음');
+  assert.equal(runtimeEnvSource.includes('export {\n  getDevicePixelRatio,'), true, 'runtimeEnv가 shared DPR helper를 재노출하지 않음');
+  assert.equal(sessionRepositorySource.includes("from './sessionStorageKeys.js'"), true, 'sessionRepository가 storage key helper를 사용하지 않음');
+  assert.equal(sessionRepositorySource.includes("from './sessionStateCodec.js'"), true, 'sessionRepository가 session codec helper를 사용하지 않음');
+  assert.equal(sessionRepositorySource.includes("from './sessionRecoveryPolicy.js'"), true, 'sessionRepository가 recovery policy helper를 사용하지 않음');
+  assert.equal(sessionRepositorySource.includes("from './sessionStorageDriver.js'"), true, 'sessionRepository가 session storage driver helper를 사용하지 않음');
+  assert.equal(sessionRecoveryPolicySource.includes("from './sessionStorageDriver.js'"), true, 'sessionRecoveryPolicy가 session storage driver helper를 사용하지 않음');
+  assert.equal(sessionRepositorySource.includes('function buildSessionStorageKeys('), false, 'sessionRepository에 storage key 중복 구현이 남아 있음');
+  assert.equal(sessionRepositorySource.includes('export function parseSessionState('), false, 'sessionRepository가 codec 구현을 직접 소유하면 안 됨');
+  assert.equal(sessionRepositorySource.includes('globalThis.localStorage'), false, 'sessionRepository에 localStorage 직접 해석이 남아 있으면 안 됨');
+  assert.equal(sessionRecoveryPolicySource.includes('globalThis.localStorage'), false, 'sessionRecoveryPolicy에 localStorage 직접 해석이 남아 있으면 안 됨');
+  assert.equal(permanentUpgradeDataSource.includes("from './permanentUpgradeCatalog.js'"), true, 'permanentUpgradeData facade가 catalog helper를 사용하지 않음');
+  assert.equal(permanentUpgradeDataSource.includes("from './permanentUpgradeApplicator.js'"), true, 'permanentUpgradeData facade가 applicator helper를 사용하지 않음');
+  assert.equal(permanentUpgradeDataSource.includes('export const permanentUpgradeData = ['), false, 'permanentUpgradeData에 catalog 구현이 남아 있으면 안 됨');
 });
 
 test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {
@@ -262,6 +333,22 @@ test('ExperienceSystem pickup 판정은 entityUtils helper로 중앙화된다', 
   assert.equal(entityUtilsSource.includes('isLivePickup'), true, 'entityUtils가 live pickup predicate를 제공하지 않음');
   assert.equal(entityUtilsSource.includes('getLivePickupsByType'), true, 'entityUtils가 타입별 live pickup helper를 제공하지 않음');
   assert.equal(readProjectSource('../src/systems/progression/ExperienceSystem.js').includes("from '../../utils/entityUtils.js'"), true, 'ExperienceSystem이 pickup helper를 import하지 않음');
+});
+
+test('interactive UI runtime과 authoring registry는 전용 helper/module을 통해 중앙화된다', () => {
+  assert.equal(settingsViewSource.includes("from './settingsViewRuntime.js'"), true, 'SettingsView가 delegated runtime helper를 사용하지 않음');
+  assert.equal(metaShopSceneSource.includes('MetaShopView'), true, 'sanity');
+  assert.equal(metaShopViewSource.includes("from './metaShopViewRuntime.js'"), true, 'MetaShopView가 delegated runtime helper를 사용하지 않음');
+  assert.equal(codexViewSource.includes("from './codexViewRenderState.js'"), true, 'CodexView가 codex shell render-state helper를 사용하지 않음');
+  assert.equal(touchAdapterSource.includes("from './touchHudRuntime.js'"), true, 'TouchAdapter가 touch HUD helper를 사용하지 않음');
+  assert.equal(stageDataSource.includes("from './stages/ashPlainsStage.js'"), true, 'stageData가 Ash Plains module registry를 사용하지 않음');
+  assert.equal(stageDataSource.includes("from './stages/frostHarborStage.js'"), true, 'stageData가 per-stage module registry를 사용하지 않음');
+  assert.equal(sessionMigrationsSource.includes("from './migrations/sessionMigrationSteps.js'"), true, 'sessionMigrations가 step registry를 사용하지 않음');
+  assert.equal(sessionMigrationsSource.includes('const migrations = ['), false, 'sessionMigrations에 inline migration array가 남아 있음');
+  assert.equal(bossHudViewSource.includes("from './bossHudMarkup.js'"), true, 'BossHudView가 markup helper를 사용하지 않음');
+  assert.equal(bossHudViewSource.includes("from './bossHudStyles.js'"), true, 'BossHudView가 style helper를 사용하지 않음');
+  assert.equal(bossAnnouncementViewSource.includes("from './bossAnnouncementMarkup.js'"), true, 'BossAnnouncementView가 markup helper를 사용하지 않음');
+  assert.equal(bossAnnouncementViewSource.includes("from './bossAnnouncementStyles.js'"), true, 'BossAnnouncementView가 style helper를 사용하지 않음');
 });
 
 summary();

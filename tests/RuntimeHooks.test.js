@@ -19,6 +19,13 @@ test('runtime hook은 기본적으로 비활성 상태이며 전역 debug host�
 });
 
 test('활성화된 runtime hook은 안정적인 debug host에서 snapshot과 제어 API를 제공한다', () => {
+  const debugSurface = {
+    ui: {
+      isPaused: () => true,
+      isLevelUpVisible: () => false,
+      isResultVisible: () => false,
+    },
+  };
   const game = {
     advanceTime(ms) {
       this.lastAdvanceMs = ms;
@@ -27,10 +34,8 @@ test('활성화된 runtime hook은 안정적인 debug host에서 snapshot과 제
       currentScene: {
         sceneId: 'PlayScene',
         constructor: { name: 'e' },
-        _ui: {
-          isPaused: () => true,
-          isLevelUpVisible: () => false,
-          isResultVisible: () => false,
+        getDebugSurface() {
+          return debugSurface;
         },
         world: {
           run: {
@@ -113,10 +118,8 @@ test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 �
   let resultOpened = false;
   let levelUpOpened = false;
   let resultArgs = null;
-  const game = { sceneManager: { currentScene: null } };
-  game.sceneManager.currentScene = {
-    sceneId: 'PlayScene',
-    _ui: {
+  const debugSurface = {
+    ui: {
       isPaused: () => pauseOpened,
       isLevelUpVisible: () => levelUpOpened,
       isResultVisible: () => resultOpened,
@@ -132,12 +135,19 @@ test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 �
         resultArgs = args;
       },
     },
-    _levelUpController: {
+    levelUpController: {
       show() {
         levelUpOpened = true;
       },
     },
-    _gameData: {},
+    gameData: {},
+  };
+  const game = { sceneManager: { currentScene: null } };
+  game.sceneManager.currentScene = {
+    sceneId: 'PlayScene',
+    getDebugSurface() {
+      return debugSurface;
+    },
     world: {
       run: {
         playMode: 'playing',
@@ -189,16 +199,21 @@ test('debug host는 현재 game 인스턴스와 자동화용 overlay helper를 �
 
 test('debug host는 boss readability smoke를 위한 강제 보스 상태 helper를 노출한다', () => {
   let updatedEnemies = null;
-  const game = { sceneManager: { currentScene: null } };
-  game.sceneManager.currentScene = {
-    sceneId: 'PlayScene',
-    _ui: {
+  const debugSurface = {
+    ui: {
       isPaused: () => false,
       isLevelUpVisible: () => false,
       isResultVisible: () => false,
       update(world) {
         updatedEnemies = world.entities.enemies;
       },
+    },
+  };
+  const game = { sceneManager: { currentScene: null } };
+  game.sceneManager.currentScene = {
+    sceneId: 'PlayScene',
+    getDebugSurface() {
+      return debugSurface;
     },
     world: {
       run: {

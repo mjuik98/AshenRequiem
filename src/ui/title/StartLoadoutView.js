@@ -1,6 +1,12 @@
-import { bindStartLoadoutInteractions } from './startLoadoutInteractions.js';
-import { renderStartLoadoutMarkup } from './startLoadoutMarkup.js';
 import { ensureStartLoadoutStyles } from './startLoadoutStyles.js';
+import {
+  bindStartLoadoutViewRuntime,
+  renderStartLoadoutViewRuntime,
+} from './startLoadoutViewRuntime.js';
+import {
+  buildStartLoadoutAdvancedSummary,
+  buildStartLoadoutSeedPreviewText,
+} from '../../domain/meta/loadout/startLoadoutPresentation.js';
 import {
   disposeDialogRuntime,
   replaceDialogRuntime,
@@ -33,6 +39,7 @@ export class StartLoadoutView {
     this._onStart = null;
     this._onCancel = null;
     this._dialogRuntime = null;
+    this._runtimeDisposer = bindStartLoadoutViewRuntime(this);
     ensureStartLoadoutStyles();
     container.appendChild(this._el);
   }
@@ -110,6 +117,7 @@ export class StartLoadoutView {
 
   destroy() {
     this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
+    this._runtimeDisposer?.();
     this._el.remove();
   }
 
@@ -149,112 +157,25 @@ export class StartLoadoutView {
   }
 
   _render(renderState = this._captureRenderState()) {
-    this._el.innerHTML = renderStartLoadoutMarkup({
-      weapons: this._weapons,
-      accessories: this._accessories,
-      archetypes: this._archetypes,
-      riskRelics: this._riskRelics,
-      selectedWeaponId: this._selectedWeaponId,
-      ascensionChoices: this._ascensionChoices,
-      selectedAscensionLevel: this._selectedAscensionLevel,
-      selectedStartAccessoryId: this._selectedStartAccessoryId,
-      selectedArchetypeId: this._selectedArchetypeId,
-      selectedRiskRelicId: this._selectedRiskRelicId,
-      stages: this._stages,
-      selectedStageId: this._selectedStageId,
-      selectedSeedMode: this._selectedSeedMode,
-      selectedSeedText: this._selectedSeedText,
-      seedPreviewText: this._seedPreviewText,
-      advancedSummary: this._advancedSummary,
-      isAdvancedOpen: this._isAdvancedOpen,
-      canStart: this._canStart,
-    });
-
-    bindStartLoadoutInteractions(this._el, {
-      canStart: this._canStart,
-      getSelectedWeaponId: () => this._selectedWeaponId,
-      getSelectedAscensionLevel: () => this._selectedAscensionLevel,
-      getSelectedStartAccessoryId: () => this._selectedStartAccessoryId,
-      getSelectedArchetypeId: () => this._selectedArchetypeId,
-      getSelectedRiskRelicId: () => this._selectedRiskRelicId,
-      getSelectedStageId: () => this._selectedStageId,
-      getSelectedSeedMode: () => this._selectedSeedMode,
-      getSelectedSeedText: () => this._selectedSeedText,
-      onToggleAdvanced: () => {
-        this._isAdvancedOpen = !this._isAdvancedOpen;
-        this._render();
-      },
-      onSelectWeapon: (weaponId) => {
-        this._selectedWeaponId = weaponId;
-        this._render();
-      },
-      onSelectAscension: (ascensionLevel) => {
-        this._selectedAscensionLevel = ascensionLevel;
-        this._advancedSummary = this._buildAdvancedSummary();
-        this._render();
-      },
-      onSelectAccessory: (accessoryId) => {
-        this._selectedStartAccessoryId = accessoryId || null;
-        this._render();
-      },
-      onSelectArchetype: (archetypeId) => {
-        this._selectedArchetypeId = archetypeId;
-        this._advancedSummary = this._buildAdvancedSummary();
-        this._render();
-      },
-      onSelectRiskRelic: (riskRelicId) => {
-        this._selectedRiskRelicId = riskRelicId || null;
-        this._render();
-      },
-      onSelectStage: (stageId) => {
-        this._selectedStageId = stageId;
-        this._advancedSummary = this._buildAdvancedSummary();
-        this._render();
-      },
-      onSelectSeedMode: (seedMode) => {
-        this._selectedSeedMode = seedMode;
-        if (seedMode !== 'custom') {
-          this._selectedSeedText = '';
-        }
-        this._seedPreviewText = this._buildSeedPreviewText();
-        this._render();
-      },
-      onChangeSeedText: (seedText) => {
-        this._selectedSeedText = seedText;
-        this._seedPreviewText = this._buildSeedPreviewText();
-      },
-      onCancel: () => {
-        this.hide();
-        this._onCancel?.();
-      },
-      onStart: (selectedWeaponId, runOptions) => {
-        this.hide();
-        this._onStart?.(selectedWeaponId, runOptions);
-      },
-    });
-
-    this._restoreRenderState(renderState);
+    renderStartLoadoutViewRuntime(this, renderState);
   }
 
   _buildSeedPreviewText() {
-    if (this._selectedSeedMode === 'daily') {
-      return '오늘의 고정 시드로 플레이합니다.';
-    }
-    if (this._selectedSeedMode === 'custom') {
-      return this._selectedSeedText
-        ? `Seed ${this._selectedSeedText}`
-        : '커스텀 시드를 입력하면 동일한 런을 재현합니다.';
-    }
-    return '랜덤 시드로 새로운 런을 생성합니다.';
+    return buildStartLoadoutSeedPreviewText({
+      seedMode: this._selectedSeedMode,
+      seedText: this._selectedSeedText,
+      now: new Date(),
+    });
   }
 
   _buildAdvancedSummary() {
-    const selectedArchetype = this._archetypes.find((entry) => entry?.id === this._selectedArchetypeId);
-    const selectedStage = this._stages.find((entry) => entry?.id === this._selectedStageId);
-    return [
-      `A${this._selectedAscensionLevel}`,
-      selectedArchetype?.name ?? 'Archetype',
-      selectedStage?.name ?? 'Stage',
-    ].join(' · ');
+    return buildStartLoadoutAdvancedSummary({
+      ascensionChoices: this._ascensionChoices,
+      selectedAscensionLevel: this._selectedAscensionLevel,
+      archetypes: this._archetypes,
+      selectedArchetypeId: this._selectedArchetypeId,
+      stages: this._stages,
+      selectedStageId: this._selectedStageId,
+    });
   }
 }

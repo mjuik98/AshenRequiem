@@ -1,4 +1,3 @@
-import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { loadMetaShopSceneModule } from './sceneLoaders.js';
 import {
   bindTitleSceneEvents,
@@ -8,6 +7,7 @@ import {
   openTitleStartLoadout,
   teardownTitleSceneRuntime,
 } from './title/titleSceneRuntime.js';
+import { createTitleSceneRuntimeState } from './title/titleSceneRuntimeState.js';
 import {
   ensureTitleFonts,
 } from './title/titleScreenContent.js';
@@ -16,19 +16,11 @@ export class TitleScene {
   constructor(game) {
     this.game = game;
     this.sceneId = 'TitleScene';
-    this._el = null;
-    this._loadoutView = null;
-    this._background = null;
-    this._loadoutViewPromise = null;
-    this._nav = createSceneNavigationGuard();
-
-    this._onMouseMove = null;
-    this._onResize = null;
-    this._onKeyDown = null;
+    this._runtimeState = createTitleSceneRuntimeState();
   }
 
   enter() {
-    this._nav.reset();
+    this._runtimeState.nav.reset();
     ensureTitleFonts();
     this._buildDOM();
     this._bindEvents();

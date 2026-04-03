@@ -110,6 +110,33 @@ function descriptorMatchesSelector(descriptor, selector) {
 function createMockMarkupNode(documentRef, selector, descriptor = null, sourceElement = null) {
   const listeners = new Map();
 
+  function dispatchToNode(type, overrides = {}) {
+    const event = {
+      type,
+      target: node,
+      currentTarget: node,
+      bubbles: true,
+      defaultPrevented: false,
+      propagationStopped: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+      stopPropagation() {
+        this.propagationStopped = true;
+      },
+      ...overrides,
+    };
+
+    for (const listener of listeners.get(type) ?? []) {
+      listener(event);
+    }
+
+    if (!event.propagationStopped) {
+      sourceElement?.dispatchEvent?.(event);
+    }
+    return event;
+  }
+
   const node = {
     ownerDocument: documentRef,
     selector,
@@ -164,14 +191,10 @@ function createMockMarkupNode(documentRef, selector, descriptor = null, sourceEl
       documentRef.activeElement = this;
     },
     click() {
-      for (const listener of listeners.get('click') ?? []) {
-        listener({
-          currentTarget: this,
-          target: this,
-          preventDefault() {},
-          stopPropagation() {},
-        });
-      }
+      dispatchToNode('click');
+    },
+    dispatchEvent(event) {
+      return dispatchToNode(event?.type ?? 'event', event);
     },
     _sourceElement: sourceElement,
   };
@@ -245,6 +268,28 @@ function createMockElement(documentRef, tagName) {
     removeEventListener(type, listener) {
       const entries = listeners.get(type) ?? [];
       listeners.set(type, entries.filter((entry) => entry !== listener));
+    },
+    dispatchEvent(event = {}) {
+      const dispatchEvent = {
+        bubbles: true,
+        defaultPrevented: false,
+        propagationStopped: false,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+        stopPropagation() {
+          this.propagationStopped = true;
+        },
+        currentTarget: this,
+        ...event,
+      };
+      for (const listener of listeners.get(dispatchEvent.type) ?? []) {
+        listener(dispatchEvent);
+      }
+      if (dispatchEvent.bubbles !== false && !dispatchEvent.propagationStopped) {
+        this.parentNode?.dispatchEvent?.(dispatchEvent);
+      }
+      return dispatchEvent;
     },
     querySelector(selector) {
       return this.querySelectorAll(selector)[0] ?? null;

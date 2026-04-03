@@ -1,9 +1,23 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[MetaApplicationServices]');
 
 const { test, summary } = createRunner('MetaApplicationServices');
+
+test('settings application service는 preview/codec/mutation helper로 internals를 분리한다', async () => {
+  const settingsAppSource = readProjectSource('../src/app/meta/settingsApplicationService.js');
+
+  await import('../src/app/meta/settingsApplicationService.js');
+  await import('../src/app/meta/settingsPreviewDiff.js');
+  await import('../src/app/meta/settingsSessionCodec.js');
+  await import('../src/app/meta/settingsSessionMutation.js');
+
+  assert.equal(settingsAppSource.includes("from './settingsPreviewDiff.js'"), true, 'settings application service가 preview helper를 사용하지 않음');
+  assert.equal(settingsAppSource.includes("from './settingsSessionCodec.js'"), true, 'settings application service가 session codec helper를 사용하지 않음');
+  assert.equal(settingsAppSource.includes("from './settingsSessionMutation.js'"), true, 'settings application service가 mutation helper를 사용하지 않음');
+});
 
 test('settings application service는 저장과 runtime 반영을 한 곳에서 처리한다', async () => {
   const { setSessionRepository, resetSessionRepository } = await import('../src/state/createSessionState.js');

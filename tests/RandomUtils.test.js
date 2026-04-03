@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { makeRng } from './fixtures/index.js';
-import { createSeededRng, ensureRng, nextFloat, weightedPick } from '../src/utils/random.js';
+import {
+  createMathRng,
+  createRng,
+  createSeededRng,
+  ensureRng,
+  nextFloat,
+  weightedPick,
+} from '../src/utils/random.js';
 
 console.log('\n[RandomUtils]');
 
@@ -24,6 +31,14 @@ test('shared random helper는 함수형 RNG도 nextFloat 계약으로 감싼다'
   assert.equal(typeof rng.nextFloat, 'function', '함수형 RNG가 nextFloat contract로 정규화되지 않음');
   assert.equal(nextFloat(() => 0.25), 0.25, 'nextFloat가 함수형 RNG를 직접 지원하지 않음');
   assert.equal(rng.nextFloat(), 0.25, '정규화된 함수형 RNG가 값을 반환하지 않음');
+});
+
+test('createRng는 explicit nextFloat 함수를 요구하고 nondeterministic RNG는 createMathRng로 명시 생성한다', () => {
+  assert.throws(() => createRng(), /nextFloatFn/, 'createRng가 암묵적 Math.random 폴백을 허용하면 안 됨');
+  assert.equal(createRng(() => 0.75).nextFloat(), 0.75, 'createRng가 주입된 함수를 감싸지 않음');
+
+  const mathRng = createMathRng();
+  assert.equal(typeof mathRng.nextFloat, 'function', 'createMathRng가 RNG contract를 반환하지 않음');
 });
 
 test('createSeededRng는 같은 시드에 대해 동일한 난수열을 생성한다', () => {

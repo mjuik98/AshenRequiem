@@ -28,6 +28,7 @@ export function createGameInput({
   const input = new inputManagerCtor();
   input.addAdapter(new keyboardAdapterCtor({
     keyBindings: options?.keyBindings,
+    host,
   }));
   if (shouldEnableGamepadAdapter(host)) {
     input.addAdapter(new gamepadAdapterCtor({ host }));

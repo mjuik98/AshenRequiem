@@ -1,9 +1,7 @@
-import { createDocumentAccessibilityRuntime } from '../ui/shared/accessibilityRuntime.js';
-
 export function createSettingsRuntimeDependencies(
   game = {},
   {
-    accessibilityRuntimeFactory = createDocumentAccessibilityRuntime,
+    accessibilityRuntimeFactory = () => game?.accessibilityRuntime ?? null,
   } = {},
 ) {
   return {

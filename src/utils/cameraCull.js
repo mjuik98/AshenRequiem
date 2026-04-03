@@ -2,6 +2,7 @@
  * cameraCull.js
  * 카메라 영역을 기반으로 엔티티의 가시성 및 충돌 대상 여부를 판단하는 유틸리티
  */
+import { getViewportSize } from '../core/runtimeHost.js';
 
 /**
  * 카메라의 현재 위치와 마진을 고려하여 컬링 경계 좌표를 계산합니다.
@@ -11,8 +12,9 @@
  */
 export function getCullBounds(camera, margin = 100) {
   // 브라우저 환경이 아닌 경우(Node.js 테스트 등)를 위해 안전한 기본값 사용
-  const width  = camera.width  || (typeof window !== 'undefined' ? window.innerWidth  : 1280);
-  const height = camera.height || (typeof window !== 'undefined' ? window.innerHeight : 720);
+  const viewport = getViewportSize(globalThis, { width: 1280, height: 720 });
+  const width  = camera.width  || viewport.width;
+  const height = camera.height || viewport.height;
 
   return {
     minX: camera.x - margin,

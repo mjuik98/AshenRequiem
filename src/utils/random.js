@@ -4,7 +4,14 @@ export const mathRng = Object.freeze({
   },
 });
 
-export function createRng(nextFloatFn = Math.random) {
+export function createMathRng() {
+  return mathRng;
+}
+
+export function createRng(nextFloatFn) {
+  if (typeof nextFloatFn !== 'function') {
+    throw new TypeError('createRng requires an explicit nextFloatFn');
+  }
   return {
     nextFloat() {
       return nextFloatFn();
@@ -38,11 +45,7 @@ export function createSeededRng(seed = '') {
 
 export function ensureRng(rng) {
   if (typeof rng === 'function') {
-    return {
-      nextFloat() {
-        return rng();
-      },
-    };
+    return createRng(rng);
   }
   return rng && typeof rng.nextFloat === 'function' ? rng : mathRng;
 }

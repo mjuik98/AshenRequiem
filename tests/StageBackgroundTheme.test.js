@@ -41,6 +41,22 @@ test('buildStageBackgroundTheme normalizes seamless tile defaults and clones lay
   assert.notEqual(theme.layers, input.layers, 'layers는 defensive copy여야 함');
 });
 
+test('buildStageBackgroundTheme leaves image slots empty when stage source omits direct file paths', async () => {
+  const { buildStageBackgroundTheme } = await import('../src/renderer/background/stageBackgroundTheme.js');
+
+  const theme = buildStageBackgroundTheme({
+    mode: 'seamless_tile',
+    tileSize: 1024,
+    palette: {
+      base: '#111111',
+      ember: 'rgba(120,32,20,0.14)',
+    },
+    layers: [{ id: 'ash', type: 'ash_drift', alpha: 0.24 }],
+  });
+
+  assert.equal(theme.images, null, 'raw stage source without hydration은 image slot이 비어 있어야 함');
+});
+
 test('buildStageBackgroundTheme falls back to legacy grid tokens when seamless tile data is omitted', async () => {
   const { buildStageBackgroundTheme } = await import('../src/renderer/background/stageBackgroundTheme.js');
 

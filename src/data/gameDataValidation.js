@@ -33,6 +33,27 @@ function validateAssetManifestEntries(assetManifest = []) {
     if (!ASSET_SOURCE_TYPES.has(entry.sourceType)) {
       errors.push(`[validate] assetManifest "${entry.id}" sourceType이 유효하지 않음`);
     }
+    if (entry.category === 'stage_background' && entry.sourceType === 'image') {
+      if (typeof entry.files?.baseSrc !== 'string' || entry.files.baseSrc.length <= 0) {
+        errors.push(`[validate] assetManifest "${entry.id}" files.baseSrc가 비어 있음`);
+      }
+      if (
+        entry.files?.overlaySrc !== undefined
+        && (typeof entry.files.overlaySrc !== 'string' || entry.files.overlaySrc.length <= 0)
+      ) {
+        errors.push(`[validate] assetManifest "${entry.id}" files.overlaySrc가 유효하지 않음`);
+      }
+      if (
+        entry.files?.overlayAlpha !== undefined
+        && (
+          !Number.isFinite(entry.files.overlayAlpha)
+          || entry.files.overlayAlpha < 0
+          || entry.files.overlayAlpha > 1
+        )
+      ) {
+        errors.push(`[validate] assetManifest "${entry.id}" files.overlayAlpha가 유효하지 않음`);
+      }
+    }
   }
 
   return errors;
@@ -67,31 +88,8 @@ function validateStageBackground(stage = {}) {
     errors.push(`[validate] stageData "${stage.id}" background.palette.ember가 비어 있음`);
   }
 
-  if (background.images !== undefined) {
-    if (!background.images || typeof background.images !== 'object') {
-      errors.push(`[validate] stageData "${stage.id}" background.images가 유효하지 않음`);
-      return errors;
-    }
-
-    if (typeof background.images.baseSrc !== 'string' || background.images.baseSrc.length <= 0) {
-      errors.push(`[validate] stageData "${stage.id}" background.images.baseSrc가 비어 있음`);
-    }
-    if (
-      background.images.overlaySrc !== undefined
-      && (typeof background.images.overlaySrc !== 'string' || background.images.overlaySrc.length <= 0)
-    ) {
-      errors.push(`[validate] stageData "${stage.id}" background.images.overlaySrc가 유효하지 않음`);
-    }
-    if (
-      background.images.overlayAlpha !== undefined
-      && (
-        !Number.isFinite(background.images.overlayAlpha)
-        || background.images.overlayAlpha < 0
-        || background.images.overlayAlpha > 1
-      )
-    ) {
-      errors.push(`[validate] stageData "${stage.id}" background.images.overlayAlpha가 유효하지 않음`);
-    }
+  if (background.images !== undefined && (!background.images || typeof background.images !== 'object')) {
+    errors.push(`[validate] stageData "${stage.id}" background.images가 유효하지 않음`);
   }
 
   return errors;

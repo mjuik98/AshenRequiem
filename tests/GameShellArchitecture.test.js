@@ -59,4 +59,34 @@ test('main은 Game facade 대신 browser bootstrap helper를 직접 사용한다
   assert.equal(source.includes("from './core/Game.js'"), false, 'main이 Game facade를 직접 import하면 안 됨');
 });
 
+test('BrowserGameShell은 runtime host와 accessibility runtime을 game에 주입한다', () => {
+  assert.ok(!shellApi.error, shellApi.error?.message ?? 'BrowserGameShell.js가 아직 없음');
+
+  const host = {
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  const documentRef = {
+    documentElement: { id: 'root' },
+  };
+  const accessibilityRuntime = { id: 'accessibility-runtime' };
+  const shell = shellApi.createBrowserGameShell({
+    host,
+    documentRef,
+    createRuntimeStateImpl: () => ({ canvas: {}, ctx: {}, _loop: {} }),
+    createResizeHandlerImpl: () => () => {},
+    syncCanvasSizeImpl: () => {},
+    createAccessibilityRuntimeImpl: (root) => {
+      assert.equal(root, documentRef.documentElement, 'accessibility runtime이 document root를 주입받지 않음');
+      return accessibilityRuntime;
+    },
+  });
+
+  const game = {};
+  shell.attach(game);
+
+  assert.equal(game.runtimeHost, host, 'browser shell이 runtime host를 game에 주입하지 않음');
+  assert.equal(game.accessibilityRuntime, accessibilityRuntime, 'browser shell이 accessibility runtime을 game에 주입하지 않음');
+});
+
 summary();

@@ -23,11 +23,18 @@ console.log('\n[ProgressionRuntime]');
 
 test('level up runtime는 choice presentation과 world mutation helper를 분리한다', () => {
   const flowSource = readProjectSource('../src/app/play/levelUpFlowService.js');
+  const presentationSource = readProjectSource('../src/app/play/levelUpChoicePresentation.js');
 
   assert.equal(projectPathExists('../src/app/play/levelUpChoicePresentation.js'), true, 'level-up choice presentation helper 모듈이 필요함');
   assert.equal(projectPathExists('../src/app/play/levelUpMutationService.js'), true, 'level-up mutation helper 모듈이 필요함');
+  assert.equal(projectPathExists('../src/app/play/levelUpChoice/choiceRelations.js'), true, 'level-up relation helper 모듈이 필요함');
+  assert.equal(projectPathExists('../src/app/play/levelUpChoice/choiceSummary.js'), true, 'level-up summary helper 모듈이 필요함');
+  assert.equal(projectPathExists('../src/app/play/levelUpChoice/choicePriorityHints.js'), true, 'level-up priority helper 모듈이 필요함');
   assert.equal(flowSource.includes("from './levelUpChoicePresentation.js'"), true, 'levelUpFlowService가 presentation helper를 재사용해야 함');
   assert.equal(flowSource.includes("from './levelUpMutationService.js'"), true, 'levelUpFlowService가 mutation helper를 재사용해야 함');
+  assert.equal(presentationSource.includes("from './levelUpChoice/choiceRelations.js'"), true, 'level-up presentation이 relation helper를 사용하지 않음');
+  assert.equal(presentationSource.includes("from './levelUpChoice/choiceSummary.js'"), true, 'level-up presentation이 summary helper를 사용하지 않음');
+  assert.equal(presentationSource.includes("from './levelUpChoice/choicePriorityHints.js'"), true, 'level-up presentation이 priority helper를 사용하지 않음');
 });
 
 test('level up runtime는 현재 빌드와 연결된 선택지에 진화/시너지 힌트와 아이콘을 붙인다', () => {

@@ -93,9 +93,6 @@ await test('shared validation module rejects malformed seamless tile background 
             base: '#0d1117',
             ember: 'rgba(0,0,0,0)',
           },
-          images: {
-            overlayAlpha: 2,
-          },
         },
         assets: {
           backgroundKey: 'stage_bg_ash_plains',
@@ -114,7 +111,19 @@ await test('shared validation module rejects malformed seamless tile background 
       },
     ],
     assetManifest: [
-      { id: 'stage_bg_ash_plains', category: 'stage_background', kind: 'procedural_palette', preloadGroup: 'stage_ash_plains', budgetTier: 'critical', estimatedBytes: 1200, qualityPolicy: 'fixed', sourceType: 'procedural' },
+      {
+        id: 'stage_bg_ash_plains',
+        category: 'stage_background',
+        kind: 'image_tile_set',
+        preloadGroup: 'stage_ash_plains',
+        budgetTier: 'critical',
+        estimatedBytes: 1200,
+        qualityPolicy: 'fixed',
+        sourceType: 'image',
+        files: {
+          overlayAlpha: 2,
+        },
+      },
       { id: 'boss_cue_ash_plains', category: 'audio_cue', kind: 'procedural_sfx', preloadGroup: 'stage_ash_plains', budgetTier: 'standard', estimatedBytes: 600, qualityPolicy: 'fallback', sourceType: 'audio' },
       { id: 'stage_bg_moon_crypt', category: 'stage_background', kind: 'procedural_palette', preloadGroup: 'stage_moon_crypt', budgetTier: 'critical', estimatedBytes: 1200, qualityPolicy: 'fixed', sourceType: 'procedural' },
       { id: 'boss_cue_moon_crypt', category: 'audio_cue', kind: 'procedural_sfx', preloadGroup: 'stage_moon_crypt', budgetTier: 'standard', estimatedBytes: 600, qualityPolicy: 'fallback', sourceType: 'audio' },
@@ -124,8 +133,8 @@ await test('shared validation module rejects malformed seamless tile background 
   assert.equal(report.ok, false);
   assert.equal(report.errors.some((message) => message.includes('tileSize')), true);
   assert.equal(report.errors.some((message) => message.includes('background.mode')), true);
-  assert.equal(report.errors.some((message) => message.includes('images.baseSrc')), true);
-  assert.equal(report.errors.some((message) => message.includes('images.overlayAlpha')), true);
+  assert.equal(report.errors.some((message) => message.includes('files.baseSrc')), true);
+  assert.equal(report.errors.some((message) => message.includes('files.overlayAlpha')), true);
 });
 
 await test('shared validation module rejects invalid weapon aiming contracts', async () => {

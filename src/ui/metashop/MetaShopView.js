@@ -1,14 +1,13 @@
 import {
   buildMetaShopViewModel,
-  META_SHOP_FILTERS,
-  META_SHOP_SORTS,
 } from './metaShopModel.js';
 import {
   disposeDialogRuntime,
   replaceDialogRuntime,
 } from '../shared/dialogViewLifecycle.js';
-import { renderMetaShopMarkup } from './metaShopMarkup.js';
 import { ensureMetaShopStyles } from './metaShopStyles.js';
+import { bindMetaShopViewRuntime } from './metaShopViewRuntime.js';
+import { syncMetaShopShellState } from './metaShopViewRenderState.js';
 
 export class MetaShopView {
   constructor(container) {
@@ -19,7 +18,10 @@ export class MetaShopView {
     this._selectedUpgradeId = null;
     this._activeCategory = 'all';
     this._activeSort = 'recommended';
+    this._session = null;
     this._dialogRuntime = null;
+    this._shellRefs = null;
+    this._disposeRuntime = bindMetaShopViewRuntime(this);
     ensureMetaShopStyles();
     container.appendChild(this.el);
   }
@@ -27,6 +29,7 @@ export class MetaShopView {
   show(session, onPurchase, onBack) {
     this._onPurchase = onPurchase;
     this._onBack     = onBack;
+    this._session = session;
     this._render(session);
     this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
@@ -37,70 +40,27 @@ export class MetaShopView {
   }
 
   refresh(session) {
+    this._session = session;
     this._render(session);
   }
 
   destroy() {
     this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
+    this._disposeRuntime?.();
+    this._shellRefs = null;
     this.el.remove();
   }
 
   // ── 내부 렌더 ──────────────────────────────────────────────────────
 
   _render(session) {
-    const panelScrollTop = this.el.querySelector('.ms-panel')?.scrollTop ?? 0;
+    this._session = session;
     const viewModel = buildMetaShopViewModel(session, {
       selectedUpgradeId: this._selectedUpgradeId,
       activeCategory: this._activeCategory,
       activeSort: this._activeSort,
     });
     this._selectedUpgradeId = viewModel.selectedCard?.id ?? null;
-    this.el.innerHTML = renderMetaShopMarkup(viewModel);
-    const panel = this.el.querySelector('.ms-panel');
-    if (panel) {
-      panel.scrollTop = panelScrollTop;
-    }
-
-    const selectionCards = [
-      ...(viewModel.availableCards ?? []),
-      ...(viewModel.lockedCards ?? []),
-      ...(viewModel.completedCards ?? []),
-    ];
-    this.el.querySelectorAll('.ms-select-btn').forEach((btn, index) => {
-      const card = selectionCards[index];
-      if (!card) return;
-      btn.addEventListener('click', () => {
-        this._selectedUpgradeId = card.id;
-        this._render(session);
-      });
-    });
-
-    this.el.querySelectorAll('.ms-filter-tab').forEach((btn, index) => {
-      const filter = META_SHOP_FILTERS[index];
-      if (!filter) return;
-      btn.addEventListener('click', () => {
-        this._activeCategory = filter.id;
-        this._render(session);
-      });
-    });
-
-    this.el.querySelectorAll('.ms-sort-btn').forEach((btn, index) => {
-      const sort = META_SHOP_SORTS[index];
-      if (!sort) return;
-      btn.addEventListener('click', () => {
-        this._activeSort = sort.id;
-        this._render(session);
-      });
-    });
-
-    this.el.querySelectorAll('.ms-buy-btn:not([disabled])').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (this._onPurchase) this._onPurchase(btn.dataset.id || this._selectedUpgradeId);
-      });
-    });
-
-    this.el.querySelector('.ms-back-btn').addEventListener('click', () => {
-      if (this._onBack) this._onBack();
-    });
+    syncMetaShopShellState(this, viewModel);
   }
 }

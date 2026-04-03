@@ -13,10 +13,15 @@ import {
   attemptWindowClose,
   createTitleStatusController,
 } from './titleSceneStatus.js';
+import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 import {
   ensureTitleStyles,
   TITLE_SCREEN_HTML,
 } from './titleScreenContent.js';
+import {
+  resetTitleSceneShellState,
+  syncTitleSceneShellState,
+} from './titleSceneShell.js';
 
 export {
   ensureTitleLoadoutView,
@@ -30,48 +35,57 @@ export function buildTitleSceneDom(scene, {
   initBackgroundImpl = initTitleSceneBackground,
 } = {}) {
   ensureTitleStylesImpl();
-
-  scene._el = documentRef.createElement('div');
-  scene._el.id = 'title-screen';
-  scene._el.innerHTML = titleScreenHtml;
-
-  documentRef.getElementById('ui-container')?.appendChild(scene._el);
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  syncTitleSceneShellState(runtimeTarget, {
+    documentRef,
+    titleScreenHtml,
+  });
   initBackgroundImpl(scene);
-  return scene._el;
+  return runtimeTarget.root;
 }
 
 export async function initTitleSceneBackground(scene, {
   loadTitleBackgroundRenderer = () => import('./TitleBackgroundRenderer.js'),
 } = {}) {
   const { TitleBackgroundRenderer } = await loadTitleBackgroundRenderer();
-  if (!scene._el) return null;
-  scene._background = new TitleBackgroundRenderer(
-    scene._el.querySelector('#title-bg-canvas'),
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  if (!runtimeTarget.root) return null;
+  runtimeTarget.background = new TitleBackgroundRenderer(
+    runtimeTarget.shellRefs?.canvas ?? runtimeTarget.root.querySelector('#title-bg-canvas'),
+    {
+      host: scene?.game?.runtimeHost ?? globalThis.window ?? globalThis,
+    },
   );
-  scene._background.start();
-  return scene._background;
+  runtimeTarget.background.start();
+  return runtimeTarget.background;
 }
 
 export function teardownTitleSceneRuntime(scene, {
-  windowRef = window,
+  windowRef = scene?.game?.runtimeHost ?? window,
 } = {}) {
-  windowRef.removeEventListener('mousemove', scene._onMouseMove);
-  windowRef.removeEventListener('resize', scene._onResize);
-  windowRef.removeEventListener('keydown', scene._onKeyDown);
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  windowRef.removeEventListener('mousemove', runtimeTarget.onMouseMove);
+  windowRef.removeEventListener('resize', runtimeTarget.onResize);
+  windowRef.removeEventListener('keydown', runtimeTarget.onKeyDown);
 
-  scene._background?.destroy();
-  scene._background = null;
+  runtimeTarget.background?.destroy();
+  runtimeTarget.background = null;
 
-  if (scene._el) {
-    scene._el.remove();
-    scene._el = null;
+  if (runtimeTarget.root) {
+    runtimeTarget.root.remove();
+    runtimeTarget.root = null;
   }
-  scene._loadoutView?.destroy();
-  scene._loadoutView = null;
+  resetTitleSceneShellState(runtimeTarget);
+  runtimeTarget.loadoutView?.destroy();
+  runtimeTarget.loadoutView = null;
+  runtimeTarget.loadoutViewPromise = null;
+  runtimeTarget.onMouseMove = null;
+  runtimeTarget.onResize = null;
+  runtimeTarget.onKeyDown = null;
 }
 
 export function bindTitleSceneEvents(scene, {
-  windowRef = window,
+  windowRef = scene?.game?.runtimeHost ?? window,
   createTitleStatusControllerImpl = createTitleStatusController,
   attemptWindowCloseImpl = attemptWindowClose,
   openTitleStartLoadoutImpl = openTitleStartLoadout,
@@ -82,8 +96,9 @@ export function bindTitleSceneEvents(scene, {
   loadCodexScene = loadCodexSceneModule,
   loadSettingsScene = loadSettingsSceneModule,
 } = {}) {
-  const liveEl = scene._el?.querySelector('#title-live');
-  const flashEl = scene._el?.querySelector('#title-flash');
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  const liveEl = runtimeTarget.shellRefs?.live ?? runtimeTarget.root?.querySelector('#title-live');
+  const flashEl = runtimeTarget.shellRefs?.flash ?? runtimeTarget.root?.querySelector('#title-flash');
   const { pulseFlash, setMessage } = createTitleStatusControllerImpl(liveEl, flashEl);
 
   const startGame = () => {

@@ -142,6 +142,27 @@ test('production entity/runtime state avoids underscore-prefixed private slots a
   });
 });
 
+test('gameplay world RNG bootstrap uses explicit nondeterministic RNG wiring', () => {
+  const createPlayWorldSource = readProjectSource('../src/domain/play/state/createPlayWorld.js');
+  const randomUtilsSource = readProjectSource('../src/utils/random.js');
+
+  assert.equal(
+    createPlayWorldSource.includes('createMathRng'),
+    true,
+    'createPlayWorld가 explicit createMathRng wiring을 사용하지 않음',
+  );
+  assert.equal(
+    createPlayWorldSource.includes('createRng()'),
+    false,
+    'createPlayWorld에 bare createRng() fallback이 남아 있음',
+  );
+  assert.equal(
+    /export function createMathRng/.test(randomUtilsSource),
+    true,
+    'random utils가 explicit nondeterministic RNG factory를 제공하지 않음',
+  );
+});
+
 test('scene and progression infrastructure stay decoupled from system internals', () => {
   const playSceneSource = readProjectSource('../src/scenes/PlayScene.js');
   const levelUpControllerSource = readProjectSource('../src/scenes/play/levelUpController.js');

@@ -59,6 +59,9 @@ export function buildLevelUpHeaderMarkup({
     shape: 'pill',
     size: 'sm',
     disabled: banishesRemaining <= 0 && !banishMode,
+    attributes: {
+      'data-action': 'toggle-banish-mode',
+    },
   });
   const headerHtml = renderModalHeader({
     eyebrow,

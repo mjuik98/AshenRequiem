@@ -2,25 +2,27 @@ import {
   createCodexViewState,
   resetCodexViewState,
 } from './codexViewState.js';
-import { CODEX_VIEW_CSS, CODEX_VIEW_STYLE_ID } from './codexStyles.js';
+import { ensureCodexViewStyles } from './codexStyles.js';
 import {
   disposeDialogRuntime,
   replaceDialogRuntime,
 } from '../shared/dialogViewLifecycle.js';
 import {
+  bindCodexViewRuntime,
   activateCodexTabRuntime,
   renderCodexPanelsRuntime,
   renderCodexViewRuntime,
   showCodexAccessoryRuntime,
   showCodexWeaponRuntime,
 } from './codexViewRuntime.js';
+import { resetCodexShellState } from './codexViewRenderState.js';
 
 export class CodexView {
   constructor(container) {
     this.el = document.createElement('div');
     this.el.className = 'cx-root ss-root';
     this.el.style.display = 'none';
-    this._injectStyles();
+    ensureCodexViewStyles();
     container.appendChild(this.el);
 
     this._onBack = null;
@@ -29,6 +31,8 @@ export class CodexView {
     this._state = createCodexViewState();
     this._gameData = null;
     this._session = null;
+    this._shellRefs = null;
+    this._unbindRuntime = bindCodexViewRuntime(this);
   }
 
   /**
@@ -41,6 +45,7 @@ export class CodexView {
     this._gameData = gameData;
     this._session = session;
     resetCodexViewState(this._state);
+    resetCodexShellState(this);
 
     this._render();
     this.el.style.display = 'block';
@@ -53,6 +58,7 @@ export class CodexView {
   }
 
   destroy() {
+    this._unbindRuntime?.();
     this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime);
     this.el.remove();
   }
@@ -79,13 +85,5 @@ export class CodexView {
 
   _renderPanels() {
     renderCodexPanelsRuntime(this);
-  }
-
-  _injectStyles() {
-    if (document.getElementById(CODEX_VIEW_STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = CODEX_VIEW_STYLE_ID;
-    style.textContent = CODEX_VIEW_CSS;
-    document.head.appendChild(style);
   }
 }

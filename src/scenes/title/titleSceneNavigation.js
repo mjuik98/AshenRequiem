@@ -3,9 +3,11 @@ import {
   loadSettingsSceneModule,
 } from '../sceneLoaders.js';
 import { logRuntimeError, logRuntimeWarn } from '../../utils/runtimeLogger.js';
+import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
 function isStartLoadoutOpen(scene) {
-  const loadoutEl = scene?._loadoutView?._el;
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  const loadoutEl = runtimeTarget?.loadoutView?._el;
   return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
 }
 
@@ -31,6 +33,7 @@ export function runTitleAction(action, scene, {
   loadCodexScene = loadCodexSceneModule,
   loadSettingsScene = loadSettingsSceneModule,
 } = {}) {
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
   if (isStartLoadoutOpen(scene)) {
     return;
   }
@@ -43,7 +46,7 @@ export function runTitleAction(action, scene, {
   }
 
   if (action === 'shop') {
-    scene._nav.change(async () => {
+    runtimeTarget.nav?.change(async () => {
       const nextScene = await createMetaShopSceneImpl(scene.game);
       scene.game.sceneManager.changeScene(nextScene);
     });
@@ -51,7 +54,7 @@ export function runTitleAction(action, scene, {
   }
 
   if (action === 'codex') {
-    scene._nav.load(loadCodexScene, ({ CodexScene }) => {
+    runtimeTarget.nav?.load(loadCodexScene, ({ CodexScene }) => {
       scene.game.sceneManager.changeScene(new CodexScene(scene.game, 'title'));
     }, (error) => {
       reportTitleLoadFailure('Codex', error, setMessage);
@@ -61,7 +64,7 @@ export function runTitleAction(action, scene, {
   }
 
   if (action === 'settings') {
-    scene._nav.load(loadSettingsScene, ({ SettingsScene }) => {
+    runtimeTarget.nav?.load(loadSettingsScene, ({ SettingsScene }) => {
       scene.game.sceneManager.changeScene(new SettingsScene(scene.game));
     }, (error) => {
       reportTitleLoadFailure('설정', error, setMessage);
@@ -92,18 +95,22 @@ export function bindTitleActionButtons(scene, {
   loadCodexScene = loadCodexSceneModule,
   loadSettingsScene = loadSettingsSceneModule,
 } = {}) {
-  scene._el?.querySelectorAll('[data-action]').forEach((button) => {
-    button.addEventListener('click', () => {
-      runTitleAction(button.dataset.action, scene, {
-        pulseFlash,
-        setMessage,
-        windowRef,
-        attemptWindowCloseImpl,
-        openTitleStartLoadoutImpl,
-        createMetaShopSceneImpl,
-        loadCodexScene,
-        loadSettingsScene,
-      });
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  const root = runtimeTarget.root;
+  if (!root?.addEventListener) return;
+
+  root.addEventListener('click', (event) => {
+    const target = event?.target?.closest?.('[data-action]') ?? event?.target;
+    if (!root.contains?.(target) || !target?.dataset?.action) return;
+    runTitleAction(target.dataset.action, scene, {
+      pulseFlash,
+      setMessage,
+      windowRef,
+      attemptWindowCloseImpl,
+      openTitleStartLoadoutImpl,
+      createMetaShopSceneImpl,
+      loadCodexScene,
+      loadSettingsScene,
     });
   });
 }

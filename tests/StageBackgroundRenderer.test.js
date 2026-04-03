@@ -104,4 +104,24 @@ test('stage background renderer repeats ready image tiles when seamless image so
   assert.equal(calls.some((call) => call.fn === 'drawImage'), true, '준비된 이미지 타일은 drawImage로 반복 렌더링되어야 함');
 });
 
+test('GameDataLoader hydrated stage background assets are renderer-ready', async () => {
+  const { GameDataLoader } = await import('../src/data/GameDataLoader.js');
+  const { createStageBackgroundRenderer } = await import('../src/renderer/background/createStageBackgroundRenderer.js');
+  const { ctx, calls } = makeCtx();
+  const imageFactory = () => ({
+    complete: true,
+    naturalWidth: 1024,
+    addEventListener() {},
+  });
+  const renderer = createStageBackgroundRenderer({ imageFactory });
+  const data = GameDataLoader.loadDefault();
+  const emberHollow = data.stageData.find((stage) => stage.id === 'ember_hollow');
+
+  const drawn = renderer.draw(ctx, { x: 0, y: 0 }, emberHollow, { width: 800, height: 600 });
+
+  assert.equal(typeof emberHollow?.background?.images?.baseSrc, 'string', 'hydrated stage background가 baseSrc를 노출하지 않음');
+  assert.equal(drawn, true);
+  assert.equal(calls.some((call) => call.fn === 'drawImage'), true, 'hydrated stage background는 drawImage 경로를 타야 함');
+});
+
 summary();

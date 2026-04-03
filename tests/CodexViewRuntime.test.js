@@ -6,11 +6,18 @@ console.log('\n[CodexViewRuntime]');
 const { test, summary } = createRunner('CodexViewRuntime');
 
 let runtimeApi = null;
+let renderStateApi = null;
 
 try {
   runtimeApi = await import('../src/ui/codex/codexViewRuntime.js');
 } catch (error) {
   runtimeApi = { error };
+}
+
+try {
+  renderStateApi = await import('../src/ui/codex/codexViewRenderState.js');
+} catch (error) {
+  renderStateApi = { error };
 }
 
 function getRuntimeApi() {
@@ -21,13 +28,24 @@ function getRuntimeApi() {
   return runtimeApi;
 }
 
+function getRenderStateApi() {
+  assert.ok(
+    !renderStateApi.error,
+    renderStateApi.error?.message ?? 'src/ui/codex/codexViewRenderState.js가 아직 없음',
+  );
+  return renderStateApi;
+}
+
 test('codex view runtime helper는 shell/panel orchestration entrypoint를 노출한다', () => {
   const api = getRuntimeApi();
+  const renderState = getRenderStateApi();
   assert.equal(typeof api.renderCodexViewRuntime, 'function', 'renderCodexViewRuntime helper가 없음');
   assert.equal(typeof api.renderCodexPanelsRuntime, 'function', 'renderCodexPanelsRuntime helper가 없음');
   assert.equal(typeof api.activateCodexTabRuntime, 'function', 'activateCodexTabRuntime helper가 없음');
   assert.equal(typeof api.showCodexAccessoryRuntime, 'function', 'showCodexAccessoryRuntime helper가 없음');
   assert.equal(typeof api.showCodexWeaponRuntime, 'function', 'showCodexWeaponRuntime helper가 없음');
+  assert.equal(typeof api.bindCodexViewRuntime, 'function', 'bindCodexViewRuntime helper가 없음');
+  assert.equal(typeof renderState.syncCodexShellState, 'function', 'syncCodexShellState helper가 없음');
 });
 
 test('activateCodexTabRuntime는 탭 패널과 요약 문구를 함께 동기화한다', () => {

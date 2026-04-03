@@ -7,15 +7,15 @@
  *   - 카드 스타일은 동일하게 유지
  */
 import {
-  buildLevelUpCardMarkup,
-  buildLevelUpHeaderMarkup,
-} from './levelUpContent.js';
-import {
   disposeDialogRuntime,
   replaceDialogRuntime,
 } from '../shared/dialogViewLifecycle.js';
 import { bindLevelUpCardInteractions } from './levelUpViewInteractions.js';
 import { ensureLevelUpViewStyles } from './levelUpViewStyles.js';
+import {
+  bindLevelUpViewRuntime,
+  renderLevelUpViewRuntime,
+} from './levelUpViewRuntime.js';
 
 export class LevelUpView {
   constructor(container) {
@@ -28,6 +28,10 @@ export class LevelUpView {
     this._onReroll = null;
     this._onToggleBanishMode = null;
     this._dialogRuntime = null;
+    this._choices = [];
+    this._runtimeDisposer = bindLevelUpViewRuntime(this, {
+      bindLevelUpCardInteractionsImpl: bindLevelUpCardInteractions,
+    });
   }
 
   /**
@@ -53,37 +57,12 @@ export class LevelUpView {
       panelSelector: '.levelup-stage',
     });
 
-    this.el.innerHTML = buildLevelUpHeaderMarkup({
+    renderLevelUpViewRuntime(this, {
+      choices,
       title,
       rerollsRemaining,
       banishesRemaining,
       banishMode,
-    });
-    const cardsEl = this.el.querySelector('.levelup-cards');
-    const toggleButton = this.el.querySelector('.levelup-mode-btn');
-
-    toggleButton?.addEventListener('click', () => {
-      this._onToggleBanishMode?.();
-    });
-
-    choices.forEach((upgrade, index) => {
-      const cardShell = document.createElement('div');
-      cardShell.innerHTML = buildLevelUpCardMarkup({
-        upgrade,
-        index,
-        rerollsRemaining,
-        banishMode,
-      });
-      const renderedShell = cardShell.firstElementChild;
-      bindLevelUpCardInteractions(renderedShell, {
-        index,
-        upgrade,
-        onPick: (selectedUpgrade, selectedIndex) => this._pick(selectedUpgrade, selectedIndex),
-        onReroll: (selectedIndex) => this._onReroll?.(selectedIndex),
-      });
-      if (renderedShell) {
-        cardsEl.appendChild(renderedShell);
-      }
     });
 
     this.el.style.display = 'flex';
@@ -97,6 +76,7 @@ export class LevelUpView {
     this._onSelect = null;
     this._onReroll = null;
     this._onToggleBanishMode = null;
+    this._choices = [];
   }
 
   _pick(upgrade, index) {
@@ -107,6 +87,7 @@ export class LevelUpView {
 
   destroy() {
     this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
+    this._runtimeDisposer?.();
     this.el.remove();
   }
 }

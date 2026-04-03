@@ -41,6 +41,11 @@ export const assetManifest = [
     estimatedBytes: 2500000,
     qualityPolicy: 'fixed',
     sourceType: 'image',
+    files: {
+      baseSrc: '/assets/backgrounds/ash-plains-base-tile.png',
+      overlaySrc: '/assets/backgrounds/ash-plains-overlay-tile.png',
+      overlayAlpha: 0.18,
+    },
     description: 'Ash Plains image tile set placeholder for seamless stone floor and spectral overlay assets.',
   },
   {
@@ -52,6 +57,11 @@ export const assetManifest = [
     estimatedBytes: 2895186,
     qualityPolicy: 'fixed',
     sourceType: 'image',
+    files: {
+      baseSrc: '/assets/backgrounds/moon-crypt-base-tile.png',
+      overlaySrc: '/assets/backgrounds/moon-crypt-overlay-tile.png',
+      overlayAlpha: 0.2,
+    },
     description: 'Moon Crypt image tile set using runestone floor and spectral mist overlay treatment.',
   },
   {
@@ -63,6 +73,11 @@ export const assetManifest = [
     estimatedBytes: 2637342,
     qualityPolicy: 'fixed',
     sourceType: 'image',
+    files: {
+      baseSrc: '/assets/backgrounds/ember-hollow-base-tile.png',
+      overlaySrc: '/assets/backgrounds/ember-hollow-overlay-tile.png',
+      overlayAlpha: 0.16,
+    },
     description: 'Ember Hollow image tile set using ashen stone floor and spectral cosmos overlay treatment.',
   },
   {

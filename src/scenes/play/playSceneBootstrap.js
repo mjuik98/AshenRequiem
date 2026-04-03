@@ -29,7 +29,11 @@ export function bootstrapPlaySceneRuntime({
   buildPlayRuntimeImpl = buildPlayRuntime,
   createRuntimeServicesImpl = createPlayBrowserRuntimeServices,
 } = {}) {
-  return buildPlayRuntimeImpl({
+  const runtimeServices = createRuntimeServicesImpl({
+    host: game?.runtimeHost ?? globalThis,
+    accessibilityRuntime: game?.accessibilityRuntime ?? null,
+  });
+  const runtime = buildPlayRuntimeImpl({
     game,
     createWorldStateImpl: createPlaySceneWorldStateImpl,
     normalizeSessionOptionsImpl,
@@ -37,6 +41,9 @@ export function bootstrapPlaySceneRuntime({
     createPlayContextImpl,
     ...(typeof mountUiImpl === 'function' ? { mountUiImpl } : {}),
     ...(typeof createPlayUiImpl === 'function' ? { createPlayUiImpl } : {}),
-    runtimeServices: createRuntimeServicesImpl(),
+    runtimeServices,
   });
+  runtime.accessibilityRuntime = runtimeServices.accessibilityRuntime ?? null;
+  runtime.devicePixelRatioReader = runtimeServices.devicePixelRatioReader ?? (() => 1);
+  return runtime;
 }

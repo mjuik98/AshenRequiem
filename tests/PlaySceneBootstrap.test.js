@@ -6,11 +6,18 @@ console.log('\n[PlaySceneBootstrap]');
 const { test, summary } = createRunner('PlaySceneBootstrap');
 
 let bootstrapApi = null;
+let runtimeStateApi = null;
 
 try {
   bootstrapApi = await import('../src/scenes/play/playSceneBootstrap.js');
 } catch (error) {
   bootstrapApi = { error };
+}
+
+try {
+  runtimeStateApi = await import('../src/scenes/play/playSceneRuntimeState.js');
+} catch (error) {
+  runtimeStateApi = { error };
 }
 
 function getBootstrapApi() {
@@ -21,10 +28,22 @@ function getBootstrapApi() {
   return bootstrapApi;
 }
 
+function getRuntimeStateApi() {
+  assert.ok(
+    !runtimeStateApi.error,
+    runtimeStateApi.error?.message ?? 'src/scenes/play/playSceneRuntimeState.js가 아직 없음',
+  );
+  return runtimeStateApi;
+}
+
 test('play scene bootstrap helper는 world/context/ui/pipeline 조립 계약을 노출한다', () => {
   const api = getBootstrapApi();
+  const runtimeState = getRuntimeStateApi();
   assert.equal(typeof api.createPlaySceneWorldState, 'function', 'createPlaySceneWorldState helper가 없음');
   assert.equal(typeof api.bootstrapPlaySceneRuntime, 'function', 'bootstrapPlaySceneRuntime helper가 없음');
+  assert.equal(typeof runtimeState.createPlaySceneRuntimeState, 'function', 'PlayScene runtime state helper가 없음');
+  assert.equal(typeof runtimeState.disposePlaySceneRuntimeState, 'function', 'PlayScene runtime dispose helper가 없음');
+  assert.equal(typeof runtimeState.getPlaySceneDebugSurface, 'function', 'PlayScene debug surface helper가 없음');
 });
 
 test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다', () => {

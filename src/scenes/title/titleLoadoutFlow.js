@@ -1,19 +1,21 @@
 import { createTitleLoadoutApplicationService } from '../../app/title/titleLoadoutApplicationService.js';
 import { loadPlaySceneModule } from '../sceneLoaders.js';
 import { buildTitleLoadoutConfig } from './titleLoadout.js';
+import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
 export async function ensureTitleLoadoutView(scene, {
   loadStartLoadoutView = () => import('../../ui/title/StartLoadoutView.js'),
 } = {}) {
-  if (scene._loadoutView) return scene._loadoutView;
-  if (!scene._loadoutViewPromise) {
-    scene._loadoutViewPromise = loadStartLoadoutView().then(({ StartLoadoutView }) => {
-      if (!scene._el) return null;
-      scene._loadoutView = new StartLoadoutView(scene._el);
-      return scene._loadoutView;
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  if (runtimeTarget.loadoutView) return runtimeTarget.loadoutView;
+  if (!runtimeTarget.loadoutViewPromise) {
+    runtimeTarget.loadoutViewPromise = loadStartLoadoutView().then(({ StartLoadoutView }) => {
+      if (!runtimeTarget.root) return null;
+      runtimeTarget.loadoutView = new StartLoadoutView(runtimeTarget.root);
+      return runtimeTarget.loadoutView;
     });
   }
-  return scene._loadoutViewPromise;
+  return runtimeTarget.loadoutViewPromise;
 }
 
 export async function openTitleStartLoadout(scene, {

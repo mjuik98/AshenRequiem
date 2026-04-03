@@ -13,12 +13,16 @@ const PREVENT_KEYS = new Set([
 ]);
 
 export class KeyboardAdapter {
-  constructor({ keyBindings = null } = {}) {
+  constructor({
+    keyBindings = null,
+    host = globalThis.window ?? globalThis,
+  } = {}) {
     this._keys = new Set();
     this._onKeyDown = null;
     this._onKeyUp   = null;
     this._onBlur    = null;
     this._keyBindings = normalizeKeyBindings(keyBindings ?? {});
+    this._host = host;
   }
 
   init() {
@@ -31,9 +35,9 @@ export class KeyboardAdapter {
     };
     this._onBlur = () => this._keys.clear();
 
-    window.addEventListener('keydown', this._onKeyDown);
-    window.addEventListener('keyup',   this._onKeyUp);
-    window.addEventListener('blur',    this._onBlur);
+    this._host?.addEventListener?.('keydown', this._onKeyDown);
+    this._host?.addEventListener?.('keyup',   this._onKeyUp);
+    this._host?.addEventListener?.('blur',    this._onBlur);
   }
 
   /**
@@ -57,9 +61,9 @@ export class KeyboardAdapter {
   }
 
   destroy() {
-    if (this._onKeyDown) window.removeEventListener('keydown', this._onKeyDown);
-    if (this._onKeyUp)   window.removeEventListener('keyup',   this._onKeyUp);
-    if (this._onBlur)    window.removeEventListener('blur',    this._onBlur);
+    if (this._onKeyDown) this._host?.removeEventListener?.('keydown', this._onKeyDown);
+    if (this._onKeyUp)   this._host?.removeEventListener?.('keyup',   this._onKeyUp);
+    if (this._onBlur)    this._host?.removeEventListener?.('blur',    this._onBlur);
     this._keys.clear();
   }
 

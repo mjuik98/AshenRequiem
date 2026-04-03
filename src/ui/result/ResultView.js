@@ -13,6 +13,10 @@ import {
   disposeDialogRuntime,
   replaceDialogRuntime,
 } from '../shared/dialogViewLifecycle.js';
+import {
+  bindResultViewRuntime,
+  renderResultViewRuntime,
+} from './resultViewRuntime.js';
 
 export class ResultView {
   constructor(container) {
@@ -22,6 +26,7 @@ export class ResultView {
     this._dialogRuntime = null;
     this._onRestart = null;
     this._onTitle = null;
+    this._runtimeDisposer = bindResultViewRuntime(this);
     ensureResultViewStyles();
     container.appendChild(this.el);
   }
@@ -33,21 +38,10 @@ export class ResultView {
       root: this.el,
       panelSelector: '.result-card',
     });
-    this.el.innerHTML = renderResultViewMarkup(stats, { onTitleCallback });
-
-    this.el.querySelector('.result-restart-btn')?.addEventListener('click', () => {
-      const onRestart = this._onRestart;
-      this.hide();
-      onRestart?.();
+    renderResultViewRuntime(this, stats, {
+      onTitleCallback,
+      renderMarkupImpl: renderResultViewMarkup,
     });
-
-    if (onTitleCallback) {
-      this.el.querySelector('.result-title-btn')?.addEventListener('click', () => {
-        const onTitle = this._onTitle;
-        this.hide();
-        onTitle?.();
-      });
-    }
 
     this.el.style.display = 'flex';
     this._dialogRuntime.focusInitial();
@@ -63,6 +57,7 @@ export class ResultView {
 
   destroy() {
     this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
+    this._runtimeDisposer?.();
     this.el.remove();
   }
 }

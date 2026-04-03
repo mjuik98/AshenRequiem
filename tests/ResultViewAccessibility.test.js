@@ -6,6 +6,12 @@ console.log('\n[ResultViewAccessibility]');
 
 const { test, summary } = createRunner('ResultViewAccessibility');
 
+await test('ResultView runtime helper는 delegated runtime entrypoint를 노출한다', async () => {
+  const runtime = await import('../src/ui/result/resultViewRuntime.js');
+  assert.equal(typeof runtime.bindResultViewRuntime, 'function');
+  assert.equal(typeof runtime.renderResultViewRuntime, 'function');
+});
+
 await test('ResultView는 dialog 포커스를 잡고 숨길 때 이전 포커스를 복원한다', async () => {
   const dom = installMockDom();
 

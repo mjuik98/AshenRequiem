@@ -1,4 +1,8 @@
 import { nextFloat } from '../../utils/random.js';
+import {
+  getDevicePixelRatio,
+  getViewportSize,
+} from '../../core/runtimeHost.js';
 
 function nextTitleRandom(state) {
   return nextFloat(state?.rng);
@@ -34,16 +38,17 @@ function buildTitleBackgroundLayers(state) {
   }));
 }
 
-export function createTitleBackgroundState(win = window, rng) {
-  const prefersReducedMotion = win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+export function createTitleBackgroundState(host = globalThis, rng) {
+  const { width, height } = getViewportSize(host);
+  const prefersReducedMotion = host?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
   return {
     width: 0,
     height: 0,
-    dpr: Math.min(win.devicePixelRatio || 1, 2),
-    pointerX: win.innerWidth * 0.5,
-    pointerY: win.innerHeight * 0.4,
-    smoothedX: win.innerWidth * 0.5,
-    smoothedY: win.innerHeight * 0.4,
+    dpr: Math.min(getDevicePixelRatio(host, 1), 2),
+    pointerX: width * 0.5,
+    pointerY: height * 0.4,
+    smoothedX: width * 0.5,
+    smoothedY: height * 0.4,
     stars: [],
     rain: [],
     fogBands: [],
@@ -53,12 +58,13 @@ export function createTitleBackgroundState(win = window, rng) {
   };
 }
 
-export function resizeTitleBackgroundState(state, canvas, ctx, win = window) {
+export function resizeTitleBackgroundState(state, canvas, ctx, host = globalThis) {
   if (!state || !canvas || !ctx) return state;
 
-  state.width = win.innerWidth;
-  state.height = win.innerHeight;
-  state.dpr = Math.min(win.devicePixelRatio || 1, 2);
+  const { width, height } = getViewportSize(host);
+  state.width = width;
+  state.height = height;
+  state.dpr = Math.min(getDevicePixelRatio(host, 1), 2);
   canvas.width = Math.floor(state.width * state.dpr);
   canvas.height = Math.floor(state.height * state.dpr);
   canvas.style.width = `${state.width}px`;

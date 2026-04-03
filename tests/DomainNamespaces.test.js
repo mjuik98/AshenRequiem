@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
-import { readProjectSource } from './helpers/sourceInspection.js';
+import { projectPathExists, readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[DomainNamespaces]');
 
@@ -30,6 +30,10 @@ test('domain namespace entrypoints expose play world, loadout, and play result A
   assert.equal(typeof loadoutApi.buildPlayerStartWeapons, 'function');
   assert.equal(typeof playResultApi.buildRunResult, 'function');
   assert.equal(typeof playResultApi.buildPlayResultSummary, 'function');
+  assert.equal(projectPathExists('../src/domain/meta/loadout/startLoadoutCatalog.js'), true, 'start loadout catalog helper가 없음');
+  assert.equal(projectPathExists('../src/domain/meta/loadout/startLoadoutUnlocks.js'), true, 'start loadout unlock helper가 없음');
+  assert.equal(projectPathExists('../src/domain/meta/loadout/startLoadoutSelection.js'), true, 'start loadout selection helper가 없음');
+  assert.equal(projectPathExists('../src/domain/meta/loadout/startLoadoutPlayerStart.js'), true, 'start loadout player-start helper가 없음');
 });
 
 test('legacy runtime modules re-export from domain namespaces instead of owning the implementation', () => {

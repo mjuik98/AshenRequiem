@@ -1,7 +1,7 @@
 import { EVENT_TYPES } from '../../../data/constants/events.js';
 import { createDefaultEncounterState } from '../encounter/encounterDirectorDomain.js';
 import { createSynergyState } from '../../../state/createSynergyState.js';
-import { createRng } from '../../../utils/random.js';
+import { createMathRng } from '../../../utils/random.js';
 
 function createEventQueues() {
   const events = {};
@@ -26,7 +26,7 @@ export function createPlayWorld() {
     camera: { x: 0, y: 0, targetX: 0, targetY: 0 },
   };
   const runtime = {
-    rng: createRng(),
+    rng: createMathRng(),
     deltaTime: 0,
     replayTrace: [],
     replayFrame: 0,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
+import { installMockDom } from './helpers/mockDom.js';
 
 console.log('\n[TitleSceneRuntime]');
 
@@ -34,6 +35,14 @@ try {
   titleLoadoutFlow = { error };
 }
 
+let titleSceneRuntimeState = null;
+
+try {
+  titleSceneRuntimeState = await import('../src/scenes/title/titleSceneRuntimeState.js');
+} catch (error) {
+  titleSceneRuntimeState = { error };
+}
+
 function getRuntimeApi() {
   assert.ok(
     !runtimeApi.error,
@@ -66,16 +75,26 @@ function getTitleLoadoutFlow() {
   return titleLoadoutFlow;
 }
 
+function getTitleSceneRuntimeState() {
+  assert.ok(
+    !titleSceneRuntimeState.error,
+    titleSceneRuntimeState.error?.message ?? 'src/scenes/title/titleSceneRuntimeState.js가 아직 없음',
+  );
+  return titleSceneRuntimeState;
+}
+
 test('title scene runtime helper는 DOM, 이벤트, 로드아웃 orchestration entrypoint를 노출한다', () => {
   const api = getRuntimeApi();
   const navigation = getTitleSceneNavigation();
   const input = getTitleSceneInput();
   const loadoutFlow = getTitleLoadoutFlow();
+  const runtimeState = getTitleSceneRuntimeState();
   assert.equal(typeof api.buildTitleSceneDom, 'function', 'buildTitleSceneDom helper가 없음');
   assert.equal(typeof api.teardownTitleSceneRuntime, 'function', 'teardownTitleSceneRuntime helper가 없음');
   assert.equal(typeof api.bindTitleSceneEvents, 'function', 'bindTitleSceneEvents helper가 없음');
   assert.equal(typeof api.ensureTitleLoadoutView, 'function', 'ensureTitleLoadoutView helper가 없음');
   assert.equal(typeof api.openTitleStartLoadout, 'function', 'openTitleStartLoadout helper가 없음');
+  assert.equal(typeof runtimeState.createTitleSceneRuntimeState, 'function', 'createTitleSceneRuntimeState helper가 없음');
   assert.equal(typeof navigation.runTitleAction, 'function', 'titleSceneNavigation.runTitleAction helper가 없음');
   assert.equal(typeof navigation.bindTitleActionButtons, 'function', 'titleSceneNavigation.bindTitleActionButtons helper가 없음');
   assert.equal(typeof input.bindTitleSceneInput, 'function', 'titleSceneInput.bindTitleSceneInput helper가 없음');
@@ -83,6 +102,83 @@ test('title scene runtime helper는 DOM, 이벤트, 로드아웃 orchestration e
   assert.equal(typeof loadoutFlow.openTitleStartLoadout, 'function', 'titleLoadoutFlow.openTitleStartLoadout helper가 없음');
   assert.equal(api.ensureTitleLoadoutView, loadoutFlow.ensureTitleLoadoutView, 'titleSceneRuntime가 loadout flow facade를 재-export하지 않음');
   assert.equal(api.openTitleStartLoadout, loadoutFlow.openTitleStartLoadout, 'titleSceneRuntime가 loadout flow facade를 재-export하지 않음');
+});
+
+test('buildTitleSceneDom는 기존 title shell을 재사용하고 shell refs를 캐시한다', () => {
+  const api = getRuntimeApi();
+  const runtimeStateApi = getTitleSceneRuntimeState();
+  const { document, restore } = installMockDom();
+
+  try {
+    const uiContainer = document.createElement('div');
+    uiContainer.setAttribute('id', 'ui-container');
+    document.body.appendChild(uiContainer);
+
+    const scene = {
+      _runtimeState: runtimeStateApi.createTitleSceneRuntimeState(),
+    };
+
+    const firstRoot = api.buildTitleSceneDom(scene, {
+      documentRef: document,
+      ensureTitleStylesImpl: () => {},
+      initBackgroundImpl: () => {},
+    });
+    const secondRoot = api.buildTitleSceneDom(scene, {
+      documentRef: document,
+      ensureTitleStylesImpl: () => {},
+      initBackgroundImpl: () => {},
+    });
+
+    assert.equal(firstRoot, secondRoot, 'title shell root가 재사용되지 않음');
+    assert.equal(uiContainer.children.length, 1, 'title shell root가 중복 append되면 안 됨');
+    assert.ok(scene._runtimeState.shellRefs, 'title shell refs가 runtime state에 캐시되지 않음');
+    assert.equal(scene._runtimeState.shellRefs.live.id, 'title-live', 'title 상태 메시지 ref가 캐시되지 않음');
+    assert.equal(scene._runtimeState.shellRefs.flash.id, 'title-flash', 'title flash ref가 캐시되지 않음');
+    assert.equal(scene._runtimeState.shellRefs.canvas.id, 'title-bg-canvas', 'title background canvas ref가 캐시되지 않음');
+  } finally {
+    restore();
+  }
+});
+
+test('initTitleSceneBackground는 scene runtime host를 배경 renderer로 주입한다', async () => {
+  const api = getRuntimeApi();
+  const runtimeStateApi = getTitleSceneRuntimeState();
+  const { document, restore } = installMockDom();
+
+  try {
+    const uiContainer = document.createElement('div');
+    uiContainer.setAttribute('id', 'ui-container');
+    document.body.appendChild(uiContainer);
+
+    const scene = {
+      game: {
+        runtimeHost: { id: 'runtime-host' },
+      },
+      _runtimeState: runtimeStateApi.createTitleSceneRuntimeState(),
+    };
+
+    api.buildTitleSceneDom(scene, {
+      documentRef: document,
+      ensureTitleStylesImpl: () => {},
+      initBackgroundImpl: () => {},
+    });
+
+    const ctorCalls = [];
+    await api.initTitleSceneBackground(scene, {
+      loadTitleBackgroundRenderer: async () => ({
+        TitleBackgroundRenderer: class StubTitleBackgroundRenderer {
+          constructor(canvas, options = {}) {
+            ctorCalls.push([canvas?.id ?? null, options.host ?? null]);
+          }
+          start() {}
+        },
+      }),
+    });
+
+    assert.deepEqual(ctorCalls, [['title-bg-canvas', scene.game.runtimeHost]], 'title background renderer가 runtime host를 주입받지 않음');
+  } finally {
+    restore();
+  }
 });
 
 test('openTitleStartLoadout는 시작 불가 상태에서 저장과 씬 전환을 막는다', async () => {

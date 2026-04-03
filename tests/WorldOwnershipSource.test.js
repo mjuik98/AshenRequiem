@@ -33,7 +33,7 @@ const expectations = [
     mustExclude: ['world.killCount', 'world.player'],
   },
   {
-    ref: '../src/adapters/browser/runtimeHooks.js',
+    ref: '../src/adapters/browser/runtimeHooks/runtimeSnapshot.js',
     mustInclude: ['world.run.playMode', 'world.entities.player'],
     mustExclude: ['world.playMode', 'world.player'],
   },

@@ -22,6 +22,39 @@ function getDiscoveryCount(discovery, label) {
   };
 }
 
+export function renderCodexProgressPill({
+  discovery,
+  totalEnemies,
+  totalWeapons,
+  totalAccessories,
+}) {
+  const discovered = discovery.totalDiscovered;
+  return `<span class="cx-prog-pill ss-pill">${discovered} / ${totalEnemies + totalWeapons + totalAccessories} 발견됨</span>`;
+}
+
+export function renderCodexViewTabs({
+  discovery,
+  activeTab,
+}) {
+  const enemyProgress = getDiscoveryCount(discovery, '적');
+  const weaponProgress = getDiscoveryCount(discovery, '무기');
+  const accessoryProgress = getDiscoveryCount(discovery, '장신구');
+  return `
+    <button class="cx-tab ${activeTab === 'enemy' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'enemy'}" aria-label="적 ${enemyProgress.discovered}/${enemyProgress.total}" data-tab="enemy">
+      적 <span class="cx-tab-progress">${enemyProgress.discovered}/${enemyProgress.total}</span>
+    </button>
+    <button class="cx-tab ${activeTab === 'weapon' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'weapon'}" aria-label="무기 ${weaponProgress.discovered}/${weaponProgress.total}" data-tab="weapon">
+      무기 <span class="cx-tab-progress">${weaponProgress.discovered}/${weaponProgress.total}</span>
+    </button>
+    <button class="cx-tab ${activeTab === 'accessory' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'accessory'}" aria-label="장신구 ${accessoryProgress.discovered}/${accessoryProgress.total}" data-tab="accessory">
+      장신구 <span class="cx-tab-progress">${accessoryProgress.discovered}/${accessoryProgress.total}</span>
+    </button>
+    <button class="cx-tab ${activeTab === 'records' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'records'}" data-tab="records">
+      기록
+    </button>
+  `;
+}
+
 export function renderCodexViewShell({
   discovery,
   activeTab,
@@ -29,10 +62,6 @@ export function renderCodexViewShell({
   totalWeapons,
   totalAccessories,
 }) {
-  const discovered = discovery.totalDiscovered;
-  const enemyProgress = getDiscoveryCount(discovery, '적');
-  const weaponProgress = getDiscoveryCount(discovery, '무기');
-  const accessoryProgress = getDiscoveryCount(discovery, '장신구');
   return `
     <div class="cx-panel ss-panel" role="dialog" aria-modal="true" aria-label="Codex" tabindex="-1">
       ${renderSubscreenHeader({
@@ -43,21 +72,15 @@ export function renderCodexViewShell({
         titleTag: 'h2',
         rune: '📖',
         title: 'Codex',
-        right: `<span class="cx-prog-pill ss-pill">${discovered} / ${totalEnemies + totalWeapons + totalAccessories} 발견됨</span>`,
+        right: renderCodexProgressPill({
+          discovery,
+          totalEnemies,
+          totalWeapons,
+          totalAccessories,
+        }),
       })}
       <nav class="cx-tabs" role="tablist" aria-label="도감 탭">
-        <button class="cx-tab ${activeTab === 'enemy' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'enemy'}" aria-label="적 ${enemyProgress.discovered}/${enemyProgress.total}" data-tab="enemy">
-          적 <span class="cx-tab-progress">${enemyProgress.discovered}/${enemyProgress.total}</span>
-        </button>
-        <button class="cx-tab ${activeTab === 'weapon' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'weapon'}" aria-label="무기 ${weaponProgress.discovered}/${weaponProgress.total}" data-tab="weapon">
-          무기 <span class="cx-tab-progress">${weaponProgress.discovered}/${weaponProgress.total}</span>
-        </button>
-        <button class="cx-tab ${activeTab === 'accessory' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'accessory'}" aria-label="장신구 ${accessoryProgress.discovered}/${accessoryProgress.total}" data-tab="accessory">
-          장신구 <span class="cx-tab-progress">${accessoryProgress.discovered}/${accessoryProgress.total}</span>
-        </button>
-        <button class="cx-tab ${activeTab === 'records' ? 'active' : ''}" role="tab" aria-selected="${activeTab === 'records'}" data-tab="records">
-          기록
-        </button>
+        ${renderCodexViewTabs({ discovery, activeTab })}
       </nav>
       <div class="cx-tab-summary">${getCodexTabSummaryText(activeTab)}</div>
       <div class="cx-content ss-scroll">

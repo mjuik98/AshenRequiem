@@ -4,15 +4,19 @@ import {
   createGameResizeHandler,
   syncGameCanvasSize,
 } from '../../core/gameCanvasRuntime.js';
+import { createDocumentAccessibilityRuntime } from '../../ui/shared/accessibilityRuntime.js';
 
 export function createBrowserGameShell({
   host = globalThis,
+  documentRef = document,
   createRuntimeStateImpl = createGameRuntimeState,
   createResizeHandlerImpl = createGameResizeHandler,
   syncCanvasSizeImpl = syncGameCanvasSize,
+  createAccessibilityRuntimeImpl = createDocumentAccessibilityRuntime,
 } = {}) {
-  const runtimeState = createRuntimeStateImpl({ host });
+  const runtimeState = createRuntimeStateImpl({ host, documentRef });
   let resizeHandler = null;
+  let accessibilityRuntime = null;
 
   function resize(game) {
     return syncCanvasSizeImpl({
@@ -29,6 +33,9 @@ export function createBrowserGameShell({
 
     attach(game) {
       Object.assign(game, runtimeState);
+      accessibilityRuntime = createAccessibilityRuntimeImpl(documentRef?.documentElement ?? null);
+      game.runtimeHost = host;
+      game.accessibilityRuntime = accessibilityRuntime;
       resizeHandler = createResizeHandlerImpl({
         canvas: game.canvas,
         ctx: game.ctx,
@@ -47,6 +54,8 @@ export function createBrowserGameShell({
       host?.removeEventListener?.('resize', resizeHandler ?? game?._onResize);
       if (game) {
         game._onResize = null;
+        game.runtimeHost = null;
+        game.accessibilityRuntime = null;
       }
     },
 

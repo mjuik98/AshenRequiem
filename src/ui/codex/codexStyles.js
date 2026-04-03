@@ -13,3 +13,11 @@ export const CODEX_VIEW_CSS = `
   ${CODEX_ACCESSORY_TAB_CSS}
   ${CODEX_RESPONSIVE_CSS}
 `;
+
+export function ensureCodexViewStyles(documentRef = document) {
+  if (documentRef.getElementById(CODEX_VIEW_STYLE_ID)) return;
+  const style = documentRef.createElement('style');
+  style.id = CODEX_VIEW_STYLE_ID;
+  style.textContent = CODEX_VIEW_CSS;
+  documentRef.head.appendChild(style);
+}
