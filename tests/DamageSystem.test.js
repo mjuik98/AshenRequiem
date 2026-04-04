@@ -139,4 +139,34 @@ test('같은 프레임에 적이 먼저 죽으면 뒤늦은 히트에 묶인 다
   }
 });
 
+test('플레이어 소유 투사체에 impactEffectType이 있으면 적중 시 해당 effect를 spawnQueue에 추가한다', () => {
+  if (!DamageSystem) return;
+  const player = makePlayer({ critChance: 0 });
+  const enemy = makeEnemy({ hp: 30, x: 120, y: 80, radius: 14 });
+  const projectile = {
+    ownerId: player.id,
+    impactEffectType: 'magic_bolt_impact',
+    hitCount: 0,
+    hitTargets: new Set(),
+  };
+  const hit = makeHitEvent({
+    attackerId: player.id,
+    target: enemy,
+    damage: 5,
+    projectile,
+  });
+  const world = makeWorld({
+    entities: { player, enemies: [enemy] },
+    queues: { events: makeEvents({ hits: [hit] }), spawnQueue: [] },
+  });
+
+  DamageSystem.update({ world });
+
+  assert.equal(
+    world.queues.spawnQueue.some((entry) => entry.type === 'effect' && entry.config.effectType === 'magic_bolt_impact'),
+    true,
+    'impactEffectType 전용 effect가 spawnQueue에 추가되지 않음',
+  );
+});
+
 summary();

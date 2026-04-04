@@ -51,6 +51,19 @@ export const DamageSystem = {
       if (target.type === 'enemy') {
         target.hitFlashTimer = 0.1;
 
+        if (hit.projectile?.impactEffectType && hit.attackerId === player?.id) {
+          spawnQueue.push(spawnEffect({
+            x: target.x,
+            y: target.y,
+            effectType: hit.projectile.impactEffectType,
+            config: {
+              color: hit.projectile.color ?? target.color ?? '#ffffff',
+              radius: Math.max(target.radius ?? 14, hit.projectile.radius ?? 6) * 1.35,
+              duration: 0.4,
+            },
+          }));
+        }
+
         // 넉백
         const resist = target.knockbackResist ?? 0;
         let kx = 0, ky = 0;

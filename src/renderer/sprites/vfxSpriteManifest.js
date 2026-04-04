@@ -1,91 +1,58 @@
-const CELL = 64;
+const CELL = 256;
 
 export const VFX_ATLAS_DEFS = {
   projectiles: {
     src: '/assets/vfx/projectiles-atlas.png',
     cellSize: CELL,
-    width: CELL * 4,
-    height: CELL * 2,
+    width: CELL * 8,
+    height: CELL * 3,
   },
   effects: {
     src: '/assets/vfx/effects-atlas.png',
     cellSize: CELL,
     width: CELL * 4,
-    height: CELL * 2,
+    height: CELL * 3,
   },
 };
 
-const PROJECTILE_FRAMES = {
-  default: {
+const PROJECTILE_FRAMES = {};
+
+const PROJECTILE_ANIMATION_DEFS = {
+  magic_bolt: {
     atlas: 'projectiles',
-    x: 0,
-    y: 0,
-    w: CELL,
-    h: CELL,
-    sizeMult: 3.2,
-    rotateWithVelocity: true,
-  },
-  targetProjectile: {
-    atlas: 'projectiles',
-    x: 0,
-    y: 0,
-    w: CELL,
-    h: CELL,
-    sizeMult: 3.2,
-    rotateWithVelocity: true,
-  },
-  orbit: {
-    atlas: 'projectiles',
-    x: CELL,
-    y: 0,
-    w: CELL,
-    h: CELL,
-    sizeMult: 3.0,
-  },
-  boomerang: {
-    atlas: 'projectiles',
-    x: CELL * 2,
-    y: 0,
-    w: CELL,
-    h: CELL,
+    columnOffset: 0,
     sizeMult: 3.4,
-    rotateFromAngle: true,
-  },
-  ricochetProjectile: {
-    atlas: 'projectiles',
-    x: CELL * 3,
-    y: 0,
-    w: CELL,
-    h: CELL,
-    sizeMult: 3.0,
     rotateWithVelocity: true,
+    intro: {
+      start: 0,
+      end: 3,
+      frameDuration: 0.04,
+    },
+    flight: {
+      start: 4,
+      end: 11,
+      loopStart: 4,
+      loopEnd: 11,
+      frameDuration: 0.04,
+    },
   },
-  laserBeam: {
+  arcane_nova: {
     atlas: 'projectiles',
-    x: 0,
-    y: CELL,
-    w: CELL,
-    h: CELL,
-    drawMode: 'beam',
-    minThickness: 18,
-  },
-  groundZone: {
-    atlas: 'projectiles',
-    x: CELL,
-    y: CELL,
-    w: CELL,
-    h: CELL,
-    drawMode: 'zone',
-    sizeMult: 2.35,
-  },
-  areaBurst: {
-    atlas: 'projectiles',
-    x: CELL * 2,
-    y: CELL,
-    w: CELL,
-    h: CELL,
-    drawMode: 'zone',
-    sizeMult: 2.2,
+    columnOffset: 4,
+    sizeMult: 3.8,
+    rotateWithVelocity: true,
+    intro: {
+      start: 0,
+      end: 3,
+      frameDuration: 0.04,
+    },
+    flight: {
+      start: 4,
+      end: 11,
+      loopStart: 4,
+      loopEnd: 11,
+      frameDuration: 0.04,
+    },
   },
 };
 
@@ -101,10 +68,85 @@ const EFFECT_FRAMES = {
   },
 };
 
+const EFFECT_SEQUENCE_DEFS = {
+  magic_bolt_impact: {
+    atlas: 'effects',
+    row: 1,
+    drawMode: 'burst',
+    sizeMult: 2.9,
+    oneShot: {
+      start: 12,
+      end: 15,
+    },
+  },
+  arcane_nova_impact: {
+    atlas: 'effects',
+    row: 2,
+    drawMode: 'burst',
+    sizeMult: 3.2,
+    oneShot: {
+      start: 12,
+      end: 15,
+    },
+  },
+};
+
+function buildProjectileAnimationFrame(visualId, sourceFrameIndex) {
+  const def = PROJECTILE_ANIMATION_DEFS[visualId];
+  if (!def || !Number.isFinite(sourceFrameIndex) || sourceFrameIndex < 0 || sourceFrameIndex > 11) {
+    return null;
+  }
+
+  const localColumn = sourceFrameIndex % 4;
+  const localRow = Math.floor(sourceFrameIndex / 4);
+  return {
+    atlas: def.atlas,
+    x: (def.columnOffset + localColumn) * CELL,
+    y: localRow * CELL,
+    w: CELL,
+    h: CELL,
+    sizeMult: def.sizeMult,
+    rotateWithVelocity: def.rotateWithVelocity,
+  };
+}
+
+function buildEffectSequenceFrame(effectType, sourceFrameIndex) {
+  const def = EFFECT_SEQUENCE_DEFS[effectType];
+  if (!def || !Number.isFinite(sourceFrameIndex) || sourceFrameIndex < 12 || sourceFrameIndex > 15) {
+    return null;
+  }
+
+  return {
+    atlas: def.atlas,
+    x: (sourceFrameIndex - 12) * CELL,
+    y: def.row * CELL,
+    w: CELL,
+    h: CELL,
+    drawMode: def.drawMode,
+    sizeMult: def.sizeMult,
+  };
+}
+
+export function getProjectileSpriteAnimationDef(projectileVisualId) {
+  return PROJECTILE_ANIMATION_DEFS[projectileVisualId] ?? null;
+}
+
 export function getProjectileSpriteFrame(behaviorId = 'default') {
-  return PROJECTILE_FRAMES[behaviorId] ?? PROJECTILE_FRAMES.default ?? null;
+  return PROJECTILE_FRAMES[behaviorId] ?? null;
+}
+
+export function getProjectileAnimationFrame(projectileVisualId, sourceFrameIndex) {
+  return buildProjectileAnimationFrame(projectileVisualId, sourceFrameIndex);
+}
+
+export function getEffectSpriteSequenceDef(effectType) {
+  return EFFECT_SEQUENCE_DEFS[effectType] ?? null;
 }
 
 export function getEffectSpriteFrame(effectType) {
   return EFFECT_FRAMES[effectType] ?? null;
+}
+
+export function getEffectSequenceFrame(effectType, sourceFrameIndex) {
+  return buildEffectSequenceFrame(effectType, sourceFrameIndex);
 }
