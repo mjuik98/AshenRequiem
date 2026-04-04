@@ -1,12 +1,24 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
 export function resolveLocalPlaywrightCliPath({
   cwd = process.cwd(),
   existsSync = fs.existsSync,
 } = {}) {
-  const normalizedCwd = cwd.replaceAll('\\', '/').replace(/\/+$/, '');
-  const localCliPath = `${normalizedCwd}/node_modules/@playwright/cli/playwright-cli.js`;
-  return existsSync(localCliPath) ? localCliPath : null;
+  let currentDir = cwd.replaceAll('\\', '/').replace(/\/+$/, '');
+
+  while (currentDir.length > 0) {
+    const localCliPath = `${currentDir}/node_modules/@playwright/cli/playwright-cli.js`;
+    if (existsSync(localCliPath)) {
+      return localCliPath;
+    }
+
+    const parentDir = path.posix.dirname(currentDir);
+    if (parentDir === currentDir) break;
+    currentDir = parentDir;
+  }
+
+  return null;
 }
 
 function quoteShellArg(value) {

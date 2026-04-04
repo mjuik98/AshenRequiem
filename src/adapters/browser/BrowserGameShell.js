@@ -31,8 +31,6 @@ export function createBrowserGameShell({
   function applyViewportState(game, viewport) {
     if (!game || !viewport) return viewport ?? null;
     game.viewport = { ...viewport };
-    GameConfig.canvasWidth = viewport.width ?? GameConfig.canvasWidth;
-    GameConfig.canvasHeight = viewport.height ?? GameConfig.canvasHeight;
     return game.viewport;
   }
 

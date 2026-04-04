@@ -133,3 +133,23 @@ test('drawBackground는 seamless runtime이 처리하지 않으면 legacy grid f
   assert.equal(runtimeCalls.draw, 1);
   assert.equal(calls.some((call) => call.fn === 'stroke'), true, 'fallback legacy grid stroke가 유지되어야 함');
 });
+
+test('drawBackground는 injected camera viewport를 background renderer에 전달한다', () => {
+  const { ctx, calls } = makeCtx();
+  let receivedViewport = null;
+  const renderer = new CanvasRenderer({ width: 1280, height: 720 }, ctx, {
+    backgroundRenderer: {
+      draw(_ctx, _camera, _stage, viewport) {
+        receivedViewport = viewport;
+        calls.push({ fn: 'runtimeDraw', args: [viewport] });
+        return true;
+      },
+    },
+  });
+
+  renderer.drawBackground({ x: 64, y: 96, width: 320, height: 180 }, {
+    background: { mode: 'seamless_tile', tileSize: 1024, palette: { base: '#111111', ember: 'rgba(0,0,0,0)' } },
+  });
+
+  assert.deepEqual(receivedViewport, { width: 320, height: 180 }, 'background renderer가 camera viewport를 전달받지 못함');
+});

@@ -2,4 +2,4 @@ export {
   buildCodexAccessoryCardModel,
   buildCodexAccessoryDetailModel,
   buildCodexAccessoryGridModel,
-} from '../../app/meta/codexAccessoryQueryService.js';
+} from '../../domain/meta/codex/codexAccessoryPresentation.js';

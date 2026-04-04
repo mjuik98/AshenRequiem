@@ -152,5 +152,24 @@ await test('shared validation module rejects invalid weapon aiming contracts', a
   assert.equal(report.errors.some((message) => message.includes('aimSpread')), true);
 });
 
+await test('runtime validation helper also validates shipped stage and asset contracts', async () => {
+  const { validateGameData } = await import('../src/utils/validateGameData.js');
+
+  const result = validateGameData({
+    stageData: [
+      {
+        id: 'ash_plains',
+        assets: {
+          backgroundKey: 'missing_background',
+          bossCueKey: 'missing_boss_cue',
+        },
+      },
+    ],
+    assetManifest: [],
+  });
+
+  assert.equal(result, false, 'runtime validation helper가 stage/asset 계약 위반을 놓치면 안 됨');
+});
+
 console.log(`\nGameDataValidation: ${passed}개 통과, ${failed}개 실패`);
 if (failed > 0) process.exit(1);

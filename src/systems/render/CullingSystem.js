@@ -4,8 +4,8 @@
  * 렌더링 최적화를 위해 화면 안의 엔티티들만 필터링한다.
  * RenderSystem 이전에 실행되어 그리기에 필요한 버퍼를 준비한다.
  */
-import { GameConfig } from '../../core/GameConfig.js';
 import { RENDER }     from '../../data/constants.js';
+import { resolveViewportDimensions } from '../../utils/viewportState.js';
 
 export function createCullingSystem() {
   const visible = {
@@ -27,10 +27,11 @@ export function createCullingSystem() {
   return {
     update({ world }) {
       const camera = world.presentation.camera;
+      const { width, height } = resolveViewportDimensions({ camera });
       const cMinX  = camera.x - RENDER.CULL_MARGIN;
-      const cMaxX  = camera.x + GameConfig.canvasWidth  + RENDER.CULL_MARGIN;
+      const cMaxX  = camera.x + width + RENDER.CULL_MARGIN;
       const cMinY  = camera.y - RENDER.CULL_MARGIN;
-      const cMaxY  = camera.y + GameConfig.canvasHeight + RENDER.CULL_MARGIN;
+      const cMaxY  = camera.y + height + RENDER.CULL_MARGIN;
 
       clearBuffers();
 

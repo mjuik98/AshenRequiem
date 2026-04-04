@@ -1,8 +1,21 @@
 import { validateCoreGameData } from '../data/gameDataValidation.js';
 
 /** validateGameData — 초기화 시 데이터 무결성 검증 */
-export function validateGameData({ upgradeData, weaponData, waveData }) {
-  const report = validateCoreGameData({ upgradeData, weaponData, waveData });
+export function validateGameData(gameData = {}) {
+  const {
+    upgradeData,
+    weaponData,
+    waveData,
+    stageData,
+    assetManifest,
+  } = gameData;
+  const report = validateCoreGameData({
+    upgradeData,
+    weaponData,
+    waveData,
+    stageData,
+    assetManifest,
+  });
   report.errors.forEach((message) => console.error(message));
   report.warnings.forEach((message) => console.warn(message));
 

@@ -1,8 +1,8 @@
-import { buildMetaShopViewModel } from '../../app/meta/metaShopViewModelService.js';
 import {
   disposeDialogRuntime,
   replaceDialogRuntime,
 } from '../shared/dialogViewLifecycle.js';
+import { buildMetaShopViewModel } from './metaShopModel.js';
 import { ensureMetaShopStyles } from './metaShopStyles.js';
 import { bindMetaShopViewRuntime } from './metaShopViewRuntime.js';
 import { syncMetaShopShellState } from './metaShopViewRenderState.js';

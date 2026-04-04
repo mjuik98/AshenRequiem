@@ -11,17 +11,17 @@ test('meta progression helpers avoid static unlock/upgrade data fallbacks and co
   const unlockGuidanceSource = readProjectSource('../src/domain/meta/progression/unlockGuidanceDomain.js');
   const metaGoalSource = readProjectSource('../src/domain/meta/progression/metaGoalDomain.js');
   const titleLoadoutQuerySource = readProjectSource('../src/app/title/titleLoadoutQueryService.js');
-  const codexRecordsQuerySource = readProjectSource('../src/app/meta/codexRecordsQueryService.js');
-  const metaShopQuerySource = readProjectSource('../src/app/meta/metaShopViewModelService.js');
+  const codexRecordsPresentationSource = readProjectSource('../src/domain/meta/codex/codexRecordsPresentation.js');
+  const metaShopPresentationSource = readProjectSource('../src/domain/meta/metashop/metaShopPresentation.js');
   const metaShopSceneSource = readProjectSource('../src/scenes/MetaShopScene.js');
   const metaShopViewSource = readProjectSource('../src/ui/metashop/MetaShopView.js');
 
   assert.equal(/defaultUnlockData/.test(unlockGuidanceSource), false, 'unlockGuidanceDomain이 static unlockData fallback를 유지하면 안 됨');
   assert.equal(/defaultUnlockData|defaultPermanentUpgradeData/.test(metaGoalSource), false, 'metaGoalDomain이 static unlock/upgrade fallback를 유지하면 안 됨');
   assert.equal(titleLoadoutQuerySource.includes('gameData?.unlockData ?? []'), true, 'titleLoadout query가 unlockData를 명시 주입하지 않음');
-  assert.equal(codexRecordsQuerySource.includes('buildCodexUnlockEntries(session, gameData?.unlockData ?? [])'), true, 'codex records query가 unlockData를 명시 주입하지 않음');
-  assert.equal(metaShopQuerySource.includes("from '../../data/permanentUpgradeData.js'"), false, 'meta shop query가 static permanentUpgradeData를 직접 import하면 안 됨');
-  assert.equal(metaShopQuerySource.includes('gameData?.permanentUpgradeData'), true, 'meta shop query가 injected permanentUpgradeData를 읽지 않음');
+  assert.equal(codexRecordsPresentationSource.includes('buildCodexUnlockEntries(session, gameData?.unlockData ?? [])'), true, 'codex records presentation이 unlockData를 명시 주입하지 않음');
+  assert.equal(metaShopPresentationSource.includes("from '../../../data/permanentUpgradeData.js'"), false, 'meta shop presentation이 static permanentUpgradeData를 직접 import하면 안 됨');
+  assert.equal(metaShopPresentationSource.includes('gameData?.permanentUpgradeData'), true, 'meta shop presentation이 injected permanentUpgradeData를 읽지 않음');
   assert.equal(metaShopSceneSource.includes('this.game.gameData'), true, 'MetaShopScene이 MetaShopView에 gameData를 전달하지 않음');
   assert.equal(metaShopViewSource.includes('this._gameData'), true, 'MetaShopView가 injected gameData를 보존하지 않음');
 });

@@ -32,6 +32,8 @@ export class GameApp {
       upgradeData: game.gameData.upgradeData,
       weaponData: game.gameData.weaponData,
       waveData: game.gameData.waveData,
+      stageData: game.gameData.stageData,
+      assetManifest: game.gameData.assetManifest,
     });
 
     game.sceneManager.changeScene(createInitialScene(game));

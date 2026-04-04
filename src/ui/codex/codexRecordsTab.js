@@ -1,4 +1,4 @@
-import { buildCodexRecordsModel } from '../../app/meta/codexRecordsQueryService.js';
+import { buildCodexRecordsModel } from './codexRecords.js';
 
 export { buildCodexRecordsModel };
 

@@ -47,6 +47,8 @@ test('game canvas runtime computes viewport state but does not mutate GameConfig
 
 test('browser game shell owns the application of viewport state returned by canvas sync', async () => {
   const { createBrowserGameShell } = await import('../src/adapters/browser/BrowserGameShell.js');
+  const originalWidth = GameConfig.canvasWidth;
+  const originalHeight = GameConfig.canvasHeight;
 
   const host = {
     addEventListener() {},
@@ -62,9 +64,16 @@ test('browser game shell owns the application of viewport state returned by canv
   });
 
   const game = {};
-  shell.attach(game);
+  try {
+    shell.attach(game);
 
-  assert.deepEqual(game.viewport, { width: 960, height: 540, dpr: 1.5 }, 'browser shell이 viewport ownership을 game에 반영하지 않음');
+    assert.deepEqual(game.viewport, { width: 960, height: 540, dpr: 1.5 }, 'browser shell이 viewport ownership을 game에 반영하지 않음');
+    assert.equal(GameConfig.canvasWidth, originalWidth, 'browser shell이 live viewport를 GameConfig.canvasWidth에 되써서는 안 됨');
+    assert.equal(GameConfig.canvasHeight, originalHeight, 'browser shell이 live viewport를 GameConfig.canvasHeight에 되써서는 안 됨');
+  } finally {
+    GameConfig.canvasWidth = originalWidth;
+    GameConfig.canvasHeight = originalHeight;
+  }
 });
 
 test('game canvas runtime source no longer mutates GameConfig viewport globals inline', () => {

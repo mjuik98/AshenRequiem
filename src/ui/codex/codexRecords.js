@@ -2,8 +2,9 @@ export {
   buildCodexAchievements,
   buildCodexDiscoverySummary,
   buildCodexRecordSummary,
+  buildCodexRecordsModel,
   buildCodexUnlockEntries,
   countCodexDiscovered,
   isCodexAccessoryUnlocked,
   isCodexWeaponUnlocked,
-} from '../../app/meta/codexRecordsQueryService.js';
+} from '../../domain/meta/codex/codexRecordsPresentation.js';

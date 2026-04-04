@@ -43,6 +43,7 @@ export class PlayScene {
   enter() {
     const runtime = bootstrapPlaySceneRuntime({ game: this.game });
     this.world = runtime.world;
+    this._syncViewportState();
     this._runtimeState = createPlaySceneRuntimeState({
       runtime,
       session: this.game.session,
@@ -82,6 +83,7 @@ export class PlayScene {
 
   update(dt) {
     if (!this.world || !this._runtimeState.ctx || !this._runtimeState.uiState || this._isSceneChanging) return;
+    this._syncViewportState();
 
     const dprState = syncPlaySceneDevicePixelRatio({
       sessionOptions: this.game.session?.options,
@@ -185,5 +187,11 @@ export class PlayScene {
     if (this.world.run.runOutcome && !force) return;
     if (this.world.run.playMode === 'dead' && !force) return;
     saveActiveRunAndPersist(this.game.session, this.world);
+  }
+
+  _syncViewportState() {
+    if (!this.world?.runtime) return;
+    if (!this.game?.viewport) return;
+    this.world.runtime.viewport = { ...this.game.viewport };
   }
 }

@@ -1,5 +1,5 @@
 import { EVENT_TYPES } from '../../data/constants/events.js';
-import { GameConfig }  from '../../core/GameConfig.js';
+import { applyViewportToCamera } from '../../utils/viewportState.js';
 
 /**
  * src/systems/core/WorldTickSystem.js — 프레임 시작 시 world 메타 동기화
@@ -21,7 +21,6 @@ export const WorldTickSystem = {
     world.run.elapsedTime += world.runtime.deltaTime;
 
     // ── 3. camera 메타 — SSOT ───────────────────────────────────────────
-    camera.width  = GameConfig.canvasWidth;
-    camera.height = GameConfig.canvasHeight;
+    applyViewportToCamera(camera, world.runtime?.viewport ?? null);
   },
 };

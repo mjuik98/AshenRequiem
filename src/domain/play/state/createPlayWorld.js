@@ -28,6 +28,7 @@ export function createPlayWorld() {
   const runtime = {
     rng: createMathRng(),
     deltaTime: 0,
+    viewport: { width: 800, height: 600, dpr: 1 },
     replayTrace: [],
     replayFrame: 0,
     maxReplaySamples: 240,

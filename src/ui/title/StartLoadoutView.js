@@ -6,7 +6,7 @@ import {
 import {
   buildStartLoadoutAdvancedSummary,
   buildStartLoadoutSeedPreviewText,
-} from '../../app/title/titleLoadoutQueryService.js';
+} from '../../domain/meta/loadout/startLoadoutPresentation.js';
 import {
   disposeDialogRuntime,
   replaceDialogRuntime,

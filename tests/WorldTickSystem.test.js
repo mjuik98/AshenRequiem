@@ -30,4 +30,14 @@ test('WorldTickSystem은 프레임 시작 시 이벤트 큐를 비우고 시간/
   assert.equal(world.presentation.camera.height > 0, true, 'camera height가 갱신되지 않음');
 });
 
+test('WorldTickSystem은 injected runtime viewport를 camera metadata SSOT로 사용한다', () => {
+  const world = createWorld();
+  world.runtime.viewport = { width: 960, height: 540, dpr: 1.5 };
+
+  WorldTickSystem.update({ world, dt: 0.016 });
+
+  assert.equal(world.presentation.camera.width, 960, 'camera width가 injected viewport를 반영하지 않음');
+  assert.equal(world.presentation.camera.height, 540, 'camera height가 injected viewport를 반영하지 않음');
+});
+
 summary();

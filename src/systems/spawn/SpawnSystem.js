@@ -1,7 +1,7 @@
 import { chance, nextFloat, randomPick, randomRange } from '../../utils/random.js';
-import { GameConfig }              from '../../core/GameConfig.js';
 import { spawnEnemy }              from '../../state/spawnRequest.js';
 import { buildCurseSnapshot }      from '../../data/curseScaling.js';
+import { resolveViewportDimensions } from '../../utils/viewportState.js';
 
 /**
  * SpawnSystem — 시간 기반 적 스폰 (팩토리 함수 패턴)
@@ -33,6 +33,7 @@ export function createSpawnSystem() {
   let _propSpawnAccumulator = 0;
   let _spawnedBossAt     = new Set();
   let _lastBossSpawnTime = -Infinity;
+  let _activeCamera = null;
 
   function _getEnemyName(enemyId, enemyData = []) {
     return enemyData.find((enemy) => enemy.id === enemyId)?.name ?? enemyId;
@@ -41,8 +42,9 @@ export function createSpawnSystem() {
   /** @private */
   function _randomOffscreenPosition(player, rng) {
     const margin = 80;
-    const w = GameConfig.canvasWidth  + margin * 2;
-    const h = GameConfig.canvasHeight + margin * 2;
+    const { width, height } = resolveViewportDimensions({ camera: _activeCamera });
+    const w = width + margin * 2;
+    const h = height + margin * 2;
 
     const side = Math.floor(nextFloat(rng) * 4);
     let x, y;
@@ -53,14 +55,15 @@ export function createSpawnSystem() {
       default:x = w - margin;                            y = randomRange(-margin, h - margin, rng); break;
     }
     return {
-      x: player.x + x - GameConfig.canvasWidth  / 2,
-      y: player.y + y - GameConfig.canvasHeight / 2,
+      x: player.x + x - width / 2,
+      y: player.y + y - height / 2,
     };
   }
 
   function _randomAmbientPosition(player, rng) {
-    const halfWidth = GameConfig.canvasWidth * 0.75;
-    const halfHeight = GameConfig.canvasHeight * 0.75;
+    const { width, height } = resolveViewportDimensions({ camera: _activeCamera });
+    const halfWidth = width * 0.75;
+    const halfHeight = height * 0.75;
     let x = 0;
     let y = 0;
 
@@ -86,6 +89,7 @@ export function createSpawnSystem() {
       const playMode = world.run.playMode;
       const events = world.queues.events;
       const rng = world.runtime.rng;
+      _activeCamera = world.presentation?.camera ?? null;
       const ascension = world.run.ascension ?? null;
       const stage = world.run.stage ?? null;
       if (playMode !== 'playing') return;

@@ -95,6 +95,18 @@ await test('playwright smoke invocation은 Windows에서 repo-local cli를 우�
   assert.equal(invocation.args[1], 'snapshot');
 });
 
+await test('repo-local playwright cli lookup는 worktree cwd에서도 상위 node_modules를 탐색한다', async () => {
+  const cliPaths = await import('../scripts/browser-smoke/smokeCliPaths.mjs');
+  const resolved = cliPaths.resolveLocalPlaywrightCliPath({
+    cwd: 'C:/repo/.worktrees/feature',
+    existsSync(candidatePath) {
+      return candidatePath === 'C:/repo/node_modules/@playwright/cli/playwright-cli.js';
+    },
+  });
+
+  assert.equal(resolved, 'C:/repo/node_modules/@playwright/cli/playwright-cli.js');
+});
+
 await test('package.json은 smoke 실행과 전체 verify 스크립트를 노출한다', async () => {
   const pkg = await import('../package.json', { with: { type: 'json' } });
   assert.equal(typeof pkg.default.scripts['test:smoke'], 'string');

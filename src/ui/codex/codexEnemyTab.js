@@ -3,7 +3,7 @@ export {
   buildCodexEnemyGridModel,
   ENEMY_TIER_LABELS,
   getCodexEnemyTier,
-} from '../../app/meta/codexEnemyQueryService.js';
+} from '../../domain/meta/codex/codexEnemyPresentation.js';
 
 export function renderCodexEnemyTabShell() {
   return `

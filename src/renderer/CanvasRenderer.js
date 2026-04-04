@@ -1,10 +1,10 @@
-import { GameConfig } from '../core/GameConfig.js';
 import { RENDER }     from '../data/constants.js';
 import { drawPlayer }             from './draw/drawPlayer.js';
 import { drawEnemy }              from './draw/drawEnemy.js';
 import { drawProjectile }         from './draw/drawProjectile.js';
 import { drawEffect, drawPickup } from './draw/drawEffect.js';
 import { createStageBackgroundRenderer } from './background/createStageBackgroundRenderer.js';
+import { resolveViewportDimensions } from '../utils/viewportState.js';
 
 function drawProjectileLowQuality(ctx, proj, camera) {
   if (!proj?.isAlive) return;
@@ -118,8 +118,13 @@ export class CanvasRenderer {
 
   drawLegacyBackground(camera, stage = null) {
     const ctx      = this.ctx;
-    const w        = GameConfig.canvasWidth;
-    const h        = GameConfig.canvasHeight;
+    const { width: w, height: h } = resolveViewportDimensions({
+      camera,
+      viewport: {
+        width: this.canvas?.width || undefined,
+        height: this.canvas?.height || undefined,
+      },
+    });
     const gridSize = 50;
     const background = stage?.background ?? {};
 
@@ -163,10 +168,7 @@ export class CanvasRenderer {
   }
 
   drawBackground(camera, stage = null) {
-    const viewport = {
-      width: GameConfig.canvasWidth,
-      height: GameConfig.canvasHeight,
-    };
+    const viewport = resolveViewportDimensions({ camera });
     const handled = this._backgroundRenderer?.draw?.(this.ctx, camera, stage, viewport) === true;
     if (handled) return;
     this.drawLegacyBackground(camera, stage);
