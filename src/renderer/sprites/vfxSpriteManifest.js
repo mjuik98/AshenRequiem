@@ -21,12 +21,17 @@ const PROJECTILE_ANIMATION_DEFS = {
   magic_bolt: {
     atlas: 'projectiles',
     columnOffset: 0,
-    sizeMult: 3.4,
     rotateWithVelocity: true,
     intro: {
       start: 0,
       end: 3,
       frameDuration: 0.04,
+      sizeMult: 5.2,
+      stretchX: 1.28,
+      stretchY: 0.92,
+      glowBlur: 24,
+      glowColor: '#f6f2a0',
+      opacity: 1,
     },
     flight: {
       start: 4,
@@ -34,17 +39,28 @@ const PROJECTILE_ANIMATION_DEFS = {
       loopStart: 4,
       loopEnd: 11,
       frameDuration: 0.04,
+      sizeMult: 4.2,
+      stretchX: 1.36,
+      stretchY: 0.82,
+      glowBlur: 20,
+      glowColor: '#d7ff8f',
+      opacity: 0.96,
     },
   },
   arcane_nova: {
     atlas: 'projectiles',
     columnOffset: 4,
-    sizeMult: 3.8,
     rotateWithVelocity: true,
     intro: {
       start: 0,
       end: 3,
       frameDuration: 0.04,
+      sizeMult: 6,
+      stretchX: 1.42,
+      stretchY: 0.96,
+      glowBlur: 26,
+      glowColor: '#ffb8ff',
+      opacity: 1,
     },
     flight: {
       start: 4,
@@ -52,6 +68,12 @@ const PROJECTILE_ANIMATION_DEFS = {
       loopStart: 4,
       loopEnd: 11,
       frameDuration: 0.04,
+      sizeMult: 5,
+      stretchX: 1.5,
+      stretchY: 0.86,
+      glowBlur: 22,
+      glowColor: '#f38bff',
+      opacity: 0.98,
     },
   },
 };
@@ -73,7 +95,13 @@ const EFFECT_SEQUENCE_DEFS = {
     atlas: 'effects',
     row: 1,
     drawMode: 'burst',
-    sizeMult: 2.9,
+    sizeMult: 4.2,
+    glowBlur: 24,
+    glowColor: '#f5ef96',
+    opacity: 1,
+    growthMult: 1.25,
+    alphaFloor: 0.36,
+    fadeFactor: 0.46,
     oneShot: {
       start: 12,
       end: 15,
@@ -83,7 +111,13 @@ const EFFECT_SEQUENCE_DEFS = {
     atlas: 'effects',
     row: 2,
     drawMode: 'burst',
-    sizeMult: 3.2,
+    sizeMult: 4,
+    glowBlur: 26,
+    glowColor: '#f29dff',
+    opacity: 1,
+    growthMult: 1.4,
+    alphaFloor: 0.34,
+    fadeFactor: 0.48,
     oneShot: {
       start: 12,
       end: 15,
@@ -97,6 +131,8 @@ function buildProjectileAnimationFrame(visualId, sourceFrameIndex) {
     return null;
   }
 
+  const style = sourceFrameIndex <= def.intro.end ? def.intro : def.flight;
+
   const localColumn = sourceFrameIndex % 4;
   const localRow = Math.floor(sourceFrameIndex / 4);
   return {
@@ -105,8 +141,13 @@ function buildProjectileAnimationFrame(visualId, sourceFrameIndex) {
     y: localRow * CELL,
     w: CELL,
     h: CELL,
-    sizeMult: def.sizeMult,
+    sizeMult: style.sizeMult,
+    stretchX: style.stretchX ?? 1,
+    stretchY: style.stretchY ?? 1,
     rotateWithVelocity: def.rotateWithVelocity,
+    glowBlur: style.glowBlur,
+    glowColor: style.glowColor,
+    opacity: style.opacity,
   };
 }
 
@@ -124,6 +165,12 @@ function buildEffectSequenceFrame(effectType, sourceFrameIndex) {
     h: CELL,
     drawMode: def.drawMode,
     sizeMult: def.sizeMult,
+    glowBlur: def.glowBlur,
+    glowColor: def.glowColor,
+    opacity: def.opacity,
+    growthMult: def.growthMult,
+    alphaFloor: def.alphaFloor,
+    fadeFactor: def.fadeFactor,
   };
 }
 

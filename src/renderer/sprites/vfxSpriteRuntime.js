@@ -162,8 +162,12 @@ export function createVfxSpriteRuntime({
     const sy = (entity?.y ?? 0) - (camera?.y ?? 0);
     const rotation = computeRotation(entity, frame);
 
-    let width = Math.max(18, (entity?.radius ?? 6) * (frame.sizeMult ?? 3));
-    let height = width;
+    const baseSize = Math.max(18, (entity?.radius ?? 6) * (frame.sizeMult ?? 3));
+    const stretchX = Math.max(0.2, frame.stretchX ?? 1);
+    const stretchY = Math.max(0.2, frame.stretchY ?? 1);
+    let width = baseSize * stretchX;
+    let height = baseSize * stretchY;
+    const opacity = frame.opacity ?? 1;
 
     if (frame.drawMode === 'beam') {
       width = Math.max(frame.w * 0.9, entity?.beamLength ?? width * 3);
@@ -173,13 +177,21 @@ export function createVfxSpriteRuntime({
       height = width;
     } else if (frame.drawMode === 'burst') {
       const progress = Math.min(1, (entity?.lifetime ?? 0) / Math.max(entity?.maxLifetime ?? 0.5, 0.001));
-      width = Math.max(frame.w * 0.8, (entity?.radius ?? 18) * (frame.sizeMult ?? 2.6) * (1 + progress * 0.85));
+      const growthMult = frame.growthMult ?? 0.85;
+      width = Math.max(frame.w * 0.8, (entity?.radius ?? 18) * (frame.sizeMult ?? 2.6) * (1 + progress * growthMult));
       height = width;
-      ctx.globalAlpha = Math.max(0.2, 1 - progress * 0.7);
     }
 
     ctx.save();
-    applyGlow(ctx, entity?.color, frame.drawMode === 'beam' ? 20 : 14);
+    applyGlow(ctx, frame.glowColor ?? entity?.color, frame.glowBlur ?? (frame.drawMode === 'beam' ? 20 : 14));
+    if (frame.drawMode === 'burst') {
+      const progress = Math.min(1, (entity?.lifetime ?? 0) / Math.max(entity?.maxLifetime ?? 0.5, 0.001));
+      const alphaFloor = frame.alphaFloor ?? 0.2;
+      const fadeFactor = frame.fadeFactor ?? 0.7;
+      ctx.globalAlpha = Math.max(alphaFloor, 1 - progress * fadeFactor) * opacity;
+    } else {
+      ctx.globalAlpha = opacity;
+    }
     ctx.translate(sx, sy);
     if (rotation) {
       ctx.rotate(rotation);

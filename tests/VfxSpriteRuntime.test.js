@@ -9,8 +9,10 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   const {
     VFX_ATLAS_DEFS,
     getProjectileSpriteAnimationDef,
+    getProjectileAnimationFrame,
     getProjectileSpriteFrame,
     getEffectSpriteSequenceDef,
+    getEffectSequenceFrame,
     getEffectSpriteFrame,
   } = await import('../src/renderer/sprites/vfxSpriteManifest.js');
 
@@ -29,6 +31,17 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   assert.equal(getEffectSpriteSequenceDef('magic_bolt_impact')?.oneShot.end, 15, 'magic_bolt impact sequence 누락');
   assert.equal(typeof getEffectSpriteFrame('burst')?.h, 'number', 'burst frame 누락');
   assert.equal(getProjectileSpriteFrame('targetProjectile'), null, 'generic targetProjectile frame는 animated 전용 구조에서 제거되어야 함');
+
+  const magicBoltIntro = getProjectileAnimationFrame('magic_bolt', 0);
+  const magicBoltFlight = getProjectileAnimationFrame('magic_bolt', 7);
+  const arcaneNovaFlight = getProjectileAnimationFrame('arcane_nova', 7);
+  const arcaneNovaImpact = getEffectSequenceFrame('arcane_nova_impact', 15);
+
+  assert.equal(magicBoltIntro.sizeMult > magicBoltFlight.sizeMult, true, 'magic_bolt intro는 flight보다 더 크게 보여야 함');
+  assert.equal(magicBoltFlight.stretchX > 1, true, 'magic_bolt flight는 진행 방향으로 늘어나야 함');
+  assert.equal(arcaneNovaFlight.sizeMult > magicBoltFlight.sizeMult, true, 'arcane_nova는 magic_bolt보다 더 크게 보여야 함');
+  assert.equal(arcaneNovaImpact.growthMult > 1, true, 'arcane_nova impact는 성장형 burst 연출이 필요함');
+  assert.equal(arcaneNovaImpact.glowBlur > 18, true, 'arcane_nova impact는 더 강한 glow blur가 필요함');
 });
 
 test('runtime is lazy: first draw queues atlas load and returns false until ready', async () => {
@@ -190,6 +203,111 @@ test('runtime resolves animated projectile intro and loop frames from projectile
   assert.equal(calls[0][1], 0, 'intro 첫 프레임은 atlas x=0이어야 함');
   assert.equal(calls[1][1], 0, 'flight loop 첫 프레임은 다음 행의 첫 셀을 사용해야 함');
   assert.equal(calls[1][2], 256, 'flight loop 첫 프레임은 atlas y=256이어야 함');
+});
+
+test('runtime applies elongated flight sizing and stronger glow metadata for keyed projectile/effect sprites', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  const atlases = [];
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      const atlas = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      atlases.push(atlas);
+      return atlas;
+    },
+  });
+
+  const projectileCalls = [];
+  const effectCalls = [];
+  const projectileCtx = {
+    shadowBlur: 0,
+    shadowColor: '',
+    globalAlpha: 1,
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      projectileCalls.push(args);
+    },
+  };
+  const effectCtx = {
+    shadowBlur: 0,
+    shadowColor: '',
+    globalAlpha: 1,
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      effectCalls.push(args);
+    },
+  };
+
+  runtime.drawProjectileSprite(projectileCtx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 48,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+
+  atlases[0].complete = true;
+  atlases[0].naturalWidth = 2048;
+  atlases[0].on_load?.();
+
+  const projectileDrawn = runtime.drawProjectileSprite(projectileCtx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 48,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+
+  runtime.drawEffectSprite(effectCtx, {
+    effectType: 'arcane_nova_impact',
+    x: 0,
+    y: 0,
+    radius: 18,
+    lifetime: 0,
+    maxLifetime: 0.45,
+    color: '#e040fb',
+  }, { x: 0, y: 0 });
+
+  atlases[1].complete = true;
+  atlases[1].naturalWidth = 1024;
+  atlases[1].on_load?.();
+
+  const effectDrawn = runtime.drawEffectSprite(effectCtx, {
+    effectType: 'arcane_nova_impact',
+    x: 0,
+    y: 0,
+    radius: 18,
+    lifetime: 0.18,
+    maxLifetime: 0.45,
+    color: '#e040fb',
+  }, { x: 0, y: 0 });
+
+  assert.equal(projectileDrawn, true, 'magic_bolt projectile sprite draw가 완료되어야 함');
+  assert.equal(effectDrawn, true, 'arcane_nova impact sprite draw가 완료되어야 함');
+  assert.equal(projectileCalls.length > 0, true, 'projectile drawImage가 호출되지 않음');
+  assert.equal(effectCalls.length > 0, true, 'effect drawImage가 호출되지 않음');
+  assert.equal(projectileCalls[0][7] > projectileCalls[0][8], true, 'magic_bolt flight는 가로로 더 길게 그려져야 함');
+  assert.equal(projectileCtx.shadowBlur >= 18, true, 'magic_bolt projectile glow blur가 약함');
+  assert.equal(effectCtx.shadowBlur >= 22, true, 'arcane_nova impact glow blur가 약함');
+  assert.equal(effectCtx.globalAlpha < 1, true, 'burst effect는 진행도에 따라 alpha가 조절되어야 함');
 });
 
 test('runtime resolves impact effect sequence frames from effectType lifetime progress', async () => {
