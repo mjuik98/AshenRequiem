@@ -2,7 +2,7 @@ import { GameLoop } from '../../core/GameLoop.js';
 import { SceneManager } from '../../core/SceneManager.js';
 import { CanvasRenderer } from '../../renderer/CanvasRenderer.js';
 import { GameDataLoader } from '../../data/GameDataLoader.js';
-import { loadSession } from '../../state/createSessionState.js';
+import { loadSession } from './session/sessionStorage.js';
 import { createGameInput } from './gameInputRuntime.js';
 
 export function createGameRuntimeState({

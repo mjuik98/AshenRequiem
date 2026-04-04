@@ -1,6 +1,6 @@
 # Current Architecture Snapshot
 
-Last verified against code: 2026-04-04
+Last verified against code: 2026-04-05
 
 이 문서는 현재 코드베이스의 구현 사실을 기록한다. 지속적으로 강제할 설계 규칙은 `AGENTS.md`를 따른다.
 
@@ -15,11 +15,11 @@ Last verified against code: 2026-04-04
 - 타이틀 화면에서는 게임 시작, 영구 업그레이드 상점, 도감, 설정으로 진입할 수 있다.
 - 타이틀의 시작 로드아웃 모달에서는 시작 무기, 시작 장신구, archetype, risk relic, 스테이지, 시드, Ascension 난이도 레벨을 함께 선택한다.
 - 시작 로드아웃 모달은 접힌 `고급 설정` 요약 disclosure를 통해 Ascension/Stage/Archetype 등의 확장 런 옵션을 관리한다.
-- 세션은 `localStorage`의 `ashenRequiem_session` 키에 저장되며, 동일 payload를 backup 슬롯에도 기록한다. primary save가 깨지면 backup으로 복구하고 손상본은 `ashenRequiem_session_corrupt`에 보존한다. 저장소 키/codec/recovery 정책은 `sessionStorageKeys.js`, `sessionStateCodec.js`, `sessionRecoveryPolicy.js`로 분해되고 `sessionRepository.js`는 facade만 유지한다.
+- 세션은 `localStorage`의 `ashenRequiem_session` 키에 저장되며, 동일 payload를 backup 슬롯에도 기록한다. primary save가 깨지면 backup으로 복구하고 손상본은 `ashenRequiem_session_corrupt`에 보존한다. 저장소 키/codec는 `src/state/session/*`가 유지하지만, browser-backed 저장/복구/저장소 구현 소유권은 `src/adapters/browser/session/sessionStorageDriver.js`, `sessionRecoveryPolicy.js`, `sessionRepository.js`, `sessionStorage.js`로 이동했다. 기존 `src/state/session/*` 경로는 facade만 유지한다.
 - 메타 씬(`SettingsScene`, `MetaShopScene`, `CodexScene`)은 세션/콘텐츠 규칙을 직접 조합하지 않고 `src/app/meta/*ApplicationService.js`를 통해 호출한다.
 - 타이틀/플레이 오버레이와 타이틀 하위 서브스크린은 공통 keyboard dialog contract를 공유한다. `src/ui/shared/dialogRuntime.js`가 panel focus, Tab 순환, Escape dismiss, 이전 포커스 복원을 맡고 각 view는 panel selector와 close callback만 주입한다.
 - `StartLoadoutView`, `LevelUpView`, `ResultView`의 interactive runtime은 각각 `startLoadoutViewRuntime.js`, `levelUpViewRuntime.js`, `resultViewRuntime.js`가 delegated listener와 rerender orchestration을 소유한다. view class는 state, markup rerender, dialog lifecycle만 유지한다.
-- 설정 화면은 옵션 저장 외에도 세션 snapshot export/import/reset UX를 제공하며, 실제 직렬화/파싱과 슬롯 inspection/restore는 분해된 session helper를 통해 `src/state/session/sessionRepository.js` facade가 노출한다. public orchestration은 `src/app/meta/settingsApplicationService.js`가 유지하되, preview diff / session codec / mutation apply는 `settingsPreviewDiff.js`, `settingsSessionCodec.js`, `settingsSessionMutation.js` helper로 분리됐다.
+- 설정 화면은 옵션 저장 외에도 세션 snapshot export/import/reset UX를 제공하며, 실제 직렬화/파싱과 슬롯 inspection/restore는 `src/adapters/browser/session/sessionRepository.js` owner를 통해 수행된다. public orchestration은 `src/app/meta/settingsApplicationService.js`가 유지하되, preview diff / session codec / mutation apply는 `settingsPreviewDiff.js`, `settingsSessionCodec.js`, `settingsSessionMutation.js` helper로 분리됐다.
 - `settingsApplicationService`는 이제 공개 facade만 유지하고, 읽기 책임은 `settingsQueryService.js`, 쓰기 + runtime 반영 책임은 `settingsCommandService.js`가 나눠 가진다.
 - `SettingsView`와 `MetaShopView`의 interactive runtime은 각각 `settingsViewRuntime.js`, `metaShopViewRuntime.js`가 root-level delegated listener로 소유한다. view class는 dialog lifecycle과 state만 유지하고, shell/section partial update는 `settingsViewRenderState.js`, `metaShopViewRenderState.js`가 담당한다.
 - 세션 저장소 경계는 이제 primary/backup/corrupt 슬롯 inspection과 backup restore helper까지 제공한다. Settings 데이터 탭은 이 저장소 요약과 import preview diff를 호출해 운영 중 복구 UX를 제공한다.
@@ -132,8 +132,8 @@ Detected top-level scene modules in `src/scenes/`:
 - `SoundSystem`도 browser global을 직접 읽지 않는다. `soundSfxController`는 주입된 `_nowSeconds()`만 사용한다.
 - `CodexView`는 `codexViewRenderState.js`가 stable shell(`progress pill`, `tabs`, `summary`, `content`)을 유지하고, `codexViewRuntime.js`가 root-level delegated tab/back interaction을 소유한다. 개별 enemy/weapon/accessory panel만 controller helper가 다시 렌더한다.
 - boss overlay DOM surface는 `BossHudView`, `BossAnnouncementView`가 얇은 lifecycle만 맡고, 실제 markup/style는 `bossHudMarkup`, `bossHudStyles`, `bossAnnouncementMarkup`, `bossAnnouncementStyles` helper가 소유한다.
-- 세션 저장소 browser seam SSOT는 `sessionStorageDriver.js`다. `sessionRepository`와 `sessionRecoveryPolicy`는 더 이상 직접 `globalThis.localStorage`를 해석하지 않는다.
-- `sessionPersistenceService`는 더 이상 `createSessionState` barrel에 직접 의존하지 않는다. session command(`sessionCommands`)와 repository save(`sessionRepository`)를 app/session factory에서 조합하고, `sessionFacade`는 그 thin re-export만 유지한다.
+- 세션 저장소 browser seam SSOT는 `src/adapters/browser/session/sessionStorageDriver.js`다. `src/adapters/browser/session/sessionRepository.js`와 `sessionRecoveryPolicy.js`는 storage key/codec/migration helper를 조합하고, 기존 `src/state/session/sessionStorageDriver.js`, `sessionRecoveryPolicy.js`, `sessionRepository.js`, `sessionStorage.js`는 thin wrapper만 유지한다.
+- `sessionPersistenceService`는 더 이상 `createSessionState` barrel이나 `src/state/session/sessionRepository.js` facade에 직접 의존하지 않는다. session command(`sessionCommands`)와 adapter-owned repository save(`src/adapters/browser/session/sessionRepository.js`)를 app/session factory에서 조합하고, `sessionFacade`는 그 thin re-export만 유지한다.
 - `gameCanvasRuntime`는 viewport 계산과 canvas transform만 소유하고, 실제 viewport 적용(owner)은 `BrowserGameShell`이다. shell은 live viewport를 `game.viewport`에만 기록하고, `PlayScene`이 이를 `world.runtime.viewport`로 동기화한 뒤 `WorldTickSystem`이 `camera.width/height` SSOT로 반영한다. `GameConfig.canvasWidth/Height`는 더 이상 live viewport 저장소가 아니라 기본값 fallback 역할만 맡는다.
 - browser runtime state/canvas/input/flag helper의 실소유권은 `src/adapters/browser/gameRuntime.js`, `gameCanvasRuntime.js`, `gameInputRuntime.js`, `runtimeFeatureFlags.js`로 이동했다. `src/core/gameRuntime.js`, `gameCanvasRuntime.js`, `gameInputRuntime.js`, `runtimeFeatureFlags.js`는 테스트/기존 import 호환을 위한 thin wrapper만 유지한다.
 - 플레이 이벤트 adapter 조합은 `src/adapters/play/playEventAdapters.js`가 맡고, 실제 registration orchestration은 `src/app/play/playEventRegistrationService.js`가 소유한다. runtime helper인 `src/systems/event/eventHandlerRegistry.js`는 전달받은 registration spec을 순서대로 등록하는 공용 helper만 유지한다. legacy `src/systems/event/*` / `src/systems/sound/soundEventHandler.js` re-export shim은 zero-caller 정리로 제거됐다.
@@ -156,8 +156,8 @@ Detected top-level scene modules in `src/scenes/`:
 - 영구 업그레이드 상점: `MetaShopScene` + `MetaShopView`
 - Ascension 난이도 선택과 런 반영: `ascensionData`, `StartLoadoutView`, `startRunApplicationService`
 - 로드아웃 2차 확장: `archetypeData`, `riskRelicData`, `titleLoadoutApplicationService`, `playerSpawnApplicationService`
-- 저장/불러오기와 세션 마이그레이션: `sessionStorage`, `sessionMigrations`
-- 세션 저장소 분해: `sessionStorageKeys`, `sessionStateCodec`, `sessionRecoveryPolicy`, `sessionRepository`
+- 저장/불러오기와 세션 마이그레이션: `src/adapters/browser/session/sessionStorage.js`, `sessionMigrations`
+- 세션 저장소 분해: `sessionStorageKeys`, `sessionStateCodec`, `src/adapters/browser/session/sessionRecoveryPolicy.js`, `sessionRepository.js`
 - 세션 migration step registry: `src/state/session/migrations/sessionMigrationSteps.js`, `migration0To1.js` ... `migration7To8.js`
 - 도감/기록 열람: `CodexScene` + `CodexView`
 - 런 히스토리 분석/추천 목표: `runAnalyticsDomain`, `unlockGuidanceDomain`, `codexRecordsTab`, `resultViewMarkup`
@@ -167,8 +167,8 @@ Detected top-level scene modules in `src/scenes/`:
 - 무기 진화와 관련 알림: `WeaponEvolutionSystem`, `weaponEvolutionEventAdapter`, `WeaponEvolutionAnnounceView`, `weaponEvolutionAnnounceMarkup`, `weaponEvolutionAnnounceStyles`
 - 설정과 런타임 옵션 반영: `SettingsScene`, `sessionRuntimeApplicationService`, `SoundSystem`, renderer quality controls
 - delegated overlay/runtime shell: `StartLoadoutView`, `LevelUpView`, `ResultView`, `SettingsView`, `MetaShopView`, `CodexView`
-- 세션 스냅샷 export/import/reset: `SettingsScene`, `settingsApplicationService`, `sessionRepository`, `sessionStorageDriver`
-- 세션 저장 슬롯 inspection/backup restore: `SettingsScene`, `settingsApplicationService`, `sessionRepository`, `sessionStorageDriver`
+- 세션 스냅샷 export/import/reset: `SettingsScene`, `settingsApplicationService`, `src/adapters/browser/session/sessionRepository.js`, `sessionStorageDriver`
+- 세션 저장 슬롯 inspection/backup restore: `SettingsScene`, `settingsApplicationService`, `src/adapters/browser/session/sessionRepository.js`, `sessionStorageDriver`
 - 세션 import preview/diff: `SettingsScene`, `settingsApplicationService`
 - 접근성 옵션 런타임 반영: `sessionRuntimeApplicationService`, `accessibilityRuntime`, `PlayScene`, `SettingsScene`
 - 키 리맵 런타임 반영: `keyBindings`, `KeyboardAdapter`, `TitleScene`, `SettingsScene`

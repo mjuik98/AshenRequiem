@@ -9,6 +9,10 @@ export default [
         patterns: [
           '**/state/createWorld.js',
           '**/state/startLoadoutRuntime.js',
+          '**/state/session/sessionStorageDriver.js',
+          '**/state/session/sessionRecoveryPolicy.js',
+          '**/state/session/sessionRepository.js',
+          '**/state/session/sessionStorage.js',
           '**/scenes/play/playerSpawnRuntime.js',
           '**/scenes/play/playSceneFlow.js',
           '**/progression/levelUpFlowRuntime.js',

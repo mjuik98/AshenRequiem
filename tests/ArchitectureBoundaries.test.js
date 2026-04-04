@@ -49,6 +49,10 @@ test('src 내부 모듈은 compatibility shim 경로 대신 실 소유 모듈을
     const source = readFileSync(filePath, 'utf8');
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/createWorld\.js['"]/.test(source), false, `${filePath}가 createWorld shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/startLoadoutRuntime\.js['"]/.test(source), false, `${filePath}가 startLoadoutRuntime shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/session\/sessionStorageDriver\.js['"]/.test(source), false, `${filePath}가 state sessionStorageDriver shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/session\/sessionRecoveryPolicy\.js['"]/.test(source), false, `${filePath}가 state sessionRecoveryPolicy shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/session\/sessionRepository\.js['"]/.test(source), false, `${filePath}가 state sessionRepository shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/session\/sessionStorage\.js['"]/.test(source), false, `${filePath}가 state sessionStorage shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/gameRuntime\.js['"]/.test(source), false, `${filePath}가 core gameRuntime shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/gameInputRuntime\.js['"]/.test(source), false, `${filePath}가 core gameInputRuntime shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/gameCanvasRuntime\.js['"]/.test(source), false, `${filePath}가 core gameCanvasRuntime shim에 직접 의존하면 안 됨`);

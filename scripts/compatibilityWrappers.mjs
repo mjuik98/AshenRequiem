@@ -63,6 +63,30 @@ export const WRAPPER_INVENTORY = [
     disposition: '`keep-public-wrapper`',
     notes: 'title/start loadout 공개 경로 호환',
   },
+  {
+    path: 'src/state/session/sessionStorageDriver.js',
+    role: 'browser session storage driver facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/session/sessionStorageDriver.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/state/session/sessionRecoveryPolicy.js',
+    role: 'browser session recovery facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/session/sessionRecoveryPolicy.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/state/session/sessionRepository.js',
+    role: 'browser session repository facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/session/sessionRepository.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/state/session/sessionStorage.js',
+    role: 'browser session storage facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/session/sessionStorage.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
 ];
 
 function classifyCallers(callers) {

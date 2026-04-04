@@ -6,6 +6,10 @@ import { ROOT_DIR, collectSourceImports, walkFiles, toProjectRelative } from './
 export const SHIM_IMPORT_PATTERNS = [
   'state/createWorld.js',
   'state/startLoadoutRuntime.js',
+  'state/session/sessionStorageDriver.js',
+  'state/session/sessionRecoveryPolicy.js',
+  'state/session/sessionRepository.js',
+  'state/session/sessionStorage.js',
   'core/Game.js',
   'core/gameRuntime.js',
   'core/gameInputRuntime.js',
