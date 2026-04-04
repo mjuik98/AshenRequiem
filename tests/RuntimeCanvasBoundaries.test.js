@@ -7,10 +7,18 @@ console.log('\n[RuntimeCanvasBoundaries]');
 
 const { test, summary } = createRunner('RuntimeCanvasBoundaries');
 
-const gameCanvasRuntimeSource = stripLineComments(readProjectSource('../src/core/gameCanvasRuntime.js'));
+const gameCanvasRuntimeSource = stripLineComments(readProjectSource('../src/adapters/browser/gameCanvasRuntime.js'));
+
+test('core gameCanvasRuntime wrapper re-exports the adapter-owned canvas helpers', async () => {
+  const adapterApi = await import('../src/adapters/browser/gameCanvasRuntime.js');
+  const coreApi = await import('../src/core/gameCanvasRuntime.js');
+
+  assert.equal(coreApi.syncGameCanvasSize, adapterApi.syncGameCanvasSize, 'core gameCanvasRuntime wrapper가 sync helper를 재노출하지 않음');
+  assert.equal(coreApi.createGameResizeHandler, adapterApi.createGameResizeHandler, 'core gameCanvasRuntime wrapper가 resize helper를 재노출하지 않음');
+});
 
 test('game canvas runtime computes viewport state but does not mutate GameConfig directly', async () => {
-  const { syncGameCanvasSize } = await import('../src/core/gameCanvasRuntime.js');
+  const { syncGameCanvasSize } = await import('../src/adapters/browser/gameCanvasRuntime.js');
 
   const originalWidth = GameConfig.canvasWidth;
   const originalHeight = GameConfig.canvasHeight;

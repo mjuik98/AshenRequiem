@@ -49,6 +49,11 @@ test('src 내부 모듈은 compatibility shim 경로 대신 실 소유 모듈을
     const source = readFileSync(filePath, 'utf8');
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/createWorld\.js['"]/.test(source), false, `${filePath}가 createWorld shim에 직접 의존하면 안 됨`);
     assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*state\/startLoadoutRuntime\.js['"]/.test(source), false, `${filePath}가 startLoadoutRuntime shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/gameRuntime\.js['"]/.test(source), false, `${filePath}가 core gameRuntime shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/gameInputRuntime\.js['"]/.test(source), false, `${filePath}가 core gameInputRuntime shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/gameCanvasRuntime\.js['"]/.test(source), false, `${filePath}가 core gameCanvasRuntime shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/runtimeHost\.js['"]/.test(source), false, `${filePath}가 core runtimeHost shim에 직접 의존하면 안 됨`);
+    assert.equal(/from\s+['"][.\/]+(?:\.\.\/)*core\/runtimeFeatureFlags\.js['"]/.test(source), false, `${filePath}가 core runtimeFeatureFlags shim에 직접 의존하면 안 됨`);
   });
 });
 
@@ -61,7 +66,12 @@ test('core 계층은 scene/ui/browser adapter 구현에 직접 결합하지 않�
     const normalizedPath = filePath.replaceAll('\\', '/');
     const isCompatibilityWrapper =
       normalizedPath.endsWith('/src/core/Game.js')
-      || normalizedPath.endsWith('/src/core/runtimeHooks.js');
+      || normalizedPath.endsWith('/src/core/runtimeHooks.js')
+      || normalizedPath.endsWith('/src/core/gameRuntime.js')
+      || normalizedPath.endsWith('/src/core/gameInputRuntime.js')
+      || normalizedPath.endsWith('/src/core/gameCanvasRuntime.js')
+      || normalizedPath.endsWith('/src/core/runtimeHost.js')
+      || normalizedPath.endsWith('/src/core/runtimeFeatureFlags.js');
 
     if (isCompatibilityWrapper) return;
 

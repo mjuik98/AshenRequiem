@@ -20,6 +20,11 @@ export default [
           '**/systems/event/currencyHandler.js',
           '**/systems/event/weaponEvolutionHandler.js',
           '**/core/Game.js',
+          '**/core/gameRuntime.js',
+          '**/core/gameInputRuntime.js',
+          '**/core/gameCanvasRuntime.js',
+          '**/core/runtimeHost.js',
+          '**/core/runtimeFeatureFlags.js',
           '**/core/runtimeHooks.js',
           '**/scenes/play/PlayResultHandler.js',
           '**/scenes/sceneLoaders.js',
@@ -54,7 +59,15 @@ export default [
   },
   {
     files: ['src/core/**/*.js'],
-    ignores: ['src/core/Game.js', 'src/core/runtimeHooks.js'],
+    ignores: [
+      'src/core/Game.js',
+      'src/core/gameRuntime.js',
+      'src/core/gameInputRuntime.js',
+      'src/core/gameCanvasRuntime.js',
+      'src/core/runtimeHost.js',
+      'src/core/runtimeFeatureFlags.js',
+      'src/core/runtimeHooks.js',
+    ],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [

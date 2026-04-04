@@ -2,7 +2,7 @@
  * cameraCull.js
  * 카메라 영역을 기반으로 엔티티의 가시성 및 충돌 대상 여부를 판단하는 유틸리티
  */
-import { getViewportSize } from '../core/runtimeHost.js';
+import { getViewportSize } from '../adapters/browser/runtimeHost.js';
 
 /**
  * 카메라의 현재 위치와 마진을 고려하여 컬링 경계 좌표를 계산합니다.

@@ -1,9 +1,9 @@
 import { GameConfig } from '../../core/GameConfig.js';
-import { createGameRuntimeState } from '../../core/gameRuntime.js';
+import { createGameRuntimeState } from './gameRuntime.js';
 import {
   createGameResizeHandler,
   syncGameCanvasSize,
-} from '../../core/gameCanvasRuntime.js';
+} from './gameCanvasRuntime.js';
 import { createDocumentAccessibilityRuntime } from '../../ui/shared/accessibilityRuntime.js';
 
 export function createBrowserGameShell({

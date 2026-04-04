@@ -10,6 +10,36 @@ export const WRAPPER_INVENTORY = [
     notes: 'main 엔트리는 직접 사용하지 않음. `createGame()` thin helper export 제공',
   },
   {
+    path: 'src/core/gameRuntime.js',
+    role: 'browser runtime state facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/gameRuntime.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/core/gameInputRuntime.js',
+    role: 'browser input runtime facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/gameInputRuntime.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/core/gameCanvasRuntime.js',
+    role: 'browser canvas runtime facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/gameCanvasRuntime.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/core/runtimeHost.js',
+    role: 'browser host lookup facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/runtimeHost.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/core/runtimeFeatureFlags.js',
+    role: 'browser runtime flag facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/adapters/browser/runtimeFeatureFlags.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
     path: 'src/core/runtimeHooks.js',
     role: 'browser runtime hook facade',
     disposition: '`keep-public-wrapper`',

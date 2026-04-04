@@ -2,7 +2,7 @@ import { nextFloat } from '../../utils/random.js';
 import {
   getDevicePixelRatio,
   getViewportSize,
-} from '../../core/runtimeHost.js';
+} from '../../adapters/browser/runtimeHost.js';
 
 function nextTitleRandom(state) {
   return nextFloat(state?.rng);

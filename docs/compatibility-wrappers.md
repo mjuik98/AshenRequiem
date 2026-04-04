@@ -16,6 +16,11 @@ Disposition taxonomy:
 | Path | Role | Disposition | Notes |
 |---|---|---|---|
 | `src/core/Game.js` | `GameApp` + `BrowserGameShell` facade | `keep-public-wrapper` | main 엔트리는 직접 사용하지 않음. 일부 공개 helper/tests 호환 때문에 유지 |
+| `src/core/gameRuntime.js` | browser runtime state facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/gameRuntime.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
+| `src/core/gameInputRuntime.js` | browser input runtime facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/gameInputRuntime.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
+| `src/core/gameCanvasRuntime.js` | browser canvas runtime facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/gameCanvasRuntime.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
+| `src/core/runtimeHost.js` | browser host lookup facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/runtimeHost.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
+| `src/core/runtimeFeatureFlags.js` | browser runtime flag facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/runtimeFeatureFlags.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/core/runtimeHooks.js` | browser runtime hook facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/runtimeHooks.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/scenes/play/PlayResultHandler.js` | `playResultApplicationService` class facade | `keep-public-wrapper` | 테스트/기존 import 호환 경로. `createPlayResultHandler()` / `processPlayResult()` thin helper export 제공 |
 | `src/state/createWorld.js` | `createPlayWorld` re-export | `keep-public-wrapper` | 내부 import 금지, domain 경로가 SSOT. 일부 source test 호환이 남아 있음 |
@@ -31,6 +36,11 @@ Disposition taxonomy:
 | Path | internalCallers | srcCallers | testCallers | scriptCallers |
 |---|---|---|---|---|
 | `src/core/Game.js` | 2 | 0 | 2 | 0 |
+| `src/core/gameRuntime.js` | 1 | 0 | 1 | 0 |
+| `src/core/gameInputRuntime.js` | 2 | 0 | 2 | 0 |
+| `src/core/gameCanvasRuntime.js` | 2 | 0 | 2 | 0 |
+| `src/core/runtimeHost.js` | 1 | 0 | 1 | 0 |
+| `src/core/runtimeFeatureFlags.js` | 1 | 0 | 1 | 0 |
 | `src/core/runtimeHooks.js` | 2 | 0 | 2 | 0 |
 | `src/scenes/play/PlayResultHandler.js` | 2 | 0 | 2 | 0 |
 | `src/state/createWorld.js` | 1 | 0 | 1 | 0 |
@@ -39,6 +49,11 @@ Disposition taxonomy:
 ## Generated Wrapper Caller Details
 
 - `src/core/Game.js`: `tests/GameShellArchitecture.test.js`, `tests/UiStructureSource.test.js`
+- `src/core/gameRuntime.js`: `tests/GameRuntimeBootstrap.test.js`
+- `src/core/gameInputRuntime.js`: `tests/GameInputRuntime.test.js`, `tests/GameRuntimeBootstrap.test.js`
+- `src/core/gameCanvasRuntime.js`: `tests/GameRuntimeBootstrap.test.js`, `tests/RuntimeCanvasBoundaries.test.js`
+- `src/core/runtimeHost.js`: `tests/RuntimeEnv.test.js`
+- `src/core/runtimeFeatureFlags.js`: `tests/RuntimeFeatureFlags.test.js`
 - `src/core/runtimeHooks.js`: `tests/RuntimeHooks.test.js`, `tests/UiStructureSource.test.js`
 - `src/scenes/play/PlayResultHandler.js`: `tests/PlayResultHandler.test.js`, `tests/SceneInfrastructureSource.test.js`
 - `src/state/createWorld.js`: `tests/ProfileSource.test.js`

@@ -1,4 +1,4 @@
-import { isRuntimeDebugScopeEnabled } from '../core/runtimeFeatureFlags.js';
+import { isRuntimeDebugScopeEnabled } from '../adapters/browser/runtimeFeatureFlags.js';
 
 function formatRuntimeScope(scope, message) {
   return `[${scope}] ${message}`;

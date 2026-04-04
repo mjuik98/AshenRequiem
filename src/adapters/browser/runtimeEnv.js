@@ -2,7 +2,7 @@ import {
   getDevicePixelRatio,
   getRuntimeHost,
   getViewportSize,
-} from '../../core/runtimeHost.js';
+} from './runtimeHost.js';
 
 export {
   getDevicePixelRatio,

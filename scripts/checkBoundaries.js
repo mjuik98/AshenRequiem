@@ -7,6 +7,11 @@ export const SHIM_IMPORT_PATTERNS = [
   'state/createWorld.js',
   'state/startLoadoutRuntime.js',
   'core/Game.js',
+  'core/gameRuntime.js',
+  'core/gameInputRuntime.js',
+  'core/gameCanvasRuntime.js',
+  'core/runtimeHost.js',
+  'core/runtimeFeatureFlags.js',
   'core/runtimeHooks.js',
   'scenes/play/PlayResultHandler.js',
 ];
@@ -28,6 +33,11 @@ const SOUND_SFX_CONTROLLER_PATH = 'src/systems/sound/soundSfxController.js';
 const PLAY_CONTEXT_RUNTIME_PATH = 'src/core/playContextRuntime.js';
 const CORE_ALLOWED_IMPORT_SOURCES = new Set([
   'src/core/Game.js',
+  'src/core/gameRuntime.js',
+  'src/core/gameInputRuntime.js',
+  'src/core/gameCanvasRuntime.js',
+  'src/core/runtimeHost.js',
+  'src/core/runtimeFeatureFlags.js',
   'src/core/runtimeHooks.js',
 ]);
 const SCENE_LOADERS_FACADE_PATH = 'src/scenes/sceneLoaders.js';

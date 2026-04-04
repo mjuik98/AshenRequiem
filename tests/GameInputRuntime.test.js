@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
-import { createGameInput } from '../src/core/gameInputRuntime.js';
+import { createGameInput } from '../src/adapters/browser/gameInputRuntime.js';
 
 console.log('\n[GameInputRuntime]');
 
 const { test, summary } = createRunner('GameInputRuntime');
+
+test('core gameInputRuntime wrapper re-exports the adapter-owned createGameInput helper', async () => {
+  const coreApi = await import('../src/core/gameInputRuntime.js');
+  assert.equal(coreApi.createGameInput, createGameInput, 'core gameInputRuntime wrapper가 adapter owner를 재노출하지 않음');
+});
 
 test('createGameInput는 forceTouchHud query flag가 있으면 touch adapter를 강제로 추가한다', () => {
   const calls = [];

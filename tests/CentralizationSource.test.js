@@ -76,8 +76,11 @@ const titleSceneNavigationSource = readProjectSource('../src/scenes/title/titleS
 const titleSceneInputSource = readProjectSource('../src/scenes/title/titleSceneInput.js');
 const titleSceneRuntimeStateSource = readProjectSource('../src/scenes/title/titleSceneRuntimeState.js');
 const playSceneRuntimeStateSource = readProjectSource('../src/scenes/play/playSceneRuntimeState.js');
-const gameCanvasRuntimeSource = readProjectSource('../src/core/gameCanvasRuntime.js');
+const browserGameRuntimeSource = readProjectSource('../src/adapters/browser/gameRuntime.js');
+const browserGameInputRuntimeSource = readProjectSource('../src/adapters/browser/gameInputRuntime.js');
+const gameCanvasRuntimeSource = readProjectSource('../src/adapters/browser/gameCanvasRuntime.js');
 const runtimeHostSource = readProjectSource('../src/core/runtimeHost.js');
+const runtimeFeatureFlagsSource = readProjectSource('../src/core/runtimeFeatureFlags.js');
 const runtimeEnvSource = readProjectSource('../src/adapters/browser/runtimeEnv.js');
 const sessionRepositorySource = readProjectSource('../src/state/session/sessionRepository.js');
 const sessionRecoveryPolicySource = readProjectSource('../src/state/session/sessionRecoveryPolicy.js');
@@ -275,8 +278,11 @@ test('TitleScene runtime state와 PlayScene browser service는 명시 helper로 
 test('browser env와 session/data facade는 shared helper를 단일 소스로 사용한다', () => {
   assert.equal(gameCanvasRuntimeSource.includes("from './runtimeHost.js'"), true, 'gameCanvasRuntime이 runtimeHost SSOT를 사용하지 않음');
   assert.equal(gameCanvasRuntimeSource.includes('function getRuntimeHost('), false, 'gameCanvasRuntime에 runtime host 중복 helper가 남아 있음');
-  assert.equal(runtimeEnvSource.includes("from '../../core/runtimeHost.js'"), true, 'runtimeEnv가 shared runtime host helper를 사용하지 않음');
-  assert.equal(runtimeHostSource.includes('export function getDevicePixelRatio'), true, 'runtimeHost가 DPR helper를 소유하지 않음');
+  assert.equal(browserGameRuntimeSource.includes("from './gameInputRuntime.js'"), true, 'browser-owned gameRuntime이 adapter-owned gameInputRuntime을 사용하지 않음');
+  assert.equal(browserGameInputRuntimeSource.includes("from './runtimeFeatureFlags.js'"), true, 'browser-owned gameInputRuntime이 adapter-owned runtimeFeatureFlags를 사용하지 않음');
+  assert.equal(runtimeEnvSource.includes("from './runtimeHost.js'"), true, 'runtimeEnv가 adapter-owned runtime host helper를 사용하지 않음');
+  assert.equal(runtimeHostSource.includes("from '../adapters/browser/runtimeHost.js'"), true, 'core runtimeHost wrapper가 adapter owner를 재노출하지 않음');
+  assert.equal(runtimeFeatureFlagsSource.includes("from '../adapters/browser/runtimeFeatureFlags.js'"), true, 'core runtimeFeatureFlags wrapper가 adapter owner를 재노출하지 않음');
   assert.equal(runtimeEnvSource.includes('export {\n  getDevicePixelRatio,'), true, 'runtimeEnv가 shared DPR helper를 재노출하지 않음');
   assert.equal(sessionRepositorySource.includes("from './sessionStorageKeys.js'"), true, 'sessionRepository가 storage key helper를 사용하지 않음');
   assert.equal(sessionRepositorySource.includes("from './sessionStateCodec.js'"), true, 'sessionRepository가 session codec helper를 사용하지 않음');
