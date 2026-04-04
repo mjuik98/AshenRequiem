@@ -497,3 +497,11 @@ export const SETTINGS_VIEW_CSS = `
     .sv-switch-knob { transition: none; }
   }
 `;
+
+export function ensureSettingsViewStyles(documentRef = document) {
+  if (documentRef.getElementById(SETTINGS_VIEW_STYLE_ID)) return;
+  const style = documentRef.createElement('style');
+  style.id = SETTINGS_VIEW_STYLE_ID;
+  style.textContent = SETTINGS_VIEW_CSS;
+  documentRef.head.appendChild(style);
+}

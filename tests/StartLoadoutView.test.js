@@ -258,4 +258,39 @@ await test('StartLoadoutView는 재계산되는 요약 문구도 공용 presenta
   }
 });
 
+await test('StartLoadoutView는 주입 가능한 clock seam으로 daily seed preview를 계산한다', async () => {
+  const dom = installMockDom();
+
+  try {
+    const { StartLoadoutView } = await import('../src/ui/title/StartLoadoutView.js');
+    const container = document.createElement('div');
+    const fixedNow = new Date('2030-01-15T00:00:00+09:00');
+    const view = new StartLoadoutView(container, {
+      nowProvider: () => fixedNow,
+    });
+
+    view.show({
+      weapons: [{ id: 'magic_bolt', name: '마법탄', behaviorId: 'targetProjectile' }],
+      canStart: true,
+      selectedSeedMode: 'daily',
+      onStart: () => {},
+      onCancel: () => {},
+    });
+
+    view._selectedSeedMode = 'daily';
+    view._seedPreviewText = view._buildSeedPreviewText();
+
+    assert.equal(
+      view._seedPreviewText,
+      buildStartLoadoutSeedPreviewText({
+        seedMode: 'daily',
+        now: fixedNow,
+      }),
+      '뷰가 주입된 clock seam 대신 전역 Date에 의존함',
+    );
+  } finally {
+    dom.restore();
+  }
+});
+
 summary();

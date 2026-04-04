@@ -37,7 +37,7 @@ import { logRuntimeError } from '../utils/runtimeLogger.js';
 
 export class CodexScene {
   /**
-   * @param {import('../core/Game.js').Game} game
+   * @param {{ gameData: object, session: object, renderer?: object, sceneFactory?: object, sceneManager?: object }} game
    * @param {'title'|'play'|'metashop'} [from='title']  돌아갈 씬 힌트
    */
   constructor(game, from = 'title') {

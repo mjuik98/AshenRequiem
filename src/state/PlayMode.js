@@ -6,7 +6,7 @@
  * Before:
  *   world.run.playMode = 'levelup'   (LevelSystem.js)
  *   world.run.playMode = 'dead'      (DeathSystem.js)
- *   this.world.run.playMode = 'playing'  (PlayScene.js)
+ *   active run restore / scene resume가 직접 playing 상태를 되돌리기도 함
  *   → 허용된 전이가 어디에도 문서화되지 않음
  *   → 잘못된 전이(예: 'dead' → 'levelup')가 감지되지 않음
  *

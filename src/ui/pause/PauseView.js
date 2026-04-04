@@ -9,8 +9,7 @@ import {
   resetPauseViewRuntime,
 } from './pauseViewLifecycle.js';
 import {
-  PAUSE_VIEW_CSS,
-  PAUSE_VIEW_STYLE_ID,
+  ensurePauseViewStyles,
 } from './pauseStyles.js';
 import {
   bindPauseViewRuntime,
@@ -48,7 +47,7 @@ export class PauseView {
     this._isClosingToMenu = false;
     this._dialogRuntime = null;
 
-    this._injectStyles();
+    ensurePauseViewStyles();
     container.appendChild(this.el);
   }
 
@@ -126,13 +125,5 @@ export class PauseView {
     if (!name) return;
     this._activeTabName = name;
     applyPauseTabState(this.el, name);
-  }
-
-  _injectStyles() {
-    if (document.getElementById(PAUSE_VIEW_STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = PAUSE_VIEW_STYLE_ID;
-    style.textContent = PAUSE_VIEW_CSS;
-    document.head.appendChild(style);
   }
 }

@@ -34,9 +34,11 @@ export function buildWeaponSummary(world) {
   }));
 }
 
-export function buildRecentRunEntry(world, runResult) {
+export function buildRecentRunEntry(world, runResult, {
+  getNowMs = () => Date.now(),
+} = {}) {
   return {
-    recordedAt: Date.now(),
+    recordedAt: Number(getNowMs?.()) || 0,
     outcome: runResult.outcome,
     stageId: runResult.stageId,
     stageName: runResult.stageName,

@@ -3,7 +3,11 @@ import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
 function isStartLoadoutOpen(scene) {
   const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
-  const loadoutEl = runtimeTarget?.loadoutView?._el;
+  const loadoutView = runtimeTarget?.loadoutView;
+  if (typeof loadoutView?.isVisible === 'function') {
+    return Boolean(loadoutView.isVisible());
+  }
+  const loadoutEl = loadoutView?._el;
   return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
 }
 

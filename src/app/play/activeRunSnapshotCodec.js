@@ -1,3 +1,5 @@
+import { PlayMode, transitionPlayMode } from '../../state/PlayMode.js';
+
 function cloneWeapons(weapons = []) {
   return (weapons ?? []).map((weapon) => ({ ...weapon }));
 }
@@ -23,12 +25,14 @@ function cloneRunStage(stage = null) {
   };
 }
 
-export function encodeActiveRunSnapshot(world) {
+export function encodeActiveRunSnapshot(world, {
+  getNowMs = () => Date.now(),
+} = {}) {
   const player = world?.entities?.player;
   if (!world?.run || !player) return null;
 
   return {
-    savedAt: Date.now(),
+    savedAt: Number(getNowMs?.()) || 0,
     run: {
       elapsedTime: world.run.elapsedTime ?? 0,
       killCount: world.run.killCount ?? 0,
@@ -144,7 +148,9 @@ export function decodeActiveRunSnapshot(snapshot) {
   };
 }
 
-export function applyActiveRunSnapshot(world, player, snapshot) {
+export function applyActiveRunSnapshot(world, player, snapshot, {
+  transitionPlayModeImpl = transitionPlayMode,
+} = {}) {
   if (!world || !player) return { restored: false, world, player };
 
   const decoded = decodeActiveRunSnapshot(snapshot);
@@ -193,8 +199,10 @@ export function applyActiveRunSnapshot(world, player, snapshot) {
   Object.assign(world.run, {
     ...world.run,
     ...decoded.run,
-    playMode: 'playing',
   });
+  if (world.run.playMode !== PlayMode.PLAYING) {
+    transitionPlayModeImpl(world, PlayMode.PLAYING);
+  }
 
   world.progression.runRerollsRemaining = decoded.progression.runRerollsRemaining ?? world.progression.runRerollsRemaining;
   world.progression.runBanishesRemaining = decoded.progression.runBanishesRemaining ?? world.progression.runBanishesRemaining;

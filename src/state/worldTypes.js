@@ -124,21 +124,12 @@
 
 /**
  * @typedef {Object} WorldState
- * @property {PlayerEntity}       player
- * @property {EnemyEntity[]}      enemies
- * @property {ProjectileEntity[]} projectiles
- * @property {PickupEntity[]}     pickups
- * @property {EffectEntity[]}     effects
- * @property {object[]}           spawnQueue
- * @property {WorldEvents}        events
- * @property {Camera}             camera
- * @property {{ nextFloat: () => number }} rng
- * @property {number}             elapsedTime
- * @property {number}             deltaTime
- * @property {number}             killCount
- * @property {number}             runCurrencyEarned
- * @property {number}             bossKillCount
- * @property {'playing'|'paused'|'levelup'|'dead'} playMode
+ * @property {{ player: PlayerEntity, enemies: EnemyEntity[], projectiles: ProjectileEntity[], pickups: PickupEntity[], effects: EffectEntity[] }} entities
+ * @property {{ events: WorldEvents, spawnQueue: object[] }} queues
+ * @property {{ camera: Camera }} presentation
+ * @property {{ rng: { nextFloat: () => number }, deltaTime: number, replayTrace?: object[], replayFrame?: number, maxReplaySamples?: number }} runtime
+ * @property {{ elapsedTime: number, killCount: number, runCurrencyEarned: number, bossKillCount: number, playMode: 'playing'|'paused'|'levelup'|'dead', runOutcome: object|null }} run
+ * @property {{ pendingUpgrade: object|null, pendingLevelUpChoices: object[]|null, pendingEventQueue: object[]|null, runRerollsRemaining: number, runBanishesRemaining: number, banishedUpgradeIds: string[], levelUpActionMode: string, chestRewardQueue: number, synergyState: object }} progression
  */
 
 export {}; // JSDoc 전용 모듈 — 런타임 export 없음

@@ -13,11 +13,14 @@ import {
 } from '../shared/dialogViewLifecycle.js';
 
 export class StartLoadoutView {
-  constructor(container) {
+  constructor(container, {
+    nowProvider = () => new Date(),
+  } = {}) {
     this._container = container;
     this._el = document.createElement('div');
     this._el.className = 'sl-root';
     this._el.style.display = 'none';
+    this._nowProvider = nowProvider;
     this._selectedWeaponId = null;
     this._selectedAscensionLevel = 0;
     this._selectedStartAccessoryId = null;
@@ -115,6 +118,10 @@ export class StartLoadoutView {
     this._el.innerHTML = '';
   }
 
+  isVisible() {
+    return this._el.style.display !== 'none';
+  }
+
   destroy() {
     this._dialogRuntime = disposeDialogRuntime(this._dialogRuntime, { restoreFocus: false });
     this._runtimeDisposer?.();
@@ -164,7 +171,7 @@ export class StartLoadoutView {
     return buildStartLoadoutSeedPreviewText({
       seedMode: this._selectedSeedMode,
       seedText: this._selectedSeedText,
-      now: new Date(),
+      now: this._nowProvider(),
     });
   }
 

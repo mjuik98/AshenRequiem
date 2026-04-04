@@ -56,9 +56,14 @@ export function createBrowserGameShell({
       if (typeof resizeHandler !== 'function') {
         resizeHandler = () => resize(game);
       }
+      const resizeCanvas = () => resize(game);
       game._onResize = resizeHandler;
-      game._resizeCanvas = () => resize(game);
-      game._resizeCanvas();
+      game._resizeCanvas = resizeCanvas;
+      game.runtimeCapabilities = {
+        ...(game.runtimeCapabilities ?? {}),
+        resizeCanvas,
+      };
+      resizeCanvas();
       host?.addEventListener?.('resize', resizeHandler);
       return game;
     },
@@ -69,6 +74,7 @@ export function createBrowserGameShell({
         game._onResize = null;
         game.runtimeHost = null;
         game.accessibilityRuntime = null;
+        game.runtimeCapabilities = null;
         game.viewport = null;
       }
     },

@@ -193,4 +193,25 @@ test('createSettingsRuntimeDependencies()는 기본 경로에서 game accessibil
   assert.equal(deps.accessibilityRuntime, accessibilityRuntime, 'Settings runtime deps가 game accessibility runtime을 재사용하지 않음');
 });
 
+test('createSettingsRuntimeDependencies()는 public runtime capability를 resize contract로 우선 사용한다', () => {
+  let resizeCalls = 0;
+  const accessibilityRuntime = { id: 'shared-accessibility-runtime' };
+  const resizeCanvas = () => {
+    resizeCalls += 1;
+  };
+  const deps = createSettingsRuntimeDependencies({
+    renderer: { id: 'renderer' },
+    soundSystem: { id: 'sound' },
+    input: { id: 'input' },
+    accessibilityRuntime,
+    runtimeCapabilities: {
+      resizeCanvas,
+    },
+  });
+
+  assert.equal(deps.resizeCanvas, resizeCanvas, 'Settings runtime deps가 public runtime capability를 우선 사용하지 않음');
+  deps.resizeCanvas?.();
+  assert.equal(resizeCalls, 1, '주입된 resize capability가 그대로 전달되지 않음');
+});
+
 summary();

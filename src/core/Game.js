@@ -41,9 +41,8 @@ export class Game {
   /**
    * FIX(web): devicePixelRatio 대응 + 리사이즈 시 캔버스 동기화
    *
-   * CHANGE(Settings): useDevicePixelRatio를 session.options에서 읽도록 변경.
-   *   session이 없거나 options 필드가 없을 때는 GameConfig.useDevicePixelRatio 폴백 사용.
-   *   SettingsScene._handleSave()에서 저장 직후 호출되어 즉시 반영된다.
+   * Legacy compatibility shim.
+   * Public callers should prefer bootstrap/shell 경계가 주입한 runtimeCapabilities.resizeCanvas.
    */
   _resizeCanvas() {
     this._shell.resize(this);

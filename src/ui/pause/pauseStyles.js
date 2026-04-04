@@ -15,3 +15,11 @@ export const PAUSE_VIEW_CSS = `
   ${PAUSE_AUDIO_CSS}
   ${PAUSE_RESPONSIVE_CSS}
 `;
+
+export function ensurePauseViewStyles(documentRef = document) {
+  if (documentRef.getElementById(PAUSE_VIEW_STYLE_ID)) return;
+  const style = documentRef.createElement('style');
+  style.id = PAUSE_VIEW_STYLE_ID;
+  style.textContent = PAUSE_VIEW_CSS;
+  documentRef.head.appendChild(style);
+}

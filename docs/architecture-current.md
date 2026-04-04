@@ -11,6 +11,7 @@ Last verified against code: 2026-04-04
 - `GameApp`은 더 이상 browser runtime hook 구현을 직접 import하지 않는다. debug/runtime hook 등록 해제는 `bootstrapBrowserGame()`이 `src/adapters/browser/runtimeHooks.js`를 주입해 소유하고, runtime hook은 `PlayScene.getDebugSurface()` explicit contract를 통해 UI/controller snapshot만 읽는다. `PlayScene` 내부 bootstrap state, overlay controller, debug surface 조립은 `src/scenes/play/playSceneRuntimeState.js`가 담당한다.
 - `src/scenes/sceneLoaders.js`는 더 이상 내부 runtime의 scene transition SSOT가 아니다. scene 구현은 injected `sceneFactory`를 사용하고, `sceneLoaders.js`는 테스트/호환용 facade만 유지한다. `PlayUI`의 lazy overlay import는 `src/scenes/overlayViewLoaders.js`가 별도 소유한다.
 - `src/core/Game.js`는 더 이상 메인 엔트리의 직접 부트스트랩이 아니라 호환 facade 역할만 맡는다.
+- `BrowserGameShell`은 legacy `game._resizeCanvas` shim과 함께 public `game.runtimeCapabilities.resizeCanvas` contract를 주입한다. Settings 계층은 이 공개 capability를 우선 사용하고, legacy shim은 호환 경로로만 유지한다.
 - 타이틀 화면에서는 게임 시작, 영구 업그레이드 상점, 도감, 설정으로 진입할 수 있다.
 - 타이틀의 시작 로드아웃 모달에서는 시작 무기, 시작 장신구, archetype, risk relic, 스테이지, 시드, Ascension 난이도 레벨을 함께 선택한다.
 - 시작 로드아웃 모달은 접힌 `고급 설정` 요약 disclosure를 통해 Ascension/Stage/Archetype 등의 확장 런 옵션을 관리한다.

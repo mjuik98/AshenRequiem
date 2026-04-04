@@ -4,7 +4,7 @@
  * TitleScene에서 진입. 변경사항 저장 후 TitleScene으로 복귀한다.
  * "저장" 클릭 시:
  *   1. session.options 업데이트 + localStorage 저장
- *   2. DPR 변경은 Game._resizeCanvas() 즉시 호출로 반영
+ *   2. bootstrap 경계가 주입한 resize capability로 DPR 변경을 즉시 반영
  *   3. 오디오/품질 설정은 다음 PlayScene.enter() 시 반영
  */
 import { SettingsView }    from '../ui/settings/SettingsView.js';
@@ -68,7 +68,7 @@ export class SettingsScene {
   /**
    * 저장 처리:
    *   - session.options 병합 + localStorage 저장
-   *   - DPR 변경 즉시 반영 (Game._resizeCanvas)
+   *   - DPR 변경 즉시 반영 (public resize capability)
    *
    * @param {object} newOpts  SettingsView에서 수집된 최신 옵션 객체
    */

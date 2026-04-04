@@ -13,8 +13,7 @@ import {
   renderSettingsGraphicsSection,
 } from './settingsViewSections.js';
 import {
-  SETTINGS_VIEW_CSS,
-  SETTINGS_VIEW_STYLE_ID,
+  ensureSettingsViewStyles,
 } from './settingsViewStyles.js';
 import {
   bindSettingsViewRuntime,
@@ -49,7 +48,7 @@ export class SettingsView {
     };
     this._shellRefs = null;
     this._disposeRuntime = bindSettingsViewRuntime(this);
-    this._injectStyles();
+    ensureSettingsViewStyles();
     container.appendChild(this.el);
   }
 
@@ -137,13 +136,5 @@ export class SettingsView {
     }
 
     this._render();
-  }
-
-  _injectStyles() {
-    if (document.getElementById(SETTINGS_VIEW_STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = SETTINGS_VIEW_STYLE_ID;
-    style.textContent = SETTINGS_VIEW_CSS;
-    document.head.appendChild(style);
   }
 }

@@ -72,6 +72,40 @@ test('active run snapshot codec는 persisted snapshot을 round-trip clone한다'
   assert.equal(freshWorld.entities.player.acquiredUpgrades.has('up_magic_bolt'), true);
 });
 
+test('active run snapshot codec는 저장 시각 clock seam과 restore play mode transition seam을 노출한다', () => {
+  const { encodeActiveRunSnapshot, applyActiveRunSnapshot } = getCodecApi();
+  const world = makeWorld({
+    run: {
+      elapsedTime: 45,
+      playMode: 'paused',
+    },
+    entities: {
+      player: makePlayer({
+        weapons: [{ id: 'magic_bolt', level: 2 }],
+        accessories: [],
+      }),
+    },
+  });
+  const encoded = encodeActiveRunSnapshot(world, {
+    getNowMs: () => 456789,
+  });
+  const freshWorld = makeWorld({
+    run: { playMode: 'paused' },
+    entities: { player: makePlayer({ weapons: [], accessories: [] }) },
+  });
+  const transitions = [];
+
+  applyActiveRunSnapshot(freshWorld, freshWorld.entities.player, encoded, {
+    transitionPlayModeImpl: (targetWorld, nextMode) => {
+      transitions.push(nextMode);
+      targetWorld.run.playMode = nextMode;
+    },
+  });
+
+  assert.equal(encoded.savedAt, 456789, 'snapshot encode가 주입된 clock seam을 사용하지 않음');
+  assert.deepEqual(transitions, ['playing'], 'snapshot restore가 play mode transition seam을 사용하지 않음');
+});
+
 test('active run service는 snapshot clone 규칙을 codec에 위임한다', () => {
   const source = readProjectSource('../src/app/play/activeRunApplicationService.js');
 
