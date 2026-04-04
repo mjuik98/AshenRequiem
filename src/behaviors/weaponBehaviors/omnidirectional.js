@@ -41,6 +41,8 @@ export function omnidirectional({ weapon, player, spawnQueue }) {
         maxRange,
         maxLifetime,
         behaviorId:         'targetProjectile',
+        projectileVisualId: weapon.projectileVisualId ?? null,
+        impactEffectType:   weapon.impactEffectType ?? null,
         ownerId:            player.id,
         statusEffectId:     weapon.statusEffectId     ?? null,
         statusEffectChance: weapon.statusEffectChance ?? 1.0,

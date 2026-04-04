@@ -30,6 +30,8 @@ export const PROJECTILE_DEFAULTS = {
   maxRange:           400,
   distanceTraveled:   0,
   behaviorId:         'targetProjectile',
+  projectileVisualId: null,
+  impactEffectType:   null,
   lifetime:           0,
   maxLifetime:        0.3,
   ownerId:            null,

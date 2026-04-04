@@ -1,6 +1,10 @@
 import {
   VFX_ATLAS_DEFS,
+  getProjectileSpriteAnimationDef,
+  getProjectileAnimationFrame,
   getProjectileSpriteFrame,
+  getEffectSpriteSequenceDef,
+  getEffectSequenceFrame,
   getEffectSpriteFrame,
 } from './vfxSpriteManifest.js';
 
@@ -45,6 +49,59 @@ function computeRotation(entity, frame) {
 function applyGlow(ctx, color, blur = 18) {
   ctx.shadowColor = color ?? 'rgba(255,255,255,0.6)';
   ctx.shadowBlur = blur;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function resolveProjectileElapsedSeconds(projectile) {
+  const speed = projectile?.speed ?? 0;
+  const distance = projectile?.distanceTraveled ?? 0;
+  if (speed > 0 && Number.isFinite(distance)) {
+    return Math.max(0, distance / speed);
+  }
+  return Math.max(0, projectile?.lifetime ?? 0);
+}
+
+function resolveAnimatedProjectileFrame(projectile) {
+  const visualId = projectile?.projectileVisualId;
+  const def = getProjectileSpriteAnimationDef(visualId);
+  if (!def) return null;
+
+  const elapsed = resolveProjectileElapsedSeconds(projectile);
+  const introCount = (def.intro.end - def.intro.start) + 1;
+  const introDuration = introCount * def.intro.frameDuration;
+
+  if (elapsed < introDuration) {
+    const introOffset = Math.min(
+      introCount - 1,
+      Math.floor(elapsed / def.intro.frameDuration),
+    );
+    return getProjectileAnimationFrame(visualId, def.intro.start + introOffset);
+  }
+
+  const loopCount = (def.flight.loopEnd - def.flight.loopStart) + 1;
+  const loopElapsed = elapsed - introDuration;
+  const loopOffset = loopCount > 0
+    ? Math.floor(loopElapsed / def.flight.frameDuration) % loopCount
+    : 0;
+
+  return getProjectileAnimationFrame(visualId, def.flight.loopStart + loopOffset);
+}
+
+function resolveEffectSequenceFrame(effect) {
+  const def = getEffectSpriteSequenceDef(effect?.effectType);
+  if (!def) return null;
+
+  const frameCount = (def.oneShot.end - def.oneShot.start) + 1;
+  const progress = clamp(
+    (effect?.lifetime ?? 0) / Math.max(effect?.maxLifetime ?? 0.4, 0.001),
+    0,
+    0.999999,
+  );
+  const frameOffset = Math.min(frameCount - 1, Math.floor(progress * frameCount));
+  return getEffectSequenceFrame(effect.effectType, def.oneShot.start + frameOffset);
 }
 
 export function createVfxSpriteRuntime({
@@ -143,13 +200,15 @@ export function createVfxSpriteRuntime({
   }
 
   function drawProjectileSprite(ctx, projectile, camera) {
-    const frame = getProjectileSpriteFrame(projectile?.behaviorId ?? 'default');
+    const frame = resolveAnimatedProjectileFrame(projectile)
+      ?? getProjectileSpriteFrame(projectile?.behaviorId ?? 'default');
     if (!frame) return false;
     return drawFrame(ctx, frame.atlas, frame, projectile, camera);
   }
 
   function drawEffectSprite(ctx, effect, camera) {
-    const frame = getEffectSpriteFrame(effect?.effectType);
+    const frame = resolveEffectSequenceFrame(effect)
+      ?? getEffectSpriteFrame(effect?.effectType);
     if (!frame) return false;
     return drawFrame(ctx, frame.atlas, frame, effect, camera);
   }

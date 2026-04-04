@@ -8,7 +8,9 @@ const { test, summary } = createRunner('VfxSpriteRuntime');
 test('sprite manifest exposes projectile/effect atlases and keyed frames', async () => {
   const {
     VFX_ATLAS_DEFS,
+    getProjectileSpriteAnimationDef,
     getProjectileSpriteFrame,
+    getEffectSpriteSequenceDef,
     getEffectSpriteFrame,
   } = await import('../src/renderer/sprites/vfxSpriteManifest.js');
 
@@ -16,8 +18,17 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   assert.equal(typeof VFX_ATLAS_DEFS.effects?.src, 'string', 'effect atlas src가 필요함');
   assert.equal(VFX_ATLAS_DEFS.projectiles.src.includes('/assets/vfx/'), true, 'projectile atlas 경로가 public asset을 가리켜야 함');
   assert.equal(VFX_ATLAS_DEFS.effects.src.includes('/assets/vfx/'), true, 'effect atlas 경로가 public asset을 가리켜야 함');
-  assert.equal(typeof getProjectileSpriteFrame('targetProjectile')?.w, 'number', 'targetProjectile frame 누락');
+  assert.equal(VFX_ATLAS_DEFS.projectiles.cellSize, 256, 'projectile atlas cellSize가 256이어야 함');
+  assert.equal(VFX_ATLAS_DEFS.projectiles.width, 2048, 'projectile atlas width가 8x256이어야 함');
+  assert.equal(VFX_ATLAS_DEFS.projectiles.height, 768, 'projectile atlas height가 3x256이어야 함');
+  assert.equal(VFX_ATLAS_DEFS.effects.cellSize, 256, 'effect atlas cellSize가 256이어야 함');
+  assert.equal(VFX_ATLAS_DEFS.effects.width, 1024, 'effect atlas width가 4x256이어야 함');
+  assert.equal(VFX_ATLAS_DEFS.effects.height, 768, 'effect atlas height가 3x256이어야 함');
+  assert.equal(getProjectileSpriteAnimationDef('magic_bolt')?.flight.loopEnd, 11, 'magic_bolt projectile animation def 누락');
+  assert.equal(getProjectileSpriteAnimationDef('arcane_nova')?.intro.end, 3, 'arcane_nova intro sequence 누락');
+  assert.equal(getEffectSpriteSequenceDef('magic_bolt_impact')?.oneShot.end, 15, 'magic_bolt impact sequence 누락');
   assert.equal(typeof getEffectSpriteFrame('burst')?.h, 'number', 'burst frame 누락');
+  assert.equal(getProjectileSpriteFrame('targetProjectile'), null, 'generic targetProjectile frame는 animated 전용 구조에서 제거되어야 함');
 });
 
 test('runtime is lazy: first draw queues atlas load and returns false until ready', async () => {
@@ -40,10 +51,12 @@ test('runtime is lazy: first draw queues atlas load and returns false until read
 
   const ctx = { drawImage() {} };
   const didDraw = runtime.drawProjectileSprite(ctx, {
-    behaviorId: 'targetProjectile',
+    projectileVisualId: 'magic_bolt',
     x: 10,
     y: 10,
     radius: 6,
+    speed: 200,
+    distanceTraveled: 0,
   }, { x: 0, y: 0 });
 
   assert.equal(didDraw, false, '초기 로딩 단계에서는 sprite draw가 되면 안 됨');
@@ -80,10 +93,12 @@ test('runtime draws projectile sprite frame once atlas is ready', async () => {
   };
 
   runtime.drawProjectileSprite(ctx, {
-    behaviorId: 'targetProjectile',
+    projectileVisualId: 'magic_bolt',
     x: 24,
     y: 36,
     radius: 8,
+    speed: 200,
+    distanceTraveled: 0,
     dirX: 1,
     dirY: 0,
   }, { x: 0, y: 0 });
@@ -93,16 +108,143 @@ test('runtime draws projectile sprite frame once atlas is ready', async () => {
   atlas.on_load?.();
 
   const didDraw = runtime.drawProjectileSprite(ctx, {
-    behaviorId: 'targetProjectile',
+    projectileVisualId: 'magic_bolt',
     x: 24,
     y: 36,
     radius: 8,
+    speed: 200,
+    distanceTraveled: 0,
     dirX: 1,
     dirY: 0,
   }, { x: 0, y: 0 });
 
   assert.equal(didDraw, true, 'ready atlas에서 sprite draw가 true여야 함');
   assert.equal(calls.length > 0, true, 'drawImage가 호출되지 않음');
+});
+
+test('runtime resolves animated projectile intro and loop frames from projectileVisualId', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  let atlas = null;
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      atlas = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      return atlas;
+    },
+  });
+
+  const calls = [];
+  const ctx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      calls.push(args);
+    },
+  };
+
+  runtime.drawProjectileSprite(ctx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 0,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+
+  atlas.complete = true;
+  atlas.naturalWidth = 2048;
+  atlas.on_load?.();
+
+  runtime.drawProjectileSprite(ctx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 0,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+  runtime.drawProjectileSprite(ctx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 32,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+
+  assert.equal(calls.length >= 2, true, 'animated projectile drawImage 호출이 부족함');
+  assert.equal(calls[0][1], 0, 'intro 첫 프레임은 atlas x=0이어야 함');
+  assert.equal(calls[1][1], 0, 'flight loop 첫 프레임은 다음 행의 첫 셀을 사용해야 함');
+  assert.equal(calls[1][2], 256, 'flight loop 첫 프레임은 atlas y=256이어야 함');
+});
+
+test('runtime resolves impact effect sequence frames from effectType lifetime progress', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  let atlas = null;
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      atlas = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      return atlas;
+    },
+  });
+
+  const calls = [];
+  const ctx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      calls.push(args);
+    },
+  };
+
+  runtime.drawEffectSprite(ctx, {
+    effectType: 'arcane_nova_impact',
+    x: 0,
+    y: 0,
+    radius: 16,
+    lifetime: 0,
+    maxLifetime: 0.4,
+  }, { x: 0, y: 0 });
+
+  atlas.complete = true;
+  atlas.naturalWidth = 1024;
+  atlas.on_load?.();
+
+  runtime.drawEffectSprite(ctx, {
+    effectType: 'arcane_nova_impact',
+    x: 0,
+    y: 0,
+    radius: 16,
+    lifetime: 0.39,
+    maxLifetime: 0.4,
+  }, { x: 0, y: 0 });
+
+  assert.equal(calls.length, 1, 'impact effect drawImage 호출 수가 기대값과 다름');
+  assert.equal(calls[0][2], 512, 'arcane_nova impact는 row 2를 사용해야 함');
+  assert.equal(calls[0][1], 768, 'impact sequence 마지막 프레임은 atlas x=768이어야 함');
 });
 
 summary();
