@@ -76,6 +76,8 @@ test('compatibility wrapper inventory documents remaining public shims and their
   assert.equal(wrapperSource.includes('Wrapper Inventory'), true, 'wrapper inventory 문서 헤더가 없음');
   assert.equal(wrapperSource.includes('src/core/Game.js'), true, 'Game facade 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('src/scenes/play/PlayResultHandler.js'), true, 'PlayResultHandler 판정이 문서화되지 않음');
+  assert.equal(wrapperSource.includes('src/state/session/sessionRepository.js'), true, 'sessionRepository facade 판정이 문서화되지 않음');
+  assert.equal(wrapperSource.includes('src/state/session/sessionStorage.js'), true, 'sessionStorage facade 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('keep-public-wrapper'), true, 'wrapper disposition taxonomy가 문서화되지 않음');
   assert.equal(wrapperSource.includes('zero-caller'), true, 'dead wrapper 정리 원칙이 문서화되지 않음');
   assert.equal(wrapperSource.includes('## Generated Wrapper Usage Snapshot'), true, 'wrapper inventory에 generated usage snapshot section이 없음');

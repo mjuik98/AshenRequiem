@@ -182,6 +182,8 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const sessionFacadeSource = readProjectSource('../src/state/sessionFacade.js');
   const sessionPersistenceServiceSource = readProjectSource('../src/app/session/sessionPersistenceService.js');
   const loadoutSelectionWriteServiceSource = readProjectSource('../src/app/session/loadoutSelectionWriteService.js');
+  const settingsQueryServiceSource = readProjectSource('../src/app/meta/settingsQueryService.js');
+  const settingsCommandServiceSource = readProjectSource('../src/app/meta/settingsCommandService.js');
   const upgradeChoicePoolSource = readProjectSource('../src/progression/upgradeChoicePool.js');
   const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
 
@@ -387,9 +389,27 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    sessionPersistenceServiceSource.includes("from '../../state/session/sessionRepository.js'"),
+    sessionPersistenceServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
     true,
-    'sessionPersistenceService가 session repository 모듈을 직접 사용하지 않음',
+    'sessionPersistenceService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+  );
+
+  assert.equal(
+    sessionPersistenceServiceSource.includes("from '../../state/session/sessionRepository.js'"),
+    false,
+    'sessionPersistenceService가 compatibility sessionRepository wrapper에 직접 의존하면 안 됨',
+  );
+
+  assert.equal(
+    settingsQueryServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    true,
+    'settingsQueryService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+  );
+
+  assert.equal(
+    settingsCommandServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    true,
+    'settingsCommandService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
   );
 
   assert.equal(

@@ -1,6 +1,6 @@
 import { mergeSessionOptions } from '../../state/sessionOptions.js';
 import { purchasePermanentUpgrade } from '../../state/session/sessionCommands.js';
-import { saveSessionState } from '../../state/session/sessionRepository.js';
+import { saveSessionState } from '../../adapters/browser/session/sessionRepository.js';
 
 export function createSessionPersistenceService({
   persistSessionImpl = saveSessionState,

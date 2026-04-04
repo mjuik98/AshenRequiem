@@ -1,4 +1,4 @@
-import { parseSessionState, restoreStoredSessionSnapshot as restoreStoredSessionSnapshotImpl } from '../../state/session/sessionRepository.js';
+import { parseSessionState, restoreStoredSessionSnapshot as restoreStoredSessionSnapshotImpl } from '../../adapters/browser/session/sessionRepository.js';
 import { updateSessionOptionsAndSave } from '../session/sessionPersistenceService.js';
 import { applySessionOptionsToRuntime } from '../session/sessionRuntimeApplicationService.js';
 import { buildResetState } from './settingsSessionCodec.js';

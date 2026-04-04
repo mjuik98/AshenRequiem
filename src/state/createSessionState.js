@@ -13,7 +13,7 @@ export {
   loadSession,
   setSessionStorage,
   resetSessionStorage,
-} from './session/sessionStorage.js';
+} from '../adapters/browser/session/sessionStorage.js';
 export {
   createLocalSessionRepository,
   getSessionRepository,
@@ -21,7 +21,7 @@ export {
   saveSessionState,
   setSessionRepository,
   resetSessionRepository,
-} from './session/sessionRepository.js';
+} from '../adapters/browser/session/sessionRepository.js';
 
 /**
  * @typedef {Object} SessionState

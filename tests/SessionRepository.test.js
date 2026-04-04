@@ -8,13 +8,19 @@ const { test, summary } = createRunner('SessionRepository');
 
 let repositoryApi = null;
 let sessionStorageApi = null;
+let browserRepositoryApi = null;
+let browserSessionStorageApi = null;
 
 try {
   repositoryApi = await import('../src/state/session/sessionRepository.js');
   sessionStorageApi = await import('../src/state/session/sessionStorage.js');
+  browserRepositoryApi = await import('../src/adapters/browser/session/sessionRepository.js');
+  browserSessionStorageApi = await import('../src/adapters/browser/session/sessionStorage.js');
 } catch (error) {
   repositoryApi = { error };
   sessionStorageApi = { error };
+  browserRepositoryApi = { error };
+  browserSessionStorageApi = { error };
 }
 
 function getRepositoryApi() {
@@ -33,8 +39,25 @@ function getSessionStorageApi() {
   return sessionStorageApi;
 }
 
+function getBrowserRepositoryApi() {
+  assert.ok(
+    !browserRepositoryApi.error,
+    browserRepositoryApi.error?.message ?? 'src/adapters/browser/session/sessionRepository.js를 불러오지 못함',
+  );
+  return browserRepositoryApi;
+}
+
+function getBrowserSessionStorageApi() {
+  assert.ok(
+    !browserSessionStorageApi.error,
+    browserSessionStorageApi.error?.message ?? 'src/adapters/browser/session/sessionStorage.js를 불러오지 못함',
+  );
+  return browserSessionStorageApi;
+}
+
 test('session repository 모듈은 저장소 경계 API를 노출한다', () => {
   const api = getRepositoryApi();
+  const browserApi = getBrowserRepositoryApi();
   assert.equal(typeof api.createLocalSessionRepository, 'function');
   assert.equal(typeof api.loadSessionState, 'function');
   assert.equal(typeof api.saveSessionState, 'function');
@@ -44,6 +67,9 @@ test('session repository 모듈은 저장소 경계 API를 노출한다', () => 
   assert.equal(typeof api.restoreStoredSessionSnapshot, 'function');
   assert.equal(typeof api.setSessionRepository, 'function');
   assert.equal(typeof api.resetSessionRepository, 'function');
+  assert.equal(api.createLocalSessionRepository, browserApi.createLocalSessionRepository, 'state/sessionRepository wrapper가 browser owner repository factory를 재노출하지 않음');
+  assert.equal(api.loadSessionState, browserApi.loadSessionState, 'state/sessionRepository wrapper가 browser owner loadSessionState를 재노출하지 않음');
+  assert.equal(api.saveSessionState, browserApi.saveSessionState, 'state/sessionRepository wrapper가 browser owner saveSessionState를 재노출하지 않음');
 });
 
 test('sessionStorage compatibility API는 session repository override를 따른다', () => {
@@ -55,6 +81,7 @@ test('sessionStorage compatibility API는 session repository override를 따른�
     saveSession,
     loadSession,
   } = getSessionStorageApi();
+  const browserSessionStorage = getBrowserSessionStorageApi();
 
   let savedPayload = null;
   const session = makeSessionState({
@@ -72,6 +99,8 @@ test('sessionStorage compatibility API는 session repository override를 따른�
   });
 
   try {
+    assert.equal(saveSession, browserSessionStorage.saveSession, 'state/sessionStorage wrapper가 browser owner saveSession을 재노출하지 않음');
+    assert.equal(loadSession, browserSessionStorage.loadSession, 'state/sessionStorage wrapper가 browser owner loadSession을 재노출하지 않음');
     saveSession(session);
     const loaded = loadSession();
     assert.equal(savedPayload.best.kills, 12);
@@ -83,7 +112,7 @@ test('sessionStorage compatibility API는 session repository override를 따른�
 });
 
 test('local session repository는 저장 시 primary와 backup 슬롯을 함께 갱신한다', () => {
-  const { createLocalSessionRepository } = getRepositoryApi();
+  const { createLocalSessionRepository } = getBrowserRepositoryApi();
   const store = new Map();
   const storage = {
     getItem(key) {
@@ -108,7 +137,7 @@ test('local session repository는 저장 시 primary와 backup 슬롯을 함께 
 });
 
 test('local session repository는 primary save가 손상되면 backup 슬롯으로 복구한다', () => {
-  const { createLocalSessionRepository } = getRepositoryApi();
+  const { createLocalSessionRepository } = getBrowserRepositoryApi();
   const store = new Map();
   const storage = {
     getItem(key) {
@@ -139,7 +168,7 @@ test('local session repository는 primary save가 손상되면 backup 슬롯으�
 });
 
 test('session repository는 내보내기/가져오기용 직렬화 헬퍼를 제공한다', () => {
-  const { serializeSessionState, parseSessionState } = getRepositoryApi();
+  const { serializeSessionState, parseSessionState } = getBrowserRepositoryApi();
   const session = makeSessionState({
     meta: {
       currency: 123,
@@ -156,7 +185,7 @@ test('session repository는 내보내기/가져오기용 직렬화 헬퍼를 제
 });
 
 test('session repository는 primary/backup/corrupt 슬롯 상태를 요약할 수 있다', () => {
-  const { inspectStoredSessionSnapshots } = getRepositoryApi();
+  const { inspectStoredSessionSnapshots } = getBrowserRepositoryApi();
   const store = new Map();
   const storage = {
     getItem(key) {
@@ -181,7 +210,7 @@ test('session repository는 primary/backup/corrupt 슬롯 상태를 요약할 �
 });
 
 test('session repository는 backup 슬롯을 primary로 복구할 수 있다', () => {
-  const { restoreStoredSessionSnapshot } = getRepositoryApi();
+  const { restoreStoredSessionSnapshot } = getBrowserRepositoryApi();
   const store = new Map();
   const storage = {
     getItem(key) {
