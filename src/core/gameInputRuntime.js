@@ -2,14 +2,10 @@ import { InputManager } from '../input/InputManager.js';
 import { GamepadAdapter } from '../input/GamepadAdapter.js';
 import { KeyboardAdapter } from '../input/KeyboardAdapter.js';
 import { TouchAdapter } from '../input/TouchAdapter.js';
+import { shouldForceTouchHud } from './runtimeFeatureFlags.js';
 
 function shouldEnableTouchAdapter(host = globalThis, options = null) {
-  if (options?.forceTouchHud === true) return true;
-  const search = host?.location?.search ?? '';
-  if (search && new URLSearchParams(search).has('forceTouchHud')) {
-    return true;
-  }
-  return 'ontouchstart' in (host ?? {});
+  return shouldForceTouchHud(host, options) || 'ontouchstart' in (host ?? {});
 }
 
 function shouldEnableGamepadAdapter(host = globalThis) {

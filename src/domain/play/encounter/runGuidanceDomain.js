@@ -1,5 +1,4 @@
 import { buildUnlockGuideEntries } from '../../meta/progression/unlockGuidanceDomain.js';
-import { getStageById } from '../../../data/stageData.js';
 
 function buildFallbackObjective() {
   return {
@@ -65,13 +64,17 @@ function buildStageModifier(stage = null) {
   };
 }
 
+function findSelectedStage(gameData = {}, selectedStageId = null) {
+  const stageCatalog = Array.isArray(gameData?.stageData) ? gameData.stageData : [];
+  if (typeof selectedStageId !== 'string' || selectedStageId.length <= 0) {
+    return stageCatalog[0] ?? null;
+  }
+  return stageCatalog.find((entry) => entry?.id === selectedStageId) ?? null;
+}
+
 export function buildRunGuidanceSnapshot({ session = null, gameData = {} } = {}) {
   const selectedStageId = session?.meta?.selectedStageId ?? null;
-  const stageCatalog = Array.isArray(gameData?.stageData) && gameData.stageData.length > 0
-    ? gameData.stageData
-    : null;
-  const stage = stageCatalog?.find((entry) => entry?.id === selectedStageId)
-    ?? getStageById(selectedStageId);
+  const stage = findSelectedStage(gameData, selectedStageId);
   const entries = buildUnlockGuideEntries(session, gameData.unlockData, 1);
   const primaryObjective = entries[0]
     ? {

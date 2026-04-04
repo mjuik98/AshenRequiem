@@ -4,16 +4,22 @@ export function createPlayResultHandler(session, options) {
   return new PlayResultHandler(session, options);
 }
 
-export function processPlayResult(session, world, { createServiceImpl = createPlayResultApplicationService } = {}) {
-  return createServiceImpl(session).process(world);
+export function processPlayResult(session, world, {
+  createServiceImpl = createPlayResultApplicationService,
+  gameData = null,
+} = {}) {
+  return createServiceImpl(session, { gameData }).process(world);
 }
 
 export class PlayResultHandler {
   /**
    * @param {import('../../state/createSessionState.js').SessionState} session
    */
-  constructor(session, { createServiceImpl = createPlayResultApplicationService } = {}) {
-    this._service = createServiceImpl(session);
+  constructor(session, {
+    createServiceImpl = createPlayResultApplicationService,
+    gameData = null,
+  } = {}) {
+    this._service = createServiceImpl(session, { gameData });
   }
 
   /**

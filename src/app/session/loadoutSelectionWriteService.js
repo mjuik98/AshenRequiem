@@ -1,13 +1,13 @@
 import {
   normalizeSeedMode,
+  normalizeAscensionLevel,
+  normalizeStageId,
   resolveSelectedArchetypeId,
   resolveSelectedRiskRelicId,
   resolveSelectedStartAccessoryId,
   resolveSelectedStartWeaponId,
 } from '../../domain/meta/loadout/startLoadoutDomain.js';
 import { ensureCodexMeta } from '../../state/sessionMeta.js';
-import { normalizeAscensionLevel } from '../../data/ascensionData.js';
-import { normalizeStageId } from '../../data/stageData.js';
 import { persistSession } from './sessionPersistenceService.js';
 
 function resolveSelectedStartWeaponSaveResult(session, weaponId, gameData = {}) {
@@ -105,9 +105,9 @@ export function setSelectedRiskRelicAndSave(session, riskRelicId, gameData = {})
   return result;
 }
 
-function resolveSelectedAscensionSaveResult(session, ascensionLevel) {
+function resolveSelectedAscensionSaveResult(session, ascensionLevel, gameData = {}) {
   const meta = ensureCodexMeta(session);
-  const normalizedLevel = normalizeAscensionLevel(ascensionLevel);
+  const normalizedLevel = normalizeAscensionLevel(gameData, ascensionLevel);
 
   return {
     saved: normalizedLevel !== meta.selectedAscensionLevel || Number.isFinite(ascensionLevel),
@@ -115,9 +115,9 @@ function resolveSelectedAscensionSaveResult(session, ascensionLevel) {
   };
 }
 
-export function setSelectedAscensionAndSave(session, ascensionLevel) {
+export function setSelectedAscensionAndSave(session, ascensionLevel, gameData = {}) {
   const meta = ensureCodexMeta(session);
-  const result = resolveSelectedAscensionSaveResult(session, ascensionLevel);
+  const result = resolveSelectedAscensionSaveResult(session, ascensionLevel, gameData);
   if (!result.saved) {
     return result;
   }
@@ -127,9 +127,9 @@ export function setSelectedAscensionAndSave(session, ascensionLevel) {
   return result;
 }
 
-function resolveSelectedStageSaveResult(session, stageId) {
+function resolveSelectedStageSaveResult(session, stageId, gameData = {}) {
   const meta = ensureCodexMeta(session);
-  const normalizedId = normalizeStageId(stageId);
+  const normalizedId = normalizeStageId(gameData, stageId);
 
   return {
     saved: normalizedId !== meta.selectedStageId || typeof stageId === 'string',
@@ -137,9 +137,9 @@ function resolveSelectedStageSaveResult(session, stageId) {
   };
 }
 
-export function setSelectedStageAndSave(session, stageId) {
+export function setSelectedStageAndSave(session, stageId, gameData = {}) {
   const meta = ensureCodexMeta(session);
-  const result = resolveSelectedStageSaveResult(session, stageId);
+  const result = resolveSelectedStageSaveResult(session, stageId, gameData);
   if (!result.saved) {
     return result;
   }

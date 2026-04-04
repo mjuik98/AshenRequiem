@@ -18,14 +18,26 @@ export function createBrowserGameShell({
   let resizeHandler = null;
   let accessibilityRuntime = null;
 
-  function resize(game) {
-    return syncCanvasSizeImpl({
+  function buildResizeDeps(game) {
+    return {
       canvas: game.canvas,
       ctx: game.ctx,
       sessionOptions: game.session?.options,
       host,
       defaultUseDevicePixelRatio: GameConfig.useDevicePixelRatio,
-    });
+    };
+  }
+
+  function applyViewportState(game, viewport) {
+    if (!game || !viewport) return viewport ?? null;
+    game.viewport = { ...viewport };
+    GameConfig.canvasWidth = viewport.width ?? GameConfig.canvasWidth;
+    GameConfig.canvasHeight = viewport.height ?? GameConfig.canvasHeight;
+    return game.viewport;
+  }
+
+  function resize(game) {
+    return applyViewportState(game, syncCanvasSizeImpl(buildResizeDeps(game)));
   }
 
   return {
@@ -36,13 +48,14 @@ export function createBrowserGameShell({
       accessibilityRuntime = createAccessibilityRuntimeImpl(documentRef?.documentElement ?? null);
       game.runtimeHost = host;
       game.accessibilityRuntime = accessibilityRuntime;
+      game.viewport = null;
       resizeHandler = createResizeHandlerImpl({
-        canvas: game.canvas,
-        ctx: game.ctx,
-        sessionOptions: game.session?.options,
-        host,
-        defaultUseDevicePixelRatio: GameConfig.useDevicePixelRatio,
+        getDeps: () => buildResizeDeps(game),
+        resizeImpl: (deps) => applyViewportState(game, syncCanvasSizeImpl(deps)),
       });
+      if (typeof resizeHandler !== 'function') {
+        resizeHandler = () => resize(game);
+      }
       game._onResize = resizeHandler;
       game._resizeCanvas = () => resize(game);
       game._resizeCanvas();
@@ -56,6 +69,7 @@ export function createBrowserGameShell({
         game._onResize = null;
         game.runtimeHost = null;
         game.accessibilityRuntime = null;
+        game.viewport = null;
       }
     },
 

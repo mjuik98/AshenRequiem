@@ -1,5 +1,3 @@
-import { unlockData as defaultUnlockData } from '../../../data/unlockData.js';
-
 function getTotalKills(session) {
   return Object.values(session?.meta?.enemyKills ?? {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
 }
@@ -120,7 +118,7 @@ export function buildUnlockProgressMetrics(unlock, session) {
   return buildPrimitiveMetrics(unlock, session);
 }
 
-export function buildUnlockGuideEntries(session, entries = defaultUnlockData, limit = Number.POSITIVE_INFINITY) {
+export function buildUnlockGuideEntries(session, entries = [], limit = Number.POSITIVE_INFINITY) {
   const completedUnlocks = new Set(session?.meta?.completedUnlocks ?? []);
 
   return (entries ?? [])

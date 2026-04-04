@@ -1,29 +1,17 @@
-import { applyPermanentUpgrades as applyPermanentUpgradesToPlayer } from '../../data/permanentUpgradeData.js';
+import { applyPermanentUpgrades as applyPermanentUpgradesToPlayer } from '../../data/permanentUpgradeApplicator.js';
 import {
   buildPlayerStartAccessories,
   buildPlayerStartWeapons,
   resolveStartWeaponSelection,
-  resolveSelectedArchetypeId,
-  resolveSelectedRiskRelicId,
   resolveSelectedSeedConfig,
-  resolveSelectedAscensionLevel,
-  resolveSelectedStageId,
   resolveUnlockedLoadoutIds,
 } from '../../domain/meta/loadout/startLoadoutDomain.js';
-import { getAscensionByLevel } from '../../data/ascensionData.js';
-import { getStageById } from '../../data/stageData.js';
-import { getArchetypeById } from '../../data/archetypeData.js';
-import { getRiskRelicById } from '../../data/riskRelicData.js';
 import { createSeededRng } from '../../utils/random.js';
 import { applyAccessoryEffects } from '../../progression/accessoryEffectRuntime.js';
 
 export function resolvePlayerSpawnState(session = null, gameData = {}) {
   const selection = resolveStartWeaponSelection(gameData, session);
   const { unlockedWeapons, unlockedAccessories } = resolveUnlockedLoadoutIds(gameData, session);
-  const selectedAscensionLevel = resolveSelectedAscensionLevel(session);
-  const selectedArchetypeId = resolveSelectedArchetypeId(gameData, session);
-  const selectedRiskRelicId = resolveSelectedRiskRelicId(gameData, session);
-  const selectedStageId = resolveSelectedStageId(gameData, session);
   const seedConfig = resolveSelectedSeedConfig(session);
   return {
     startWeapons: buildPlayerStartWeapons(gameData, session),
@@ -31,16 +19,22 @@ export function resolvePlayerSpawnState(session = null, gameData = {}) {
     unlockedWeapons,
     unlockedAccessories,
     permanentUpgrades: { ...(session?.meta?.permanentUpgrades ?? {}) },
-    selectedAscensionLevel,
-    ascension: { ...getAscensionByLevel(selectedAscensionLevel) },
-    selectedArchetypeId,
-    archetype: { ...(selection.selectedArchetype ?? getArchetypeById(selectedArchetypeId)) },
-    selectedRiskRelicId,
-    riskRelic: (selection.selectedRiskRelic ?? getRiskRelicById(selectedRiskRelicId))
-      ? { ...(selection.selectedRiskRelic ?? getRiskRelicById(selectedRiskRelicId)) }
+    selectedAscensionLevel: selection.selectedAscensionLevel ?? 0,
+    ascension: selection.selectedAscension
+      ? { ...selection.selectedAscension }
+      : { level: selection.selectedAscensionLevel ?? 0 },
+    selectedArchetypeId: selection.selectedArchetypeId ?? 'vanguard',
+    archetype: selection.selectedArchetype
+      ? { ...selection.selectedArchetype }
       : null,
-    selectedStageId,
-    stage: { ...getStageById(selectedStageId) },
+    selectedRiskRelicId: selection.selectedRiskRelicId ?? null,
+    riskRelic: selection.selectedRiskRelic
+      ? { ...selection.selectedRiskRelic }
+      : null,
+    selectedStageId: selection.selectedStageId ?? null,
+    stage: selection.selectedStage
+      ? { ...selection.selectedStage }
+      : null,
     seedMode: seedConfig.selectedSeedMode,
     seedLabel: seedConfig.seedLabel,
     rng: seedConfig.seedLabel ? createSeededRng(seedConfig.seedLabel) : null,

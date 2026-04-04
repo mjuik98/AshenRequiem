@@ -212,7 +212,9 @@ await test('setSelectedStageAndSave()는 유효한 스테이지 선택을 저장
   setSessionStorage(storage);
 
   const session = makeSessionState();
-  const result = setSelectedStageAndSave(session, 'ember_hollow');
+  const result = setSelectedStageAndSave(session, 'ember_hollow', {
+    stageData: [{ id: 'ash_plains' }, { id: 'ember_hollow' }],
+  });
 
   assert.deepEqual(result, { saved: true, selectedStageId: 'ember_hollow' });
   assert.equal(session.meta.selectedStageId, 'ember_hollow');

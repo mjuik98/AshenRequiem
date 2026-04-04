@@ -20,7 +20,9 @@ import { propDropData }        from './propDropData.js';
 import { stageData }           from './stageData.js';
 import { archetypeData }       from './archetypeData.js';
 import { riskRelicData }       from './riskRelicData.js';
+import { ascensionData }       from './ascensionData.js';
 import { unlockData }          from './unlockData.js';
+import { permanentUpgradeData } from './permanentUpgradeData.js';
 import { assetManifest }       from './assetManifest.js';
 
 function deepCloneValue(value, seen = new WeakMap()) {
@@ -151,7 +153,9 @@ export const GameDataLoader = {
       stageData,
       archetypeData,
       riskRelicData,
+      ascensionData,
       unlockData,
+      permanentUpgradeData,
       assetManifest,
     };
 

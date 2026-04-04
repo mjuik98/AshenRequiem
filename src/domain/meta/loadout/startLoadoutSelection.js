@@ -1,21 +1,4 @@
 import {
-  getAscensionByLevel,
-  getAscensionChoices,
-  normalizeAscensionLevel,
-} from '../../../data/ascensionData.js';
-import {
-  getStageById,
-  normalizeStageId,
-} from '../../../data/stageData.js';
-import {
-  getArchetypeById,
-  normalizeArchetypeId,
-} from '../../../data/archetypeData.js';
-import {
-  getRiskRelicById,
-  normalizeRiskRelicId,
-} from '../../../data/riskRelicData.js';
-import {
   buildStartLoadoutAdvancedSummary,
   buildStartLoadoutSeedLabel,
   buildStartLoadoutSeedPreviewText,
@@ -24,13 +7,22 @@ import {
   DEFAULT_SEED_MODE,
   DEFAULT_START_WEAPON_ID,
   getAccessoryCatalog,
+  getArchetypeById,
   getArchetypeCatalog,
+  getAscensionByLevel,
+  getAscensionChoices,
   getAvailableStartAccessories,
   getAvailableStartWeapons,
   getFallbackStartWeaponId,
+  getRiskRelicById,
   getRiskRelicCatalog,
+  getStageById,
   getStageCatalog,
   getWeaponCatalog,
+  normalizeArchetypeId,
+  normalizeAscensionLevel,
+  normalizeRiskRelicId,
+  normalizeStageId,
 } from './startLoadoutCatalog.js';
 import { resolveUnlockedLoadoutIds } from './startLoadoutUnlocks.js';
 
@@ -45,8 +37,9 @@ function normalizeRequestedWeaponId(availableStartWeapons, requestedWeaponId) {
     : getFallbackStartWeaponId(availableStartWeapons);
 }
 
-export function resolveSelectedAscensionLevel(session = null, requestedAscensionLevel = null) {
+export function resolveSelectedAscensionLevel(gameData = {}, session = null, requestedAscensionLevel = null) {
   return normalizeAscensionLevel(
+    gameData,
     requestedAscensionLevel ?? session?.meta?.selectedAscensionLevel ?? 0,
   );
 }
@@ -65,25 +58,27 @@ export function resolveSelectedStartAccessoryId(gameData = {}, session = null, r
 
 export function resolveSelectedStageId(gameData = {}, session = null, requestedStageId = null) {
   const stageCatalog = getStageCatalog(gameData);
-  const normalizedId = normalizeStageId(requestedStageId ?? session?.meta?.selectedStageId ?? null);
+  const normalizedId = normalizeStageId(gameData, requestedStageId ?? session?.meta?.selectedStageId ?? null);
   return stageCatalog.some((stage) => stage?.id === normalizedId)
     ? normalizedId
-    : stageCatalog[0]?.id ?? normalizeStageId(null);
+    : stageCatalog[0]?.id ?? normalizeStageId(gameData, null);
 }
 
 export function resolveSelectedArchetypeId(gameData = {}, session = null, requestedArchetypeId = null) {
   const archetypeCatalog = getArchetypeCatalog(gameData);
   const normalizedId = normalizeArchetypeId(
+    gameData,
     requestedArchetypeId ?? session?.meta?.selectedArchetypeId ?? null,
   );
   return archetypeCatalog.some((entry) => entry?.id === normalizedId)
     ? normalizedId
-    : archetypeCatalog[0]?.id ?? normalizeArchetypeId(null);
+    : archetypeCatalog[0]?.id ?? normalizeArchetypeId(gameData, null);
 }
 
 export function resolveSelectedRiskRelicId(gameData = {}, session = null, requestedRiskRelicId = null) {
   const riskRelicCatalog = getRiskRelicCatalog(gameData);
   const normalizedId = normalizeRiskRelicId(
+    gameData,
     requestedRiskRelicId ?? session?.meta?.selectedRiskRelicId ?? null,
   );
 
@@ -151,12 +146,12 @@ export function resolveStartWeaponSelection(gameData = {}, session = null) {
   const availableStartAccessories = getAvailableStartAccessories(accessoryCatalog, unlockedAccessories);
   const selectedStartWeaponId = resolveSelectedStartWeaponId(gameData, session);
   const selectedStartAccessoryId = resolveSelectedStartAccessoryId(gameData, session);
-  const selectedAscensionLevel = resolveSelectedAscensionLevel(session);
+  const selectedAscensionLevel = resolveSelectedAscensionLevel(gameData, session);
   const selectedArchetypeId = resolveSelectedArchetypeId(gameData, session);
   const selectedRiskRelicId = resolveSelectedRiskRelicId(gameData, session);
   const selectedStageId = resolveSelectedStageId(gameData, session);
   const seedConfig = resolveSelectedSeedConfig(session);
-  const ascensionChoices = getAscensionChoices();
+  const ascensionChoices = getAscensionChoices(gameData);
 
   return {
     unlockedWeapons,
@@ -168,18 +163,18 @@ export function resolveStartWeaponSelection(gameData = {}, session = null) {
     selectedStartAccessoryId,
     ascensionChoices,
     selectedAscensionLevel,
-    selectedAscension: getAscensionByLevel(selectedAscensionLevel),
+    selectedAscension: getAscensionByLevel(gameData, selectedAscensionLevel),
     archetypes: archetypeCatalog,
     selectedArchetypeId,
     selectedArchetype: archetypeCatalog.find((entry) => entry?.id === selectedArchetypeId)
-      ?? getArchetypeById(selectedArchetypeId),
+      ?? getArchetypeById(gameData, selectedArchetypeId),
     riskRelics: riskRelicCatalog,
     selectedRiskRelicId,
     selectedRiskRelic: riskRelicCatalog.find((entry) => entry?.id === selectedRiskRelicId)
-      ?? getRiskRelicById(selectedRiskRelicId),
+      ?? getRiskRelicById(gameData, selectedRiskRelicId),
     stages: stageCatalog,
     selectedStageId,
-    selectedStage: getStageById(selectedStageId),
+    selectedStage: getStageById(gameData, selectedStageId),
     selectedSeedMode: seedConfig.selectedSeedMode,
     selectedSeedText: seedConfig.selectedSeedText,
     selectedSeedLabel: seedConfig.seedLabel,

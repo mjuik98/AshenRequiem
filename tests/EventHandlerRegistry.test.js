@@ -8,13 +8,9 @@ const { test, summary } = createRunner('EventHandlerRegistry');
 test('event handler registry는 기본 등록 spec과 공용 register helper를 노출한다', async () => {
   const registryApi = await import('../src/systems/event/eventHandlerRegistry.js');
 
-  assert.equal(Array.isArray(registryApi.DEFAULT_EVENT_HANDLER_REGISTRATIONS), true, '기본 이벤트 핸들러 등록 spec이 없음');
   assert.equal(typeof registryApi.registerEventHandlers, 'function', '공용 이벤트 핸들러 register helper가 없음');
-  assert.equal(registryApi.DEFAULT_EVENT_HANDLER_REGISTRATIONS.length >= 6, true, '기본 이벤트 핸들러 등록 spec 수가 예상보다 적음');
-  registryApi.DEFAULT_EVENT_HANDLER_REGISTRATIONS.forEach((entry, index) => {
-    assert.equal(typeof entry.id, 'string', `등록 spec #${index}에 id가 없음`);
-    assert.equal(typeof entry.register, 'function', `등록 spec #${index}에 register 함수가 없음`);
-  });
+  assert.equal('DEFAULT_EVENT_HANDLER_REGISTRATIONS' in registryApi, false, '기본 등록 spec 소유권이 registry helper에 남아 있으면 안 됨');
+  assert.equal('registerDefaultEventHandlers' in registryApi, false, '기본 등록 orchestration이 registry helper에 남아 있으면 안 됨');
 });
 
 test('공용 event handler register helper는 전달된 spec 순서대로 등록한다', async () => {

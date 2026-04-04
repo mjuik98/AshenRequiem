@@ -327,12 +327,13 @@ test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙
   assert.equal(accessoryDataSource.includes('export function buildAccessoryLevelDesc'), false, 'accessoryData가 설명 helper를 직접 export함');
   assert.equal(accessoryDataSource.includes('export function buildAccessoryCurrentDesc'), false, 'accessoryData가 현재 설명 helper를 직접 export함');
   assert.equal(weaponDataSource.includes('export function getWeaponDataById'), false, 'weaponData가 조회 helper를 직접 export함');
-  assert.equal(accessoryModelSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Codex accessory model이 전용 accessory helper를 사용하지 않음');
+  assert.equal(accessoryModelSource.includes("from '../../app/meta/codexAccessoryQueryService.js'"), true, 'Codex accessory model이 app-layer query service를 재노출하지 않음');
   assert.equal(pauseLoadoutStatsSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Pause loadout stats가 전용 accessory helper를 사용하지 않음');
   assert.equal(createPlayerSource.includes("from '../data/weaponDataHelpers.js'"), false, 'createPlayer가 여전히 데이터 helper에 직접 결합되어 있음');
   assert.equal(playerSpawnAppSource.includes('resolveStartLoadout('), false, 'playerSpawn application service가 broad start loadout DTO를 그대로 재노출하면 안 됨');
   assert.equal(titleLoadoutSource.includes('resolveStartLoadout('), false, 'titleLoadout이 broad start loadout DTO를 그대로 재노출하면 안 됨');
-  assert.equal(titleLoadoutSource.includes('resolveStartWeaponSelection'), true, 'titleLoadout이 전용 start weapon selection helper를 사용하지 않음');
+  assert.equal(titleLoadoutSource.includes("from '../../app/title/titleLoadoutQueryService.js'"), true, 'titleLoadout이 app-layer query service를 재노출하지 않음');
+  assert.equal(titleLoadoutSource.includes('resolveStartWeaponSelection'), false, 'titleLoadout facade가 domain helper 구현을 직접 소유하면 안 됨');
   assert.equal(startLoadoutRuntimeSource.includes("from '../data/weaponDataHelpers.js'"), false, 'startLoadoutRuntime이 정적 weaponData helper로 폴백하면 안 됨');
   assert.equal(startLoadoutRuntimeSource.includes("from '../data/unlockAvailability.js'"), false, 'startLoadoutRuntime이 정적 unlock helper를 통해 데이터 주입 경계를 우회하면 안 됨');
   assert.equal(/export function resolveStartLoadout/.test(startLoadoutRuntimeSource), false, 'startLoadoutRuntime이 broad start loadout DTO export를 유지하면 안 됨');

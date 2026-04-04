@@ -41,7 +41,9 @@ export function createPlaySceneRuntimeState({
     gameData: runtime.gameData ?? null,
     accessibilityRuntime: runtime.accessibilityRuntime ?? null,
     devicePixelRatioReader: runtime.devicePixelRatioReader ?? defaultDevicePixelRatioReader,
-    resultHandler: createPlayResultApplicationService(session),
+    resultHandler: createPlayResultApplicationService(session, {
+      gameData: runtime.gameData ?? null,
+    }),
   };
 
   state.levelUpController = createLevelUpController({

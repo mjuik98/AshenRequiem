@@ -1,15 +1,8 @@
-import { hasRuntimeQueryFlag } from '../runtimeEnv.js';
+export { shouldEnableRuntimeHooks } from '../runtimeFeatureFlags.js';
+import { shouldEnableRuntimeHooks } from '../runtimeFeatureFlags.js';
 
 export function getHookHost() {
   return typeof globalThis !== 'undefined' ? globalThis : null;
-}
-
-export function shouldEnableRuntimeHooks(options = {}, host = getHookHost()) {
-  if (options.enabled === true) return true;
-  if (options.enabled === false) return false;
-  if (!host) return false;
-  if (host.__ASHEN_DEBUG_RUNTIME__ === true) return true;
-  return hasRuntimeQueryFlag('debugRuntime', host);
 }
 
 export function getSceneName(scene) {

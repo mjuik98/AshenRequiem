@@ -398,6 +398,17 @@ await test('codex records helper packages summary, achievements, and unlock entr
       weaponData: [{ id: 'magic_bolt' }, { id: 'arcane_tempest', isEvolved: true }],
       accessoryData: [{ id: 'iron_heart', rarity: 'common' }, { id: 'arcane_prism', rarity: 'rare' }],
       weaponEvolutionData: [{ resultWeaponId: 'arcane_tempest', requires: { weaponId: 'magic_bolt', accessoryIds: ['iron_heart'] } }],
+      unlockData: [
+        {
+          id: 'unlock_boomerang',
+          targetType: 'weapon',
+          targetId: 'boomerang',
+          conditionType: 'total_kills_gte',
+          conditionValue: 100,
+          title: '곡예의 각성',
+          rewardText: '부메랑 해금',
+        },
+      ],
     },
   });
 

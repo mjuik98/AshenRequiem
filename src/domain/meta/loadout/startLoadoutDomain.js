@@ -11,6 +11,10 @@ export {
   resolveStartWeaponSelection,
 } from './startLoadoutSelection.js';
 export {
+  normalizeAscensionLevel,
+  normalizeStageId,
+} from './startLoadoutCatalog.js';
+export {
   buildPlayerStartAccessories,
   buildPlayerStartWeapons,
 } from './startLoadoutPlayerStart.js';

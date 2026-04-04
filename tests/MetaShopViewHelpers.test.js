@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { makeSessionState } from './fixtures/index.js';
 import { installMockDom } from './helpers/mockDom.js';
+import { permanentUpgradeData } from '../src/data/permanentUpgradeData.js';
 
 console.log('\n[MetaShopViewHelpers]');
 
@@ -98,6 +99,12 @@ function getMetaShopViewRenderState() {
   return metaShopViewRenderState;
 }
 
+function buildMetaShopGameData() {
+  return {
+    permanentUpgradeData,
+  };
+}
+
 test('meta shop helper modules expose model, markup, and style contracts', () => {
   const View = getMetaShopView();
   const model = getMetaShopModel();
@@ -145,7 +152,9 @@ test('meta shop model and markup keep purchase availability and shared footer co
         max_health: 1,
       },
     },
-  }));
+  }), {
+    gameData: buildMetaShopGameData(),
+  });
 
   assert.equal(Array.isArray(viewModel.cards), true, 'MetaShop 카드 모델 배열이 없음');
   assert.equal(viewModel.cards.some((entry) => entry.canAfford), true, '구매 가능 카드가 계산되지 않음');
@@ -174,7 +183,9 @@ test('meta shop model falls back to the first unfinished card when nothing is af
       currency: 0,
       permanentUpgrades: {},
     },
-  }));
+  }), {
+    gameData: buildMetaShopGameData(),
+  });
 
   assert.equal(viewModel.selectedCard?.id, 'perm_hp', '구매 불가 상태에서 첫 미완료 카드가 선택되지 않음');
 });
@@ -191,8 +202,11 @@ test('meta shop model exposes category, sorting, and state sections for operabil
     },
   });
 
-  const allViewModel = modelApi.buildMetaShopViewModel(session);
+  const allViewModel = modelApi.buildMetaShopViewModel(session, {
+    gameData: buildMetaShopGameData(),
+  });
   const economyViewModel = modelApi.buildMetaShopViewModel(session, {
+    gameData: buildMetaShopGameData(),
     activeCategory: 'economy',
     activeSort: 'price',
   });
@@ -222,8 +236,9 @@ test('MetaShopView orchestrates helper output and binds purchase/back events', (
       },
     });
 
-    view.show(session, (upgradeId) => purchases.push(upgradeId), () => backs.push('back'));
-
+    view.show(session, (upgradeId) => purchases.push(upgradeId), () => backs.push('back'), {
+      gameData: buildMetaShopGameData(),
+    });
     const firstEnabled = view.el.querySelector('.ms-buy-btn:not([disabled])');
     const backButton = view.el.querySelector('.ms-back-btn');
     firstEnabled?.click();
@@ -251,11 +266,15 @@ test('MetaShopView keeps the selected upgrade across refresh when it still exist
       },
     });
 
-    view.show(session, () => {}, () => {});
+    view.show(session, () => {}, () => {}, {
+      gameData: buildMetaShopGameData(),
+    });
 
     const selectButtons = view.el.querySelectorAll('.ms-select-btn');
     selectButtons[1]?.click();
-    view.refresh(session);
+    view.refresh(session, {
+      gameData: buildMetaShopGameData(),
+    });
 
     assert.equal(view._selectedUpgradeId, 'perm_speed', 'refresh 이후 선택 업그레이드가 유지되지 않음');
     assert.equal(view.el.innerHTML.includes('is-selected'), true, '선택 카드 상태가 markup에 반영되지 않음');
@@ -278,11 +297,15 @@ test('MetaShopView keeps the panel scroll position across refresh', () => {
       },
     });
 
-    view.show(session, () => {}, () => {});
+    view.show(session, () => {}, () => {}, {
+      gameData: buildMetaShopGameData(),
+    });
 
     const panel = view.el.querySelector('.ms-panel');
     panel.scrollTop = 240;
-    view.refresh(session);
+    view.refresh(session, {
+      gameData: buildMetaShopGameData(),
+    });
 
     assert.equal(view.el.querySelector('.ms-panel')?.scrollTop, 240, 'refresh 이후 Meta Shop panel 스크롤 위치가 초기화됨');
   } finally {
@@ -304,13 +327,17 @@ test('MetaShopView keeps category and sort state across refresh', () => {
       },
     });
 
-    view.show(session, () => {}, () => {});
+    view.show(session, () => {}, () => {}, {
+      gameData: buildMetaShopGameData(),
+    });
 
     const filterButtons = view.el.querySelectorAll('.ms-filter-tab');
     const sortButtons = view.el.querySelectorAll('.ms-sort-btn');
     filterButtons[2]?.click();
     sortButtons[1]?.click();
-    view.refresh(session);
+    view.refresh(session, {
+      gameData: buildMetaShopGameData(),
+    });
 
     assert.equal(view._activeCategory, 'survival', 'refresh 이후 카테고리 상태가 유지되지 않음');
     assert.equal(view._activeSort, 'price', 'refresh 이후 정렬 상태가 유지되지 않음');

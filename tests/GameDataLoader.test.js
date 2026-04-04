@@ -26,4 +26,15 @@ test('GameDataLoader.loadDefault()는 확장 stage/weapon/accessory 데이터를
   assert.ok(gameData.upgradeData.some((entry) => entry.weaponId === 'ember_spines'), '신규 weapon upgrade entry가 누락됨');
 });
 
+test('GameDataLoader.loadDefault()는 loadout/meta catalog도 함께 포함한다', async () => {
+  const { GameDataLoader } = await import('../src/data/GameDataLoader.js');
+
+  const gameData = GameDataLoader.loadDefault();
+
+  assert.ok(Array.isArray(gameData.ascensionData), 'ascensionData가 기본 gameData에 포함되어야 함');
+  assert.ok(gameData.ascensionData.some((entry) => entry.level === 0), '기본 ascension entry가 누락됨');
+  assert.ok(Array.isArray(gameData.permanentUpgradeData), 'permanentUpgradeData가 기본 gameData에 포함되어야 함');
+  assert.ok(gameData.permanentUpgradeData.some((entry) => entry.id === 'perm_hp'), '기본 permanent upgrade entry가 누락됨');
+});
+
 summary();

@@ -146,6 +146,12 @@ await test('타이틀 로드아웃은 Ascension 선택지와 현재 선택 레�
       weaponData: [
         { id: 'magic_bolt', isEvolved: false },
       ],
+      ascensionData: [
+        { level: 0, description: 'baseline', enemyHpMult: 1, spawnRateMult: 1, rewardMult: 1 },
+        { level: 1, description: 'tier 1', enemyHpMult: 1.1, spawnRateMult: 1.1, rewardMult: 1.1 },
+        { level: 2, description: 'tier 2', enemyHpMult: 1.2, spawnRateMult: 1.2, rewardMult: 1.2 },
+        { level: 3, description: 'tier 3', enemyHpMult: 1.3, spawnRateMult: 1.3, rewardMult: 1.3 },
+      ],
       unlockData: [],
     },
     {

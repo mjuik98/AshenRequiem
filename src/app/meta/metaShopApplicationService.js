@@ -1,8 +1,15 @@
-import { getPermanentUpgradeById } from '../../data/permanentUpgradeData.js';
 import { purchasePermanentUpgradeAndSave } from '../session/sessionPersistenceService.js';
 
-export function purchaseMetaShopUpgrade(session, upgradeId) {
-  const definition = getPermanentUpgradeById(upgradeId);
+function findPermanentUpgradeDefinition(upgradeId, {
+  gameData = null,
+  upgradeData = null,
+} = {}) {
+  const source = upgradeData ?? gameData?.permanentUpgradeData ?? [];
+  return source.find((entry) => entry?.id === upgradeId) ?? null;
+}
+
+export function purchaseMetaShopUpgrade(session, upgradeId, options = {}) {
+  const definition = findPermanentUpgradeDefinition(upgradeId, options);
   if (!definition || !session?.meta) {
     return {
       success: false,

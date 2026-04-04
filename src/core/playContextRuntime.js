@@ -42,6 +42,7 @@ export function createPlayContextRuntimeState({
   profilingEnabled = false,
   poolSizes = {},
   session = null,
+  registerEventHandlersImpl = null,
   nowSeconds = () => 0,
   createAudioContext = () => null,
   createSoundSystemImpl,
@@ -67,6 +68,7 @@ export function createPlayContextRuntimeState({
     renderer,
     nowSeconds,
     session,
+    registerEventHandlersImpl,
     bossAnnouncementView: null,
     weaponEvolutionView: null,
   };

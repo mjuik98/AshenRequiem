@@ -1,16 +1,11 @@
-const RUNTIME_DEBUG_FLAG = '__ASHEN_RUNTIME_DEBUG__';
+import { isRuntimeDebugScopeEnabled } from '../core/runtimeFeatureFlags.js';
 
 function formatRuntimeScope(scope, message) {
   return `[${scope}] ${message}`;
 }
 
-export function isRuntimeDebugEnabled(scope = '') {
-  const flag = globalThis?.[RUNTIME_DEBUG_FLAG];
-  if (flag === true) return true;
-  if (typeof flag === 'string') return flag === scope;
-  if (Array.isArray(flag)) return flag.includes(scope);
-  if (flag instanceof Set) return flag.has(scope);
-  return false;
+export function isRuntimeDebugEnabled(scope = '', host = globalThis) {
+  return isRuntimeDebugScopeEnabled(scope, host);
 }
 
 export function logRuntimeInfo(scope, message, ...args) {

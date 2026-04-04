@@ -13,7 +13,7 @@ import {
   applyComputedSessionUnlockProgress,
   computeSessionUnlockProgress,
 } from './unlockProgressFacade.js';
-import { normalizeAscensionLevel } from '../data/ascensionData.js';
+import { normalizeAscensionLevel } from '../domain/meta/loadout/startLoadoutDomain.js';
 
 export function createDefaultSessionMeta() {
   return {
@@ -116,10 +116,10 @@ export function ensureCodexMeta(session) {
     && meta.unlockedWeapons.includes(meta.selectedStartWeaponId)
     ? meta.selectedStartWeaponId
     : meta.unlockedWeapons[0] ?? defaults.selectedStartWeaponId;
-  meta.selectedAscensionLevel = normalizeAscensionLevel(meta.selectedAscensionLevel ?? defaults.selectedAscensionLevel);
+  meta.selectedAscensionLevel = normalizeAscensionLevel({}, meta.selectedAscensionLevel ?? defaults.selectedAscensionLevel);
   meta.highestAscensionCleared = Math.max(
     0,
-    normalizeAscensionLevel(meta.highestAscensionCleared ?? defaults.highestAscensionCleared),
+    normalizeAscensionLevel({}, meta.highestAscensionCleared ?? defaults.highestAscensionCleared),
   );
 
   return meta;

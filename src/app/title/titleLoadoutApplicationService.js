@@ -85,11 +85,11 @@ export function commitTitleStartWeaponSelection(
     };
   }
 
-  const ascensionResult = saveAscensionImpl(session, options.ascensionLevel);
+  const ascensionResult = saveAscensionImpl(session, options.ascensionLevel, gameData);
   const accessoryResult = saveAccessoryImpl(session, options.startAccessoryId, gameData);
   const archetypeResult = saveArchetypeImpl(session, options.archetypeId, gameData);
   const riskRelicResult = saveRiskRelicImpl(session, options.riskRelicId, gameData);
-  const stageResult = saveStageImpl(session, options.stageId);
+  const stageResult = saveStageImpl(session, options.stageId, gameData);
   const seedResult = saveSeedImpl(session, {
     seedMode: options.seedMode,
     seedText: options.seedText,

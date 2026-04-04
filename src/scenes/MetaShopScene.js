@@ -26,6 +26,7 @@ export class MetaShopScene {
       this.game.session,
       (id) => this._handlePurchase(id),
       ()   => this._goToTitle(),
+      { gameData: this.game.gameData },
     );
   }
 
@@ -45,10 +46,12 @@ export class MetaShopScene {
   // ── 내부 처리 ──────────────────────────────────────────────────────
 
   _handlePurchase(upgradeId) {
-    const result = purchaseMetaShopUpgrade(this.game.session, upgradeId);
+    const result = purchaseMetaShopUpgrade(this.game.session, upgradeId, {
+      gameData: this.game.gameData,
+    });
 
     if (result.success) {
-      this._view.refresh(this.game.session);
+      this._view.refresh(this.game.session, { gameData: this.game.gameData });
     }
   }
 

@@ -3,7 +3,7 @@
  *
  * CHANGE(P0): currency event adapter 등록 추가
  * CHANGE(P1): session을 4번째 파라미터로 분리 수신 (R-14 준수)
- * CHANGE(P3): eventHandlerRegistry를 통한 핸들러 등록 일원화
+ * CHANGE(P3): injected event registration orchestrator로 핸들러 등록 일원화
  */
 
 import { Pipeline }  from './Pipeline.js';
@@ -12,7 +12,6 @@ import {
   PLAY_PIPELINE_FACTORY_SYSTEMS,
   PLAY_PIPELINE_INSTANCE_SYSTEMS,
 } from './playPipelineManifest.js';
-import { registerDefaultEventHandlers } from '../systems/event/eventHandlerRegistry.js';
 
 export class PipelineBuilder {
   /**
@@ -20,12 +19,16 @@ export class PipelineBuilder {
    * @param {import('../systems/event/EventRegistry.js').EventRegistry} eventRegistry
    * @param {import('../state/createSessionState.js').SessionState|null} session
    * @param {object|null}                             [profiler]
+   * @param {Function|null}                           [registerEventHandlersImpl]
    */
-  constructor(services, eventRegistry, session = null, profiler = null) {
+  constructor(services, eventRegistry, session = null, profiler = null, registerEventHandlersImpl = null) {
     this._services      = services;
     this._eventRegistry = eventRegistry;
     this._session       = session;  // services가 아닌 독립 상태로 보유 (R-14)
     this._profiler      = profiler;
+    this._registerEventHandlersImpl = typeof registerEventHandlersImpl === 'function'
+      ? registerEventHandlersImpl
+      : null;
     this._pipeline      = null;
 
     this._spawnSystem         = null;
@@ -101,6 +104,6 @@ export class PipelineBuilder {
 
   /** @private */
   _registerEventHandlers() {
-    registerDefaultEventHandlers(this._services, this._eventRegistry, this._session);
+    this._registerEventHandlersImpl?.(this._services, this._eventRegistry, this._session);
   }
 }

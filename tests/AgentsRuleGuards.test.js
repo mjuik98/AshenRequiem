@@ -249,9 +249,9 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    titleLoadoutSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
+    titleLoadoutSource.includes("from '../../app/title/titleLoadoutQueryService.js'"),
     true,
-    'titleLoadout이 공용 start loadout runtime을 사용하지 않음',
+    'titleLoadout이 app-layer title loadout query service를 사용하지 않음',
   );
 
   assert.equal(
@@ -261,9 +261,9 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    /canStart/.test(titleLoadoutSource),
+    /buildTitleLoadoutConfig/.test(titleLoadoutSource),
     true,
-    'titleLoadout이 타이틀 시작 가능 상태를 명시적으로 노출하지 않음',
+    'titleLoadout facade가 buildTitleLoadoutConfig entrypoint를 재노출하지 않음',
   );
 
   assert.equal(
@@ -292,8 +292,8 @@ test('scene and progression infrastructure stay decoupled from system internals'
 
   assert.equal(
     /resolveStartWeaponSelection/.test(titleLoadoutSource),
-    true,
-    'titleLoadout이 전용 start weapon selection helper를 사용하지 않음',
+    false,
+    'titleLoadout facade가 start weapon selection 구현을 직접 소유하면 안 됨',
   );
 
   assert.equal(
@@ -376,8 +376,32 @@ test('scene and progression infrastructure stay decoupled from system internals'
 
   assert.equal(
     /from '\.\.\/\.\.\/state\/createSessionState\.js'/.test(sessionPersistenceServiceSource),
+    false,
+    'sessionPersistenceService가 createSessionState barrel에 직접 결합하고 있음',
+  );
+
+  assert.equal(
+    sessionPersistenceServiceSource.includes("from '../../state/session/sessionCommands.js'"),
     true,
-    'sessionPersistenceService가 createSessionState persistence primitive를 직접 사용하지 않음',
+    'sessionPersistenceService가 session command 모듈을 직접 사용하지 않음',
+  );
+
+  assert.equal(
+    sessionPersistenceServiceSource.includes("from '../../state/session/sessionRepository.js'"),
+    true,
+    'sessionPersistenceService가 session repository 모듈을 직접 사용하지 않음',
+  );
+
+  assert.equal(
+    /from '\.\.\/\.\.\/data\/ascensionData\.js'|from '\.\.\/\.\.\/data\/stageData\.js'/.test(loadoutSelectionWriteServiceSource),
+    false,
+    'loadoutSelectionWriteService에 정적 ascension/stage data import가 남아 있음',
+  );
+
+  assert.equal(
+    /createSessionPersistenceService/.test(sessionPersistenceServiceSource),
+    true,
+    'sessionPersistenceService가 injectable factory를 노출하지 않음',
   );
 
   assert.equal(

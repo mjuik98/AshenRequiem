@@ -1,5 +1,3 @@
-import { permanentUpgradeData as defaultPermanentUpgradeData } from '../../../data/permanentUpgradeData.js';
-import { unlockData as defaultUnlockData } from '../../../data/unlockData.js';
 import {
   getDiscoveredAccessoryIds,
   getDiscoveredCodexWeaponIds,
@@ -14,7 +12,7 @@ function countDiscoveredEnemies(session, enemyData = []) {
     .length;
 }
 
-function buildUnlockGoal(session, unlockData = defaultUnlockData) {
+function buildUnlockGoal(session, unlockData = []) {
   const unlock = buildUnlockGuideEntries(session, unlockData, Number.POSITIVE_INFINITY)
     .find((entry) => !entry.done);
   if (!unlock) return null;
@@ -31,7 +29,7 @@ function buildUnlockGoal(session, unlockData = defaultUnlockData) {
   };
 }
 
-function buildMetaUpgradeGoal(session, upgradeData = defaultPermanentUpgradeData) {
+function buildMetaUpgradeGoal(session, upgradeData = []) {
   const currency = session?.meta?.currency ?? 0;
   const owned = session?.meta?.permanentUpgrades ?? {};
   const upgrades = (upgradeData ?? [])
@@ -139,8 +137,8 @@ export function buildMetaGoalRoadmap({
 } = {}) {
   const source = /** @type {any} */ (gameData ?? {});
   const roadmap = [
-    buildUnlockGoal(session, source.unlockData ?? defaultUnlockData),
-    buildMetaUpgradeGoal(session, source.permanentUpgradeData ?? defaultPermanentUpgradeData),
+    buildUnlockGoal(session, source.unlockData ?? []),
+    buildMetaUpgradeGoal(session, source.permanentUpgradeData ?? []),
     buildCodexGoal(session, source),
     buildDailyGoal(session),
   ].filter(Boolean);

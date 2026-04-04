@@ -89,4 +89,53 @@ test('BrowserGameShell은 runtime host와 accessibility runtime을 game에 주�
   assert.equal(game.accessibilityRuntime, accessibilityRuntime, 'browser shell이 accessibility runtime을 game에 주입하지 않음');
 });
 
+test('browser bootstrap은 play runtime service와 event registration wiring을 소유한다', () => {
+  assert.ok(!bootstrapApi.error, bootstrapApi.error?.message ?? 'bootstrapBrowserGame.js가 아직 없음');
+
+  const runtimeHost = { id: 'runtime-host' };
+  const accessibilityRuntime = { id: 'accessibility-runtime' };
+  const runtimeServices = { nowSeconds: () => 1 };
+  const registerPlayEventHandlers = () => {};
+  const shell = {
+    attach(game) {
+      game.runtimeHost = runtimeHost;
+      game.accessibilityRuntime = accessibilityRuntime;
+      game._loop = {};
+      return game;
+    },
+    detach() {},
+  };
+  const app = {
+    attach(game) {
+      game._loop ??= {};
+      return game;
+    },
+    start() {},
+    destroy() {},
+    advanceTime() {},
+    tick() {},
+  };
+  const calls = [];
+
+  const game = bootstrapApi.bootstrapBrowserGame({
+    createShellImpl: () => shell,
+    createAppImpl: () => app,
+    createPlayRuntimeServicesImpl(options) {
+      calls.push(['runtime-services', options]);
+      return runtimeServices;
+    },
+    registerPlayEventHandlersImpl: registerPlayEventHandlers,
+  });
+
+  assert.deepEqual(calls, [[
+    'runtime-services',
+    {
+      host: runtimeHost,
+      accessibilityRuntime,
+    },
+  ]]);
+  assert.equal(game.playRuntimeServices, runtimeServices, 'browser bootstrap이 play runtime services를 game에 주입하지 않음');
+  assert.equal(game.registerPlayEventHandlers, registerPlayEventHandlers, 'browser bootstrap이 play event registration helper를 game에 주입하지 않음');
+});
+
 summary();

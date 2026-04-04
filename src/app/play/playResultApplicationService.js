@@ -15,14 +15,16 @@ export function processPlayResultForSession(
   runtimeState = {},
   {
     processPlayResultImpl = processPlayResult,
+    gameData = null,
   } = {},
 ) {
-  return processPlayResultImpl(world, session, runtimeState);
+  return processPlayResultImpl(world, session, runtimeState, { gameData });
 }
 
 export function createPlayResultApplicationService(
   session,
   {
+    gameData = null,
     captureRuntimeStateImpl = capturePlayResultRuntimeState,
     processPlayResultImpl = processPlayResultForSession,
   } = {},
@@ -30,7 +32,7 @@ export function createPlayResultApplicationService(
   const runtimeState = captureRuntimeStateImpl(session);
   return {
     process(world) {
-      return processPlayResultImpl(world, session, runtimeState);
+      return processPlayResultImpl(world, session, runtimeState, { gameData });
     },
   };
 }

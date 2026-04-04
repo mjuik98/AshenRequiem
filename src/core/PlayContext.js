@@ -18,6 +18,7 @@ export class PlayContext {
     profilingEnabled = false,
     poolSizes        = {},
     session          = null,
+    registerEventHandlersImpl = null,
     nowSeconds       = undefined,
     createAudioContext = undefined,
   } = {}) {
@@ -29,6 +30,7 @@ export class PlayContext {
       profilingEnabled,
       poolSizes,
       session,
+      registerEventHandlersImpl,
       ...(nowSeconds ? { nowSeconds } : {}),
       ...(createAudioContext ? { createAudioContext } : {}),
     }));
@@ -47,6 +49,7 @@ export class PlayContext {
     this.renderer       = null;
     this._builder       = null;
     this.session        = null;
+    this.registerEventHandlersImpl = null;
     this.bossAnnouncementView = null;
     this.weaponEvolutionView  = null;
   }
@@ -77,6 +80,7 @@ export class PlayContext {
       this.eventRegistry,
       this.session,
       this.profiler,
+      this.registerEventHandlersImpl,
     );
     return this._builder.build(world, input, data);
   }

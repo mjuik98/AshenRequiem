@@ -9,6 +9,7 @@ export function buildPlayRuntime({
   createPlayContextImpl = PlayContext.create,
   mountUiImpl,
   createPlayUiImpl,
+  registerEventHandlersImpl = null,
   runtimeServices = null,
 } = {}) {
   const session = game?.session ?? null;
@@ -21,6 +22,7 @@ export function buildPlayRuntime({
     soundEnabled: options.soundEnabled ?? true,
     profilingEnabled: shouldEnableProfilingImpl(),
     session,
+    ...(registerEventHandlersImpl ? { registerEventHandlersImpl } : {}),
     ...(runtimeServices ?? {}),
   });
   if (typeof mountUiImpl !== 'function') {

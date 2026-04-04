@@ -51,6 +51,22 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   const calls = [];
   const fakeSession = { options: { soundEnabled: false } };
   const fakeWorld = { tag: 'world' };
+  const fakeRegisterEventHandlers = () => {};
+  const runtimeServices = {
+    nowSeconds: () => 42,
+    createAudioContext: () => ({ id: 'audio' }),
+    devicePixelRatioReader: () => 2,
+    accessibilityRuntime: { id: 'a11y' },
+  };
+  const fakeGame = {
+    session: fakeSession,
+    gameData: { weaponData: [{ id: 'magic_bolt' }] },
+    input: { id: 'input' },
+    canvas: { id: 'canvas' },
+    renderer: { id: 'renderer' },
+    playRuntimeServices: runtimeServices,
+    registerPlayEventHandlers: fakeRegisterEventHandlers,
+  };
   const fakeUi = {
     shown: 0,
     showHud() {
@@ -74,13 +90,7 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   };
 
   const runtime = bootstrapPlaySceneRuntime({
-    game: {
-      session: fakeSession,
-      gameData: { weaponData: [{ id: 'magic_bolt' }] },
-      input: { id: 'input' },
-      canvas: { id: 'canvas' },
-      renderer: { id: 'renderer' },
-    },
+    game: fakeGame,
     createPlaySceneWorldStateImpl(options) {
       calls.push(['world', options]);
       return fakeWorld;
@@ -105,12 +115,13 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
       calls.push(['ui', root]);
       return fakeUi;
     },
-    createRuntimeServicesImpl() {
-      calls.push(['runtime-services']);
-      return {
-        nowSeconds: () => 42,
-        createAudioContext: () => ({ id: 'audio' }),
-      };
+    resolveRuntimeServicesImpl(game) {
+      calls.push(['runtime-services', game]);
+      return game.playRuntimeServices;
+    },
+    resolveEventHandlersImpl(game) {
+      calls.push(['event-registrar', game]);
+      return game.registerPlayEventHandlers;
     },
   });
 
@@ -119,28 +130,34 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   assert.equal(runtime.ctx, fakeCtx);
   assert.deepEqual(runtime.systems, ['s1']);
   assert.equal(fakeUi.shown, 1, 'HUD가 즉시 표시되지 않음');
-  assert.deepEqual(calls[0], ['runtime-services']);
-  assert.deepEqual(calls[1], ['world', {
+  assert.deepEqual(calls[0], ['runtime-services', fakeGame]);
+  assert.deepEqual(calls[1], ['event-registrar', fakeGame]);
+  assert.deepEqual(calls[2], ['world', {
     session: fakeSession,
     gameData: { weaponData: [{ id: 'magic_bolt' }] },
   }]);
-  assert.deepEqual(calls[2], ['normalize', fakeSession.options]);
-  assert.deepEqual(calls[3], ['profile']);
-  assert.deepEqual(calls[4], ['context', {
+  assert.deepEqual(calls[3], ['normalize', fakeSession.options]);
+  assert.deepEqual(calls[4], ['profile']);
+  assert.deepEqual(calls[5], ['context', {
     canvas: { id: 'canvas' },
     renderer: { id: 'renderer' },
     soundEnabled: false,
     profilingEnabled: true,
     session: fakeSession,
-    nowSeconds: calls[4][1]?.nowSeconds,
-    createAudioContext: calls[4][1]?.createAudioContext,
+    nowSeconds: calls[5][1]?.nowSeconds,
+    createAudioContext: calls[5][1]?.createAudioContext,
+    accessibilityRuntime: runtimeServices.accessibilityRuntime,
+    devicePixelRatioReader: runtimeServices.devicePixelRatioReader,
+    registerEventHandlersImpl: fakeRegisterEventHandlers,
   }]);
-  assert.equal(typeof calls[4][1].nowSeconds, 'function');
-  assert.equal(typeof calls[4][1].createAudioContext, 'function');
-  assert.deepEqual(calls[5], ['mount-ui']);
-  assert.deepEqual(calls[6], ['ui', { id: 'ui-root' }]);
-  assert.deepEqual(calls[7], ['views', 'boss-view', 'evo-view']);
-  assert.deepEqual(calls[8], ['pipeline', fakeWorld, { id: 'input' }, { weaponData: [{ id: 'magic_bolt' }] }]);
+  assert.equal(typeof calls[5][1].nowSeconds, 'function');
+  assert.equal(typeof calls[5][1].createAudioContext, 'function');
+  assert.deepEqual(calls[6], ['mount-ui']);
+  assert.deepEqual(calls[7], ['ui', { id: 'ui-root' }]);
+  assert.deepEqual(calls[8], ['views', 'boss-view', 'evo-view']);
+  assert.deepEqual(calls[9], ['pipeline', fakeWorld, { id: 'input' }, { weaponData: [{ id: 'magic_bolt' }] }]);
+  assert.equal(runtime.accessibilityRuntime, runtimeServices.accessibilityRuntime);
+  assert.equal(runtime.devicePixelRatioReader, runtimeServices.devicePixelRatioReader);
 });
 
 summary();

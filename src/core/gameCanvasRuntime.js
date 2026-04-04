@@ -26,13 +26,15 @@ export function syncGameCanvasSize({
   canvas.height = height * dpr;
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  GameConfig.canvasWidth = width;
-  GameConfig.canvasHeight = height;
   ctx?.setTransform?.(dpr, 0, 0, dpr, 0, 0);
 
   return { width, height, dpr };
 }
 
-export function createGameResizeHandler(deps = {}) {
-  return () => syncGameCanvasSize(deps);
+export function createGameResizeHandler({
+  getDeps = null,
+  resizeImpl = syncGameCanvasSize,
+  ...deps
+} = {}) {
+  return () => resizeImpl(typeof getDeps === 'function' ? getDeps() : deps);
 }

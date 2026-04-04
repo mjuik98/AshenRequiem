@@ -1,6 +1,4 @@
-import {
-  buildMetaShopViewModel,
-} from './metaShopModel.js';
+import { buildMetaShopViewModel } from '../../app/meta/metaShopViewModelService.js';
 import {
   disposeDialogRuntime,
   replaceDialogRuntime,
@@ -19,6 +17,7 @@ export class MetaShopView {
     this._activeCategory = 'all';
     this._activeSort = 'recommended';
     this._session = null;
+    this._gameData = null;
     this._dialogRuntime = null;
     this._shellRefs = null;
     this._disposeRuntime = bindMetaShopViewRuntime(this);
@@ -26,10 +25,11 @@ export class MetaShopView {
     container.appendChild(this.el);
   }
 
-  show(session, onPurchase, onBack) {
+  show(session, onPurchase, onBack, { gameData = null } = {}) {
     this._onPurchase = onPurchase;
     this._onBack     = onBack;
     this._session = session;
+    this._gameData = gameData;
     this._render(session);
     this._dialogRuntime = replaceDialogRuntime(this._dialogRuntime, {
       root: this.el,
@@ -39,8 +39,9 @@ export class MetaShopView {
     this._dialogRuntime.focusInitial();
   }
 
-  refresh(session) {
+  refresh(session, { gameData = this._gameData } = {}) {
     this._session = session;
+    this._gameData = gameData;
     this._render(session);
   }
 
@@ -56,6 +57,7 @@ export class MetaShopView {
   _render(session) {
     this._session = session;
     const viewModel = buildMetaShopViewModel(session, {
+      gameData: this._gameData,
       selectedUpgradeId: this._selectedUpgradeId,
       activeCategory: this._activeCategory,
       activeSort: this._activeSort,

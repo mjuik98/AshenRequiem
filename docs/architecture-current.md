@@ -1,6 +1,6 @@
 # Current Architecture Snapshot
 
-Last verified against code: 2026-04-03
+Last verified against code: 2026-04-04
 
 이 문서는 현재 코드베이스의 구현 사실을 기록한다. 지속적으로 강제할 설계 규칙은 `AGENTS.md`를 따른다.
 
@@ -113,8 +113,8 @@ Detected top-level scene modules in `src/scenes/`:
 - gameplay nondeterministic RNG bootstrap은 `createPlayWorld()`가 `createMathRng()`를 통해 명시적으로 주입한다. 공용 `createRng()`는 더 이상 암묵적 `Math.random()` 기본값을 갖지 않는다.
 - 플레이 이벤트 SSOT는 `src/data/constants/eventContracts.js`이며, `src/data/constants/events.js`는 여기서 파생된 `EVENT_TYPES`와 contract 조회 API만 재노출한다.
 - `PlayUI`, `LevelSystem`, `DeathSystem`, `RenderSystem`, `src/adapters/browser/runtimeHooks.js`, `levelUpFlowService` 등 핵심 허브는 `world.entities/*`, `world.run/*`, `world.progression/*`, `world.queues/*`, `world.presentation/*`, `world.runtime/*` ownership 경로를 우선 사용한다.
-- `RenderSystem`은 browser runtime adapter를 직접 import하지 않고, `PlayContext` 서비스로 주입된 `nowSeconds()` clock을 사용한다. browser clock/audio binding은 `src/adapters/browser/playRuntimeServices.js`가 만들고, `src/scenes/play/playSceneBootstrap.js` → `src/scenes/play/playRuntimeComposer.js` → `src/core/PlayRuntimeBuilder.js` → `PlayContext.create()` 경로로 주입한다.
-- `PlayScene`는 더 이상 `window.devicePixelRatio`나 `createDocumentAccessibilityRuntime()`를 직접 읽지 않는다. browser DPR reader와 accessibility runtime은 `playRuntimeServices` → `playSceneBootstrap` 경계에서 주입되고, scene는 `playSceneRuntimeState`를 통해 injected service만 소비한다.
+- `RenderSystem`은 browser runtime adapter를 직접 import하지 않고, `PlayContext` 서비스로 주입된 `nowSeconds()` clock을 사용한다. browser clock/audio binding은 `src/adapters/browser/playRuntimeServices.js`가 만들고, `src/app/bootstrap/bootstrapBrowserGame.js`가 이를 `game.playRuntimeServices`로 조립한 뒤 `src/scenes/play/playSceneBootstrap.js` → `src/scenes/play/playRuntimeComposer.js` → `src/core/PlayRuntimeBuilder.js` → `PlayContext.create()` 경로로 주입한다.
+- `PlayScene`는 더 이상 `window.devicePixelRatio`나 `createDocumentAccessibilityRuntime()`를 직접 읽지 않는다. browser DPR reader와 accessibility runtime은 bootstrap이 만든 `game.playRuntimeServices`를 통해 주입되고, scene는 `playSceneRuntimeState`를 통해 injected service만 소비한다.
 - browser shell은 `BrowserGameShell`이 `game.runtimeHost`, `game.accessibilityRuntime`를 조립해 소유한다. `SettingsScene`, `TitleScene`, `KeyboardAdapter`, `playSceneBootstrap`는 이 injected browser surface를 재사용하고 각자 browser global을 직접 만들지 않는다.
 - 플레이 런타임의 concrete UI 조립(`mountUI`, `PlayUI`, pipeline profiling default`)은 이제 `src/scenes/play/playRuntimeComposer.js`가 소유하고, `src/core/PlayRuntimeBuilder.js`는 scene/bootstrap 경계가 주입한 의존성만 소비하는 순수 builder 역할로 축소됐다.
 - 세션 접근성 옵션(`reducedMotion`, `highVisibilityHud`, `largeText`)은 `src/ui/shared/accessibilityRuntime.js`가 document root class 토글로 적용하고, scene/runtime은 `applySessionOptionsToRuntime(..., { accessibilityRuntime })` 경로를 통해 이를 호출한다.
@@ -131,11 +131,14 @@ Detected top-level scene modules in `src/scenes/`:
 - `CodexView`는 `codexViewRenderState.js`가 stable shell(`progress pill`, `tabs`, `summary`, `content`)을 유지하고, `codexViewRuntime.js`가 root-level delegated tab/back interaction을 소유한다. 개별 enemy/weapon/accessory panel만 controller helper가 다시 렌더한다.
 - boss overlay DOM surface는 `BossHudView`, `BossAnnouncementView`가 얇은 lifecycle만 맡고, 실제 markup/style는 `bossHudMarkup`, `bossHudStyles`, `bossAnnouncementMarkup`, `bossAnnouncementStyles` helper가 소유한다.
 - 세션 저장소 browser seam SSOT는 `sessionStorageDriver.js`다. `sessionRepository`와 `sessionRecoveryPolicy`는 더 이상 직접 `globalThis.localStorage`를 해석하지 않는다.
-- 플레이 이벤트 adapter 조합은 `src/adapters/play/playEventAdapters.js`가 맡고, 실제 handler 구현은 `src/adapters/play/events/*` 아래에 위치한다. legacy `src/systems/event/*` / `src/systems/sound/soundEventHandler.js` re-export shim은 zero-caller 정리로 제거됐다.
+- `sessionPersistenceService`는 더 이상 `createSessionState` barrel에 직접 의존하지 않는다. session command(`sessionCommands`)와 repository save(`sessionRepository`)를 app/session factory에서 조합하고, `sessionFacade`는 그 thin re-export만 유지한다.
+- `gameCanvasRuntime`는 viewport 계산과 canvas transform만 소유하고, 실제 viewport 적용(owner)은 `BrowserGameShell`이다. shell이 `game.viewport`와 `GameConfig.canvasWidth/Height`를 함께 갱신해 host seam을 한 지점에 모은다.
+- 플레이 이벤트 adapter 조합은 `src/adapters/play/playEventAdapters.js`가 맡고, 실제 registration orchestration은 `src/app/play/playEventRegistrationService.js`가 소유한다. runtime helper인 `src/systems/event/eventHandlerRegistry.js`는 전달받은 registration spec을 순서대로 등록하는 공용 helper만 유지한다. legacy `src/systems/event/*` / `src/systems/sound/soundEventHandler.js` re-export shim은 zero-caller 정리로 제거됐다.
 - deterministic smoke 산출물은 `output/web-game/deterministic-smoke-core/`와 `output/web-game/deterministic-smoke-full/`로 분리된다.
 - deterministic smoke preview wrapper(`scripts/browser-smoke/runSmokeAgainstPreview.mjs`)는 기본적으로 `vite preview`를 쓰되, preview 프로세스가 준비되지 않으면 같은 포트에서 `dist/` 정적 서버로 fallback한 뒤 동일 smoke runner를 계속 실행한다.
 - deterministic smoke 시나리오는 `combat_pressure`, `boss_readability` 외에 `touch_hud_mobile`, `daily_seed_run`을 추가로 등록했고, `bootToPlay()` helper는 runtime flag/viewport/beforeStartRun hook을 받아 selector click 폴백과 함께 loadout 사전 조작을 지원한다.
-- 결과 화면은 이번 런 요약 외에도 unlock guidance 기반의 `다음 목표` chips, daily challenge streak/reward 상태, analytics 기반 `추천 조정`, `전투 복기` 섹션을 함께 보여준다. Codex 기록 탭은 하이라이트, 장기 목표, 발견 진행, 업적, 해금 보상 중심의 요약 화면을 렌더한다.
+- 결과 화면은 이번 런 요약 외에도 unlock guidance 기반의 `다음 목표` chips, daily challenge streak/reward 상태, analytics 기반 `추천 조정`, `전투 복기` 섹션을 함께 보여준다. Codex 기록 탭은 하이라이트, 장기 목표, 발견 진행, 업적, 해금 보상 중심의 요약 화면을 렌더하고, 그 집계/query 모델은 `src/app/meta/codexRecordsQueryService.js`가 소유한다.
+- 타이틀 loadout 선택, 플레이어 spawn state, run guidance, meta shop purchase는 더 이상 정적 `stage/archetype/risk relic/ascension/permanent upgrade` data import를 직접 사용하지 않는다. 이 경로들은 주입된 `gameData` catalog만 읽고, scene/application layer가 그 catalog를 전달한다.
 - stage catalog는 `ash_plains`, `moon_crypt`, `ember_hollow`, `frost_harbor` 4개를 포함하고, 각 stage는 `bossEcho` signature gimmick을 가진다. boss phase action은 `projectile_nova`와 `stage_echo`까지 확장됐다.
 - stage authoring source는 `src/data/stages/*.js` per-stage 모듈로 분해되고, `src/data/stageData.js`는 registry facade만 유지한다.
 - 각 stage는 `background.mode === "seamless_tile"` 기반의 declarative floor theme를 가지며, checked-in source에서는 `palette`/`layers` 토큰과 `assets.backgroundKey`를 유지한다. `GameDataLoader`가 hydrate한 runtime stage background만 `images` 토큰을 가지며, stage background renderer가 이를 소비한다. `ash_plains`, `moon_crypt`, `ember_hollow`는 image tile set을, 나머지 stage는 절차적 palette/layer 토큰을 사용한다. active run snapshot은 이 nested background shape를 deep clone으로 저장/복원한다.
@@ -173,11 +176,12 @@ Detected top-level scene modules in `src/scenes/`:
 - seamless stage background pipeline with image/procedural fallback: `stageData.background`, `stageBackgroundTheme`, `createStageBackgroundRenderer`, `CanvasRenderer.drawBackground`, `public/assets/backgrounds/*.png`
 - projectile/effect sprite atlases with vector fallback: `vfxSpriteManifest`, `vfxSpriteRuntime`, `drawBehaviorRegistry`, `drawEffectRegistry`, `public/assets/vfx/*.png`
 - game studio operability extensions: `GamepadAdapter`, replay trace runtime, authoring snapshot/overlay, asset shipping metadata validation
-- 추천 빌드 guidance + 메타 roadmap: `runGuidanceDomain.recommendedBuild`, `levelUpChoicePresentation`, `levelUpChoice/choiceRelations`, `levelUpChoice/choiceSummary`, `levelUpChoice/choicePriorityHints`, `metaGoalDomain`, `playResultSessionService`, `codexRecordsTab`, `metaShopModel`
+- 추천 빌드 guidance + 메타 roadmap: `runGuidanceDomain.recommendedBuild`, `levelUpChoicePresentation`, `levelUpChoice/choiceRelations`, `levelUpChoice/choiceSummary`, `levelUpChoice/choicePriorityHints`, `metaGoalDomain`, `playResultSessionService`, `codexRecordsQueryService`, `metaShopViewModelService`
 - stage modifier guidance surface: `stageData.modifierDrafts`, `runGuidanceDomain.stageModifier`, `HudView`, `runtimeHooks`, `encounterReport`
 - boss readability smoke/debug: `runtimeHooks.openBossReadabilityOverlay`, `boss_readability` smoke scenario
 - mobile touch/daily smoke: `forceTouchHud` runtime flag, `touch_hud_mobile`, `daily_seed_run`
 - 추가 콘텐츠 데이터: `frost_harbor` stage, `ember_spines` weapon, `glacier_band` accessory, 관련 unlock/upgrade data
+- 기본 game data 로더는 `stageData`, `archetypeData`, `riskRelicData` 외에도 `ascensionData`, `permanentUpgradeData`를 함께 적재해 title/meta/play application service가 같은 catalog 세트를 공유한다.
 - 확장 시너지와 메타 도전 해금: `synergyData` 추가 조합, `currency_earned_gte` / `curse_gte` / `ascension_clear_gte`
 - 메타/진입 application service 계층: `settingsApplicationService`, `metaShopApplicationService`, `codexApplicationService`, `titleLoadoutApplicationService`, `startRunApplicationService`, `playResultApplicationService`
 - 성능 기준선과 브라우저 smoke 검증: `profile:check`, `verify:fast`, `verify:ci`, GitHub Actions verify workflow
