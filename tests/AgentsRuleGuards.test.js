@@ -52,6 +52,59 @@ test('spawn requests are issued through factory helpers instead of inline litera
   });
 });
 
+test('spawn/synergy helper ownership lives under domain play state instead of legacy state roots', () => {
+  const createPlayWorldSource = readProjectSource('../src/domain/play/state/createPlayWorld.js');
+  const synergyRuntimeSource = readProjectSource('../src/domain/play/progression/synergyRuntime.js');
+  const synergySystemSource = readProjectSource('../src/systems/progression/SynergySystem.js');
+  const deathSystemSource = readProjectSource('../src/systems/combat/DeathSystem.js');
+  const stageGimmickSource = readProjectSource('../src/domain/play/stage/stageGimmickRuntime.js');
+
+  assert.equal(
+    projectPathExists('../src/state/createSynergyState.js'),
+    false,
+    'legacy src/state/createSynergyState.js가 아직 남아 있음',
+  );
+  assert.equal(
+    projectPathExists('../src/state/spawnRequest.js'),
+    false,
+    'legacy src/state/spawnRequest.js가 아직 남아 있음',
+  );
+  [
+    '../src/progression/accessoryEffectRuntime.js',
+    '../src/progression/synergyRuntime.js',
+    '../src/progression/upgradeChoicePool.js',
+    '../src/progression/upgradeChoiceRuntime.js',
+    '../src/progression/upgradeFallbackChoices.js',
+  ].forEach((ref) => {
+    assert.equal(projectPathExists(ref), false, `${ref} legacy progression helper가 아직 남아 있음`);
+  });
+  assert.equal(
+    createPlayWorldSource.includes("from './createSynergyState.js'"),
+    true,
+    'createPlayWorld가 domain play owner의 createSynergyState를 사용하지 않음',
+  );
+  assert.equal(
+    synergyRuntimeSource.includes("from '../state/createSynergyState.js'"),
+    true,
+    'synergyRuntime가 domain play owner의 createSynergyState를 사용하지 않음',
+  );
+  assert.equal(
+    synergySystemSource.includes("from '../../domain/play/state/createSynergyState.js'"),
+    true,
+    'SynergySystem이 domain play owner의 createSynergyState를 사용하지 않음',
+  );
+  assert.equal(
+    deathSystemSource.includes("from '../../domain/play/state/spawnRequest.js'"),
+    true,
+    'DeathSystem이 domain play owner의 spawnRequest를 사용하지 않음',
+  );
+  assert.equal(
+    stageGimmickSource.includes("from '../state/spawnRequest.js'"),
+    true,
+    'stageGimmickRuntime이 domain play owner의 spawnRequest를 사용하지 않음',
+  );
+});
+
 test('production source files do not directly assign world.run.playMode outside PlayMode SSOT', () => {
   const rootPath = resolveProjectPath('../src');
   const files = [];
@@ -174,17 +227,25 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const upgradeSystemSource = readProjectSource('../src/systems/progression/UpgradeSystem.js');
   const codexEventAdapterSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
   const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+  const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
   const titleLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
   const playerSpawnServiceSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
   const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
-  const unlockProgressRuntimeSource = readProjectSource('../src/progression/unlockProgressRuntime.js');
+  const unlockProgressRuntimeSource = readProjectSource('../src/domain/meta/progression/unlockProgressRuntime.js');
   const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
   const sessionFacadeSource = readProjectSource('../src/state/sessionFacade.js');
   const sessionPersistenceServiceSource = readProjectSource('../src/app/session/sessionPersistenceService.js');
   const loadoutSelectionWriteServiceSource = readProjectSource('../src/app/session/loadoutSelectionWriteService.js');
+  const codexAppSource = readProjectSource('../src/app/meta/codexApplicationService.js');
+  const codexSessionStateServiceSource = readProjectSource('../src/app/session/codexSessionStateService.js');
+  const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplicationService.js');
+  const metaShopPurchaseDomainSource = readProjectSource('../src/domain/meta/metashop/metaShopPurchaseDomain.js');
   const settingsQueryServiceSource = readProjectSource('../src/app/meta/settingsQueryService.js');
   const settingsCommandServiceSource = readProjectSource('../src/app/meta/settingsCommandService.js');
-  const upgradeChoicePoolSource = readProjectSource('../src/progression/upgradeChoicePool.js');
+  const sessionSnapshotQueryServiceSource = readProjectSource('../src/app/session/sessionSnapshotQueryService.js');
+  const sessionSnapshotCommandServiceSource = readProjectSource('../src/app/session/sessionSnapshotCommandService.js');
+  const sessionSnapshotMutationSource = readProjectSource('../src/app/session/sessionSnapshotMutationService.js');
+  const upgradeChoicePoolSource = readProjectSource('../src/domain/play/progression/upgradeChoicePool.js');
   const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
 
   [playSceneSource, levelUpControllerSource, playResultHandlerSource].forEach((source, index) => {
@@ -213,6 +274,12 @@ test('scene and progression infrastructure stay decoupled from system internals'
     false,
     'unused levelUpFlowRuntime wrapper가 제거되지 않음',
   );
+  [
+    '../src/progression/unlockEvaluator.js',
+    '../src/progression/unlockProgressRuntime.js',
+  ].forEach((ref) => {
+    assert.equal(projectPathExists(ref), false, `${ref} legacy meta progression helper가 아직 남아 있음`);
+  });
 
   assert.equal(
     /import\s+\{[^}]*UpgradeSystem[^}]*\}\s+from\s+['"]\.\.\/\.\.\/systems\/progression\/UpgradeSystem\.js['"]/.test(levelUpFlowServiceSource),
@@ -227,6 +294,36 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
+    codexAppSource.includes("from '../session/codexSessionStateService.js'"),
+    true,
+    'codexApplicationService가 codex session owner service를 사용하지 않음',
+  );
+
+  assert.equal(
+    codexAppSource.includes("from '../../state/sessionMeta.js'"),
+    false,
+    'codexApplicationService가 sessionMeta 구현에 직접 결합하면 안 됨',
+  );
+
+  assert.equal(
+    codexSessionStateServiceSource.includes("from '../../state/sessionMeta.js'"),
+    false,
+    'codexSessionStateService가 legacy sessionMeta shim에 직접 결합하면 안 됨',
+  );
+
+  assert.equal(
+    codexSessionStateServiceSource.includes("from '../../state/session/sessionMetaState.js'"),
+    true,
+    'codexSessionStateService가 session meta owner module을 사용하지 않음',
+  );
+
+  assert.equal(
+    codexSessionStateServiceSource.includes("from '../../state/session/sessionUnlockState.js'"),
+    true,
+    'codexSessionStateService가 session unlock owner module을 사용하지 않음',
+  );
+
+  assert.equal(
     /import\s+\{[^}]*unlockData[^}]*\}\s+from|import\s+\{[^}]*evaluateUnlocks[^}]*\}\s+from/.test(playResultHandlerSource),
     false,
     'PlayResultHandler가 해금 데이터/평가 구현을 직접 결합하고 있음',
@@ -236,6 +333,42 @@ test('scene and progression infrastructure stay decoupled from system internals'
     /import\s+\{[^}]*unlockData[^}]*\}\s+from|import\s+\{[^}]*evaluateUnlocks[^}]*\}\s+from/.test(sessionMetaSource),
     false,
     'sessionMeta가 해금 데이터/평가 구현을 직접 결합하고 있음',
+  );
+
+  assert.equal(
+    sessionMetaSource.includes("from './session/sessionMetaState.js'"),
+    true,
+    'sessionMeta shim이 session meta owner를 재노출하지 않음',
+  );
+
+  assert.equal(
+    sessionMetaSource.includes("from './session/sessionUnlockState.js'"),
+    true,
+    'sessionMeta shim이 session unlock owner를 재노출하지 않음',
+  );
+
+  assert.equal(
+    /getDefaultUnlockedWeaponIds|applyComputedSessionUnlockProgress|computeSessionUnlockProgress/.test(sessionMetaSource),
+    false,
+    'sessionMeta shim에 실제 구현 로직이 남아 있으면 안 됨',
+  );
+
+  assert.equal(
+    loadoutSelectionWriteServiceSource.includes("from '../../state/session/sessionMetaState.js'"),
+    true,
+    'loadoutSelectionWriteService가 session meta owner module을 사용하지 않음',
+  );
+
+  assert.equal(
+    playResultHandlerSource.includes("from '../../state/session/sessionMetaState.js'"),
+    false,
+    'PlayResultHandler wrapper가 session meta owner에 직접 결합하면 안 됨',
+  );
+
+  assert.equal(
+    playerSpawnServiceSource.includes("from '../../state/session/sessionMetaState.js'"),
+    false,
+    'playerSpawn application service가 session meta owner와 불필요하게 결합하면 안 됨',
   );
 
   assert.equal(
@@ -287,6 +420,42 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
+    loadoutSelectionWriteServiceSource.includes("from '../../state/sessionMeta.js'"),
+    false,
+    'loadoutSelectionWriteService가 legacy sessionMeta shim에 직접 결합하면 안 됨',
+  );
+
+  assert.equal(
+    readProjectSource('../src/app/play/playResultSessionService.js').includes("from '../../state/session/sessionMetaState.js'"),
+    true,
+    'playResultSessionService가 session meta owner module을 사용하지 않음',
+  );
+
+  assert.equal(
+    readProjectSource('../src/app/play/playResultSessionService.js').includes("from '../../state/sessionMeta.js'"),
+    false,
+    'playResultSessionService가 legacy sessionMeta shim에 직접 결합하면 안 됨',
+  );
+
+  assert.equal(
+    readProjectSource('../src/adapters/play/events/codexEventAdapter.js').includes("from '../../../state/session/sessionMetaState.js'"),
+    true,
+    'codex event adapter가 session meta owner module을 사용하지 않음',
+  );
+
+  assert.equal(
+    readProjectSource('../src/state/session/sessionMigrations.js').includes("from './sessionMetaState.js'"),
+    true,
+    'sessionMigrations가 session meta owner module을 사용하지 않음',
+  );
+
+  assert.equal(
+    readProjectSource('../src/state/session/sessionMigrations.js').includes("from './sessionUnlockState.js'"),
+    true,
+    'sessionMigrations가 session unlock owner module을 사용하지 않음',
+  );
+
+  assert.equal(
     projectPathExists('../src/systems/event/codexHandler.js'),
     false,
     'unused codex handler shim이 제거되지 않음',
@@ -296,6 +465,30 @@ test('scene and progression infrastructure stay decoupled from system internals'
     /resolveStartWeaponSelection/.test(titleLoadoutSource),
     false,
     'titleLoadout facade가 start weapon selection 구현을 직접 소유하면 안 됨',
+  );
+
+  assert.equal(
+    titleLoadoutAppSource.includes("from './titleRunOptions.js'"),
+    true,
+    'titleLoadoutApplicationService가 titleRunOptions helper를 사용하지 않음',
+  );
+
+  assert.equal(
+    titleLoadoutAppSource.includes("from './titleRunSelectionCommit.js'"),
+    true,
+    'titleLoadoutApplicationService가 titleRunSelectionCommit helper를 사용하지 않음',
+  );
+
+  assert.equal(
+    titleLoadoutAppSource.includes("from './titleRunResult.js'"),
+    true,
+    'titleLoadoutApplicationService가 titleRunResult helper를 사용하지 않음',
+  );
+
+  assert.equal(
+    /function normalizeRunOptions|function extractStartRunDeps/.test(titleLoadoutAppSource),
+    false,
+    'titleLoadoutApplicationService가 run option helper 구현을 직접 소유하면 안 됨',
   );
 
   assert.equal(
@@ -320,6 +513,24 @@ test('scene and progression infrastructure stay decoupled from system internals'
     /mergeUnlockedAccessoryIds|mergeUnlockedWeaponIds/.test(upgradeChoicePoolSource),
     false,
     'upgradeChoicePool이 정적 unlock helper에 의존해 progression DI 경계를 다시 섞고 있음',
+  );
+
+  assert.equal(
+    playerSpawnServiceSource.includes("from '../../domain/play/progression/accessoryEffectRuntime.js'"),
+    true,
+    'playerSpawnApplicationService가 play progression owner의 accessoryEffectRuntime을 사용하지 않음',
+  );
+
+  assert.equal(
+    upgradeSystemSource.includes("from '../../domain/play/progression/synergyRuntime.js'"),
+    true,
+    'UpgradeSystem이 play progression owner의 synergyRuntime을 사용하지 않음',
+  );
+
+  assert.equal(
+    upgradeSystemSource.includes("from '../../domain/play/progression/upgradeChoiceRuntime.js'"),
+    true,
+    'UpgradeSystem이 play progression owner의 upgradeChoiceRuntime을 사용하지 않음',
   );
 
   assert.equal(
@@ -383,6 +594,24 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
+    metaShopAppSource.includes("from '../../domain/meta/metashop/metaShopPurchaseDomain.js'"),
+    true,
+    'metaShopApplicationService가 meta shop purchase domain helper를 사용하지 않음',
+  );
+
+  assert.equal(
+    /findPermanentUpgradeDefinition/.test(metaShopAppSource),
+    false,
+    'metaShopApplicationService가 purchase lookup 구현을 직접 소유하면 안 됨',
+  );
+
+  assert.equal(
+    /purchasePermanentUpgradeAndSave/.test(metaShopPurchaseDomainSource),
+    false,
+    'metaShopPurchaseDomain이 session persistence write helper에 직접 결합하면 안 됨',
+  );
+
+  assert.equal(
     sessionPersistenceServiceSource.includes("from '../../state/session/sessionCommands.js'"),
     true,
     'sessionPersistenceService가 session command 모듈을 직접 사용하지 않음',
@@ -401,15 +630,59 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    settingsQueryServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    settingsQueryServiceSource.includes("from '../session/sessionSnapshotQueryService.js'"),
     true,
-    'settingsQueryService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+    'settingsQueryService가 session owner query service를 재노출하지 않음',
   );
 
   assert.equal(
-    settingsCommandServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    settingsCommandServiceSource.includes("from '../session/sessionSnapshotCommandService.js'"),
     true,
-    'settingsCommandService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+    'settingsCommandService가 session owner command service를 재노출하지 않음',
+  );
+
+  assert.equal(
+    sessionSnapshotQueryServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    true,
+    'sessionSnapshotQueryService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+  );
+
+  assert.equal(
+    sessionSnapshotCommandServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    true,
+    'sessionSnapshotCommandService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+  );
+
+  assert.equal(
+    sessionSnapshotMutationSource.includes("from './sessionRuntimeApplicationService.js'"),
+    true,
+    'sessionSnapshotMutationService가 session runtime application service를 사용하지 않음',
+  );
+
+  [
+    '../src/app/meta/settingsPreviewDiff.js',
+    '../src/app/meta/settingsSessionCodec.js',
+    '../src/app/meta/settingsSessionMutation.js',
+  ].forEach((ref) => {
+    assert.equal(projectPathExists(ref), false, `${ref} legacy settings helper가 아직 남아 있음`);
+  });
+
+  assert.equal(
+    projectPathExists('../src/app/session/sessionSnapshotPreview.js'),
+    true,
+    'session snapshot preview owner helper가 없음',
+  );
+
+  assert.equal(
+    projectPathExists('../src/app/session/sessionSnapshotCodec.js'),
+    true,
+    'session snapshot codec owner helper가 없음',
+  );
+
+  assert.equal(
+    projectPathExists('../src/app/session/sessionSnapshotMutationService.js'),
+    true,
+    'session snapshot mutation owner helper가 없음',
   );
 
   assert.equal(

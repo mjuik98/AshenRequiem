@@ -1,5 +1,5 @@
-import { createSynergyState } from '../../state/createSynergyState.js';
-import { applySynergies } from '../../progression/synergyRuntime.js';
+import { createSynergyState } from '../../domain/play/state/createSynergyState.js';
+import { applySynergies } from '../../domain/play/progression/synergyRuntime.js';
 
 export function createSynergySystem() {
   return {

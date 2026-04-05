@@ -1,40 +1,30 @@
 import { purchasePermanentUpgradeAndSave } from '../session/sessionPersistenceService.js';
-
-function findPermanentUpgradeDefinition(upgradeId, {
-  gameData = null,
-  upgradeData = null,
-} = {}) {
-  const source = upgradeData ?? gameData?.permanentUpgradeData ?? [];
-  return source.find((entry) => entry?.id === upgradeId) ?? null;
-}
+import { resolveMetaShopPurchase } from '../../domain/meta/metashop/metaShopPurchaseDomain.js';
 
 export function purchaseMetaShopUpgrade(session, upgradeId, options = {}) {
-  const definition = findPermanentUpgradeDefinition(upgradeId, options);
-  if (!definition || !session?.meta) {
+  const purchase = resolveMetaShopPurchase({
+    session,
+    upgradeId,
+    ...options,
+  });
+
+  if (!purchase.allowed) {
     return {
       success: false,
-      reason: 'invalid-upgrade',
-      definition: null,
+      reason: purchase.reason,
+      definition: purchase.definition,
+      currentLevel: purchase.currentLevel,
+      cost: purchase.cost,
     };
   }
 
-  const currentLevel = session.meta.permanentUpgrades?.[upgradeId] ?? 0;
-  if (currentLevel >= definition.maxLevel) {
-    return {
-      success: false,
-      reason: 'max-level',
-      definition,
-    };
-  }
-
-  const cost = definition.costPerLevel(currentLevel);
-  const success = purchasePermanentUpgradeAndSave(session, upgradeId, cost);
+  const success = purchasePermanentUpgradeAndSave(session, upgradeId, purchase.cost);
 
   return {
     success,
     reason: success ? null : 'insufficient-currency',
-    cost,
-    currentLevel,
-    definition,
+    cost: purchase.cost,
+    currentLevel: purchase.currentLevel,
+    definition: purchase.definition,
   };
 }

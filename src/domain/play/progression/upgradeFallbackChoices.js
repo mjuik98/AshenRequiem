@@ -1,4 +1,4 @@
-import { weightedPick } from '../utils/random.js';
+import { weightedPick } from '../../../utils/random.js';
 import { getActiveUpgradeData } from './upgradeChoicePool.js';
 
 export function getFallbackUpgradeChoice(excludeIds = [], data = {}, rng) {

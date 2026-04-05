@@ -48,7 +48,7 @@ The goal has moved from MVP to **Phase 2 (Expansion)**: adding Meta-progression,
 | **R-05** | `CollisionSystem` singleton + module-level `_grid` | `createCollisionSystem()` factory |
 | **R-06** | `EnemyMovementSystem` singleton + module-level `_grid` | `createEnemyMovementSystem()` factory |
 | **R-14** | `DeathSystem`이 `services.session.meta.currency` 직접 수정 | `world.events.currencyEarned` 이벤트 발행 → `PipelineBuilder` 핸들러가 수정 |
-| **R-15** | `spawnQueue.push({ type, config })` 리터럴 직접 작성 | `spawnEnemy/Pickup/Effect/Projectile()` 팩토리 함수 사용 (`src/state/spawnRequest.js`) |
+| **R-15** | `spawnQueue.push({ type, config })` 리터럴 직접 작성 | `spawnEnemy/Pickup/Effect/Projectile()` 팩토리 함수 사용 (`src/domain/play/state/spawnRequest.js`) |
 | **R-16** | `isLive/isDead/getLiveEnemies` 세 곳에 분산 구현 | `src/utils/entityUtils.js` 단일 소스. `compact.js`, `weaponBehaviorUtils.js`는 re-export |
 | **R-17** | `Game.js`에서 `validateGameData({ upgradeData, weaponData, waveData })` — import 없이 사용 | `this.gameData`(이미 로드된 데이터) 재사용 |
 | **R-18** | `SynergySystem`이 `synergyData`를 직접 import + DI 이중 접근 | 직접 import 완전 제거. `data.synergyData` DI 강제 |
@@ -108,7 +108,7 @@ UpgradeApplySystem.update() [priority 101]
 spawnQueue.push({ type: 'enemy', config: { enemyId: 'zombie', x, y } });
 
 // 권장 — 팩토리 함수 사용
-import { spawnEnemy, spawnPickup, spawnEffect } from '../../state/spawnRequest.js';
+import { spawnEnemy, spawnPickup, spawnEffect } from '../../domain/play/state/spawnRequest.js';
 spawnQueue.push(spawnEnemy({ enemyId: 'zombie', x, y }));
 ```
 

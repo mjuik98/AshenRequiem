@@ -9,7 +9,7 @@
  * player.bonusProjectileCount 도 합산된다.
  */
 
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
 
 /**

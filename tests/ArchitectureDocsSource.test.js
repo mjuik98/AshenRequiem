@@ -14,7 +14,9 @@ const { test, summary } = createRunner('ArchitectureDocsSource');
 const readmeSource = readProjectSource('../README.md');
 const agentsSource = readProjectSource('../AGENTS.md');
 const architectureSource = readProjectSource('../docs/architecture-current.md');
+const moduleMapSource = readOptionalProjectSource('../docs/module-map.md');
 const maintenanceScriptsSource = readOptionalProjectSource('../docs/maintenance-scripts.md');
+const checkArchitectureDocsSource = readProjectSource('../scripts/checkArchitectureDocs.mjs');
 const packageJson = readProjectJson('../package.json');
 
 function normalizeLineEndings(source) {
@@ -43,6 +45,26 @@ test('current architecture doc includes the generated scene, pipeline, and verif
   assert.equal(normalizedArchitectureSource.includes(normalizeLineEndings(sections.sceneSection)), true, 'architecture-current 문서의 scene section이 생성 스냅샷과 다름');
   assert.equal(normalizedArchitectureSource.includes(normalizeLineEndings(sections.pipelineSection)), true, 'architecture-current 문서의 pipeline section이 생성 스냅샷과 다름');
   assert.equal(normalizedArchitectureSource.includes(normalizeLineEndings(sections.verifySection)), true, 'architecture-current 문서의 verify section이 생성 스냅샷과 다름');
+});
+
+test('module map documents stable owners and deprecated ambiguity zones', () => {
+  assert.equal(moduleMapSource.includes('Module Map'), true, 'module map 문서 헤더가 없음');
+  assert.equal(moduleMapSource.includes('play'), true, 'module map이 play owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('meta'), true, 'module map이 meta owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('catalog'), true, 'module map이 catalog owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('platform'), true, 'module map이 platform owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('shared'), true, 'module map이 shared owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('compat'), true, 'module map이 compat owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('src/progression'), true, 'module map이 deprecated progression ambiguity zone을 기록하지 않음');
+  assert.equal(moduleMapSource.includes('sessionSnapshot'), true, 'module map이 settings session snapshot owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('metaShopPurchaseDomain'), true, 'module map이 meta shop purchase owner를 설명하지 않음');
+  assert.equal(moduleMapSource.includes('compatibility wrapper'), true, 'module map이 compatibility wrapper 정책을 기록하지 않음');
+  assert.equal(architectureSource.includes('docs/module-map.md'), true, 'architecture-current가 module map을 참조하지 않음');
+  assert.equal(architectureSource.includes('sessionSnapshotQueryService.js'), true, 'architecture-current가 settings session snapshot owner를 기록하지 않음');
+  assert.equal(architectureSource.includes('metaShopPurchaseDomain.js'), true, 'architecture-current가 meta shop purchase owner를 기록하지 않음');
+  assert.equal(checkArchitectureDocsSource.includes('module-map.md'), true, 'architecture-doc drift checker가 module map을 검사하지 않음');
+  assert.equal(checkArchitectureDocsSource.includes('sessionSnapshot'), true, 'architecture-doc drift checker가 settings session snapshot owner guidance를 검사하지 않음');
+  assert.equal(checkArchitectureDocsSource.includes('metaShopPurchaseDomain'), true, 'architecture-doc drift checker가 meta shop purchase owner guidance를 검사하지 않음');
 });
 
 test('README links the snapshot workflow and keeps verify command terminology aligned', () => {
@@ -78,6 +100,7 @@ test('compatibility wrapper inventory documents remaining public shims and their
   assert.equal(wrapperSource.includes('src/scenes/play/PlayResultHandler.js'), true, 'PlayResultHandler 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('src/state/session/sessionRepository.js'), true, 'sessionRepository facade 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('src/state/session/sessionStorage.js'), true, 'sessionStorage facade 판정이 문서화되지 않음');
+  assert.equal(wrapperSource.includes('src/state/sessionMeta.js'), true, 'sessionMeta facade 판정이 문서화되지 않음');
   assert.equal(wrapperSource.includes('keep-public-wrapper'), true, 'wrapper disposition taxonomy가 문서화되지 않음');
   assert.equal(wrapperSource.includes('zero-caller'), true, 'dead wrapper 정리 원칙이 문서화되지 않음');
   assert.equal(wrapperSource.includes('## Generated Wrapper Usage Snapshot'), true, 'wrapper inventory에 generated usage snapshot section이 없음');

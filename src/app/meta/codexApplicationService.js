@@ -1,11 +1,8 @@
-import { ensureCodexMeta, reconcileSessionUnlocks } from '../../state/sessionMeta.js';
+import { prepareCodexSessionState } from '../session/codexSessionStateService.js';
 
 export function prepareCodexSceneState({ session, gameData } = {}) {
-  ensureCodexMeta(session);
-  reconcileSessionUnlocks(session);
-
   return {
-    session,
+    session: prepareCodexSessionState(session),
     gameData,
   };
 }

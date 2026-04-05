@@ -2,7 +2,7 @@
 
 Last verified against code: 2026-04-05
 
-이 문서는 현재 코드베이스의 구현 사실을 기록한다. 지속적으로 강제할 설계 규칙은 `AGENTS.md`를 따른다.
+이 문서는 현재 코드베이스의 구현 사실을 기록한다. 지속적으로 강제할 설계 규칙은 `AGENTS.md`를 따르고, 새 코드 배치/owner 판단은 `docs/module-map.md`를 기준으로 한다.
 
 ## Current Product Surface
 
@@ -16,14 +16,18 @@ Last verified against code: 2026-04-05
 - 타이틀의 시작 로드아웃 모달에서는 시작 무기, 시작 장신구, archetype, risk relic, 스테이지, 시드, Ascension 난이도 레벨을 함께 선택한다.
 - 시작 로드아웃 모달은 접힌 `고급 설정` 요약 disclosure를 통해 Ascension/Stage/Archetype 등의 확장 런 옵션을 관리한다.
 - 세션은 `localStorage`의 `ashenRequiem_session` 키에 저장되며, 동일 payload를 backup 슬롯에도 기록한다. primary save가 깨지면 backup으로 복구하고 손상본은 `ashenRequiem_session_corrupt`에 보존한다. 저장소 키/codec는 `src/state/session/*`가 유지하지만, browser-backed 저장/복구/저장소 구현 소유권은 `src/adapters/browser/session/sessionStorageDriver.js`, `sessionRecoveryPolicy.js`, `sessionRepository.js`, `sessionStorage.js`로 이동했다. 기존 `src/state/session/*` 경로는 facade만 유지한다.
+- 세션 메타 기본값/정규화와 unlock progress 보정의 실소유권은 `src/state/session/sessionMetaState.js`, `src/state/session/sessionUnlockState.js`로 이동했다. 기존 `src/state/sessionMeta.js`는 테스트/기존 import 호환용 thin wrapper만 유지한다.
 - 메타 씬(`SettingsScene`, `MetaShopScene`, `CodexScene`)은 세션/콘텐츠 규칙을 직접 조합하지 않고 `src/app/meta/*ApplicationService.js`를 통해 호출한다.
 - 타이틀/플레이 오버레이와 타이틀 하위 서브스크린은 공통 keyboard dialog contract를 공유한다. `src/ui/shared/dialogRuntime.js`가 panel focus, Tab 순환, Escape dismiss, 이전 포커스 복원을 맡고 각 view는 panel selector와 close callback만 주입한다.
 - `StartLoadoutView`, `LevelUpView`, `ResultView`의 interactive runtime은 각각 `startLoadoutViewRuntime.js`, `levelUpViewRuntime.js`, `resultViewRuntime.js`가 delegated listener와 rerender orchestration을 소유한다. view class는 state, markup rerender, dialog lifecycle만 유지한다.
-- 설정 화면은 옵션 저장 외에도 세션 snapshot export/import/reset UX를 제공하며, 실제 직렬화/파싱과 슬롯 inspection/restore는 `src/adapters/browser/session/sessionRepository.js` owner를 통해 수행된다. public orchestration은 `src/app/meta/settingsApplicationService.js`가 유지하되, preview diff / session codec / mutation apply는 `settingsPreviewDiff.js`, `settingsSessionCodec.js`, `settingsSessionMutation.js` helper로 분리됐다.
-- `settingsApplicationService`는 이제 공개 facade만 유지하고, 읽기 책임은 `settingsQueryService.js`, 쓰기 + runtime 반영 책임은 `settingsCommandService.js`가 나눠 가진다.
+- 설정 화면은 옵션 저장 외에도 세션 snapshot export/import/reset UX를 제공하며, 실제 직렬화/파싱과 슬롯 inspection/restore는 `src/adapters/browser/session/sessionRepository.js` owner를 통해 수행된다. public orchestration은 `src/app/meta/settingsApplicationService.js`가 유지하되, 실소유권은 `src/app/session/sessionSnapshotQueryService.js`, `sessionSnapshotCommandService.js`, `sessionSnapshotPreview.js`, `sessionSnapshotCodec.js`, `sessionSnapshotMutationService.js`로 이동했다.
+- `settingsApplicationService`는 공개 facade만 유지하고, `src/app/meta/settingsQueryService.js`, `settingsCommandService.js`는 `src/app/session/*` owner service를 thin re-export한다.
+- codex scene 진입 전 세션 보정 실소유권은 `src/app/session/codexSessionStateService.js`로 이동했다. `src/app/meta/codexApplicationService.js`는 session owner service를 호출해 준비된 `session`과 `gameData`만 scene에 전달한다.
+- meta shop purchase의 검증/비용 계산 실소유권은 `src/domain/meta/metashop/metaShopPurchaseDomain.js`로 이동했다. `src/app/meta/metaShopApplicationService.js`는 injected catalog를 domain helper에 전달하고, 성공 시에만 `sessionPersistenceService`를 통해 저장을 조합한다.
 - `SettingsView`와 `MetaShopView`의 interactive runtime은 각각 `settingsViewRuntime.js`, `metaShopViewRuntime.js`가 root-level delegated listener로 소유한다. view class는 dialog lifecycle과 state만 유지하고, shell/section partial update는 `settingsViewRenderState.js`, `metaShopViewRenderState.js`가 담당한다.
 - 세션 저장소 경계는 이제 primary/backup/corrupt 슬롯 inspection과 backup restore helper까지 제공한다. Settings 데이터 탭은 이 저장소 요약과 import preview diff를 호출해 운영 중 복구 UX를 제공한다.
 - 플레이 시작 조립은 `src/app/play/startRunApplicationService.js`가 world 생성, player spawn state 해석, 영구 업그레이드 적용, 런 초기화, run-start event 큐잉을 한 경로로 수행한다. 런 초기화와 run-start event 큐잉의 세부 helper 소유권은 `src/app/play/runSessionStateService.js`에 있다.
+- gameplay spawn request helper와 synergy tracking state의 실소유권은 `src/domain/play/state/spawnRequest.js`, `src/domain/play/state/createSynergyState.js`로 이동했다. `src/state/*` 루트에는 이 helper를 더 두지 않는다.
 - 플레이 런타임은 `EncounterDirectorSystem`이 stage encounter timeline과 boss schedule을 읽어 `world.run.encounterState`를 갱신하고, `SpawnSystem`/`StageRuntimeSystem`/HUD가 이를 소비한다.
 - 런 시작 시 guidance snapshot은 `src/domain/play/encounter/runGuidanceDomain.js`가 계산하고 `startRunApplicationService`가 `world.run.guidance.primaryObjective`로 주입한다.
 - 런 guidance snapshot은 이제 `primaryObjective`, `stageDirective`뿐 아니라 시작 무기 기반 `recommendedBuild` 경로와 rationale 배열도 함께 계산한다. 레벨업 오버레이는 이 guidance를 읽어 추천 무기/장신구/진화 카드에 전용 priority hint를 붙인다.
@@ -105,12 +109,12 @@ Detected top-level scene modules in `src/scenes/`:
 - 시작 무기 후보/선택 해석 facade는 `src/domain/meta/loadout/startLoadoutDomain.js`가 유지하되, 내부 책임은 `startLoadoutCatalog.js`, `startLoadoutUnlocks.js`, `startLoadoutSelection.js`, `startLoadoutPlayerStart.js`, `startLoadoutPresentation.js`로 분리됐다. `src/state/startLoadoutRuntime.js`는 호환 re-export 경로를 유지한다. 실제 플레이어 스폰 패키지 조립은 `src/app/play/playerSpawnApplicationService.js`의 `resolvePlayerSpawnState()`가 담당한다.
 - 시작 무기 선택 저장은 `setSelectedStartWeaponAndSave(..., gameData)`가 내부 정규화 후 `{ saved, selectedWeaponId }` 결과와 함께 수행한다.
 - Ascension 선택 저장은 `setSelectedAscensionAndSave(session, level)`가 담당하며, 런 시작 시 `world.run.ascensionLevel` / `world.run.ascension` snapshot으로 주입된다.
-- 타이틀 시작 무기 선택 UI는 `buildTitleLoadoutConfig()`의 `canStart` 상태를 받아, 후보가 없으면 시작 버튼을 비활성화한다. 실제 저장과 PlayScene 생성 orchestration은 `src/app/title/titleLoadoutApplicationService.js`가 담당한다.
+- 타이틀 시작 무기 선택 UI는 `buildTitleLoadoutConfig()`의 `canStart` 상태를 받아, 후보가 없으면 시작 버튼을 비활성화한다. 실제 저장과 PlayScene 생성 orchestration은 `src/app/title/titleLoadoutApplicationService.js`가 담당하되, 입력 정규화/세션 commit/result shaping 구현은 `titleRunOptions.js`, `titleRunSelectionCommit.js`, `titleRunResult.js` helper로 분리됐다.
 - `TitleScene`는 `titleSceneRuntimeState.js`가 만든 runtime state 객체를 소유한다. `titleSceneRuntime`, `titleSceneNavigation`, `titleSceneInput`, `titleLoadoutFlow`는 이 명시 state를 통해 DOM/background/loadout/nav/listener를 읽고 쓴다. 타이틀 shell DOM 자체는 `titleSceneShell.js`가 재사용 가능한 root + cached refs(`canvas`, `flash`, `live`)로 유지한다.
 - 플레이어 영구 업그레이드 카탈로그와 적용 로직은 `permanentUpgradeCatalog.js`, `permanentUpgradeApplicator.js`로 분해되고, `permanentUpgradeData.js`는 lookup/apply facade만 유지한다. applicator는 최종 무기 데미지와 HP 보정까지 단일 경로로 담당한다.
 - 런 world runtime slice는 `replayTrace`, `replayFrame`, `maxReplaySamples`를 유지한다. `GameApp.tick()`이 최근 입력 snapshot을 ring buffer로 기록해 runtime debug snapshot과 authoring overlay가 이를 소비한다.
-- 해금 진행은 `computeUnlockProgress()` / `applyUnlockProgress()`로 분리되고, 기본 `unlockData` 결합은 `src/state/unlockProgressFacade.js`가 담당한다.
-- 순수 진행 로직(`unlockEvaluator`, `unlockProgressRuntime`, `upgradeChoiceRuntime`, `synergyRuntime`)은 `src/progression/`에 두고 scene/system 양쪽에서 공유한다. 레벨업 오버레이 orchestration은 `src/app/play/levelUpFlowService.js`가 직접 소유하고, zero-caller legacy wrapper는 제거됐다.
+- 해금 진행은 `computeUnlockProgress()` / `applyUnlockProgress()`로 분리되고, 실소유권은 `src/domain/meta/progression/unlockProgressRuntime.js`, `unlockEvaluator.js`에 있다. 기본 `unlockData` 결합만 `src/state/unlockProgressFacade.js`가 담당한다.
+- gameplay progression helper(`accessoryEffectRuntime`, `synergyRuntime`, `upgradeChoicePool`, `upgradeChoiceRuntime`, `upgradeFallbackChoices`)의 실소유권은 `src/domain/play/progression/`로 이동했다. 레벨업 오버레이 orchestration은 `src/app/play/levelUpFlowService.js`가 직접 소유한다.
 - 월드 상태 생성은 `src/domain/play/state/createPlayWorld.js`가 소유하고, `src/state/createWorld.js`는 호환 re-export 경로를 유지한다. 런타임 소유권은 `entities`, `queues`, `presentation`, `runtime`, `run`, `progression` 하위 상태로 고정되며 production world에는 기존 top-level alias를 더 이상 두지 않는다.
 - gameplay nondeterministic RNG bootstrap은 `createPlayWorld()`가 `createMathRng()`를 통해 명시적으로 주입한다. 공용 `createRng()`는 더 이상 암묵적 `Math.random()` 기본값을 갖지 않는다.
 - 플레이 이벤트 SSOT는 `src/data/constants/eventContracts.js`이며, `src/data/constants/events.js`는 여기서 파생된 `EVENT_TYPES`와 contract 조회 API만 재노출한다.

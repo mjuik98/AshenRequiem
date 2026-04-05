@@ -1,4 +1,5 @@
-import { createDefaultSessionMeta, reconcileSessionUnlocks } from '../sessionMeta.js';
+import { createDefaultSessionMeta } from './sessionMetaState.js';
+import { reconcileSessionUnlocks } from './sessionUnlockState.js';
 import {
   SESSION_OPTION_DEFAULTS,
   normalizeSessionOptions,

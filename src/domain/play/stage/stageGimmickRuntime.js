@@ -1,4 +1,4 @@
-import { spawnEffect, spawnEnemy, spawnPickup, spawnProjectile } from '../../../state/spawnRequest.js';
+import { spawnEffect, spawnEnemy, spawnPickup, spawnProjectile } from '../state/spawnRequest.js';
 import { nextFloat } from '../../../utils/random.js';
 
 export function queueStageEvent(world, gimmick = {}) {

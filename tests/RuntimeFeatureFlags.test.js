@@ -52,6 +52,8 @@ test('runtime flag consumers delegate global/query parsing to the shared adapter
   const playSceneRuntimeSource = readProjectSource('../src/scenes/play/playSceneRuntime.js');
   const gameInputRuntimeSource = readProjectSource('../src/adapters/browser/gameInputRuntime.js');
   const runtimeLoggerSource = readProjectSource('../src/utils/runtimeLogger.js');
+  const runtimeLoggerPolicySource = readProjectSource('../src/adapters/browser/runtimeLoggerPolicy.js');
+  const bootstrapSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
   const runtimeDebugSurfaceSource = readProjectSource('../src/adapters/browser/runtimeHooks/runtimeDebugSurface.js');
   const runtimeFeatureFlagsSource = readProjectSource('../src/adapters/browser/runtimeFeatureFlags.js');
   const coreRuntimeFeatureFlagsSource = readProjectSource('../src/core/runtimeFeatureFlags.js');
@@ -60,8 +62,10 @@ test('runtime flag consumers delegate global/query parsing to the shared adapter
   assert.equal(playSceneRuntimeSource.includes("from '../../adapters/browser/runtimeEnv.js'"), false, 'playSceneRuntime이 query parsing을 직접 runtimeEnv에 위임하면 안 됨');
   assert.equal(gameInputRuntimeSource.includes("from './runtimeFeatureFlags.js'"), true, 'gameInputRuntime이 shared runtime flag helper를 사용하지 않음');
   assert.equal(gameInputRuntimeSource.includes('new URLSearchParams('), false, 'gameInputRuntime에 query parsing 구현이 남아 있음');
-  assert.equal(runtimeLoggerSource.includes("from '../adapters/browser/runtimeFeatureFlags.js'"), true, 'runtimeLogger가 adapter-owned runtime flag helper를 사용하지 않음');
+  assert.equal(runtimeLoggerSource.includes("from '../adapters/browser/runtimeFeatureFlags.js'"), false, 'runtimeLogger가 browser runtime flag helper를 직접 import하면 안 됨');
   assert.equal(runtimeLoggerSource.includes('__ASHEN_RUNTIME_DEBUG__'), false, 'runtimeLogger가 runtime debug 전역 플래그를 직접 해석하면 안 됨');
+  assert.equal(runtimeLoggerPolicySource.includes("from './runtimeFeatureFlags.js'"), true, 'runtimeLoggerPolicy가 shared runtime flag adapter를 사용하지 않음');
+  assert.equal(bootstrapSource.includes("from '../../adapters/browser/runtimeLoggerPolicy.js'"), true, 'bootstrap이 browser runtime logger policy wiring을 소유하지 않음');
   assert.equal(runtimeDebugSurfaceSource.includes("from '../runtimeFeatureFlags.js'"), true, 'runtimeDebugSurface가 shared runtime flag adapter를 사용하지 않음');
   assert.equal(runtimeDebugSurfaceSource.includes("from '../runtimeEnv.js'"), false, 'runtimeDebugSurface가 runtimeEnv query helper를 직접 사용하면 안 됨');
   assert.equal(runtimeFeatureFlagsSource.includes("from '../../core/runtimeFeatureFlags.js'"), false, 'browser runtime flag adapter가 core wrapper를 다시 import하면 안 됨');

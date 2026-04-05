@@ -20,7 +20,7 @@
  *   ({ weapon, player, enemies, spawnQueue, events? }) => boolean
  */
 
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
 
 /**

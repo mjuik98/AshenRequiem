@@ -1,5 +1,5 @@
 import { transitionPlayMode, PlayMode } from '../../state/PlayMode.js';
-import { replaceUpgradeChoiceAtIndex } from '../../progression/upgradeChoiceRuntime.js';
+import { replaceUpgradeChoiceAtIndex } from '../../domain/play/progression/upgradeChoiceRuntime.js';
 
 export function resumeFromLevelUp(world, transition = transitionPlayMode) {
   if (!world) return false;

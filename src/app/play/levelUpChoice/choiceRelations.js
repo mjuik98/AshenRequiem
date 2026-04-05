@@ -1,4 +1,4 @@
-import { hasSynergyRelation } from '../../../progression/synergyRuntime.js';
+import { hasSynergyRelation } from '../../../domain/play/progression/synergyRuntime.js';
 
 export function hasEvolutionRelation(choice, player, data) {
   const recipes = data?.weaponEvolutionData ?? [];

@@ -35,6 +35,11 @@ function createSoundRuntime({
   return soundSystem;
 }
 
+function defaultNowMs() {
+  const value = globalThis?.performance?.now?.();
+  return Number.isFinite(value) ? value : Date.now();
+}
+
 export function createPlayContextRuntimeState({
   canvas,
   renderer = null,
@@ -44,9 +49,11 @@ export function createPlayContextRuntimeState({
   session = null,
   registerEventHandlersImpl = null,
   nowSeconds = () => 0,
+  nowMs = defaultNowMs,
   createAudioContext = () => null,
   createSoundSystemImpl,
   createNullSoundSystemImpl,
+  createProfilerImpl = (options) => new PipelineProfiler(options),
 } = {}) {
   const sizes = { ...DEFAULT_PLAY_CONTEXT_POOL_SIZES, ...poolSizes };
 
@@ -63,10 +70,11 @@ export function createPlayContextRuntimeState({
       createNullSoundSystemImpl,
     }),
     eventRegistry: new EventRegistry(),
-    profiler: profilingEnabled ? new PipelineProfiler() : null,
+    profiler: profilingEnabled ? createProfilerImpl({ getNowMs: nowMs }) : null,
     canvas,
     renderer,
     nowSeconds,
+    nowMs,
     session,
     registerEventHandlersImpl,
     bossAnnouncementView: null,

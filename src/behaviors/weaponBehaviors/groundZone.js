@@ -1,4 +1,4 @@
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 import { findClosestEnemy, getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
 
 export function groundZone({ weapon, player, enemies, spawnQueue }) {

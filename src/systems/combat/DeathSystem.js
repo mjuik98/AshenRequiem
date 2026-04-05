@@ -8,7 +8,7 @@
  */
 import { EFFECT_DEFAULTS }                      from '../../data/constants.js';
 import { transitionPlayMode, PlayMode }          from '../../state/PlayMode.js';
-import { spawnPickup, spawnEffect, spawnEnemy }  from '../../state/spawnRequest.js';
+import { spawnPickup, spawnEffect, spawnEnemy }  from '../../domain/play/state/spawnRequest.js';
 import { getPropDropTableById }                  from '../../data/propDropData.js';
 import { nextFloat, randomRange, weightedPick }  from '../../utils/random.js';
 

@@ -2,9 +2,9 @@ import {
   getAccessoryDef,
   getNextProgression,
   getWeaponDef,
-} from '../../progression/upgradeChoicePool.js';
-export { applyAccessoryEffects } from '../../progression/accessoryEffectRuntime.js';
-import { applyAccessoryEffects } from '../../progression/accessoryEffectRuntime.js';
+} from '../../domain/play/progression/upgradeChoicePool.js';
+export { applyAccessoryEffects } from '../../domain/play/progression/accessoryEffectRuntime.js';
+import { applyAccessoryEffects } from '../../domain/play/progression/accessoryEffectRuntime.js';
 
 export function applyUpgradeRuntime(player, upgrade, data = {}) {
   if (upgrade.type === 'weapon_new') {

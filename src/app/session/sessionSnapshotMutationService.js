@@ -1,6 +1,6 @@
-import { applySessionOptionsToRuntime } from '../session/sessionRuntimeApplicationService.js';
-import { persistSession } from '../session/sessionPersistenceService.js';
-import { replaceSessionState } from './settingsSessionCodec.js';
+import { applySessionOptionsToRuntime } from './sessionRuntimeApplicationService.js';
+import { persistSession } from './sessionPersistenceService.js';
+import { replaceSessionState } from './sessionSnapshotCodec.js';
 
 export function applySessionStateMutation({
   session,

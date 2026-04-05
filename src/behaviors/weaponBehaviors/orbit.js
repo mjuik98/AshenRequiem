@@ -10,7 +10,7 @@
  *   출력: spawnQueue에 orbit 타입 투사체 요청 추가
  */
 
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
 
 /**

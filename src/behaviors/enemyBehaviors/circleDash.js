@@ -24,7 +24,7 @@
  */
 
 import { ELITE_BEHAVIOR } from '../../data/constants.js';
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 
 const ORBIT_ANGULAR_SPEED = 1.2;   // rad/s
 const ORBIT_RADIUS        = 140;   // px

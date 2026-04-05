@@ -7,14 +7,14 @@
  *   - stat_heal은 무기/장신구 후보가 없을 때만 폴백으로 등장
  */
 import { applyUpgradeRuntime } from './upgradeApplyRuntime.js';
-import { applySynergies } from '../../progression/synergyRuntime.js';
+import { applySynergies } from '../../domain/play/progression/synergyRuntime.js';
 import {
   buildAvailableUpgradePool,
   fillUpgradeFallbackChoices,
   generateUpgradeChoices,
   getFallbackUpgradeChoice,
   replaceUpgradeChoiceAtIndex,
-} from '../../progression/upgradeChoiceRuntime.js';
+} from '../../domain/play/progression/upgradeChoiceRuntime.js';
 
 export const UpgradeSystem = {
 

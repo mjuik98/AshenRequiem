@@ -91,4 +91,23 @@ test('createPlayContextRuntimeState는 주입된 runtime service를 sound runtim
   ]);
 });
 
+test('createPlayContextRuntimeState는 profiler clock을 주입형 seam으로 생성한다', () => {
+  const { createPlayContextRuntimeState } = getRuntimeApi();
+  const calls = [];
+  const profiler = { wrap() {} };
+  const nowMs = () => 456;
+
+  const state = createPlayContextRuntimeState({
+    profilingEnabled: true,
+    nowMs,
+    createProfilerImpl(options) {
+      calls.push(options);
+      return profiler;
+    },
+  });
+
+  assert.equal(state.profiler, profiler, '주입된 profiler factory 결과를 사용하지 않음');
+  assert.deepEqual(calls, [{ getNowMs: nowMs }], 'profiler factory가 injected nowMs seam을 전달받지 못함');
+});
+
 summary();

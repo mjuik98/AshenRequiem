@@ -2,7 +2,7 @@ import { unlockData } from '../data/unlockData.js';
 import {
   applyUnlockProgress,
   computeUnlockProgress,
-} from '../progression/unlockProgressRuntime.js';
+} from '../domain/meta/progression/unlockProgressRuntime.js';
 
 export function computeSessionUnlockProgress(session, runResult, unlockEntries = unlockData) {
   return computeUnlockProgress(session, runResult, unlockEntries);

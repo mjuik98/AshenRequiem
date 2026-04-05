@@ -8,8 +8,8 @@ let unlockProgressRuntime;
 
 try {
   ({ unlockData } = await import('../src/data/unlockData.js'));
-  ({ evaluateUnlocks } = await import('../src/progression/unlockEvaluator.js'));
-  unlockProgressRuntime = await import('../src/progression/unlockProgressRuntime.js');
+  ({ evaluateUnlocks } = await import('../src/domain/meta/progression/unlockEvaluator.js'));
+  unlockProgressRuntime = await import('../src/domain/meta/progression/unlockProgressRuntime.js');
 } catch (e) {
   console.warn('[테스트] unlock evaluator import 실패:', e.message);
 }

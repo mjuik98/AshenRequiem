@@ -9,6 +9,7 @@ export default [
         patterns: [
           '**/state/createWorld.js',
           '**/state/startLoadoutRuntime.js',
+          '**/state/sessionMeta.js',
           '**/state/session/sessionStorageDriver.js',
           '**/state/session/sessionRecoveryPolicy.js',
           '**/state/session/sessionRepository.js',
@@ -112,6 +113,30 @@ export default [
     },
   },
   {
+    files: ['src/app/meta/settingsQueryService.js', 'src/app/meta/settingsCommandService.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
+    files: [
+      'src/app/session/sessionSnapshotPreview.js',
+      'src/app/session/sessionSnapshotCodec.js',
+      'src/app/session/sessionSnapshotMutationService.js',
+    ],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
     files: ['src/domain/meta/progression/playResultDomain.js'],
     rules: {
       'no-restricted-imports': ['error', {
@@ -142,7 +167,27 @@ export default [
     },
   },
   {
+    files: ['src/systems/debug/PipelineProfiler.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
     files: ['src/core/playContextRuntime.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/utils/runtimeLogger.js'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [

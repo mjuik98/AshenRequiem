@@ -1,4 +1,4 @@
-import { ensureCodexMeta } from '../../../state/sessionMeta.js';
+import { ensureCodexMeta } from '../../../state/session/sessionMetaState.js';
 
 export function registerCodexHandlers(session, registry) {
   if (!session || !registry) return;

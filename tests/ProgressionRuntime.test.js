@@ -14,7 +14,7 @@ try {
     rerollLevelUpChoice,
     banishLevelUpChoice,
   } = await import('../src/app/play/levelUpFlowService.js'));
-  ({ applySynergies } = await import('../src/progression/synergyRuntime.js'));
+  ({ applySynergies } = await import('../src/domain/play/progression/synergyRuntime.js'));
 } catch (e) {
   console.warn('[테스트] progression runtime import 실패:', e.message);
 }

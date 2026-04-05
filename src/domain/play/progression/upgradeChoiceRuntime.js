@@ -1,4 +1,4 @@
-import { shuffle } from '../utils/random.js';
+import { shuffle } from '../../../utils/random.js';
 import {
   buildEvolutionChoicePool,
   buildUpgradeChoicePool,

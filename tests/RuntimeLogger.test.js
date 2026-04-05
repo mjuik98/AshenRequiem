@@ -28,6 +28,8 @@ test('runtime logger helper exposes info/debug gating helpers', () => {
   assert.equal(typeof api.logRuntimeInfo, 'function', 'logRuntimeInfo helper가 없음');
   assert.equal(typeof api.logRuntimeWarn, 'function', 'logRuntimeWarn helper가 없음');
   assert.equal(typeof api.logRuntimeError, 'function', 'logRuntimeError helper가 없음');
+  assert.equal(typeof api.setRuntimeDebugEnabledResolver, 'function', 'runtime logger debug resolver setter가 없음');
+  assert.equal(typeof api.resetRuntimeDebugEnabledResolver, 'function', 'runtime logger debug resolver reset helper가 없음');
 });
 
 test('runtime info logs are routed through shared logger helpers', () => {
@@ -55,6 +57,19 @@ test('runtime info logs are routed through shared logger helpers', () => {
   assert.equal(settingsSceneSource.includes('logRuntimeError('), true, 'SettingsScene이 shared runtime error logger를 사용하지 않음');
   assert.equal(metaShopSceneSource.includes('logRuntimeError('), true, 'MetaShopScene이 shared runtime error logger를 사용하지 않음');
   assert.equal(codexSceneSource.includes('logRuntimeError('), true, 'CodexScene이 shared runtime error logger를 사용하지 않음');
+});
+
+test('runtime logger browser policy wiring is owned by bootstrap/browser modules', () => {
+  const runtimeLoggerSource = readProjectSource('../src/utils/runtimeLogger.js');
+  const runtimeLoggerPolicySource = readProjectSource('../src/adapters/browser/runtimeLoggerPolicy.js');
+  const bootstrapSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
+
+  assert.equal(runtimeLoggerSource.includes("from '../adapters/browser/runtimeFeatureFlags.js'"), false, 'runtimeLogger가 browser runtime flag adapter를 직접 import하면 안 됨');
+  assert.equal(runtimeLoggerSource.includes('setRuntimeDebugEnabledResolver'), true, 'runtimeLogger가 debug resolver setter를 제공하지 않음');
+  assert.equal(runtimeLoggerSource.includes('resetRuntimeDebugEnabledResolver'), true, 'runtimeLogger가 debug resolver reset helper를 제공하지 않음');
+  assert.equal(runtimeLoggerPolicySource.includes("from './runtimeFeatureFlags.js'"), true, 'browser runtime logger policy helper가 runtimeFeatureFlags owner를 사용하지 않음');
+  assert.equal(runtimeLoggerPolicySource.includes("from '../../utils/runtimeLogger.js'"), true, 'browser runtime logger policy helper가 shared runtime logger facade를 연결하지 않음');
+  assert.equal(bootstrapSource.includes("from '../../adapters/browser/runtimeLoggerPolicy.js'"), true, 'bootstrap이 browser runtime logger policy wiring을 소유하지 않음');
 });
 
 summary();

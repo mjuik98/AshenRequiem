@@ -10,7 +10,7 @@
  *   - shootTimer 종료 시 : 플레이어 방향으로 투사체 발사 (projectileConfig 필요)
  */
 
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 import { nextFloat } from '../../utils/random.js';
 
 const MIN_DIST    = 180;   // 이 거리 이내면 후퇴

@@ -7,7 +7,7 @@ import {
   resolveSelectedStartAccessoryId,
   resolveSelectedStartWeaponId,
 } from '../../domain/meta/loadout/startLoadoutDomain.js';
-import { ensureCodexMeta } from '../../state/sessionMeta.js';
+import { ensureCodexMeta } from '../../state/session/sessionMetaState.js';
 import { persistSession } from './sessionPersistenceService.js';
 
 function resolveSelectedStartWeaponSaveResult(session, weaponId, gameData = {}) {

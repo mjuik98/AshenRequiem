@@ -19,6 +19,7 @@ export class PlayContext {
     poolSizes        = {},
     session          = null,
     registerEventHandlersImpl = null,
+    nowMs            = undefined,
     nowSeconds       = undefined,
     createAudioContext = undefined,
   } = {}) {
@@ -31,6 +32,7 @@ export class PlayContext {
       poolSizes,
       session,
       registerEventHandlersImpl,
+      ...(nowMs ? { nowMs } : {}),
       ...(nowSeconds ? { nowSeconds } : {}),
       ...(createAudioContext ? { createAudioContext } : {}),
     }));

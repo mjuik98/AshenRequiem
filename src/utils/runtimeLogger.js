@@ -1,11 +1,21 @@
-import { isRuntimeDebugScopeEnabled } from '../adapters/browser/runtimeFeatureFlags.js';
-
 function formatRuntimeScope(scope, message) {
   return `[${scope}] ${message}`;
 }
 
+let runtimeDebugEnabledResolver = () => false;
+
+export function setRuntimeDebugEnabledResolver(resolver = null) {
+  runtimeDebugEnabledResolver = typeof resolver === 'function'
+    ? resolver
+    : () => false;
+}
+
+export function resetRuntimeDebugEnabledResolver() {
+  runtimeDebugEnabledResolver = () => false;
+}
+
 export function isRuntimeDebugEnabled(scope = '', host = globalThis) {
-  return isRuntimeDebugScopeEnabled(scope, host);
+  return Boolean(runtimeDebugEnabledResolver(scope, host));
 }
 
 export function logRuntimeInfo(scope, message, ...args) {

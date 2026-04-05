@@ -13,6 +13,7 @@ Disposition taxonomy:
 - generated usage snapshot에서 `internalCallers = 0`인 zero-caller wrapper는 더 이상 inventory에 남겨두지 않는다.
 - 2026-03-30 runtime realignment에서는 `src/core/PlayRuntimeBuilder.js`를 compatibility wrapper로 늘리지 않았다. 이 파일은 여전히 internal pure helper이며, concrete scene/UI wiring은 `src/scenes/play/playRuntimeComposer.js`가 소유한다.
 - 2026-04-05 session storage realignment에서는 browser-backed session storage 구현을 `src/adapters/browser/session/*`로 이동했다. `src/state/session/sessionStorageDriver.js`, `sessionRecoveryPolicy.js`, `sessionRepository.js`, `sessionStorage.js`는 테스트/기존 import 호환용 thin re-export만 유지한다.
+- 2026-04-05 session meta realignment에서는 세션 메타 기본값/정규화와 unlock progress 보정을 `src/state/session/sessionMetaState.js`, `sessionUnlockState.js`로 이동했다. `src/state/sessionMeta.js`는 테스트/기존 import 호환용 thin re-export만 유지한다.
 
 | Path | Role | Disposition | Notes |
 |---|---|---|---|
@@ -26,6 +27,7 @@ Disposition taxonomy:
 | `src/scenes/play/PlayResultHandler.js` | `playResultApplicationService` class facade | `keep-public-wrapper` | 테스트/기존 import 호환 경로. `createPlayResultHandler()` / `processPlayResult()` thin helper export 제공 |
 | `src/state/createWorld.js` | `createPlayWorld` re-export | `keep-public-wrapper` | 내부 import 금지, domain 경로가 SSOT. 일부 source test 호환이 남아 있음 |
 | `src/state/startLoadoutRuntime.js` | start loadout domain re-export | `keep-public-wrapper` | title/start loadout 공개 경로 호환. 일부 테스트 import가 남아 있음 |
+| `src/state/sessionMeta.js` | session meta facade | `keep-public-wrapper` | 실제 구현은 `src/state/session/sessionMetaState.js`, `sessionUnlockState.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/state/session/sessionStorageDriver.js` | browser session storage driver facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/session/sessionStorageDriver.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/state/session/sessionRecoveryPolicy.js` | browser session recovery facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/session/sessionRecoveryPolicy.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/state/session/sessionRepository.js` | browser session repository facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/session/sessionRepository.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
@@ -50,6 +52,7 @@ Disposition taxonomy:
 | `src/scenes/play/PlayResultHandler.js` | 2 | 0 | 2 | 0 |
 | `src/state/createWorld.js` | 1 | 0 | 1 | 0 |
 | `src/state/startLoadoutRuntime.js` | 2 | 0 | 2 | 0 |
+| `src/state/sessionMeta.js` | 1 | 0 | 1 | 0 |
 | `src/state/session/sessionStorageDriver.js` | 1 | 0 | 1 | 0 |
 | `src/state/session/sessionRecoveryPolicy.js` | 2 | 0 | 2 | 0 |
 | `src/state/session/sessionRepository.js` | 1 | 0 | 1 | 0 |
@@ -67,6 +70,7 @@ Disposition taxonomy:
 - `src/scenes/play/PlayResultHandler.js`: `tests/PlayResultHandler.test.js`, `tests/SceneInfrastructureSource.test.js`
 - `src/state/createWorld.js`: `tests/ProfileSource.test.js`
 - `src/state/startLoadoutRuntime.js`: `tests/StartLoadoutRuntime.test.js`, `tests/TitleLoadout.test.js`
+- `src/state/sessionMeta.js`: `tests/SessionMeta.test.js`
 - `src/state/session/sessionStorageDriver.js`: `tests/SessionModules.test.js`
 - `src/state/session/sessionRecoveryPolicy.js`: `tests/SessionModules.test.js`, `tests/UiStructureSource.test.js`
 - `src/state/session/sessionRepository.js`: `tests/SessionRepository.test.js`

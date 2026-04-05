@@ -8,6 +8,23 @@ const { test, summary } = createRunner('TitleAndPlayApplicationServices');
 
 test('title loadout application service는 시작 무기 저장과 씬 생성을 함께 조립한다', async () => {
   const { startTitleRun, createTitleLoadoutApplicationService } = await import('../src/app/title/titleLoadoutApplicationService.js');
+  const titleLoadoutAppSource = await import('./helpers/sourceInspection.js').then(({ readProjectSource }) => readProjectSource('../src/app/title/titleLoadoutApplicationService.js'));
+
+  assert.equal(
+    titleLoadoutAppSource.includes("from './titleRunOptions.js'"),
+    true,
+    'titleLoadoutApplicationService가 run option helper를 사용하지 않음',
+  );
+  assert.equal(
+    titleLoadoutAppSource.includes("from './titleRunSelectionCommit.js'"),
+    true,
+    'titleLoadoutApplicationService가 commit helper를 사용하지 않음',
+  );
+  assert.equal(
+    titleLoadoutAppSource.includes("from './titleRunResult.js'"),
+    true,
+    'titleLoadoutApplicationService가 result helper를 사용하지 않음',
+  );
 
   const game = {
     session: makeSessionState(),
@@ -76,6 +93,61 @@ test('title loadout application service는 시작 무기 저장과 씬 생성을
   const result = service.startRun('magic_bolt');
   assert.equal(result.saved, false, 'service.startRun이 commit 결과를 그대로 전달하지 않음');
   assert.equal(result.nextScene, null, '저장 실패 시 nextScene이 생성되면 안 됨');
+});
+
+test('title loadout helpers는 run option normalization과 result shaping을 분리한다', async () => {
+  const { normalizeTitleRunOptions, extractTitleRunDeps } = await import('../src/app/title/titleRunOptions.js');
+  const { buildTitleRunResult } = await import('../src/app/title/titleRunResult.js');
+
+  const normalized = normalizeTitleRunOptions({
+    ascensionLevel: 3,
+    startAccessoryId: 'ring_of_speed',
+    archetypeId: 'spellweaver',
+    riskRelicId: 'glass_censer',
+    stageId: 'ember_hollow',
+    seedMode: 'custom',
+    seedText: 'ashen-seed',
+  });
+  assert.deepEqual(normalized, {
+    ascensionLevel: 3,
+    startAccessoryId: 'ring_of_speed',
+    archetypeId: 'spellweaver',
+    riskRelicId: 'glass_censer',
+    stageId: 'ember_hollow',
+    seedMode: 'custom',
+    seedText: 'ashen-seed',
+  });
+
+  const deps = extractTitleRunDeps({
+    commitSelectionImpl: () => 'commit',
+    createPlaySceneImpl: () => 'scene',
+  }, {
+    commitSelectionImpl: () => 'fallback-commit',
+    createPlaySceneImpl: () => 'fallback-scene',
+  });
+  assert.equal(typeof deps.commitSelectionImpl, 'function');
+  assert.equal(typeof deps.createPlaySceneImpl, 'function');
+
+  const built = buildTitleRunResult({
+    saved: true,
+    saveResult: {
+      selectedWeaponId: 'magic_bolt',
+      selectedAscensionLevel: 3,
+      selectedStageId: 'ember_hollow',
+      selectedSeedMode: 'custom',
+      selectedSeedText: 'ashen-seed',
+    },
+    nextScene: { id: 'play-scene' },
+  });
+  assert.deepEqual(built, {
+    saved: true,
+    selectedWeaponId: 'magic_bolt',
+    selectedAscensionLevel: 3,
+    selectedStageId: 'ember_hollow',
+    selectedSeedMode: 'custom',
+    selectedSeedText: 'ashen-seed',
+    nextScene: { id: 'play-scene' },
+  });
 });
 
 test('play result application service는 세션 기준 runtime snapshot을 캡처해 결과 처리를 수행한다', async () => {

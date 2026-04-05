@@ -4,20 +4,21 @@ import fs from 'node:fs';
 import { ROOT_DIR, collectSourceImports, walkFiles, toProjectRelative } from './importGraph.mjs';
 
 export const SHIM_IMPORT_PATTERNS = [
-  'state/createWorld.js',
-  'state/startLoadoutRuntime.js',
-  'state/session/sessionStorageDriver.js',
-  'state/session/sessionRecoveryPolicy.js',
-  'state/session/sessionRepository.js',
-  'state/session/sessionStorage.js',
-  'core/Game.js',
-  'core/gameRuntime.js',
-  'core/gameInputRuntime.js',
-  'core/gameCanvasRuntime.js',
-  'core/runtimeHost.js',
-  'core/runtimeFeatureFlags.js',
-  'core/runtimeHooks.js',
-  'scenes/play/PlayResultHandler.js',
+  'src/state/createWorld.js',
+  'src/state/startLoadoutRuntime.js',
+  'src/state/sessionMeta.js',
+  'src/state/session/sessionStorageDriver.js',
+  'src/state/session/sessionRecoveryPolicy.js',
+  'src/state/session/sessionRepository.js',
+  'src/state/session/sessionStorage.js',
+  'src/core/Game.js',
+  'src/core/gameRuntime.js',
+  'src/core/gameInputRuntime.js',
+  'src/core/gameCanvasRuntime.js',
+  'src/core/runtimeHost.js',
+  'src/core/runtimeFeatureFlags.js',
+  'src/core/runtimeHooks.js',
+  'src/scenes/play/PlayResultHandler.js',
 ];
 
 const ALLOWED_SHIM_IMPORTS = new Set([
@@ -34,7 +35,14 @@ const DOMAIN_FORBIDDEN_SEGMENTS = [
 const PLAY_RESULT_DOMAIN_PATH = 'src/domain/meta/progression/playResultDomain.js';
 const RENDER_SYSTEM_PATH = 'src/systems/render/RenderSystem.js';
 const SOUND_SFX_CONTROLLER_PATH = 'src/systems/sound/soundSfxController.js';
+const PIPELINE_PROFILER_PATH = 'src/systems/debug/PipelineProfiler.js';
 const PLAY_CONTEXT_RUNTIME_PATH = 'src/core/playContextRuntime.js';
+const RUNTIME_LOGGER_PATH = 'src/utils/runtimeLogger.js';
+const SETTINGS_QUERY_SERVICE_PATH = 'src/app/meta/settingsQueryService.js';
+const SETTINGS_COMMAND_SERVICE_PATH = 'src/app/meta/settingsCommandService.js';
+const SESSION_SNAPSHOT_PREVIEW_PATH = 'src/app/session/sessionSnapshotPreview.js';
+const SESSION_SNAPSHOT_CODEC_PATH = 'src/app/session/sessionSnapshotCodec.js';
+const SESSION_SNAPSHOT_MUTATION_PATH = 'src/app/session/sessionSnapshotMutationService.js';
 const CORE_ALLOWED_IMPORT_SOURCES = new Set([
   'src/core/Game.js',
   'src/core/gameRuntime.js',
@@ -50,7 +58,7 @@ function findShimViolations(imports) {
   return imports
     .filter(({ sourceFile, targetFile }) => (
       sourceFile.startsWith('src/')
-      && SHIM_IMPORT_PATTERNS.some((pattern) => targetFile.endsWith(pattern))
+      && SHIM_IMPORT_PATTERNS.includes(targetFile)
       && !ALLOWED_SHIM_IMPORTS.has(`${sourceFile}->${targetFile}`)
     ))
     .map(({ sourceFile, targetFile }) => ({
@@ -184,6 +192,18 @@ function findSoundSfxBrowserViolations(imports) {
     }));
 }
 
+function findPipelineProfilerBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile === PIPELINE_PROFILER_PATH)
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'pipeline-profiler-browser',
+      sourceFile,
+      targetFile,
+      message: `pipeline profiler must consume injected runtime clocks instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 function findPlayContextRuntimeBrowserViolations(imports) {
   return imports
     .filter(({ sourceFile }) => sourceFile === PLAY_CONTEXT_RUNTIME_PATH)
@@ -193,6 +213,49 @@ function findPlayContextRuntimeBrowserViolations(imports) {
       sourceFile,
       targetFile,
       message: `play context runtime must consume injected browser services instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findRuntimeLoggerBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => sourceFile === RUNTIME_LOGGER_PATH)
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'runtime-logger-browser',
+      sourceFile,
+      targetFile,
+      message: `runtime logger must consume injected debug policy instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findSettingsFacadeBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => (
+      sourceFile === SETTINGS_QUERY_SERVICE_PATH
+      || sourceFile === SETTINGS_COMMAND_SERVICE_PATH
+    ))
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'settings-facade-browser',
+      sourceFile,
+      targetFile,
+      message: `settings meta facade must re-export session owner modules instead of browser adapters: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
+function findSessionSnapshotHelperBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => (
+      sourceFile === SESSION_SNAPSHOT_PREVIEW_PATH
+      || sourceFile === SESSION_SNAPSHOT_CODEC_PATH
+      || sourceFile === SESSION_SNAPSHOT_MUTATION_PATH
+    ))
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'session-snapshot-helper-browser',
+      sourceFile,
+      targetFile,
+      message: `session snapshot helper must stay browser-agnostic: ${sourceFile} -> ${targetFile}`,
     }));
 }
 
@@ -224,7 +287,11 @@ export function collectBoundaryViolations() {
     ...findPlayResultDomainViolations(sourceImports),
     ...findRenderSystemBrowserViolations(sourceImports),
     ...findSoundSfxBrowserViolations(sourceImports),
+    ...findPipelineProfilerBrowserViolations(sourceImports),
     ...findPlayContextRuntimeBrowserViolations(sourceImports),
+    ...findRuntimeLoggerBrowserViolations(sourceImports),
+    ...findSettingsFacadeBrowserViolations(sourceImports),
+    ...findSessionSnapshotHelperBrowserViolations(sourceImports),
     ...findInternalSceneLoaderFacadeViolations(sourceImports),
   ];
 }

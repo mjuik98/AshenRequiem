@@ -62,11 +62,17 @@ await test('세션 저장소 모듈은 저장소 주입과 localStorage 접근 �
 
 await test('세션 마이그레이션 모듈은 상태 정규화와 버전 상수를 노출한다', async () => {
   const sessionMigrations = await import('../src/state/session/sessionMigrations.js');
+  const sessionMetaState = await import('../src/state/session/sessionMetaState.js');
+  const sessionUnlockState = await import('../src/state/session/sessionUnlockState.js');
   const sessionMigrationSteps = await import('../src/state/session/migrations/sessionMigrationSteps.js');
   assert.equal(typeof sessionMigrations.SESSION_VERSION, 'number');
   assert.equal(typeof sessionMigrations.createSessionState, 'function');
   assert.equal(typeof sessionMigrations.migrateSessionState, 'function');
   assert.equal(typeof sessionMigrations.normalizeSessionState, 'function');
+  assert.equal(typeof sessionMetaState.createDefaultSessionMeta, 'function');
+  assert.equal(typeof sessionMetaState.ensureSessionMeta, 'function');
+  assert.equal(typeof sessionMetaState.appendUnique, 'function');
+  assert.equal(typeof sessionUnlockState.reconcileSessionUnlocks, 'function');
   assert.equal(Array.isArray(sessionMigrationSteps.SESSION_MIGRATION_STEPS), true);
   assert.equal(sessionMigrationSteps.SESSION_MIGRATION_STEPS.length > 0, true, '세션 migration step registry가 비어 있음');
 });
@@ -76,6 +82,33 @@ await test('세션 명령 모듈은 런 결과와 메타 진행 갱신 함수를
   assert.equal(typeof sessionCommands.updateSessionBest, 'function');
   assert.equal(typeof sessionCommands.earnCurrency, 'function');
   assert.equal(typeof sessionCommands.purchasePermanentUpgrade, 'function');
+});
+
+await test('세션 snapshot application services는 settings import/export orchestration을 노출한다', async () => {
+  const sessionSnapshotPreview = await import('../src/app/session/sessionSnapshotPreview.js');
+  const sessionSnapshotCodec = await import('../src/app/session/sessionSnapshotCodec.js');
+  const sessionSnapshotMutationService = await import('../src/app/session/sessionSnapshotMutationService.js');
+  const sessionSnapshotQueryService = await import('../src/app/session/sessionSnapshotQueryService.js');
+  const sessionSnapshotCommandService = await import('../src/app/session/sessionSnapshotCommandService.js');
+
+  assert.equal(typeof sessionSnapshotPreview.buildSessionPreviewSummary, 'function');
+  assert.equal(typeof sessionSnapshotPreview.buildSessionPreviewDiff, 'function');
+  assert.equal(typeof sessionSnapshotCodec.replaceSessionState, 'function');
+  assert.equal(typeof sessionSnapshotCodec.buildResetState, 'function');
+  assert.equal(typeof sessionSnapshotMutationService.applySessionStateMutation, 'function');
+  assert.equal(typeof sessionSnapshotQueryService.exportSessionSnapshot, 'function');
+  assert.equal(typeof sessionSnapshotQueryService.previewSessionSnapshotImport, 'function');
+  assert.equal(typeof sessionSnapshotQueryService.inspectStoredSessionSnapshots, 'function');
+  assert.equal(typeof sessionSnapshotCommandService.saveSettingsAndApplyRuntime, 'function');
+  assert.equal(typeof sessionSnapshotCommandService.importSessionSnapshot, 'function');
+  assert.equal(typeof sessionSnapshotCommandService.resetSessionProgress, 'function');
+  assert.equal(typeof sessionSnapshotCommandService.restoreStoredSessionSnapshot, 'function');
+});
+
+await test('세션 codex service는 codex 진입 전 세션 보정을 노출한다', async () => {
+  const codexSessionStateService = await import('../src/app/session/codexSessionStateService.js');
+
+  assert.equal(typeof codexSessionStateService.prepareCodexSessionState, 'function');
 });
 
 console.log(`\nSessionModules: ${passed}개 통과, ${failed}개 실패`);

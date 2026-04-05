@@ -6,6 +6,7 @@ import { renderWrapperInventorySections, WRAPPER_INVENTORY } from './compatibili
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ARCHITECTURE_DOC_PATH = path.join(ROOT_DIR, 'docs', 'architecture-current.md');
+const MODULE_MAP_PATH = path.join(ROOT_DIR, 'docs', 'module-map.md');
 const WRAPPER_DOC_PATH = path.join(ROOT_DIR, 'docs', 'compatibility-wrappers.md');
 const README_PATH = path.join(ROOT_DIR, 'README.md');
 
@@ -19,6 +20,7 @@ function normalizeLineEndings(source) {
 
 export async function collectArchitectureDocViolations(rootDir = ROOT_DIR) {
   const architectureSource = normalizeLineEndings(readSource(path.join(rootDir, 'docs', 'architecture-current.md')));
+  const moduleMapSource = normalizeLineEndings(readSource(path.join(rootDir, 'docs', 'module-map.md')));
   const wrapperSource = normalizeLineEndings(readSource(path.join(rootDir, 'docs', 'compatibility-wrappers.md')));
   const readmeSource = normalizeLineEndings(readSource(path.join(rootDir, 'README.md')));
   const snapshot = await getArchitectureSnapshot(rootDir);
@@ -33,6 +35,35 @@ export async function collectArchitectureDocViolations(rootDir = ROOT_DIR) {
         message: `architecture-current is missing generated ${label}`,
       });
     }
+  }
+
+  const moduleMapRequirements = [
+    'Module Map',
+    '`play`',
+    '`meta`',
+    '`catalog`',
+    '`platform`',
+    '`shared`',
+    '`compat`',
+    'src/progression',
+    'sessionSnapshot',
+    'metaShopPurchaseDomain',
+    'compatibility wrapper',
+  ];
+  for (const snippet of moduleMapRequirements) {
+    if (!moduleMapSource.includes(snippet)) {
+      violations.push({
+        rule: 'module-map-drift',
+        message: `module-map is missing required guidance: ${snippet}`,
+      });
+    }
+  }
+
+  if (!architectureSource.includes('docs/module-map.md')) {
+    violations.push({
+      rule: 'module-map-reference',
+      message: 'architecture-current must reference docs/module-map.md for owner placement guidance',
+    });
   }
 
   for (const wrapperEntry of WRAPPER_INVENTORY) {

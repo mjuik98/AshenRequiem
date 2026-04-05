@@ -64,6 +64,12 @@ export const WRAPPER_INVENTORY = [
     notes: 'title/start loadout 공개 경로 호환',
   },
   {
+    path: 'src/state/sessionMeta.js',
+    role: 'session meta facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/state/session/sessionMetaState.js, sessionUnlockState.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
     path: 'src/state/session/sessionStorageDriver.js',
     role: 'browser session storage driver facade',
     disposition: '`keep-public-wrapper`',

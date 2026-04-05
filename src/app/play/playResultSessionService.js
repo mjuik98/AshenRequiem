@@ -1,5 +1,5 @@
 import { updateSessionBest } from '../../state/createSessionState.js';
-import { ensureCodexMeta } from '../../state/sessionMeta.js';
+import { ensureCodexMeta } from '../../state/session/sessionMetaState.js';
 import {
   applyComputedSessionUnlockProgress,
   computeSessionUnlockProgress,

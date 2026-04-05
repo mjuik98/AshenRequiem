@@ -1,4 +1,4 @@
-import { spawnEffect, spawnEnemy, spawnProjectile } from '../../../state/spawnRequest.js';
+import { spawnEffect, spawnEnemy, spawnProjectile } from '../../../domain/play/state/spawnRequest.js';
 import {
   queueStageEvent,
   triggerStageGimmick,

@@ -1,6 +1,6 @@
 import { EVENT_TYPES } from '../../../data/constants/events.js';
 import { createDefaultEncounterState } from '../encounter/encounterDirectorDomain.js';
-import { createSynergyState } from '../../../state/createSynergyState.js';
+import { createSynergyState } from './createSynergyState.js';
 import { createMathRng } from '../../../utils/random.js';
 
 function createEventQueues() {

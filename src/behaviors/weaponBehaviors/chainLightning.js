@@ -30,7 +30,7 @@
  */
 
 import { getLiveEnemies, findClosestEnemy, findNearestFrom } from './weaponBehaviorUtils.js';
-import { spawnEffect, spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnEffect, spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 
 /**
  * chainLightning — 연쇄 번개 즉발 공격

@@ -1,5 +1,5 @@
 import { KNOCKBACK, DAMAGE_TEXT, CRIT } from '../../data/constants.js';
-import { spawnEffect } from '../../state/spawnRequest.js';
+import { spawnEffect } from '../../domain/play/state/spawnRequest.js';
 import { chance } from '../../utils/random.js';
 
 /**

@@ -6,7 +6,7 @@
 import { distanceSq, normalize, sub } from '../../math/Vector2.js';
 import { AIMING, AIM_PATTERN } from '../../data/constants/aiming.js';
 import { isDead, isLive, getLiveEnemies } from '../../utils/entityUtils.js';
-import { spawnProjectile } from '../../state/spawnRequest.js';
+import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
 
 export { getLiveEnemies };
 

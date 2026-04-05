@@ -1,5 +1,5 @@
 import { chance, nextFloat, randomPick, randomRange } from '../../utils/random.js';
-import { spawnEnemy }              from '../../state/spawnRequest.js';
+import { spawnEnemy }              from '../../domain/play/state/spawnRequest.js';
 import { buildCurseSnapshot }      from '../../data/curseScaling.js';
 import { resolveViewportDimensions } from '../../utils/viewportState.js';
 

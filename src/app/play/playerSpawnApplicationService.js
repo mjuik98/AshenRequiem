@@ -7,7 +7,7 @@ import {
   resolveUnlockedLoadoutIds,
 } from '../../domain/meta/loadout/startLoadoutDomain.js';
 import { createSeededRng } from '../../utils/random.js';
-import { applyAccessoryEffects } from '../../progression/accessoryEffectRuntime.js';
+import { applyAccessoryEffects } from '../../domain/play/progression/accessoryEffectRuntime.js';
 
 export function resolvePlayerSpawnState(session = null, gameData = {}) {
   const selection = resolveStartWeaponSelection(gameData, session);
