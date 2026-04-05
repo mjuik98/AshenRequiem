@@ -9,7 +9,13 @@
  */
 
 import assert from 'node:assert/strict';
-import { makeEnemy, makePlayer, makeEvents } from './fixtures/index.js';
+import {
+  makeEnemy,
+  makePlayer,
+  makeEvents,
+  makeRng,
+  makeWorld,
+} from './fixtures/index.js';
 import { test, summary } from './helpers/testRunner.js';
 
 let StatusEffectSystem;
@@ -78,6 +84,94 @@ test('동일 타입 상태이상 2회 적용 → 1개만 존재 (중복 방지)'
   const events = makeEvents();
   StatusEffectSystem.applyFromHits({ hits: [hit, hit], events });
   assert.equal(enemy.statusEffects.length, 1, '중복 적용됨 — 1개만 존재해야 함');
+});
+
+test('ice_bolt_upgrade impactBurst는 primary target 제외 주변 적에게 slow와 secondary hit를 부여한다', () => {
+  if (!StatusEffectSystem) return;
+  const player = makePlayer({ id: 'player' });
+  const primary = makeEnemy({ id: 'enemy_primary', x: 120, y: 80 });
+  const splash = makeEnemy({ id: 'enemy_splash', x: 170, y: 80 });
+  const far = makeEnemy({ id: 'enemy_far', x: 280, y: 80 });
+  const events = makeEvents();
+  const projectile = {
+    ownerId: player.id,
+    impactEffectType: 'ice_bolt_upgrade_impact',
+    statusEffectId: 'slow',
+    statusEffectChance: 1.0,
+    impactBurst: {
+      radius: 96,
+      damage: 2,
+      statusEffectId: 'slow',
+      statusEffectChance: 1.0,
+      excludePrimaryTarget: true,
+    },
+  };
+
+  events.hits.push({
+    attackerId: player.id,
+    targetId: primary.id,
+    target: primary,
+    damage: 5,
+    projectile,
+  });
+
+  const world = makeWorld({
+    entities: { player, enemies: [primary, splash, far] },
+    queues: { events },
+    runtime: { rng: makeRng([0.25, 0.25]) },
+  });
+
+  StatusEffectSystem.update({ world });
+
+  assert.equal(primary.statusEffects.some((effect) => effect.type === 'slow'), true, 'primary target slow 누락');
+  assert.equal(splash.statusEffects.some((effect) => effect.type === 'slow'), true, 'impactBurst splash target slow 누락');
+  assert.equal(far.statusEffects.length, 0, 'impactBurst 범위 밖 대상에 slow가 적용되면 안 됨');
+  assert.equal(events.hits.length, 2, 'impactBurst secondary hit가 enqueue되지 않음');
+
+  const secondaryHit = events.hits.find((hit) => hit.targetId === splash.id);
+  assert.ok(secondaryHit, 'impactBurst splash hit 이벤트가 없음');
+  assert.equal(secondaryHit.damage, 2, 'impactBurst splash damage가 기대값과 다름');
+  assert.equal(secondaryHit.projectile?.impactEffectType ?? null, null, 'splash proxy projectile은 impactEffectType을 가지면 안 됨');
+  assert.equal(secondaryHit.projectile?.impactBurst ?? null, null, 'splash proxy projectile은 impactBurst를 재귀적으로 가지면 안 됨');
+});
+
+test('impactBurst는 pendingDestroy 또는 isAlive=false 대상에는 secondary hit를 만들지 않는다', () => {
+  if (!StatusEffectSystem) return;
+  const player = makePlayer({ id: 'player' });
+  const primary = makeEnemy({ id: 'enemy_primary', x: 120, y: 80 });
+  const pending = makeEnemy({ id: 'enemy_pending', x: 150, y: 80, pendingDestroy: true });
+  const dead = makeEnemy({ id: 'enemy_dead', x: 160, y: 80, isAlive: false });
+  const events = makeEvents({
+    hits: [{
+      attackerId: player.id,
+      targetId: primary.id,
+      target: primary,
+      damage: 5,
+      projectile: {
+        ownerId: player.id,
+        statusEffectId: 'slow',
+        statusEffectChance: 1.0,
+        impactBurst: {
+          radius: 96,
+          damage: 2,
+          statusEffectId: 'slow',
+          statusEffectChance: 1.0,
+          excludePrimaryTarget: true,
+        },
+      },
+    }],
+  });
+  const world = makeWorld({
+    entities: { player, enemies: [primary, pending, dead] },
+    queues: { events },
+    runtime: { rng: makeRng([0.25, 0.25]) },
+  });
+
+  StatusEffectSystem.update({ world });
+
+  assert.equal(events.hits.length, 1, '비활성 대상은 splash secondary hit에서 제외되어야 함');
+  assert.equal(pending.statusEffects.length, 0, 'pendingDestroy target에 slow가 적용되면 안 됨');
+  assert.equal(dead.statusEffects.length, 0, 'dead target에 slow가 적용되면 안 됨');
 });
 
 // ── tick ──────────────────────────────────────────────────────────────

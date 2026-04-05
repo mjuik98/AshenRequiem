@@ -33,6 +33,14 @@ function validateAssetManifestEntries(assetManifest = []) {
     if (!ASSET_SOURCE_TYPES.has(entry.sourceType)) {
       errors.push(`[validate] assetManifest "${entry.id}" sourceType이 유효하지 않음`);
     }
+    if (
+      entry.sourceType === 'image'
+      && entry.category === 'fx_surface'
+      && entry.files?.src !== undefined
+      && (typeof entry.files.src !== 'string' || entry.files.src.length <= 0)
+    ) {
+      errors.push(`[validate] assetManifest "${entry.id}" files.src가 유효하지 않음`);
+    }
     if (entry.category === 'stage_background' && entry.sourceType === 'image') {
       if (typeof entry.files?.baseSrc !== 'string' || entry.files.baseSrc.length <= 0) {
         errors.push(`[validate] assetManifest "${entry.id}" files.baseSrc가 비어 있음`);

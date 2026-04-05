@@ -51,6 +51,24 @@ export const weaponEvolutionData = [
     announceText: '성스러운 오라가 신성한 방패로 진화했다!',
   },
   {
+    id:             'evolution_holy_bolt_upgrade',
+    resultWeaponId: 'holy_bolt_upgrade',
+    requires: {
+      weaponId:     'holy_bolt',
+      accessoryIds: ['swift_hourglass'],
+    },
+    announceText: '홀리 볼트가 홀리 볼트 업그레이드로 진화했다!',
+  },
+  {
+    id:             'evolution_ice_bolt_upgrade',
+    resultWeaponId: 'ice_bolt_upgrade',
+    requires: {
+      weaponId:     'ice_bolt',
+      accessoryIds: ['crystal_lens'],
+    },
+    announceText: '아이스 볼트가 아이스 볼트 업그레이드로 진화했다!',
+  },
+  {
     id:             'evolution_infinity_blade',
     resultWeaponId: 'infinity_blade',
     requires: {

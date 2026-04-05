@@ -39,6 +39,18 @@ test('unlockData has unique ids and supported condition types', () => {
   }
 });
 
+test('unlockData는 holy/ice bolt midgame unlock 계약을 포함한다', () => {
+  const holyUnlock = unlockData.find((item) => item.targetType === 'weapon' && item.targetId === 'holy_bolt');
+  const iceUnlock = unlockData.find((item) => item.targetType === 'weapon' && item.targetId === 'ice_bolt');
+
+  assert.ok(holyUnlock, 'holy_bolt unlock entry가 없음');
+  assert.ok(iceUnlock, 'ice_bolt unlock entry가 없음');
+  assert.equal(holyUnlock.conditionType, 'total_kills_gte', 'holy_bolt unlock conditionType 불일치');
+  assert.equal(holyUnlock.conditionValue, 850, 'holy_bolt unlock conditionValue 불일치');
+  assert.equal(iceUnlock.conditionType, 'survival_time_gte', 'ice_bolt unlock conditionType 불일치');
+  assert.equal(iceUnlock.conditionValue, 660, 'ice_bolt unlock conditionValue 불일치');
+});
+
 test('evaluateUnlocks awards total kill unlocks once', () => {
   const session = makeSessionState({
     meta: {

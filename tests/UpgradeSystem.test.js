@@ -131,6 +131,23 @@ test('meta shop utility/curse 업그레이드는 확장된 최대 레벨과 효�
   assert.equal(banishCharge.maxLevel, 10, '추방의 인장 maxLevel이 10이 아님');
 });
 
+test('upgradeData는 holy/ice bolt 신규/강화/진화 강화 카드를 모두 노출한다', () => {
+  const expectedEntries = [
+    ['get_holy_bolt', 'holy_bolt'],
+    ['up_holy_bolt', 'holy_bolt'],
+    ['get_ice_bolt', 'ice_bolt'],
+    ['up_ice_bolt', 'ice_bolt'],
+    ['up_holy_bolt_upgrade_plus', 'holy_bolt_upgrade'],
+    ['up_ice_bolt_upgrade_plus', 'ice_bolt_upgrade'],
+  ];
+
+  for (const [upgradeId, weaponId] of expectedEntries) {
+    const entry = upgradeData.find((item) => item.id === upgradeId);
+    assert.ok(entry, `${upgradeId} entry가 없음`);
+    assert.equal(entry.weaponId, weaponId, `${upgradeId} weaponId 불일치`);
+  }
+});
+
 test('선택지에 중복 id 없음 (heal 폴백 제외)', () => {
   if (!UpgradeSystem) return;
   const choices = UpgradeSystem.generateChoices(makePlayer(), {}, makeUpgradeRuntimeData());

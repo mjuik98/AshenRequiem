@@ -249,6 +249,78 @@ test('magic_bolt은 targetProjectile spawn에 projectileVisualId와 impactEffect
   assert.equal(spawnQueue[0].config.impactEffectType, 'magic_bolt_impact', 'magic_bolt impactEffectType 누락');
 });
 
+test('holy/ice bolt 계열 4종은 targetProjectile 기반의 시각/진화 계약을 가진다', () => {
+  const expectations = [
+    ['holy_bolt', { projectileVisualId: 'holy_bolt', impactEffectType: 'holy_bolt_impact', isEvolved: false }],
+    ['holy_bolt_upgrade', { projectileVisualId: 'holy_bolt_upgrade', impactEffectType: 'holy_bolt_upgrade_impact', isEvolved: true }],
+    ['ice_bolt', { projectileVisualId: 'ice_bolt', impactEffectType: 'ice_bolt_impact', statusEffectId: 'slow', isEvolved: false }],
+    ['ice_bolt_upgrade', {
+      projectileVisualId: 'ice_bolt_upgrade',
+      impactEffectType: 'ice_bolt_upgrade_impact',
+      statusEffectId: 'slow',
+      impactBurstRadius: 96,
+      isEvolved: true,
+    }],
+  ];
+
+  for (const [weaponId, expected] of expectations) {
+    const weapon = getWeaponDataById(weaponId);
+    assert.ok(weapon, `${weaponId} 데이터 없음`);
+    assert.equal(weapon.behaviorId, 'targetProjectile', `${weaponId} behaviorId가 targetProjectile이 아님`);
+    assert.equal(weapon.projectileVisualId, expected.projectileVisualId, `${weaponId} projectileVisualId 불일치`);
+    assert.equal(weapon.impactEffectType, expected.impactEffectType, `${weaponId} impactEffectType 불일치`);
+    assert.equal(weapon.isEvolved ?? false, expected.isEvolved, `${weaponId} isEvolved 불일치`);
+    if (expected.statusEffectId) {
+      assert.equal(weapon.statusEffectId, expected.statusEffectId, `${weaponId} statusEffectId 불일치`);
+    }
+    if (expected.impactBurstRadius) {
+      assert.equal(weapon.impactBurst?.radius, expected.impactBurstRadius, `${weaponId} impactBurst 반경 누락`);
+      assert.equal(weapon.impactBurst?.excludePrimaryTarget, true, `${weaponId} impactBurst primary target 제외 누락`);
+    }
+  }
+});
+
+test('ice_bolt_upgrade는 targetProjectile spawn에 impactBurst 계약을 실어 보낸다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 240, y: 0, radius: 12 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'ice_bolt_upgrade',
+    behaviorId: 'targetProjectile',
+    damage: 5,
+    range: 420,
+    radius: 7,
+    projectileSpeed: 380,
+    projectileCount: 1,
+    projectileVisualId: 'ice_bolt_upgrade',
+    impactEffectType: 'ice_bolt_upgrade_impact',
+    statusEffectId: 'slow',
+    statusEffectChance: 1.0,
+    impactBurst: {
+      radius: 96,
+      damage: 2,
+      statusEffectId: 'slow',
+      statusEffectChance: 1.0,
+      excludePrimaryTarget: true,
+    },
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'ice_bolt_upgrade targetProjectile 발동 실패');
+  assert.equal(spawnQueue.length, 1, 'ice_bolt_upgrade spawn 수 불일치');
+  assert.deepEqual(
+    spawnQueue[0].config.impactBurst,
+    {
+      radius: 96,
+      damage: 2,
+      statusEffectId: 'slow',
+      statusEffectChance: 1.0,
+      excludePrimaryTarget: true,
+    },
+    'ice_bolt_upgrade impactBurst 계약 누락',
+  );
+});
+
 test('targetProjectile은 aimPattern=wide-spread 일 때 기존 팬 아웃을 유지한다', () => {
   const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
   const target = makeEnemy({ x: 320, y: 0, radius: 6 });

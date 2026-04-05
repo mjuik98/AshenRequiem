@@ -18,6 +18,8 @@ import {
 export const upgradeData = [
   // ── 신규 무기 ────────────────────────────────────────────────────────────────
   { id: 'get_holy_aura',      type: 'weapon_new',     weaponId: 'holy_aura',      name: '성스러운 오라',      description: '주변에 신성한 오라 발동' },
+  { id: 'get_holy_bolt',      type: 'weapon_new',     weaponId: 'holy_bolt',      name: '홀리 볼트',         description: '빛의 탄환을 빠르게 발사' },
+  { id: 'get_ice_bolt',       type: 'weapon_new',     weaponId: 'ice_bolt',       name: '아이스 볼트',       description: '서리 탄환으로 적을 감속' },
   { id: 'get_lightning_ring', type: 'weapon_new',     weaponId: 'lightning_ring', name: '번개의 고리', description: '회전하는 전기 구체 획득' },
   { id: 'get_frost_nova',     type: 'weapon_new',     weaponId: 'frost_nova',     name: '냉기 폭발',     description: '냉기 폭발 획득' },
   { id: 'get_boomerang',      type: 'weapon_new',     weaponId: 'boomerang',      name: '부메랑',      description: '관통 부메랑 획득' },
@@ -38,6 +40,14 @@ export const upgradeData = [
   {
     id: 'up_holy_aura', type: 'weapon_upgrade', weaponId: 'holy_aura',
     name: '성스러운 오라 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_holy_bolt', type: 'weapon_upgrade', weaponId: 'holy_bolt',
+    name: '홀리 볼트 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_ice_bolt', type: 'weapon_upgrade', weaponId: 'ice_bolt',
+    name: '아이스 볼트 +', description: '다음 성장 적용',
   },
   {
     id: 'up_lightning_ring', type: 'weapon_upgrade', weaponId: 'lightning_ring',
@@ -88,6 +98,14 @@ export const upgradeData = [
   {
     id: 'up_arcane_nova_plus', type: 'weapon_upgrade', weaponId: 'arcane_nova',
     name: '비전 폭발 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_holy_bolt_upgrade_plus', type: 'weapon_upgrade', weaponId: 'holy_bolt_upgrade',
+    name: '홀리 볼트 업그레이드 +', description: '다음 성장 적용',
+  },
+  {
+    id: 'up_ice_bolt_upgrade_plus', type: 'weapon_upgrade', weaponId: 'ice_bolt_upgrade',
+    name: '아이스 볼트 업그레이드 +', description: '다음 성장 적용',
   },
   {
     id: 'up_storm_crown_plus', type: 'weapon_upgrade', weaponId: 'storm_crown',

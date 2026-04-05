@@ -44,6 +44,26 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
   );
   assert.equal(assetManifest.some((entry) => entry.id === 'vfx_projectiles_atlas' && entry.sourceType === 'image'), true, 'projectile atlas asset entry가 누락됨');
   assert.equal(assetManifest.some((entry) => entry.id === 'vfx_effects_atlas' && entry.sourceType === 'image'), true, 'effect atlas asset entry가 누락됨');
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'vfx_holy_bolt_sheet' && entry.files?.src === '/assets/vfx/holy_bolt.png'),
+    true,
+    'holy_bolt standalone VFX asset entry가 누락됨',
+  );
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'vfx_holy_bolt_upgrade_sheet' && entry.files?.src === '/assets/vfx/holy_bolt_upgrade.png'),
+    true,
+    'holy_bolt_upgrade standalone VFX asset entry가 누락됨',
+  );
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'vfx_ice_bolt_sheet' && entry.files?.src === '/assets/vfx/ice_bolt.png'),
+    true,
+    'ice_bolt standalone VFX asset entry가 누락됨',
+  );
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'vfx_ice_bolt_upgrade_sheet' && entry.files?.src === '/assets/vfx/ice_bolt_upgrade.png'),
+    true,
+    'ice_bolt_upgrade standalone VFX asset entry가 누락됨',
+  );
 
   const data = GameDataLoader.loadDefault();
   assert.equal(stageDataSource.includes('baseSrc:'), false, 'stageData source가 background file path를 직접 소유하면 안 됨');

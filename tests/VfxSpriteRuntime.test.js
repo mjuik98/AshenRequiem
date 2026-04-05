@@ -8,6 +8,7 @@ const { test, summary } = createRunner('VfxSpriteRuntime');
 test('sprite manifest exposes projectile/effect atlases and keyed frames', async () => {
   const {
     VFX_ATLAS_DEFS,
+    VFX_SOURCE_DEFS,
     getProjectileSpriteAnimationDef,
     getProjectileAnimationFrame,
     getProjectileSpriteFrame,
@@ -26,8 +27,14 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   assert.equal(VFX_ATLAS_DEFS.effects.cellSize, 256, 'effect atlas cellSize가 256이어야 함');
   assert.equal(VFX_ATLAS_DEFS.effects.width, 1024, 'effect atlas width가 4x256이어야 함');
   assert.equal(VFX_ATLAS_DEFS.effects.height, 768, 'effect atlas height가 3x256이어야 함');
+  assert.equal(typeof VFX_SOURCE_DEFS.holy_bolt?.src, 'string', 'holy_bolt standalone source가 필요함');
+  assert.equal(typeof VFX_SOURCE_DEFS.ice_bolt_upgrade?.src, 'string', 'ice_bolt_upgrade standalone source가 필요함');
+  assert.equal(VFX_SOURCE_DEFS.holy_bolt.src.includes('/assets/vfx/holy_bolt.png'), true, 'holy_bolt source 경로가 기대값과 다름');
+  assert.equal(VFX_SOURCE_DEFS.ice_bolt_upgrade.src.includes('/assets/vfx/ice_bolt_upgrade.png'), true, 'ice_bolt_upgrade source 경로가 기대값과 다름');
   assert.equal(getProjectileSpriteAnimationDef('magic_bolt')?.flight.loopEnd, 11, 'magic_bolt projectile animation def 누락');
   assert.equal(getProjectileSpriteAnimationDef('arcane_nova')?.intro.end, 3, 'arcane_nova intro sequence 누락');
+  assert.equal(getProjectileSpriteAnimationDef('holy_bolt')?.sourceKey, 'holy_bolt', 'holy_bolt projectile sourceKey 누락');
+  assert.equal(getEffectSpriteSequenceDef('ice_bolt_upgrade_impact')?.sourceKey, 'ice_bolt_upgrade', 'ice_bolt_upgrade impact sourceKey 누락');
   assert.equal(getEffectSpriteSequenceDef('magic_bolt_impact')?.oneShot.end, 15, 'magic_bolt impact sequence 누락');
   assert.equal(typeof getEffectSpriteFrame('burst')?.h, 'number', 'burst frame 누락');
   assert.equal(getProjectileSpriteFrame('targetProjectile'), null, 'generic targetProjectile frame는 animated 전용 구조에서 제거되어야 함');
@@ -42,6 +49,8 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   assert.equal(arcaneNovaFlight.sizeMult > magicBoltFlight.sizeMult, true, 'arcane_nova는 magic_bolt보다 더 크게 보여야 함');
   assert.equal(arcaneNovaImpact.growthMult > 1, true, 'arcane_nova impact는 성장형 burst 연출이 필요함');
   assert.equal(arcaneNovaImpact.glowBlur > 18, true, 'arcane_nova impact는 더 강한 glow blur가 필요함');
+  assert.equal(getProjectileAnimationFrame('holy_bolt', 7)?.w, 256, 'holy_bolt standalone projectile frame 누락');
+  assert.equal(getEffectSequenceFrame('holy_bolt_impact', 15)?.h, 256, 'holy_bolt standalone impact frame 누락');
 });
 
 test('runtime is lazy: first draw queues atlas load and returns false until ready', async () => {
@@ -308,6 +317,65 @@ test('runtime applies elongated flight sizing and stronger glow metadata for key
   assert.equal(projectileCtx.shadowBlur >= 18, true, 'magic_bolt projectile glow blur가 약함');
   assert.equal(effectCtx.shadowBlur >= 22, true, 'arcane_nova impact glow blur가 약함');
   assert.equal(effectCtx.globalAlpha < 1, true, 'burst effect는 진행도에 따라 alpha가 조절되어야 함');
+});
+
+test('runtime lazy-loads standalone projectile/effect sprite sources independently from shared atlases', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  const created = [];
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      const image = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      created.push(image);
+      return image;
+    },
+  });
+
+  const projectileCtx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage() {},
+  };
+  const effectCtx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage() {},
+  };
+
+  const projectileDrawn = runtime.drawProjectileSprite(projectileCtx, {
+    projectileVisualId: 'holy_bolt',
+    x: 12,
+    y: 20,
+    radius: 6,
+    speed: 220,
+    distanceTraveled: 24,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+
+  const effectDrawn = runtime.drawEffectSprite(effectCtx, {
+    effectType: 'holy_bolt_impact',
+    x: 12,
+    y: 20,
+    radius: 12,
+    lifetime: 0.1,
+    maxLifetime: 0.4,
+  }, { x: 0, y: 0 });
+
+  assert.equal(projectileDrawn, false, 'standalone projectile source loading 전에는 draw가 되면 안 됨');
+  assert.equal(effectDrawn, false, 'standalone effect source loading 전에는 draw가 되면 안 됨');
+  assert.equal(created.length, 1, '같은 sourceKey를 공유하는 projectile/effect는 이미지 1개만 생성해야 함');
+  assert.equal(runtime.peekAtlasStatus('holy_bolt'), 'loading', 'standalone source status가 loading 이어야 함');
 });
 
 test('runtime resolves impact effect sequence frames from effectType lifetime progress', async () => {

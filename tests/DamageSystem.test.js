@@ -169,4 +169,68 @@ test('플레이어 소유 투사체에 impactEffectType이 있으면 적중 시 
   );
 });
 
+test('impactBurst splash proxy hit는 피해/흡혈/사망을 처리하되 impact VFX는 primary hit에만 남긴다', () => {
+  if (!DamageSystem) return;
+  const player = makePlayer({ hp: 40, maxHp: 100, lifesteal: 0.2, critChance: 0 });
+  const primary = makeEnemy({ id: 'enemy_primary', hp: 30, x: 120, y: 80, radius: 14 });
+  const splash = makeEnemy({ id: 'enemy_splash', hp: 2, x: 156, y: 80, radius: 12 });
+  const primaryProjectile = {
+    ownerId: player.id,
+    impactEffectType: 'ice_bolt_upgrade_impact',
+    impactBurst: {
+      radius: 96,
+      damage: 2,
+      statusEffectId: 'slow',
+      statusEffectChance: 1.0,
+      excludePrimaryTarget: true,
+    },
+    hitCount: 0,
+    hitTargets: new Set(),
+  };
+  const splashProjectile = {
+    ownerId: player.id,
+    impactEffectType: null,
+    impactBurst: null,
+    hitCount: 0,
+    hitTargets: new Set(),
+  };
+  const world = makeWorld({
+    entities: { player, enemies: [primary, splash] },
+    queues: {
+      events: makeEvents({
+        hits: [
+          makeHitEvent({
+            attackerId: player.id,
+            targetId: primary.id,
+            target: primary,
+            damage: 5,
+            projectile: primaryProjectile,
+          }),
+          makeHitEvent({
+            attackerId: player.id,
+            targetId: splash.id,
+            target: splash,
+            damage: 2,
+            projectile: splashProjectile,
+          }),
+        ],
+      }),
+      spawnQueue: [],
+    },
+  });
+
+  DamageSystem.update({ world });
+
+  assert.equal(primary.hp, 25, 'primary hit damage가 적용되지 않음');
+  assert.equal(splash.hp, 0, 'splash proxy damage가 적용되지 않음');
+  assert.equal(splash.isAlive, false, 'splash proxy hit가 사망 처리를 만들지 못함');
+  assert.equal(world.queues.events.deaths.some(({ entity }) => entity === splash), true, 'splash proxy death event 누락');
+  assert.equal(player.hp > 40, true, 'primary+splash 피해 합산 기준 lifesteal이 적용되지 않음');
+  assert.equal(
+    world.queues.spawnQueue.filter((entry) => entry.type === 'effect' && entry.config.effectType === 'ice_bolt_upgrade_impact').length,
+    1,
+    'impact VFX는 primary hit에만 한 번 생성되어야 함',
+  );
+});
+
 summary();

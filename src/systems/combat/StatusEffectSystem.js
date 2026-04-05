@@ -36,7 +36,7 @@ export const StatusEffectSystem = {
     const events = world.queues.events;
     const rng = world.runtime.rng;
     if (events.hits?.length > 0) {
-      this.applyFromHits({ hits: events.hits, events, rng });
+      this.applyFromHits({ hits: events.hits, events, rng, player, enemies });
     }
     this.tick({ enemies, player, deltaTime, events });
   },
@@ -45,21 +45,24 @@ export const StatusEffectSystem = {
    * hits 배열에서 statusEffectId를 가진 히트 이벤트를 처리해
    * 대상 entity에 상태이상을 직접 부여한다.
    *
-   * @param {{ hits: object[], events?: object }} param
+   * @param {{ hits: object[], events?: object, player?: object, enemies?: object[], rng?: object }} param
    */
-  applyFromHits({ hits, events, rng }) {
-    for (let i = 0; i < hits.length; i++) {
+  applyFromHits({ hits, events, rng, player, enemies = [] }) {
+    const initialHitCount = hits.length;
+    for (let i = 0; i < initialHitCount; i++) {
       const hit  = hits[i];
       const proj = hit.projectile;
-      if (!proj?.statusEffectId) continue;
-
-      // 확률 체크
-      if (!chance(proj.statusEffectChance ?? 1.0, rng)) continue;
+      if (!proj?.statusEffectId && !proj?.impactBurst) continue;
 
       const target = hit.target;
       if (!isLive(target) || !target.statusEffects) continue;
 
-      this._applyEffect(target, proj.statusEffectId, events);
+      if (proj.statusEffectId && chance(proj.statusEffectChance ?? 1.0, rng)) {
+        this._applyEffect(target, proj.statusEffectId, events);
+      }
+      if (proj.impactBurst && hit.attackerId === player?.id) {
+        this._applyImpactBurst({ hit, hits, events, rng, enemies });
+      }
     }
   },
 
@@ -161,5 +164,53 @@ export const StatusEffectSystem = {
       handler.onRemove(entity, effect);
     }
     entity.statusEffects.splice(index, 1);
+  },
+
+  _applyImpactBurst({ hit, hits, events, rng, enemies }) {
+    const burst = hit?.projectile?.impactBurst;
+    const sourceTarget = hit?.target;
+    if (!burst || !isLive(sourceTarget)) return;
+
+    const radius = burst.radius ?? 0;
+    const damage = burst.damage ?? 0;
+    if (radius <= 0) return;
+    const radiusSq = radius * radius;
+    const primaryTargetId = hit?.targetId ?? sourceTarget?.id ?? null;
+
+    for (let i = 0; i < enemies.length; i += 1) {
+      const candidate = enemies[i];
+      if (!isLive(candidate)) continue;
+      if (burst.excludePrimaryTarget && primaryTargetId && candidate.id === primaryTargetId) continue;
+
+      const dx = (candidate.x ?? 0) - (sourceTarget.x ?? 0);
+      const dy = (candidate.y ?? 0) - (sourceTarget.y ?? 0);
+      if ((dx * dx) + (dy * dy) > radiusSq) continue;
+
+      if (burst.statusEffectId && candidate.statusEffects && chance(burst.statusEffectChance ?? 1.0, rng)) {
+        this._applyEffect(candidate, burst.statusEffectId, events);
+      }
+
+      if (damage > 0) {
+        hits.push({
+          attackerId: hit.attackerId,
+          targetId: candidate.id,
+          target: candidate,
+          damage,
+          projectileId: null,
+          projectile: {
+            ownerId: hit.projectile?.ownerId ?? hit.attackerId ?? null,
+            weapon: hit.projectile?.weapon ?? null,
+            color: hit.projectile?.color ?? null,
+            radius: hit.projectile?.radius ?? null,
+            hitCount: 0,
+            hitTargets: new Set(),
+            impactEffectType: null,
+            impactBurst: null,
+            statusEffectId: null,
+            statusEffectChance: 0,
+          },
+        });
+      }
+    }
   },
 };

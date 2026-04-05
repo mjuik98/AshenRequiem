@@ -79,6 +79,30 @@ await test('asset validation accepts raster image sourceType for VFX atlases', a
   assert.equal(report.errors.some((message) => message.includes('sourceType')), false, 'image sourceType이 허용되어야 함');
 });
 
+await test('asset validation accepts standalone VFX sprite sheet entries with public src metadata', async () => {
+  const validation = await import('../src/data/gameDataValidation.js');
+
+  const report = validation.validateCoreGameData({
+    assetManifest: [
+      {
+        id: 'vfx_holy_bolt_sheet',
+        category: 'fx_surface',
+        kind: 'sprite_sheet',
+        preloadGroup: 'combat_vfx',
+        budgetTier: 'standard',
+        estimatedBytes: 779804,
+        qualityPolicy: 'scalable',
+        sourceType: 'image',
+        files: {
+          src: '/assets/vfx/holy_bolt.png',
+        },
+      },
+    ],
+  });
+
+  assert.equal(report.ok, true, 'standalone sprite sheet asset entry가 검증을 통과해야 함');
+});
+
 await test('shared validation module rejects malformed seamless tile background contracts', async () => {
   const validation = await import('../src/data/gameDataValidation.js');
 

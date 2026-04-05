@@ -1,5 +1,5 @@
 import {
-  VFX_ATLAS_DEFS,
+  VFX_SOURCE_DEFS,
   getProjectileSpriteAnimationDef,
   getProjectileAnimationFrame,
   getProjectileSpriteFrame,
@@ -107,16 +107,16 @@ function resolveEffectSequenceFrame(effect) {
 export function createVfxSpriteRuntime({
   imageFactory = defaultImageFactory,
 } = {}) {
-  const atlasStates = new Map();
+  const sourceStates = new Map();
 
-  function ensureAtlas(atlasKey) {
-    const atlasDef = VFX_ATLAS_DEFS[atlasKey];
-    if (!atlasDef) return null;
+  function ensureSource(sourceKey) {
+    const sourceDef = VFX_SOURCE_DEFS[sourceKey];
+    if (!sourceDef) return null;
 
-    let state = atlasStates.get(atlasKey);
+    let state = sourceStates.get(sourceKey);
     if (!state) {
       state = createEmptyAtlasState();
-      atlasStates.set(atlasKey, state);
+      sourceStates.set(sourceKey, state);
     }
 
     if (state.status !== 'idle') return state;
@@ -137,7 +137,7 @@ export function createVfxSpriteRuntime({
       state.status = 'error';
     });
 
-    image.src = atlasDef.src;
+    image.src = sourceDef.src;
 
     if (image.complete && (image.naturalWidth ?? 0) > 0) {
       state.status = 'ready';
@@ -146,15 +146,19 @@ export function createVfxSpriteRuntime({
     return state;
   }
 
-  function peekAtlasStatus(atlasKey) {
-    return atlasStates.get(atlasKey)?.status ?? 'idle';
+  function peekSourceStatus(sourceKey) {
+    return sourceStates.get(sourceKey)?.status ?? 'idle';
   }
 
-  function drawFrame(ctx, atlasKey, frame, entity, camera) {
+  function peekAtlasStatus(sourceKey) {
+    return peekSourceStatus(sourceKey);
+  }
+
+  function drawFrame(ctx, sourceKey, frame, entity, camera) {
     if (!ctx?.drawImage || !frame) return false;
 
-    const atlasState = ensureAtlas(atlasKey);
-    if (!atlasState || atlasState.status !== 'ready' || !atlasState.image) {
+    const sourceState = ensureSource(sourceKey);
+    if (!sourceState || sourceState.status !== 'ready' || !sourceState.image) {
       return false;
     }
 
@@ -197,7 +201,7 @@ export function createVfxSpriteRuntime({
       ctx.rotate(rotation);
     }
     ctx.drawImage(
-      atlasState.image,
+      sourceState.image,
       frame.x,
       frame.y,
       frame.w,
@@ -215,17 +219,18 @@ export function createVfxSpriteRuntime({
     const frame = resolveAnimatedProjectileFrame(projectile)
       ?? getProjectileSpriteFrame(projectile?.behaviorId ?? 'default');
     if (!frame) return false;
-    return drawFrame(ctx, frame.atlas, frame, projectile, camera);
+    return drawFrame(ctx, frame.sourceKey, frame, projectile, camera);
   }
 
   function drawEffectSprite(ctx, effect, camera) {
     const frame = resolveEffectSequenceFrame(effect)
       ?? getEffectSpriteFrame(effect?.effectType);
     if (!frame) return false;
-    return drawFrame(ctx, frame.atlas, frame, effect, camera);
+    return drawFrame(ctx, frame.sourceKey, frame, effect, camera);
   }
 
   return {
+    peekSourceStatus,
     peekAtlasStatus,
     drawProjectileSprite,
     drawEffectSprite,
