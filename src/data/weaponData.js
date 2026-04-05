@@ -110,6 +110,8 @@ export const weaponData = [
     damage: 9, cooldown: 0.95, projectileSpeed: 440, range: 540,
     radius: 7, pierce: 4, aimSpread: 0, projectileColor: '#d4a373',
     projectileCount: 1,
+    projectileVisualId: 'fire_bolt',
+    impactEffectType: 'fire_bolt_impact',
     behaviorId: 'targetProjectile', maxLevel: 7,
   },
   {
@@ -278,6 +280,8 @@ export const weaponData = [
     damage: 14, cooldown: 0.75, projectileSpeed: 520, range: 640,
     radius: 9, pierce: 7, aimPattern: 'wide-spread', aimSpread: 0.06, projectileColor: '#f4a261',
     projectileCount: 2,
+    projectileVisualId: 'fire_bolt_upgrade',
+    impactEffectType: 'fire_bolt_upgrade_impact',
     behaviorId: 'targetProjectile', maxLevel: 7,
     isEvolved: true,
   },

@@ -31,11 +31,20 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   assert.equal(typeof VFX_SOURCE_DEFS.ice_bolt_upgrade?.src, 'string', 'ice_bolt_upgrade standalone source가 필요함');
   assert.equal(VFX_SOURCE_DEFS.holy_bolt.src.includes('/assets/vfx/holy_bolt.png'), true, 'holy_bolt source 경로가 기대값과 다름');
   assert.equal(VFX_SOURCE_DEFS.ice_bolt_upgrade.src.includes('/assets/vfx/ice_bolt_upgrade.png'), true, 'ice_bolt_upgrade source 경로가 기대값과 다름');
+  assert.equal(VFX_SOURCE_DEFS.fire_bolt?.src, '/assets/vfx/fire_bolt.png', 'fire_bolt sprite sheet src가 필요함');
+  assert.equal(VFX_SOURCE_DEFS.fire_bolt?.width, 1024, 'fire_bolt sprite sheet width가 1024여야 함');
+  assert.equal(VFX_SOURCE_DEFS.fire_bolt?.height, 1024, 'fire_bolt sprite sheet height가 1024여야 함');
+  assert.equal(VFX_SOURCE_DEFS.fire_bolt_upgrade?.src, '/assets/vfx/fire_bolt_upgrade.png', 'fire_bolt_upgrade sprite sheet src가 필요함');
+  assert.equal(VFX_SOURCE_DEFS.fire_bolt_upgrade?.cellSize, 256, 'fire_bolt_upgrade sprite sheet cellSize가 256이어야 함');
   assert.equal(getProjectileSpriteAnimationDef('magic_bolt')?.flight.loopEnd, 11, 'magic_bolt projectile animation def 누락');
   assert.equal(getProjectileSpriteAnimationDef('arcane_nova')?.intro.end, 3, 'arcane_nova intro sequence 누락');
+  assert.equal(getProjectileSpriteAnimationDef('fire_bolt')?.sourceKey, 'fire_bolt', 'fire_bolt projectile sourceKey 누락');
+  assert.equal(getProjectileSpriteAnimationDef('fire_bolt_upgrade')?.sourceKey, 'fire_bolt_upgrade', 'fire_bolt_upgrade projectile sourceKey 누락');
   assert.equal(getProjectileSpriteAnimationDef('holy_bolt')?.sourceKey, 'holy_bolt', 'holy_bolt projectile sourceKey 누락');
   assert.equal(getEffectSpriteSequenceDef('ice_bolt_upgrade_impact')?.sourceKey, 'ice_bolt_upgrade', 'ice_bolt_upgrade impact sourceKey 누락');
   assert.equal(getEffectSpriteSequenceDef('magic_bolt_impact')?.oneShot.end, 15, 'magic_bolt impact sequence 누락');
+  assert.equal(getEffectSpriteSequenceDef('fire_bolt_impact')?.sourceKey, 'fire_bolt', 'fire_bolt impact sourceKey 누락');
+  assert.equal(getEffectSpriteSequenceDef('fire_bolt_upgrade_impact')?.sourceKey, 'fire_bolt_upgrade', 'fire_bolt_upgrade impact sourceKey 누락');
   assert.equal(typeof getEffectSpriteFrame('burst')?.h, 'number', 'burst frame 누락');
   assert.equal(getProjectileSpriteFrame('targetProjectile'), null, 'generic targetProjectile frame는 animated 전용 구조에서 제거되어야 함');
 
@@ -51,6 +60,77 @@ test('sprite manifest exposes projectile/effect atlases and keyed frames', async
   assert.equal(arcaneNovaImpact.glowBlur > 18, true, 'arcane_nova impact는 더 강한 glow blur가 필요함');
   assert.equal(getProjectileAnimationFrame('holy_bolt', 7)?.w, 256, 'holy_bolt standalone projectile frame 누락');
   assert.equal(getEffectSequenceFrame('holy_bolt_impact', 15)?.h, 256, 'holy_bolt standalone impact frame 누락');
+});
+
+test('runtime loads standalone fire_bolt sprite sources lazily and resolves both projectile and impact frames', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  const created = [];
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      const image = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      created.push(image);
+      return image;
+    },
+  });
+
+  const projectileCtx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage() {},
+  };
+  const effectCalls = [];
+  const effectCtx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      effectCalls.push(args);
+    },
+  };
+
+  const firstDraw = runtime.drawProjectileSprite(projectileCtx, {
+    projectileVisualId: 'fire_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 0,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 });
+
+  assert.equal(firstDraw, false, 'fire_bolt 초기 draw는 로딩 전 false여야 함');
+  assert.equal(created.length, 1, 'fire_bolt source image가 생성되지 않음');
+  assert.equal(created[0].src, '/assets/vfx/fire_bolt.png', 'fire_bolt source image가 올바른 asset path를 가리켜야 함');
+  assert.equal(runtime.peekAtlasStatus('fire_bolt'), 'loading', 'fire_bolt source status가 loading 이어야 함');
+
+  created[0].complete = true;
+  created[0].naturalWidth = 1024;
+  created[0].on_load?.();
+
+  const effectDraw = runtime.drawEffectSprite(effectCtx, {
+    effectType: 'fire_bolt_impact',
+    x: 0,
+    y: 0,
+    radius: 16,
+    lifetime: 0.39,
+    maxLifetime: 0.4,
+  }, { x: 0, y: 0 });
+
+  assert.equal(effectDraw, true, 'fire_bolt impact sprite draw가 완료되어야 함');
+  assert.equal(effectCalls.length, 1, 'fire_bolt impact drawImage 호출 수가 기대값과 다름');
+  assert.equal(effectCalls[0][1], 768, 'fire_bolt impact 마지막 프레임은 x=768이어야 함');
+  assert.equal(effectCalls[0][2], 768, 'fire_bolt impact는 마지막 row를 사용해야 함');
 });
 
 test('runtime is lazy: first draw queues atlas load and returns false until ready', async () => {

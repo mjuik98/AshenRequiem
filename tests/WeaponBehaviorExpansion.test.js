@@ -100,6 +100,16 @@ test('신규 무기 6종이 의도한 behavior와 maxLevel 7을 가진다', () =
   }
 });
 
+test('piercing_spear와 astral_pike는 sprite projectile/effect 식별자를 노출한다', () => {
+  const piercingSpear = getWeaponDataById('piercing_spear');
+  const astralPike = getWeaponDataById('astral_pike');
+
+  assert.equal(piercingSpear?.projectileVisualId, 'fire_bolt', 'piercing_spear projectileVisualId 불일치');
+  assert.equal(piercingSpear?.impactEffectType, 'fire_bolt_impact', 'piercing_spear impactEffectType 불일치');
+  assert.equal(astralPike?.projectileVisualId, 'fire_bolt_upgrade', 'astral_pike projectileVisualId 불일치');
+  assert.equal(astralPike?.impactEffectType, 'fire_bolt_upgrade_impact', 'astral_pike impactEffectType 불일치');
+});
+
 test('laserBeam은 직선 구간을 따라 복수의 beam segment를 생성한다', () => {
   const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 3 });
   const enemies = [makeEnemy({ x: 120, y: 0 })];
@@ -321,6 +331,29 @@ test('ice_bolt_upgrade는 targetProjectile spawn에 impactBurst 계약을 실어
   );
 });
 
+test('piercing_spear는 targetProjectile spawn에 fire_bolt sprite ids를 실어 보낸다', () => {
+  const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 240, y: 0, radius: 12 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'piercing_spear',
+    behaviorId: 'targetProjectile',
+    damage: 9,
+    range: 540,
+    radius: 7,
+    projectileSpeed: 440,
+    projectileCount: 1,
+    projectileVisualId: 'fire_bolt',
+    impactEffectType: 'fire_bolt_impact',
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'piercing_spear targetProjectile 발동 실패');
+  assert.equal(spawnQueue.length, 1, 'piercing_spear spawn 수 불일치');
+  assert.equal(spawnQueue[0].config.projectileVisualId, 'fire_bolt', 'piercing_spear projectileVisualId 누락');
+  assert.equal(spawnQueue[0].config.impactEffectType, 'fire_bolt_impact', 'piercing_spear impactEffectType 누락');
+});
+
 test('targetProjectile은 aimPattern=wide-spread 일 때 기존 팬 아웃을 유지한다', () => {
   const player = makePlayer({ x: 0, y: 0, bonusProjectileCount: 0 });
   const target = makeEnemy({ x: 320, y: 0, radius: 6 });
@@ -403,6 +436,41 @@ test('arcane_nova의 omnidirectional 투사체는 projectileVisualId와 impactEf
     spawnQueue.every(({ config }) => config.impactEffectType === 'arcane_nova_impact'),
     true,
     'arcane_nova impactEffectType가 모든 투사체에 유지되지 않음',
+  );
+});
+
+test('astral_pike의 targetProjectile 투사체는 fire_bolt_upgrade sprite ids를 유지한다', () => {
+  const player = makePlayer({ x: 32, y: 48, bonusProjectileCount: 0 });
+  const target = makeEnemy({ x: 320, y: 0, radius: 8 });
+  const spawnQueue = [];
+  const weapon = {
+    id: 'astral_pike',
+    behaviorId: 'targetProjectile',
+    damage: 14,
+    projectileSpeed: 520,
+    range: 640,
+    radius: 9,
+    pierce: 7,
+    aimPattern: 'wide-spread',
+    aimSpread: 0.06,
+    projectileCount: 2,
+    projectileColor: '#f4a261',
+    projectileVisualId: 'fire_bolt_upgrade',
+    impactEffectType: 'fire_bolt_upgrade_impact',
+  };
+
+  const fired = targetProjectile({ weapon, player, enemies: [target], spawnQueue });
+  assert.equal(fired, true, 'astral_pike targetProjectile 발동 실패');
+  assert.equal(spawnQueue.length, 2, 'astral_pike spawn 수 불일치');
+  assert.equal(
+    spawnQueue.every(({ config }) => config.projectileVisualId === 'fire_bolt_upgrade'),
+    true,
+    'astral_pike projectileVisualId가 모든 투사체에 유지되지 않음',
+  );
+  assert.equal(
+    spawnQueue.every(({ config }) => config.impactEffectType === 'fire_bolt_upgrade_impact'),
+    true,
+    'astral_pike impactEffectType가 모든 투사체에 유지되지 않음',
   );
 });
 

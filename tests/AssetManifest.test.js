@@ -55,6 +55,16 @@ test('asset manifest exposes stable keys and GameDataLoader includes it in defau
     'holy_bolt_upgrade standalone VFX asset entry가 누락됨',
   );
   assert.equal(
+    assetManifest.some((entry) => entry.id === 'vfx_fire_bolt_sheet' && entry.sourceType === 'image' && entry.files?.src === '/assets/vfx/fire_bolt.png'),
+    true,
+    'fire_bolt sprite sheet asset entry가 누락되었거나 src가 잘못됨',
+  );
+  assert.equal(
+    assetManifest.some((entry) => entry.id === 'vfx_fire_bolt_upgrade_sheet' && entry.sourceType === 'image' && entry.files?.src === '/assets/vfx/fire_bolt_upgrade.png'),
+    true,
+    'fire_bolt_upgrade sprite sheet asset entry가 누락되었거나 src가 잘못됨',
+  );
+  assert.equal(
     assetManifest.some((entry) => entry.id === 'vfx_ice_bolt_sheet' && entry.files?.src === '/assets/vfx/ice_bolt.png'),
     true,
     'ice_bolt standalone VFX asset entry가 누락됨',
