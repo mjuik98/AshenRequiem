@@ -1,15 +1,6 @@
 import { matchesActionBinding } from '../../input/keyBindings.js';
+import { isTitleStartLoadoutOpen } from './titleLoadoutFlow.js';
 import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
-
-function isStartLoadoutOpen(scene) {
-  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
-  const loadoutView = runtimeTarget?.loadoutView;
-  if (typeof loadoutView?.isVisible === 'function') {
-    return Boolean(loadoutView.isVisible());
-  }
-  const loadoutEl = loadoutView?._el;
-  return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
-}
 
 export function bindTitleSceneInput(scene, {
   startGame,
@@ -19,7 +10,7 @@ export function bindTitleSceneInput(scene, {
 
   runtimeTarget.onKeyDown = (event) => {
     if (event.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
-    if (isStartLoadoutOpen(scene)) return;
+    if (isTitleStartLoadoutOpen(scene)) return;
     if (matchesActionBinding('confirm', event, scene?.game?.session?.options?.keyBindings)) {
       event.preventDefault();
       startGame();

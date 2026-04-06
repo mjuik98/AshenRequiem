@@ -68,6 +68,7 @@ test('runtime info logs are routed through shared logger helpers', () => {
   const weaponEvolutionSource = readProjectSource('../src/systems/progression/WeaponEvolutionSystem.js');
   const bossPhaseHandlerSource = readProjectSource('../src/adapters/play/events/bossPhaseEventAdapter.js');
   const titleSceneNavigationSource = readProjectSource('../src/scenes/title/titleSceneNavigation.js');
+  const titleSceneApplicationServiceSource = readProjectSource('../src/app/title/titleSceneApplicationService.js');
   const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
   const settingsSceneSource = readProjectSource('../src/scenes/SettingsScene.js');
   const metaShopSceneSource = readProjectSource('../src/scenes/MetaShopScene.js');
@@ -82,12 +83,24 @@ test('runtime info logs are routed through shared logger helpers', () => {
   assert.equal(bossPhaseHandlerSource.includes('logRuntimeInfo('), true, 'bossPhaseHandler가 shared runtime logger를 사용하지 않음');
   assert.equal(titleSceneNavigationSource.includes('console.error('), false, 'titleSceneNavigation에 console.error가 남아 있음');
   assert.equal(titleSceneNavigationSource.includes('console.warn('), false, 'titleSceneNavigation에 console.warn이 남아 있음');
+  assert.equal(titleSceneApplicationServiceSource.includes('console.error('), false, 'titleSceneApplicationService에 console.error가 남아 있음');
+  assert.equal(titleSceneApplicationServiceSource.includes('console.warn('), false, 'titleSceneApplicationService에 console.warn이 남아 있음');
   assert.equal(playUiSource.includes('console.error('), false, 'PlayUI에 console.error가 남아 있음');
   assert.equal(settingsSceneSource.includes('console.error('), false, 'SettingsScene에 console.error가 남아 있음');
   assert.equal(metaShopSceneSource.includes('console.error('), false, 'MetaShopScene에 console.error가 남아 있음');
   assert.equal(codexSceneSource.includes('console.error('), false, 'CodexScene에 console.error가 남아 있음');
-  assert.equal(titleSceneNavigationSource.includes('logRuntimeError('), true, 'titleSceneNavigation이 shared runtime error logger를 사용하지 않음');
-  assert.equal(titleSceneNavigationSource.includes('logRuntimeWarn('), true, 'titleSceneNavigation이 shared runtime warn logger를 사용하지 않음');
+  assert.equal(titleSceneNavigationSource.includes('logRuntimeError('), false, 'titleSceneNavigation이 runtime logger ownership을 계속 가지면 안 됨');
+  assert.equal(titleSceneNavigationSource.includes('logRuntimeWarn('), false, 'titleSceneNavigation이 runtime logger ownership을 계속 가지면 안 됨');
+  assert.equal(
+    titleSceneApplicationServiceSource.includes('logRuntimeErrorImpl(') || titleSceneApplicationServiceSource.includes('logRuntimeError('),
+    true,
+    'titleSceneApplicationService가 shared runtime error logger를 사용하지 않음',
+  );
+  assert.equal(
+    titleSceneApplicationServiceSource.includes('logRuntimeWarnImpl(') || titleSceneApplicationServiceSource.includes('logRuntimeWarn('),
+    true,
+    'titleSceneApplicationService가 shared runtime warn logger를 사용하지 않음',
+  );
   assert.equal(playUiSource.includes('logRuntimeError('), true, 'PlayUI가 shared runtime error logger를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('logRuntimeError('), true, 'SettingsScene이 shared runtime error logger를 사용하지 않음');
   assert.equal(metaShopSceneSource.includes('logRuntimeError('), true, 'MetaShopScene이 shared runtime error logger를 사용하지 않음');

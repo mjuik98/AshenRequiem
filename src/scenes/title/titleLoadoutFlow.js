@@ -2,6 +2,16 @@ import { createTitleLoadoutApplicationService } from '../../app/title/titleLoado
 import { buildTitleLoadoutConfig } from './titleLoadout.js';
 import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
+export function isTitleStartLoadoutOpen(scene) {
+  const runtimeTarget = resolveTitleSceneRuntimeTarget(scene);
+  const loadoutView = runtimeTarget?.loadoutView;
+  if (typeof loadoutView?.isVisible === 'function') {
+    return Boolean(loadoutView.isVisible());
+  }
+  const loadoutEl = loadoutView?._el;
+  return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
+}
+
 export async function ensureTitleLoadoutView(scene, {
   loadStartLoadoutView = () => import('../../ui/title/StartLoadoutView.js'),
 } = {}) {

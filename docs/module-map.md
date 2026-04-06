@@ -142,6 +142,11 @@
 - `src/app/meta/codexApplicationService.js`는 low-level codex session/gameData preparation만 맡고, scene가 직접 들고 있던 view payload assembly는 scene service가 소유한다.
 - 새 codex scene payload shaping은 `CodexScene`이 아니라 `src/app/meta/codexSceneApplicationService.js`에 둔다.
 
+### resolved title scene service
+- `TitleScene`의 scene-facing entrypoint는 이제 `src/app/title/titleSceneApplicationService.js`다.
+- `src/scenes/title/titleSceneRuntime.js`는 status controller, navigation guard, sceneFactory callback, quit seam을 조립해 service에 주입한다.
+- `src/scenes/title/titleSceneNavigation.js`는 더 이상 scene transition이나 load-failure/error mapping을 소유하지 않고, `data-action` click을 service로 전달하는 DOM bridge만 유지한다.
+
 ### compatibility wrapper inventory
 - `docs/compatibility-wrappers.md`에 없는 새 wrapper는 만들지 않는다.
 - 새 wrapper가 정말 필요하면 문서와 guard를 함께 갱신한다.

@@ -61,6 +61,7 @@ const settingsRuntimeDepsSource = readProjectSource('../src/scenes/settingsRunti
 const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplicationService.js');
 const metaShopSceneAppSource = readProjectSource('../src/app/meta/metaShopSceneApplicationService.js');
 const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
+const titleSceneAppSource = readProjectSource('../src/app/title/titleSceneApplicationService.js');
 const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
 const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
 const createSceneFactorySource = readProjectSource('../src/app/bootstrap/createSceneFactory.js');
@@ -194,8 +195,11 @@ test('Game과 씬 전환은 정적 Scene import와 부트 AssetManager 의존을
   assert.equal(typeof sceneLoaders.loadLevelUpViewModule, 'function', 'LevelUpView loader helper가 없음');
   assert.equal(createSceneFactorySource.includes('createSceneFactory'), true, 'bootstrap-owned scene factory helper가 없음');
   assert.equal(bootstrapBrowserGameSource.includes('createSceneFactory'), true, 'browser bootstrap이 scene factory wiring을 소유하지 않음');
-  assert.equal(titleSceneNavigationSource.includes('sceneFactory'), true, 'titleSceneNavigation이 injected scene factory를 사용하지 않음');
+  assert.equal(titleSceneNavigationSource.includes('sceneFactory'), false, 'titleSceneNavigation은 scene factory wiring을 소유하면 안 됨');
   assert.equal(titleSceneRuntimeSource.includes('sceneFactory'), true, 'titleSceneRuntime이 injected scene factory를 사용하지 않음');
+  assert.equal(titleSceneAppSource.includes('createMetaShopScene'), true, 'title scene application service가 injected title scene callback을 사용하지 않음');
+  assert.equal(titleSceneAppSource.includes('createCodexScene'), true, 'title scene application service가 injected codex callback을 사용하지 않음');
+  assert.equal(titleSceneAppSource.includes('createSettingsScene'), true, 'title scene application service가 injected settings callback을 사용하지 않음');
   assert.equal(playSceneSource.includes('sceneFactory'), true, 'PlayScene이 injected scene factory를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('sceneFactory'), true, 'SettingsScene이 injected scene factory를 사용하지 않음');
   assert.equal(metaShopSceneSource.includes('sceneFactory'), true, 'MetaShopScene이 injected scene factory를 사용하지 않음');
@@ -283,6 +287,9 @@ test('TitleScene runtime state와 PlayScene browser service는 명시 helper로 
   assert.equal(titleSceneSource.includes('createTitleSceneRuntimeState'), true, 'TitleScene이 runtime state helper를 사용하지 않음');
   assert.equal(titleSceneNavigationSource.includes('scene._nav'), false, 'titleSceneNavigation이 scene private nav 슬롯에 직접 의존하면 안 됨');
   assert.equal(titleSceneNavigationSource.includes('scene._el'), false, 'titleSceneNavigation이 scene private DOM 슬롯에 직접 의존하면 안 됨');
+  assert.equal(titleSceneRuntimeSource.includes('createTitleSceneApplicationService'), true, 'titleSceneRuntime이 scene-facing title service를 조립하지 않음');
+  assert.equal(titleSceneRuntimeSource.includes("from '../../app/title/titleSceneApplicationService.js'"), true, 'titleSceneRuntime이 app/title scene service를 사용하지 않음');
+  assert.equal(titleSceneNavigationSource.includes('runTitleAction'), false, 'titleSceneNavigation이 action orchestration을 계속 소유하면 안 됨');
   assert.equal(titleSceneInputSource.includes('scene._background'), false, 'titleSceneInput이 scene private background 슬롯에 직접 의존하면 안 됨');
   assert.equal(titleSceneInputSource.includes('scene._onKeyDown'), false, 'titleSceneInput이 listener private slot을 직접 쓰면 안 됨');
   assert.equal(titleLoadoutFlowSource.includes('scene._loadoutView'), false, 'titleLoadoutFlow가 loadout view private slot에 직접 의존하면 안 됨');

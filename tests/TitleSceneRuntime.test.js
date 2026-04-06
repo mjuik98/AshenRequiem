@@ -96,7 +96,6 @@ test('title scene runtime helper는 DOM, 이벤트, 로드아웃 orchestration e
   assert.equal(typeof api.ensureTitleLoadoutView, 'function', 'ensureTitleLoadoutView helper가 없음');
   assert.equal(typeof api.openTitleStartLoadout, 'function', 'openTitleStartLoadout helper가 없음');
   assert.equal(typeof runtimeState.createTitleSceneRuntimeState, 'function', 'createTitleSceneRuntimeState helper가 없음');
-  assert.equal(typeof navigation.runTitleAction, 'function', 'titleSceneNavigation.runTitleAction helper가 없음');
   assert.equal(typeof navigation.bindTitleActionButtons, 'function', 'titleSceneNavigation.bindTitleActionButtons helper가 없음');
   assert.equal(typeof input.bindTitleSceneInput, 'function', 'titleSceneInput.bindTitleSceneInput helper가 없음');
   assert.equal(typeof loadoutFlow.ensureTitleLoadoutView, 'function', 'titleLoadoutFlow.ensureTitleLoadoutView helper가 없음');
@@ -305,57 +304,33 @@ test('openTitleStartLoadout는 시작 가능 상태에서 저장 후 PlayScene�
   assert.deepEqual(transitions, [{ id: 'play-scene' }], '시작 가능 상태에서 PlayScene 전환이 발생하지 않음');
 });
 
-test('runTitleAction는 동적 import 실패 시 서버 재시작 안내를 상태 메시지로 남긴다', async () => {
+test('bindTitleActionButtons는 클릭 action을 injected handler로 위임한다', async () => {
   const navigation = getTitleSceneNavigation();
   const navigationSource = readProjectSource('../src/scenes/title/titleSceneNavigation.js');
-  const messages = [];
-  const errors = [];
+  const seen = [];
+  const { document, restore } = installMockDom();
+  const root = document.createElement('div');
+  root.innerHTML = '<button data-action="codex" type="button">Codex</button>';
   const scene = {
-    game: {
-      sceneFactory: {},
-    },
     _runtimeState: {
-      nav: {
-        async change(commit, onError) {
-          try {
-            await commit();
-          } catch (error) {
-            onError?.(error);
-          }
-        },
-      },
+      root,
     },
-  };
-
-  const originalConsoleError = console.error;
-  console.error = (...args) => {
-    errors.push(args);
   };
 
   try {
-    await navigation.runTitleAction('codex', scene, {
-      pulseFlash: () => {},
-      setMessage: (message) => messages.push(message),
-      windowRef: { close() {}, setTimeout() {}, closed: false },
-      attemptWindowCloseImpl: () => {},
-      openTitleStartLoadoutImpl: () => {},
-      createMetaShopSceneImpl: async () => null,
-      createCodexSceneImpl: async () => {
-        throw new TypeError('Failed to fetch dynamically imported module: http://127.0.0.1:4177/assets/CodexScene-DEytcOb1.js');
+    navigation.bindTitleActionButtons(scene, {
+      onAction: (action) => {
+        seen.push(action);
       },
     });
-  } finally {
-    console.error = originalConsoleError;
-  }
+    root.querySelector('[data-action="codex"]')?.click();
 
-  assert.equal(navigationSource.includes("from '../../utils/runtimeIssue.js'"), true, 'titleSceneNavigation이 shared runtime issue helper를 사용하지 않음');
-  assert.equal(navigationSource.includes('Failed to fetch dynamically imported module'), false, 'titleSceneNavigation이 dynamic import failure 문자열을 인라인으로 유지하면 안 됨');
-  assert.equal(
-    messages.at(-1),
-    'Codex 화면을 불러오지 못했습니다. 개발 서버가 중지되었을 수 있습니다. 서버를 다시 켜고 새로고침한 뒤 다시 시도해주세요.',
-    '동적 import 실패 시 상태 메시지가 서버 재시작 안내로 갱신되어야 함',
-  );
-  assert.equal(errors.length, 1, '실패 로그는 유지되어야 함');
+    assert.equal(navigationSource.includes('runTitleAction'), false, 'titleSceneNavigation이 action orchestration helper를 유지하면 안 됨');
+    assert.equal(navigationSource.includes("from '../../app/title/titleSceneApplicationService.js'"), false, 'titleSceneNavigation이 app service를 직접 조립하면 안 됨');
+    assert.deepEqual(seen, ['codex'], 'title action click이 injected handler로 위임되지 않음');
+  } finally {
+    restore();
+  }
 });
 
 test('bindTitleSceneInput는 session key binding confirm 설정을 따른다', () => {
@@ -478,44 +453,31 @@ test('bindTitleSceneInput는 loadout view visibility contract로 overlay open �
   assert.deepEqual(calls, [], 'visibility contract 기반 overlay open 판별이 동작하지 않음');
 });
 
-test('runTitleAction는 start loadout overlay가 열려 있으면 배경 메뉴 액션을 무시한다', () => {
+test('bindTitleActionButtons는 overlay open guard를 scene runtime에서 직접 판단하지 않는다', () => {
   const navigation = getTitleSceneNavigation();
-  const transitions = [];
+  const { document, restore } = installMockDom();
+  const root = document.createElement('div');
+  root.innerHTML = '<button data-action="shop" type="button">Shop</button>';
   const scene = {
-    _loadoutView: {
-      _el: {
-        style: {
-          display: 'flex',
-        },
-      },
-    },
-    _nav: {
-      change(callback) {
-        transitions.push(callback);
-      },
-      load(loader, commit) {
-        transitions.push([loader, commit]);
-      },
-    },
-    game: {
-      sceneManager: {
-        changeScene(nextScene) {
-          transitions.push(nextScene);
-        },
-      },
+    _runtimeState: {
+      root,
     },
   };
 
-  navigation.runTitleAction('shop', scene, {
-    pulseFlash: () => {},
-    setMessage: () => {},
-    windowRef: { close() {}, setTimeout() {}, closed: false },
-    attemptWindowCloseImpl: () => {},
-    openTitleStartLoadoutImpl: () => {},
-    createMetaShopSceneImpl: async () => ({ id: 'meta-shop-scene' }),
-  });
+  const seen = [];
+  try {
+    navigation.bindTitleActionButtons(scene, {
+      onAction: (action) => {
+        seen.push(action);
+      },
+    });
+    root.querySelector('[data-action="shop"]')?.click();
 
-  assert.deepEqual(transitions, [], 'start loadout overlay가 열린 상태에서 background 메뉴 액션이 실행되면 안 됨');
+    assert.equal(navigation.bindTitleActionButtons.length >= 1, true, 'title action binder가 제거되면 안 됨');
+    assert.deepEqual(seen, ['shop'], 'title action binder가 action 전달을 누락함');
+  } finally {
+    restore();
+  }
 });
 
 summary();

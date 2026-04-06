@@ -10,7 +10,7 @@ Last verified against code: 2026-04-06
 - `src/app/bootstrap/createSceneFactory.js`는 `TitleScene`만 정적 import하고 `PlayScene`, `MetaShopScene`, `SettingsScene`, `CodexScene`은 dynamic import로 생성한다. 초기 entry chunk는 title shell 위주로 유지하고, 전투/메타/UI surface는 실제 진입 시점까지 지연 로드된다.
 - `GameApp`은 더 이상 browser runtime hook 구현을 직접 import하지 않는다. debug/runtime hook 등록 해제는 `bootstrapBrowserGame()`이 `src/adapters/browser/runtimeHooks.js`를 주입해 소유하고, runtime hook은 `PlayScene.getDebugSurface()` explicit contract를 통해 UI/controller snapshot만 읽는다. `PlayScene` 내부 bootstrap state, overlay controller, debug surface 조립은 `src/scenes/play/playSceneRuntimeState.js`가 담당한다.
 - `src/scenes/sceneLoaders.js`는 더 이상 내부 runtime의 scene transition SSOT가 아니다. scene 구현은 injected `sceneFactory`를 사용하고, `sceneLoaders.js`는 테스트/호환용 facade만 유지한다. `PlayUI`의 lazy overlay import는 `src/scenes/overlayViewLoaders.js`가 별도 소유한다.
-- 동적 import/overlay fetch 실패 문구의 shared SSOT는 `src/utils/runtimeIssue.js`다. `titleSceneNavigation`과 `PlayUI`는 이 helper로 module-load failure를 공통 분류하고, `PlayUI`는 scene-facing `onOverlayLoadFailure` seam으로 마지막 UI issue snapshot을 `playSceneRuntimeState.lastUiIssue`에 남긴다.
+- 동적 import/overlay fetch 실패 문구의 shared SSOT는 `src/utils/runtimeIssue.js`다. `src/app/title/titleSceneApplicationService.js`와 `PlayUI`는 이 helper로 module-load failure를 공통 분류하고, `PlayUI`는 scene-facing `onOverlayLoadFailure` seam으로 마지막 UI issue snapshot을 `playSceneRuntimeState.lastUiIssue`에 남긴다.
 - `src/core/Game.js`는 더 이상 메인 엔트리의 직접 부트스트랩이 아니라 호환 facade 역할만 맡는다.
 - `BrowserGameShell`은 legacy `game._resizeCanvas` shim과 함께 public `game.runtimeCapabilities.resizeCanvas` contract를 주입한다. Settings 계층은 이 공개 capability를 우선 사용하고, legacy shim은 호환 경로로만 유지한다.
 - 타이틀 화면에서는 게임 시작, 영구 업그레이드 상점, 도감, 설정으로 진입할 수 있다.
@@ -115,6 +115,7 @@ Detected top-level scene modules in `src/scenes/`:
 - 시작 무기 선택 저장은 `setSelectedStartWeaponAndSave(..., gameData)`가 내부 정규화 후 `{ saved, selectedWeaponId }` 결과와 함께 수행한다.
 - Ascension 선택 저장은 `setSelectedAscensionAndSave(session, level)`가 담당하며, 런 시작 시 `world.run.ascensionLevel` / `world.run.ascension` snapshot으로 주입된다.
 - 타이틀 시작 무기 선택 UI는 `buildTitleLoadoutConfig()`의 `canStart` 상태를 받아, 후보가 없으면 시작 버튼을 비활성화한다. 실제 저장과 PlayScene 생성 orchestration은 `src/app/title/titleLoadoutApplicationService.js`가 담당하되, 입력 정규화/세션 commit/result shaping 구현은 `titleRunOptions.js`, `titleRunSelectionCommit.js`, `titleRunResult.js` helper로 분리됐다.
+- `TitleScene`의 scene-facing action orchestration은 `src/app/title/titleSceneApplicationService.js`가 소유한다. `titleSceneRuntime`은 status controller, sceneFactory callback, quit seam을 조립해 이 service에 주입하고, `titleSceneNavigation`은 `data-action` click을 전달하는 DOM bridge만 맡는다.
 - `TitleScene`는 `titleSceneRuntimeState.js`가 만든 runtime state 객체를 소유한다. `titleSceneRuntime`, `titleSceneNavigation`, `titleSceneInput`, `titleLoadoutFlow`는 이 명시 state를 통해 DOM/background/loadout/nav/listener를 읽고 쓴다. 타이틀 shell DOM 자체는 `titleSceneShell.js`가 재사용 가능한 root + cached refs(`canvas`, `flash`, `live`)로 유지한다.
 - 플레이어 영구 업그레이드 카탈로그와 적용 로직은 `permanentUpgradeCatalog.js`, `permanentUpgradeApplicator.js`로 분해되고, `permanentUpgradeData.js`는 lookup/apply facade만 유지한다. applicator는 최종 무기 데미지와 HP 보정까지 단일 경로로 담당한다.
 - 런 world runtime slice는 `replayTrace`, `replayFrame`, `maxReplaySamples`를 유지한다. `GameApp.tick()`이 최근 입력 snapshot을 ring buffer로 기록해 runtime debug snapshot과 authoring overlay가 이를 소비한다.
