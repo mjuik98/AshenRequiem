@@ -5,6 +5,7 @@ import {
   normalizeSessionOptions,
 } from '../sessionOptions.js';
 import { SESSION_MIGRATION_STEPS } from './migrations/sessionMigrationSteps.js';
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 /**
  * @typedef {Object} SessionState
@@ -192,8 +193,9 @@ export function migrateSessionState(raw) {
   }
 
   if (version > SESSION_VERSION) {
-    console.warn(
-      `[SessionState] 저장 버전(${version})이 현재(${SESSION_VERSION})보다 높음 — 기본값으로 초기화`,
+    logRuntimeWarn(
+      'SessionState',
+      `저장 버전(${version})이 현재(${SESSION_VERSION})보다 높음 — 기본값으로 초기화`,
     );
     return createSessionState();
   }

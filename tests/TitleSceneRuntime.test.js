@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
 import { installMockDom } from './helpers/mockDom.js';
+import { readProjectSource } from './helpers/sourceInspection.js';
 
 console.log('\n[TitleSceneRuntime]');
 
@@ -306,6 +307,7 @@ test('openTitleStartLoadout는 시작 가능 상태에서 저장 후 PlayScene�
 
 test('runTitleAction는 동적 import 실패 시 서버 재시작 안내를 상태 메시지로 남긴다', async () => {
   const navigation = getTitleSceneNavigation();
+  const navigationSource = readProjectSource('../src/scenes/title/titleSceneNavigation.js');
   const messages = [];
   const errors = [];
   const scene = {
@@ -346,6 +348,8 @@ test('runTitleAction는 동적 import 실패 시 서버 재시작 안내를 상�
     console.error = originalConsoleError;
   }
 
+  assert.equal(navigationSource.includes("from '../../utils/runtimeIssue.js'"), true, 'titleSceneNavigation이 shared runtime issue helper를 사용하지 않음');
+  assert.equal(navigationSource.includes('Failed to fetch dynamically imported module'), false, 'titleSceneNavigation이 dynamic import failure 문자열을 인라인으로 유지하면 안 됨');
   assert.equal(
     messages.at(-1),
     'Codex 화면을 불러오지 못했습니다. 개발 서버가 중지되었을 수 있습니다. 서버를 다시 켜고 새로고침한 뒤 다시 시도해주세요.',

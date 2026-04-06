@@ -6,7 +6,8 @@ import { shouldEnablePipelineProfiling } from './playSceneRuntime.js';
 export function buildPlayRuntime({
   shouldEnableProfilingImpl = shouldEnablePipelineProfiling,
   mountUiImpl = mountUI,
-  createPlayUiImpl = (container) => new PlayUI(container),
+  onOverlayLoadFailure = null,
+  createPlayUiImpl = (container) => new PlayUI(container, { onOverlayLoadFailure }),
   ...options
 } = {}) {
   return buildPlayRuntimeBase({

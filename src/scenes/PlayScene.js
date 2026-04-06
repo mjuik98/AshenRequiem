@@ -41,7 +41,10 @@ export class PlayScene {
   }
 
   enter() {
-    const runtime = bootstrapPlaySceneRuntime({ game: this.game });
+    const runtime = bootstrapPlaySceneRuntime({
+      game: this.game,
+      onOverlayLoadFailure: (issue) => this._handleOverlayLoadFailure(issue),
+    });
     this.world = runtime.world;
     this._syncViewportState();
     this._runtimeState = createPlaySceneRuntimeState({
@@ -180,6 +183,13 @@ export class PlayScene {
       },
       onError: (error) => logRuntimeError('PlayScene', '결과 화면 씬 전환 실패:', error),
     });
+  }
+
+  _handleOverlayLoadFailure(issue) {
+    if (!issue) return;
+    if (this._runtimeState) {
+      this._runtimeState.lastUiIssue = issue;
+    }
   }
 
   _checkpointActiveRun(force = false) {

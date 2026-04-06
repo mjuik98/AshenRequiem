@@ -12,6 +12,7 @@ test('PlayUI는 overlay lazy orchestration을 공용 controller helper에 위임
 
   assert.equal(projectPathExists('../src/scenes/play/LazyOverlayController.js'), true, 'overlay lazy orchestration helper 파일이 필요함');
   assert.equal(playUiSource.includes("from './LazyOverlayController.js'"), true, 'PlayUI가 공용 LazyOverlayController를 사용해야 함');
+  assert.equal(playUiSource.includes("from '../../utils/runtimeIssue.js'"), true, 'PlayUI가 shared runtime issue helper를 사용해야 함');
 });
 
 test('PlayUI는 pause/result/level-up overlay를 lazy import해도 요청된 visible 상태를 유지한다', async () => {
@@ -258,6 +259,42 @@ test('PlayUI는 overlay 로더 실패를 uncaught promise로 터뜨리지 않고
 
     assert.equal(shown, false, '로더 실패는 false로 흡수해 브라우저에 uncaught rejection을 남기면 안 됨');
     assert.equal(ui.isResultVisible(), true, '표시 요청 상태는 유지되어 이후 재시도 조건을 잃지 않아야 함');
+  } finally {
+    restore();
+  }
+});
+
+test('PlayUI는 overlay 로더 실패를 scene-facing callback seam으로 보고한다', async () => {
+  const { document, restore } = installMockDom();
+
+  try {
+    const { PlayUI } = await import('../src/scenes/play/PlayUI.js');
+    const issues = [];
+
+    const ui = new PlayUI(document.createElement('div'), {
+      onOverlayLoadFailure(issue) {
+        issues.push(issue);
+      },
+      loadPauseViewModule: async () => ({ PauseView: class { destroy() {} } }),
+      loadLevelUpViewModule: async () => ({ LevelUpView: class { destroy() {} } }),
+      loadResultViewModule: async () => {
+        throw new TypeError('Failed to fetch dynamically imported module: /assets/ResultView.js');
+      },
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const shown = await ui.showResult({ killCount: 0 }, () => {}, null);
+
+    assert.equal(shown, false, 'overlay failure는 false를 반환해야 함');
+    assert.equal(issues.length, 1, 'overlay failure callback seam이 호출되지 않음');
+    assert.equal(issues[0].overlayKind, 'result', 'overlay issue payload에 overlay kind가 필요함');
+    assert.equal(
+      issues[0].message,
+      '결과 화면을 불러오지 못했습니다. 개발 서버가 중지되었을 수 있습니다. 서버를 다시 켜고 새로고침한 뒤 다시 시도해주세요.',
+      'overlay issue payload가 shared module load failure message를 사용하지 않음',
+    );
   } finally {
     restore();
   }

@@ -2,16 +2,16 @@ function formatRuntimeScope(scope, message) {
   return `[${scope}] ${message}`;
 }
 
-let runtimeDebugEnabledResolver = () => false;
+let runtimeDebugEnabledResolver = (_scope = '', _host = globalThis) => false;
 
 export function setRuntimeDebugEnabledResolver(resolver = null) {
   runtimeDebugEnabledResolver = typeof resolver === 'function'
     ? resolver
-    : () => false;
+    : (_scope = '', _host = globalThis) => false;
 }
 
 export function resetRuntimeDebugEnabledResolver() {
-  runtimeDebugEnabledResolver = () => false;
+  runtimeDebugEnabledResolver = (_scope = '', _host = globalThis) => false;
 }
 
 export function isRuntimeDebugEnabled(scope = '', host = globalThis) {

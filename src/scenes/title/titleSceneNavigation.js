@@ -1,4 +1,5 @@
 import { logRuntimeError, logRuntimeWarn } from '../../utils/runtimeLogger.js';
+import { buildModuleLoadFailureMessage } from '../../utils/runtimeIssue.js';
 import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
 function isStartLoadoutOpen(scene) {
@@ -11,16 +12,8 @@ function isStartLoadoutOpen(scene) {
   return Boolean(loadoutEl && loadoutEl.style?.display !== 'none');
 }
 
-function formatTitleLoadFailureMessage(label, error) {
-  const errorText = String(error?.message ?? error ?? '');
-  if (errorText.includes('Failed to fetch dynamically imported module')) {
-    return `${label} 화면을 불러오지 못했습니다. 개발 서버가 중지되었을 수 있습니다. 서버를 다시 켜고 새로고침한 뒤 다시 시도해주세요.`;
-  }
-  return `${label} 화면을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.`;
-}
-
 function reportTitleLoadFailure(label, error, setMessage) {
-  setMessage(formatTitleLoadFailureMessage(label, error));
+  setMessage(buildModuleLoadFailureMessage(label, error));
 }
 
 export function runTitleAction(action, scene, {

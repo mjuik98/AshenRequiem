@@ -27,6 +27,7 @@ export function resolvePlaySceneEventHandlers(game) {
 
 export function bootstrapPlaySceneRuntime({
   game,
+  onOverlayLoadFailure = null,
   createPlaySceneWorldStateImpl = createPlaySceneWorldState,
   normalizeSessionOptionsImpl = normalizeSessionOptions,
   shouldEnablePipelineProfilingImpl = shouldEnablePipelineProfiling,
@@ -41,6 +42,7 @@ export function bootstrapPlaySceneRuntime({
   const registerEventHandlersImpl = resolveEventHandlersImpl(game) ?? null;
   const runtime = buildPlayRuntimeImpl({
     game,
+    onOverlayLoadFailure,
     createWorldStateImpl: createPlaySceneWorldStateImpl,
     normalizeSessionOptionsImpl,
     shouldEnableProfilingImpl: shouldEnablePipelineProfilingImpl,
