@@ -4,7 +4,7 @@ import {
   getNowSeconds,
 } from './runtimeEnv.js';
 import { createBrowserAudioContextFactory } from './audioRuntime.js';
-import { createDocumentAccessibilityRuntime } from '../../ui/shared/accessibilityRuntime.js';
+import { createDocumentAccessibilityRuntime } from './accessibilityRuntime.js';
 
 export function createPlayBrowserRuntimeServices({
   host = globalThis,

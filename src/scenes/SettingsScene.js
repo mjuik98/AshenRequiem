@@ -17,7 +17,7 @@ import {
   resetSessionProgress,
   restoreStoredSessionSnapshot,
   saveSettingsAndApplyRuntime,
-} from '../app/meta/settingsApplicationService.js';
+} from '../app/session/settingsSceneApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { createSettingsRuntimeDependencies } from './settingsRuntimeDependencies.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';

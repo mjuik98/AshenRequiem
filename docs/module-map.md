@@ -101,6 +101,7 @@
 - 전환 원칙:
   - 새 persistence caller는 adapter/app owner를 직접 본다.
   - barrel은 compatibility 목적의 재노출만 허용한다.
+  - 내부 `src` 코드는 이 barrel을 직접 import하지 않는다.
 
 ### `src/state/sessionMeta.js`
 - 상태: legacy session meta facade.
@@ -122,6 +123,7 @@
 ### resolved settings session snapshot services
 - `sessionSnapshotQueryService`, `sessionSnapshotCommandService`, `sessionSnapshotPreview`, `sessionSnapshotCodec`, `sessionSnapshotMutationService`의 실제 owner는 이제 `src/app/session/*`다.
 - `src/app/meta/settingsQueryService.js`, `settingsCommandService.js`는 thin facade만 유지한다.
+- `SettingsScene`의 scene-facing entrypoint는 `src/app/session/settingsSceneApplicationService.js`가 맡고, `src/app/meta/settingsApplicationService.js`는 compatibility facade만 유지한다.
 - 새 settings snapshot/import-export/reset 로직은 `src/app/meta/*`가 아니라 session owner 하위에 둔다.
 
 ### resolved meta shop purchase helper

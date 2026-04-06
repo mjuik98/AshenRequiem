@@ -1,9 +1,9 @@
-import { updateSessionBest } from '../../state/createSessionState.js';
 import { ensureCodexMeta } from '../../state/session/sessionMetaState.js';
 import {
   applyComputedSessionUnlockProgress,
   computeSessionUnlockProgress,
-} from '../../state/unlockProgressFacade.js';
+} from '../../state/session/sessionUnlockState.js';
+import { updateSessionBest } from '../../state/session/sessionCommands.js';
 import { persistSession } from '../session/sessionPersistenceService.js';
 import {
   buildPlayResultSummary,

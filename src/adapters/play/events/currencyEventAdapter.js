@@ -1,4 +1,4 @@
-import { earnCurrency } from '../../../state/createSessionState.js';
+import { earnCurrency } from '../../../state/session/sessionCommands.js';
 
 export function registerCurrencyHandler(session, registry) {
   if (!registry) return;

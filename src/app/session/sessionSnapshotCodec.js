@@ -1,4 +1,4 @@
-import { createSessionState } from '../../state/createSessionState.js';
+import { createSessionState } from '../../state/session/sessionMigrations.js';
 import { normalizeSessionOptions } from '../../state/sessionOptions.js';
 
 function cloneValue(value) {
