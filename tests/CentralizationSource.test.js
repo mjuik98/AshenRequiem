@@ -61,6 +61,7 @@ const settingsRuntimeDepsSource = readProjectSource('../src/scenes/settingsRunti
 const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplicationService.js');
 const metaShopSceneAppSource = readProjectSource('../src/app/meta/metaShopSceneApplicationService.js');
 const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
+const titleLoadoutSceneAppSource = readProjectSource('../src/app/title/titleLoadoutSceneApplicationService.js');
 const titleSceneAppSource = readProjectSource('../src/app/title/titleSceneApplicationService.js');
 const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
 const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
@@ -358,7 +359,13 @@ test('메타 씬은 app 계층 service를 통해 세션 규칙을 호출한다',
   assert.equal(metaShopSceneAppSource.includes("from './metaShopApplicationService.js'"), true, 'meta shop scene application service가 low-level meta shop service를 사용하지 않음');
   assert.equal(metaShopSceneAppSource.includes("from '../session/sessionPersistenceService.js'"), false, 'meta shop scene application service가 세션 저장 구현에 직접 결합하면 안 됨');
   assert.equal(metaShopSceneAppSource.includes("from '../../domain/meta/metashop/metaShopPurchaseDomain.js'"), false, 'meta shop scene application service가 purchase domain helper를 직접 import하면 안 됨');
-  assert.equal(titleLoadoutFlowSource.includes('createTitleLoadoutApplicationService'), true, 'titleLoadoutFlow가 title loadout application service를 사용하지 않음');
+  assert.equal(titleLoadoutFlowSource.includes("from '../../app/title/titleLoadoutSceneApplicationService.js'"), true, 'titleLoadoutFlow가 scene-facing title loadout service를 사용하지 않음');
+  assert.equal(titleLoadoutFlowSource.includes('createTitleLoadoutApplicationService'), false, 'titleLoadoutFlow가 low-level title loadout service를 직접 import하면 안 됨');
+  assert.equal(titleLoadoutFlowSource.includes("from './titleLoadout.js'"), false, 'titleLoadoutFlow가 query payload facade를 직접 import하면 안 됨');
+  assert.equal(titleLoadoutFlowSource.includes("from '../../app/title/titleLoadoutQueryService.js'"), false, 'titleLoadoutFlow가 query service를 직접 import하면 안 됨');
+  assert.equal(titleLoadoutSceneAppSource.includes("from './titleLoadoutApplicationService.js'"), true, 'title loadout scene service가 low-level loadout service를 사용하지 않음');
+  assert.equal(titleLoadoutSceneAppSource.includes("from './titleLoadoutQueryService.js'"), true, 'title loadout scene service가 query service를 사용하지 않음');
+  assert.equal(titleLoadoutSceneAppSource.includes("from '../../ui/title/StartLoadoutView.js'"), false, 'title loadout scene service가 view 구현에 직접 결합하면 안 됨');
   assert.equal(titleLoadoutFlowSource.includes('setSelectedStartWeaponAndSave'), false, 'titleLoadoutFlow가 session facade를 직접 import하면 안 됨');
   assert.equal(playResultHandlerSource.includes('createPlayResultApplicationService'), true, 'PlayResultHandler가 play result application service를 사용하지 않음');
   assert.equal(playSceneAppFlowSource.includes('processPlayResult('), false, 'playScene flow app service가 play result domain을 직접 호출하면 안 됨');
