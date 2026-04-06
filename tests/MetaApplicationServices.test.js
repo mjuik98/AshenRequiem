@@ -499,4 +499,47 @@ test('codex application service는 메타 보정과 gameData/session 전달을 �
   assert.deepEqual(session.meta.weaponsUsedAll, []);
 });
 
+test('codex scene application service는 scene-facing payload를 codex application service 위에 조립한다', async () => {
+  const codexSceneAppSource = readProjectSource('../src/app/meta/codexSceneApplicationService.js');
+  const codexAppSource = readProjectSource('../src/app/meta/codexApplicationService.js');
+  const {
+    createCodexSceneApplicationService,
+  } = await import('../src/app/meta/codexSceneApplicationService.js');
+  const { prepareCodexSceneState } = await import('../src/app/meta/codexApplicationService.js');
+
+  assert.equal(
+    codexSceneAppSource.includes("from './codexApplicationService.js'"),
+    true,
+    'codex scene application service가 low-level codex prepare service를 사용하지 않음',
+  );
+  assert.equal(
+    codexSceneAppSource.includes("from '../session/codexSessionStateService.js'"),
+    false,
+    'codex scene application service가 session owner service에 직접 결합하면 안 됨',
+  );
+  assert.equal(
+    codexAppSource.includes("from '../session/codexSessionStateService.js'"),
+    true,
+    'codexApplicationService가 session owner codex service를 계속 사용해야 함',
+  );
+
+  const session = {
+    best: { kills: 0, survivalTime: 0, level: 1 },
+    meta: {
+      unlockedWeapons: ['magic_bolt'],
+      unlockedAccessories: [],
+      completedUnlocks: [],
+      selectedStartWeaponId: 'magic_bolt',
+    },
+  };
+  const gameData = { enemyData: [], weaponData: [] };
+  const service = createCodexSceneApplicationService({ session, gameData });
+
+  const payload = service.getViewPayload();
+  const prepared = prepareCodexSceneState({ session, gameData });
+
+  assert.equal(payload.session, prepared.session, 'scene service가 prepared session을 payload에 전달하지 않음');
+  assert.equal(payload.gameData, prepared.gameData, 'scene service가 prepared gameData를 payload에 전달하지 않음');
+});
+
 summary();

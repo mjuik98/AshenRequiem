@@ -31,7 +31,7 @@
 
 import { CodexView }    from '../ui/codex/CodexView.js';
 import { mountUI }      from '../ui/dom/mountUI.js';
-import { prepareCodexSceneState } from '../app/meta/codexApplicationService.js';
+import { createCodexSceneApplicationService } from '../app/meta/codexSceneApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
 
@@ -45,15 +45,17 @@ export class CodexScene {
     this.sceneId = 'CodexScene';
     this._from = from;
     this._view = null;
+    this._service = null;
     this._nav  = createSceneNavigationGuard();
   }
 
   enter() {
     this._nav.reset();
-    const { gameData, session } = prepareCodexSceneState({
-      gameData: this.game.gameData,
+    this._service = createCodexSceneApplicationService({
       session: this.game.session,
+      gameData: this.game.gameData,
     });
+    const { gameData, session } = this._service.getViewPayload();
     const container = mountUI();
 
     this._view = new CodexView(container);
@@ -76,6 +78,7 @@ export class CodexScene {
   exit() {
     this._view?.destroy();
     this._view = null;
+    this._service = null;
   }
 
   // ── 내부 처리 ──────────────────────────────────────────────────────────────
