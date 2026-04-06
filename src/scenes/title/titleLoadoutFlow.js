@@ -1,5 +1,4 @@
-import { createTitleLoadoutApplicationService } from '../../app/title/titleLoadoutApplicationService.js';
-import { buildTitleLoadoutConfig } from './titleLoadout.js';
+import { createTitleLoadoutSceneApplicationService } from '../../app/title/titleLoadoutSceneApplicationService.js';
 import { resolveTitleSceneRuntimeTarget } from './titleSceneRuntimeState.js';
 
 export function isTitleStartLoadoutOpen(scene) {
@@ -30,56 +29,28 @@ export async function ensureTitleLoadoutView(scene, {
 export async function openTitleStartLoadout(scene, {
   setMessage,
   pulseFlash,
-  buildTitleLoadoutConfigImpl = buildTitleLoadoutConfig,
   ensureTitleLoadoutViewImpl = ensureTitleLoadoutView,
+  createTitleLoadoutSceneServiceImpl = createTitleLoadoutSceneApplicationService,
+  buildTitleLoadoutConfigImpl,
   createTitleLoadoutServiceImpl = null,
   createPlaySceneImpl = null,
   setTimeoutFn = globalThis.setTimeout,
 } = {}) {
-  const resolvedCreatePlayScene = createPlaySceneImpl
-    ?? ((game) => scene?.game?.sceneFactory?.createPlayScene?.(game) ?? null);
-  const resolvedCreateTitleLoadoutService = createTitleLoadoutServiceImpl
-    ?? ((game) => createTitleLoadoutApplicationService(game, {
-      createPlaySceneImpl: resolvedCreatePlayScene,
-    }));
   const loadoutView = await ensureTitleLoadoutViewImpl(scene);
   if (!loadoutView) return null;
-  const loadoutConfig = buildTitleLoadoutConfigImpl(scene.game.gameData, scene.game.session, {
-    onCancel: () => {
-      setMessage('게임 시작 입력을 기다리는 중입니다.');
+  const titleLoadoutSceneService = createTitleLoadoutSceneServiceImpl({
+    game: scene?.game,
+    setMessage,
+    pulseFlash,
+    changeScene: (nextScene) => {
+      scene?.game?.sceneManager?.changeScene(nextScene);
     },
-    onStart: (weaponId, runOptions) => {
-      if (!loadoutConfig.canStart || !weaponId) {
-        setMessage('시작 가능한 기본 무기가 없습니다.');
-        return;
-      }
-
-      const titleLoadoutService = resolvedCreateTitleLoadoutService(scene.game);
-      const startResult = titleLoadoutService.startRun(weaponId, runOptions);
-      if (!startResult?.saved) {
-        setMessage('시작 가능한 기본 무기가 없습니다.');
-        return;
-      }
-
-      pulseFlash();
-      setMessage('씬 전환 중…');
-      setTimeoutFn(() => {
-        const nextScene = startResult.nextScene;
-        if (nextScene && typeof nextScene.then === 'function') {
-          void nextScene.then((resolvedScene) => {
-            scene.game.sceneManager.changeScene(resolvedScene);
-          });
-          return;
-        }
-        scene.game.sceneManager.changeScene(nextScene);
-      }, 120);
-    },
+    buildTitleLoadoutConfigImpl,
+    createTitleLoadoutServiceImpl,
+    createPlaySceneImpl: createPlaySceneImpl
+      ?? ((game) => scene?.game?.sceneFactory?.createPlayScene?.(game) ?? null),
+    setTimeoutFn,
   });
 
-  if (!loadoutConfig.canStart) {
-    setMessage('시작 가능한 기본 무기가 없습니다.');
-  }
-
-  loadoutView.show(loadoutConfig);
-  return loadoutConfig;
+  return titleLoadoutSceneService.showLoadoutView(loadoutView);
 }

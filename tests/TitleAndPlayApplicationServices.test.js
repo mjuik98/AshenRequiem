@@ -196,6 +196,60 @@ test('title scene application service는 title runtime seam 위에 action orches
   );
 });
 
+test('title loadout scene application service는 query/service seam 위에 loadout payload를 조립한다', async () => {
+  const { readProjectSource } = await import('./helpers/sourceInspection.js');
+  const titleLoadoutSceneAppSource = readProjectSource('../src/app/title/titleLoadoutSceneApplicationService.js');
+  const {
+    createTitleLoadoutSceneApplicationService,
+  } = await import('../src/app/title/titleLoadoutSceneApplicationService.js');
+
+  assert.equal(
+    titleLoadoutSceneAppSource.includes("from './titleLoadoutApplicationService.js'"),
+    true,
+    'title loadout scene service가 low-level loadout service를 사용하지 않음',
+  );
+  assert.equal(
+    titleLoadoutSceneAppSource.includes("from './titleLoadoutQueryService.js'"),
+    true,
+    'title loadout scene service가 query service를 사용하지 않음',
+  );
+  assert.equal(
+    titleLoadoutSceneAppSource.includes("from '../../ui/title/StartLoadoutView.js'"),
+    false,
+    'title loadout scene service가 view 구현을 직접 import하면 안 됨',
+  );
+
+  const seen = [];
+  const service = createTitleLoadoutSceneApplicationService({
+    game: {
+      gameData: { weaponData: [{ id: 'magic_bolt', isEvolved: false }] },
+      session: { meta: { unlockedWeapons: ['magic_bolt'], selectedStartWeaponId: 'magic_bolt' } },
+    },
+    setMessage: (message) => {
+      seen.push(message);
+    },
+    buildTitleLoadoutConfigImpl: (_gameData, _session, callbacks) => ({
+      weapons: [{ id: 'magic_bolt' }],
+      selectedWeaponId: 'magic_bolt',
+      canStart: true,
+      onCancel: callbacks.onCancel,
+      onStart: callbacks.onStart,
+    }),
+    createTitleLoadoutServiceImpl: () => ({
+      startRun: () => ({ saved: false, nextScene: null }),
+    }),
+  });
+
+  const config = service.buildViewConfig();
+  config.onCancel();
+  config.onStart('magic_bolt');
+  assert.deepEqual(
+    seen,
+    ['게임 시작 입력을 기다리는 중입니다.', '시작 가능한 기본 무기가 없습니다.'],
+    'title loadout scene service가 cancel/start 실패 메시지 흐름을 조립하지 않음',
+  );
+});
+
 test('play result application service는 세션 기준 runtime snapshot을 캡처해 결과 처리를 수행한다', async () => {
   const {
     capturePlayResultRuntimeState,
