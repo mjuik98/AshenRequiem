@@ -47,6 +47,10 @@ test('vite build는 compressed size 계산을 끄고 반복 verify 시간을 줄
 test('progression legacy wrapper는 제거된다', () => {
   assert.equal(projectPathExists('../src/systems/progression/upgradeChoicePool.js'), false, 'legacy progression wrapper가 남아 있음');
   assert.equal(projectPathExists('../src/systems/progression/upgradeFallbackChoices.js'), false, 'legacy fallback wrapper가 남아 있음');
+  assert.equal(projectPathExists('../src/scenes/play/playSceneRuntime.js'), false, 'legacy playSceneRuntime wrapper가 남아 있음');
+  assert.equal(projectPathExists('../src/scenes/play/playSceneOverlays.js'), false, 'legacy playSceneOverlays wrapper가 남아 있음');
+  assert.equal(projectPathExists('../src/scenes/title/titleLoadout.js'), false, 'legacy titleLoadout wrapper가 남아 있음');
+  assert.equal(projectPathExists('../src/state/startLoadoutRuntime.js'), false, 'legacy startLoadoutRuntime wrapper가 남아 있음');
 });
 
 test('README는 유지보수 관점의 폴더 구조와 환경 변수 계약을 문서화한다', () => {

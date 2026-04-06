@@ -11,6 +11,7 @@
  */
 
 import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
+import { buildOrbitBehaviorState } from '../../entities/projectileBehaviorState.js';
 import { getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
 
 /**
@@ -49,6 +50,9 @@ export function orbit({ weapon, player, spawnQueue }) {
         pierce:      weapon.pierce ?? 999,
         maxRange:    0,
         behaviorId:  'orbit',
+        projectileVisualId: weapon.projectileVisualId ?? null,
+        impactEffectType: weapon.impactEffectType ?? null,
+        impactEffectVisualId: weapon.impactEffectVisualId ?? weapon.impactEffectType ?? null,
         maxLifetime: lifetime,
         ownerId:     player.id,
         statusEffectId:     weapon.statusEffectId     ?? null,
@@ -56,6 +60,7 @@ export function orbit({ weapon, player, spawnQueue }) {
         orbitAngle:  angle,
         orbitRadius: radius,
         orbitSpeed:  speed,
+        behaviorState: buildOrbitBehaviorState(angle),
       },
     }));
   }

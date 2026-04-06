@@ -49,7 +49,7 @@ test('core runtimeFeatureFlags wrapper re-exports the adapter-owned flag readers
 });
 
 test('runtime flag consumers delegate global/query parsing to the shared adapter', () => {
-  const playSceneRuntimeSource = readProjectSource('../src/scenes/play/playSceneRuntime.js');
+  const playRuntimeComposerSource = readProjectSource('../src/scenes/play/playRuntimeComposer.js');
   const gameInputRuntimeSource = readProjectSource('../src/adapters/browser/gameInputRuntime.js');
   const runtimeLoggerSource = readProjectSource('../src/utils/runtimeLogger.js');
   const runtimeLoggerPolicySource = readProjectSource('../src/adapters/browser/runtimeLoggerPolicy.js');
@@ -58,8 +58,8 @@ test('runtime flag consumers delegate global/query parsing to the shared adapter
   const runtimeFeatureFlagsSource = readProjectSource('../src/adapters/browser/runtimeFeatureFlags.js');
   const coreRuntimeFeatureFlagsSource = readProjectSource('../src/core/runtimeFeatureFlags.js');
 
-  assert.equal(playSceneRuntimeSource.includes("from '../../adapters/browser/runtimeFeatureFlags.js'"), true, 'playSceneRuntime이 shared runtime flag adapter를 사용하지 않음');
-  assert.equal(playSceneRuntimeSource.includes("from '../../adapters/browser/runtimeEnv.js'"), false, 'playSceneRuntime이 query parsing을 직접 runtimeEnv에 위임하면 안 됨');
+  assert.equal(playRuntimeComposerSource.includes("from '../../adapters/browser/runtimeFeatureFlags.js'"), true, 'playRuntimeComposer가 shared runtime flag adapter를 사용하지 않음');
+  assert.equal(playRuntimeComposerSource.includes("from '../../adapters/browser/runtimeEnv.js'"), false, 'playRuntimeComposer가 query parsing을 직접 runtimeEnv에 위임하면 안 됨');
   assert.equal(gameInputRuntimeSource.includes("from './runtimeFeatureFlags.js'"), true, 'gameInputRuntime이 shared runtime flag helper를 사용하지 않음');
   assert.equal(gameInputRuntimeSource.includes('new URLSearchParams('), false, 'gameInputRuntime에 query parsing 구현이 남아 있음');
   assert.equal(runtimeLoggerSource.includes("from '../adapters/browser/runtimeFeatureFlags.js'"), false, 'runtimeLogger가 browser runtime flag helper를 직접 import하면 안 됨');

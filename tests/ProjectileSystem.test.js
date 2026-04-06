@@ -30,7 +30,7 @@ function runTests() {
     ProjectileSystem.update({ world });
     assert.strictEqual(proj.x, 40, 'Should move forward by 40');
     assert.strictEqual(proj.distanceTraveled, 40);
-    assert.strictEqual(proj._reversed, false);
+    assert.deepStrictEqual(proj.behaviorState, { reversed: false }, '부메랑 명시 상태가 초기화되지 않음');
     assert.strictEqual(proj.angle, 0, '부메랑 진행 방향 각도가 초기 이동 방향과 동기화되지 않음');
 
     // 2nd update: Distance = 80 (greater than 50, should reverse)
@@ -40,7 +40,7 @@ function runTests() {
     assert.strictEqual(proj.x, 80, 'moves forward first, then reverses direction');
     // dirX is updated on the NEXT frame because _reversed is set at the end of this frame
     assert.strictEqual(proj.dirX, 1, 'Direction not yet updated in this frame');
-    assert.strictEqual(proj._reversed, true, '_reversed flag should be true');
+    assert.deepStrictEqual(proj.behaviorState, { reversed: true }, '부메랑 명시 상태가 반전 플래그를 기록하지 않음');
     assert.strictEqual(proj.angle, 0, '반전 직전 프레임에서 각도가 유지되지 않음');
 
     // 3rd update: Distance = 30 
@@ -70,14 +70,17 @@ function runTests() {
     const proj = createProjectile({
       behaviorId: 'boomerang',
       angle: 2.3,
+      behaviorState: { reversed: true },
     });
     resetProjectile(proj, {
       behaviorId: 'boomerang',
       dirX: 1,
       dirY: 0,
+      behaviorState: { reversed: false },
     });
 
     assert.strictEqual(proj.angle, 0, '재사용/생성된 부메랑 투사체에 이전 각도가 남아 있음');
+    assert.deepStrictEqual(proj.behaviorState, { reversed: false }, '재사용/생성된 부메랑 투사체에 이전 behaviorState가 남아 있음');
   }
 
   console.log('OK: ProjectileSystem Boomerang Tests Passed');

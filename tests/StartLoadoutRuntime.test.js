@@ -12,13 +12,13 @@ const { test, summary } = createRunner('StartLoadoutRuntime');
 let startLoadoutRuntime = null;
 
 try {
-  startLoadoutRuntime = await import('../src/state/startLoadoutRuntime.js');
+  startLoadoutRuntime = await import('../src/domain/meta/loadout/startLoadoutDomain.js');
 } catch (error) {
   startLoadoutRuntime = { error };
 }
 
 function getRuntime() {
-  assert.ok(!startLoadoutRuntime.error, startLoadoutRuntime.error?.message ?? 'startLoadoutRuntime import 실패');
+  assert.ok(!startLoadoutRuntime.error, startLoadoutRuntime.error?.message ?? 'startLoadoutDomain import 실패');
   return startLoadoutRuntime;
 }
 

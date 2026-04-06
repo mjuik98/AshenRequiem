@@ -3,7 +3,7 @@ import { test, summary } from './helpers/testRunner.js';
 import { InputState } from '../src/input/InputState.js';
 import { KeyboardAdapter } from '../src/input/KeyboardAdapter.js';
 import { TITLE_SCREEN_HTML } from '../src/scenes/title/titleScreenContent.js';
-import { createPauseOverlayConfig } from '../src/scenes/play/playSceneOverlays.js';
+import { createPauseOverlayConfig } from '../src/app/play/playSceneOverlaysService.js';
 
 console.log('\n[InputPauseContracts]');
 

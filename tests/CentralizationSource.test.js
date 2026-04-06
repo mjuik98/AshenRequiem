@@ -44,9 +44,9 @@ const weaponDataSource = readProjectSource('../src/data/weaponData.js');
 const accessoryModelSource = readProjectSource('../src/ui/codex/codexAccessoryModel.js');
 const pauseLoadoutStatsSource = readProjectSource('../src/ui/pause/pauseLoadoutStatsSections.js');
 const createPlayerSource = readProjectSource('../src/entities/createPlayer.js');
-const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+const titleLoadoutQuerySource = readProjectSource('../src/app/title/titleLoadoutQueryService.js');
 const titleLoadoutFlowSource = readProjectSource('../src/scenes/title/titleLoadoutFlow.js');
-const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
+const startLoadoutDomainSource = readProjectSource('../src/domain/meta/loadout/startLoadoutDomain.js');
 const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
 const pendingEventPumpSystemSource = readProjectSource('../src/systems/event/PendingEventPumpSystem.js');
 const playUiSource = readProjectSource('../src/scenes/play/PlayUI.js');
@@ -420,19 +420,20 @@ test('콘텐츠 helper는 데이터 파일 밖의 전용 helper 모듈로 중앙
   assert.equal(pauseLoadoutStatsSource.includes("from '../../data/accessoryDataHelpers.js'"), true, 'Pause loadout stats가 전용 accessory helper를 사용하지 않음');
   assert.equal(createPlayerSource.includes("from '../data/weaponDataHelpers.js'"), false, 'createPlayer가 여전히 데이터 helper에 직접 결합되어 있음');
   assert.equal(playerSpawnAppSource.includes('resolveStartLoadout('), false, 'playerSpawn application service가 broad start loadout DTO를 그대로 재노출하면 안 됨');
-  assert.equal(titleLoadoutSource.includes('resolveStartLoadout('), false, 'titleLoadout이 broad start loadout DTO를 그대로 재노출하면 안 됨');
-  assert.equal(titleLoadoutSource.includes("from '../../app/title/titleLoadoutQueryService.js'"), true, 'titleLoadout이 app-layer query service를 재노출하지 않음');
-  assert.equal(titleLoadoutSource.includes('resolveStartWeaponSelection'), false, 'titleLoadout facade가 domain helper 구현을 직접 소유하면 안 됨');
-  assert.equal(startLoadoutRuntimeSource.includes("from '../data/weaponDataHelpers.js'"), false, 'startLoadoutRuntime이 정적 weaponData helper로 폴백하면 안 됨');
-  assert.equal(startLoadoutRuntimeSource.includes("from '../data/unlockAvailability.js'"), false, 'startLoadoutRuntime이 정적 unlock helper를 통해 데이터 주입 경계를 우회하면 안 됨');
-  assert.equal(/export function resolveStartLoadout/.test(startLoadoutRuntimeSource), false, 'startLoadoutRuntime이 broad start loadout DTO export를 유지하면 안 됨');
+  assert.equal(projectPathExists('../src/scenes/title/titleLoadout.js'), false, 'titleLoadout compatibility wrapper가 제거되지 않음');
+  assert.equal(titleLoadoutQuerySource.includes('resolveStartLoadout('), false, 'titleLoadoutQueryService가 broad start loadout DTO를 그대로 재노출하면 안 됨');
+  assert.equal(titleLoadoutQuerySource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"), true, 'titleLoadoutQueryService가 domain start loadout helper를 사용하지 않음');
+  assert.equal(projectPathExists('../src/state/startLoadoutRuntime.js'), false, 'startLoadoutRuntime compatibility wrapper가 제거되지 않음');
+  assert.equal(startLoadoutDomainSource.includes("from '../data/weaponDataHelpers.js'"), false, 'startLoadoutDomain이 정적 weaponData helper로 폴백하면 안 됨');
+  assert.equal(startLoadoutDomainSource.includes("from '../data/unlockAvailability.js'"), false, 'startLoadoutDomain이 정적 unlock helper를 통해 데이터 주입 경계를 우회하면 안 됨');
+  assert.equal(/export function resolveStartLoadout/.test(startLoadoutDomainSource), false, 'startLoadoutDomain이 broad start loadout DTO export를 유지하면 안 됨');
   assert.equal(
-    /resolveStartWeaponSelection/.test(startLoadoutRuntimeSource)
-    && startLoadoutRuntimeSource.includes("from '../domain/meta/loadout/startLoadoutDomain.js'"),
+    /resolveStartWeaponSelection/.test(startLoadoutDomainSource)
+    && startLoadoutDomainSource.includes("from './startLoadoutSelection.js'"),
     true,
-    'startLoadoutRuntime이 domain start weapon selection helper를 재노출해야 함',
+    'startLoadoutDomain이 start weapon selection helper를 export해야 함',
   );
-  assert.equal(/export function getSelectedStartWeaponId/.test(titleLoadoutSource), false, 'titleLoadout에 중복 시작 무기 선택 helper가 남아 있음');
+  assert.equal(/export function getSelectedStartWeaponId/.test(titleLoadoutQuerySource), false, 'titleLoadoutQueryService에 중복 시작 무기 선택 helper가 남아 있음');
   assert.equal(/pendingRunStartEvents|pendingEventQueue/.test(worldTickSystemSource), false, 'WorldTickSystem에 pending event 주입 책임이 남아 있음');
   assert.equal(/weaponAcquired|accessoryAcquired/.test(pendingEventPumpSystemSource), false, 'PendingEventPumpSystem이 도메인 이벤트명을 하드코딩하면 안 됨');
 });

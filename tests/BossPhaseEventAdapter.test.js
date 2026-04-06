@@ -171,7 +171,16 @@ test('boss phase handler는 projectile_arc phase action으로 플레이어 방�
     color: '#fff',
     enemyDataId: 'boss_seraph',
     behaviorId: 'keepDistance',
-    projectileConfig: { speed: 180, damage: 10, radius: 8, color: '#ffeeaa', pierce: 1 },
+    projectileConfig: {
+      speed: 180,
+      damage: 10,
+      radius: 8,
+      color: '#ffeeaa',
+      pierce: 1,
+      projectileVisualId: 'holy_bolt_upgrade',
+      impactEffectType: 'holy_bolt_upgrade_impact',
+      impactEffectVisualId: 'holy_bolt_upgrade_impact',
+    },
   };
   const world = {
     entities: { player: { x: 120, y: 30 }, effects: [] },
@@ -184,10 +193,27 @@ test('boss phase handler는 projectile_arc phase action으로 플레이어 방�
     phaseIndex: 1,
     hpThreshold: 0.25,
     newBehaviorId: 'circle_dash',
-    phaseAction: { type: 'projectile_arc', count: 5, spreadAngle: 0.8, color: '#ffeeaa' },
+    phaseAction: {
+      type: 'projectile_arc',
+      count: 5,
+      spreadAngle: 0.8,
+      color: '#ffeeaa',
+      projectileVisualId: 'holy_bolt_upgrade',
+      impactEffectVisualId: 'holy_bolt_upgrade_impact',
+    },
   }, world);
 
   assert.equal(world.queues.spawnQueue.filter((entry) => entry.type === 'projectile').length, 5, 'projectile_arc action이 부채꼴 투사체를 생성하지 않음');
+  assert.equal(
+    world.queues.spawnQueue.every((entry) => entry.config.projectileVisualId === 'holy_bolt_upgrade'),
+    true,
+    'projectile_arc action이 projectileVisualId를 유지하지 않음',
+  );
+  assert.equal(
+    world.queues.spawnQueue.every((entry) => entry.config.impactEffectVisualId === 'holy_bolt_upgrade_impact'),
+    true,
+    'projectile_arc action이 impactEffectVisualId를 유지하지 않음',
+  );
 });
 
 test('boss phase handler는 projectile_nova phase action으로 원형 투사체를 생성한다', () => {
@@ -214,7 +240,16 @@ test('boss phase handler는 projectile_nova phase action으로 원형 투사체�
     color: '#fff',
     enemyDataId: 'boss_abyss_eye',
     behaviorId: 'swarm',
-    projectileConfig: { speed: 200, damage: 11, radius: 8, color: '#7ce7ff', pierce: 1 },
+    projectileConfig: {
+      speed: 200,
+      damage: 11,
+      radius: 8,
+      color: '#7ce7ff',
+      pierce: 1,
+      projectileVisualId: 'ice_bolt_upgrade',
+      impactEffectType: 'ice_bolt_upgrade_impact',
+      impactEffectVisualId: 'ice_bolt_upgrade_impact',
+    },
   };
   const world = {
     entities: { effects: [] },
@@ -227,10 +262,26 @@ test('boss phase handler는 projectile_nova phase action으로 원형 투사체�
     phaseIndex: 1,
     hpThreshold: 0.2,
     newBehaviorId: 'circle',
-    phaseAction: { type: 'projectile_nova', count: 6, color: '#7ce7ff' },
+    phaseAction: {
+      type: 'projectile_nova',
+      count: 6,
+      color: '#7ce7ff',
+      projectileVisualId: 'ice_bolt_upgrade',
+      impactEffectVisualId: 'ice_bolt_upgrade_impact',
+    },
   }, world);
 
   assert.equal(world.queues.spawnQueue.filter((entry) => entry.type === 'projectile').length, 6, 'projectile_nova action이 원형 투사체를 생성하지 않음');
+  assert.equal(
+    world.queues.spawnQueue.every((entry) => entry.config.projectileVisualId === 'ice_bolt_upgrade'),
+    true,
+    'projectile_nova action이 projectileVisualId를 유지하지 않음',
+  );
+  assert.equal(
+    world.queues.spawnQueue.every((entry) => entry.config.impactEffectVisualId === 'ice_bolt_upgrade_impact'),
+    true,
+    'projectile_nova action이 impactEffectVisualId를 유지하지 않음',
+  );
 });
 
 test('boss phase handler는 stage_echo phase action으로 현재 스테이지의 signature gimmick을 보스전에 합류시킨다', () => {

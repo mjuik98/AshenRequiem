@@ -57,6 +57,7 @@ export const DamageSystem = {
             y: target.y,
             effectType: hit.projectile.impactEffectType,
             config: {
+              effectVisualId: hit.projectile.impactEffectVisualId ?? hit.projectile.impactEffectType,
               color: hit.projectile.color ?? target.color ?? '#ffffff',
               radius: Math.max(target.radius ?? 14, hit.projectile.radius ?? 6) * 1.35,
               duration: 0.4,

@@ -32,6 +32,7 @@ export const PROJECTILE_DEFAULTS = {
   behaviorId:         'targetProjectile',
   projectileVisualId: null,
   impactEffectType:   null,
+  impactEffectVisualId: null,
   lifetime:           0,
   maxLifetime:        0.3,
   ownerId:            null,
@@ -40,15 +41,14 @@ export const PROJECTILE_DEFAULTS = {
   orbitAngle:         0,
   orbitRadius:        80,
   orbitSpeed:         Math.PI,
+  behaviorState:      null,
   tickInterval:       null,
   tickTimer:          0,
   bounceRemaining:    0,
-  _lastRicochetHitCount: 0,
   beamAngle:          0,
   beamLength:         0,
   isAlive:            true,
   pendingDestroy:     false,
-  _reversed:          false,
 };
 
 // ─── Effect ───────────────────────────────────────────────────────
@@ -57,6 +57,7 @@ export const EFFECT_DEFAULTS_SHAPE = {
   x:              0,
   y:              0,
   effectType:     'burst',
+  effectVisualId: null,
   color:          '#ff5722',
   text:           '',
   radius:         15,

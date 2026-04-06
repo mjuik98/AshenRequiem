@@ -1,4 +1,5 @@
 import { findClosestEnemy, getProjectileLifetimeMult, spawnDirectionalProjectiles } from './weaponBehaviorUtils.js';
+import { buildRicochetBehaviorState } from '../../entities/projectileBehaviorState.js';
 
 export function ricochetProjectile({ weapon, player, enemies, spawnQueue }) {
   const target = findClosestEnemy(player, enemies, weapon.range ?? 360);
@@ -19,7 +20,7 @@ export function ricochetProjectile({ weapon, player, enemies, spawnQueue }) {
     behaviorId: 'ricochetProjectile',
     bounceRemaining: bounceCount,
     maxLifetime,
-    _lastRicochetHitCount: 0,
+    behaviorState: buildRicochetBehaviorState(),
   });
 
   return true;

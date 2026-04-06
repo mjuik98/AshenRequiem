@@ -31,6 +31,8 @@ export class GameApp {
     this._validateGameData({
       upgradeData: game.gameData.upgradeData,
       weaponData: game.gameData.weaponData,
+      enemyData: game.gameData.enemyData,
+      bossData: game.gameData.bossData,
       waveData: game.gameData.waveData,
       stageData: game.gameData.stageData,
       assetManifest: game.gameData.assetManifest,

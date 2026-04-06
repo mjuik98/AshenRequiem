@@ -43,7 +43,7 @@ test('high-coupling runtime modules는 shared runtime env adapter를 사용한�
   const runtimeHooksSource = readProjectSource('../src/adapters/browser/runtimeHooks.js');
   const runtimeDebugSurfaceSource = readProjectSource('../src/adapters/browser/runtimeHooks/runtimeDebugSurface.js');
   const runtimeHooksWrapperSource = readProjectSource('../src/core/runtimeHooks.js');
-  const playSceneRuntimeSource = readProjectSource('../src/scenes/play/playSceneRuntime.js');
+  const playRuntimeComposerSource = readProjectSource('../src/scenes/play/playRuntimeComposer.js');
   const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
   const playRuntimeServicesSource = readProjectSource('../src/adapters/browser/playRuntimeServices.js');
   const browserGameShellSource = readProjectSource('../src/adapters/browser/BrowserGameShell.js');
@@ -61,7 +61,7 @@ test('high-coupling runtime modules는 shared runtime env adapter를 사용한�
   assert.equal(runtimeDebugSurfaceSource.includes("from '../runtimeFeatureFlags.js'"), true, 'runtime debug surface helper가 shared runtime flag adapter를 사용하지 않음');
   assert.equal(runtimeHooksWrapperSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'core/runtimeHooks wrapper가 browser runtime env에 직접 결합되면 안 됨');
   assert.equal(runtimeHooksWrapperSource.includes("from '../adapters/browser/runtimeHooks.js'"), true, 'core/runtimeHooks wrapper가 browser runtime hooks를 재노출하지 않음');
-  assert.equal(playSceneRuntimeSource.includes("from '../../adapters/browser/runtimeFeatureFlags.js'"), true, 'playSceneRuntime이 shared runtime flag adapter를 사용하지 않음');
+  assert.equal(playRuntimeComposerSource.includes("from '../../adapters/browser/runtimeFeatureFlags.js'"), true, 'playRuntimeComposer가 shared runtime flag adapter를 사용하지 않음');
   assert.equal(playContextRuntimeSource.includes("from '../adapters/browser/runtimeEnv.js'"), false, 'playContextRuntime은 browser runtime adapter를 직접 import하면 안 됨');
   assert.equal(playRuntimeServicesSource.includes("from './runtimeEnv.js'"), true, 'play runtime browser service adapter가 runtime env adapter를 사용하지 않음');
   assert.equal(playRuntimeServicesSource.includes("from './accessibilityRuntime.js'"), true, 'play runtime browser service adapter가 browser-owned accessibility runtime을 사용하지 않음');

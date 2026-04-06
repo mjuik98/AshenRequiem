@@ -91,7 +91,8 @@ function resolveAnimatedProjectileFrame(projectile) {
 }
 
 function resolveEffectSequenceFrame(effect) {
-  const def = getEffectSpriteSequenceDef(effect?.effectType);
+  const effectVisualId = effect?.effectVisualId ?? effect?.effectType;
+  const def = getEffectSpriteSequenceDef(effectVisualId);
   if (!def) return null;
 
   const frameCount = (def.oneShot.end - def.oneShot.start) + 1;
@@ -101,7 +102,7 @@ function resolveEffectSequenceFrame(effect) {
     0.999999,
   );
   const frameOffset = Math.min(frameCount - 1, Math.floor(progress * frameCount));
-  return getEffectSequenceFrame(effect.effectType, def.oneShot.start + frameOffset);
+  return getEffectSequenceFrame(effectVisualId, def.oneShot.start + frameOffset);
 }
 
 export function createVfxSpriteRuntime({
@@ -154,8 +155,9 @@ export function createVfxSpriteRuntime({
     return peekSourceStatus(sourceKey);
   }
 
-  function drawFrame(ctx, sourceKey, frame, entity, camera) {
+  function drawFrame(ctx, sourceKey, frame, entity, camera, options = {}) {
     if (!ctx?.drawImage || !frame) return false;
+    const lowQuality = options.lowQuality === true;
 
     const sourceState = ensureSource(sourceKey);
     if (!sourceState || sourceState.status !== 'ready' || !sourceState.image) {
@@ -169,9 +171,14 @@ export function createVfxSpriteRuntime({
     const baseSize = Math.max(18, (entity?.radius ?? 6) * (frame.sizeMult ?? 3));
     const stretchX = Math.max(0.2, frame.stretchX ?? 1);
     const stretchY = Math.max(0.2, frame.stretchY ?? 1);
+    const resolvedStretchX = lowQuality ? 1 + ((stretchX - 1) * 0.35) : stretchX;
+    const resolvedStretchY = lowQuality ? 1 + ((stretchY - 1) * 0.35) : stretchY;
     let width = baseSize * stretchX;
     let height = baseSize * stretchY;
     const opacity = frame.opacity ?? 1;
+
+    width = baseSize * resolvedStretchX;
+    height = baseSize * resolvedStretchY;
 
     if (frame.drawMode === 'beam') {
       width = Math.max(frame.w * 0.9, entity?.beamLength ?? width * 3);
@@ -187,7 +194,10 @@ export function createVfxSpriteRuntime({
     }
 
     ctx.save();
-    applyGlow(ctx, frame.glowColor ?? entity?.color, frame.glowBlur ?? (frame.drawMode === 'beam' ? 20 : 14));
+    const glowBlur = lowQuality
+      ? Math.min(8, frame.glowBlur ?? (frame.drawMode === 'beam' ? 20 : 14))
+      : (frame.glowBlur ?? (frame.drawMode === 'beam' ? 20 : 14));
+    applyGlow(ctx, frame.glowColor ?? entity?.color, glowBlur);
     if (frame.drawMode === 'burst') {
       const progress = Math.min(1, (entity?.lifetime ?? 0) / Math.max(entity?.maxLifetime ?? 0.5, 0.001));
       const alphaFloor = frame.alphaFloor ?? 0.2;
@@ -215,18 +225,18 @@ export function createVfxSpriteRuntime({
     return true;
   }
 
-  function drawProjectileSprite(ctx, projectile, camera) {
+  function drawProjectileSprite(ctx, projectile, camera, options = {}) {
     const frame = resolveAnimatedProjectileFrame(projectile)
       ?? getProjectileSpriteFrame(projectile?.behaviorId ?? 'default');
     if (!frame) return false;
-    return drawFrame(ctx, frame.sourceKey, frame, projectile, camera);
+    return drawFrame(ctx, frame.sourceKey, frame, projectile, camera, options);
   }
 
-  function drawEffectSprite(ctx, effect, camera) {
+  function drawEffectSprite(ctx, effect, camera, options = {}) {
     const frame = resolveEffectSequenceFrame(effect)
-      ?? getEffectSpriteFrame(effect?.effectType);
+      ?? getEffectSpriteFrame(effect?.effectVisualId ?? effect?.effectType);
     if (!frame) return false;
-    return drawFrame(ctx, frame.sourceKey, frame, effect, camera);
+    return drawFrame(ctx, frame.sourceKey, frame, effect, camera, options);
   }
 
   return {

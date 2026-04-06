@@ -16,6 +16,7 @@ Disposition taxonomy:
 - 2026-04-05 session meta realignment에서는 세션 메타 기본값/정규화와 unlock progress 보정을 `src/state/session/sessionMetaState.js`, `sessionUnlockState.js`로 이동했다. `src/state/sessionMeta.js`는 테스트/기존 import 호환용 thin re-export만 유지한다.
 - 2026-04-06 seam consolidation에서는 `src/state/createSessionState.js`를 공개/테스트 호환용 compatibility barrel로 명시했다. 내부 runtime 코드는 `src/state/session/*`, `src/adapters/browser/session/*` owner를 직접 본다.
 - 2026-04-06 owner realignment에서는 browser input adapter 구현을 `src/platform/browser/input/*`로, permanent upgrade applicator 구현을 `src/domain/play/progression/permanentUpgradeApplicator.js`로 이동했다. 기존 `src/input/*Adapter.js`, `src/input/touchHudRuntime.js`, `src/data/permanentUpgradeApplicator.js`는 테스트/기존 import 호환용 thin re-export만 유지한다.
+- 2026-04-06 wrapper cleanup에서는 test-only caller만 남아 있던 `src/scenes/play/playSceneRuntime.js`, `src/scenes/play/playSceneOverlays.js`, `src/scenes/title/titleLoadout.js`, `src/state/startLoadoutRuntime.js`를 제거했다. 테스트는 owner module(`src/app/play/*`, `src/app/title/titleLoadoutQueryService.js`, `src/domain/meta/loadout/startLoadoutDomain.js`)을 직접 보도록 정렬했다.
 
 | Path | Role | Disposition | Notes |
 |---|---|---|---|
@@ -26,13 +27,9 @@ Disposition taxonomy:
 | `src/core/runtimeHost.js` | browser host lookup facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/runtimeHost.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/core/runtimeFeatureFlags.js` | browser runtime flag facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/runtimeFeatureFlags.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/core/runtimeHooks.js` | browser runtime hook facade | `keep-public-wrapper` | 실제 구현은 `src/adapters/browser/runtimeHooks.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
-| `src/scenes/play/playSceneRuntime.js` | play scene runtime helper facade | `keep-public-wrapper` | 실제 구현은 `src/app/play/runSessionStateService.js`, `src/adapters/browser/runtimeFeatureFlags.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
-| `src/scenes/play/playSceneOverlays.js` | play overlay config facade | `keep-public-wrapper` | 실제 구현은 `src/app/play/playSceneOverlaysService.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
-| `src/scenes/title/titleLoadout.js` | title loadout query facade | `keep-public-wrapper` | 실제 구현은 `src/app/title/titleLoadoutQueryService.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/scenes/play/PlayResultHandler.js` | `playResultApplicationService` class facade | `keep-public-wrapper` | 테스트/기존 import 호환 경로. `createPlayResultHandler()` / `processPlayResult()` thin helper export 제공 |
 | `src/state/createSessionState.js` | session state + browser persistence compatibility barrel | `keep-public-wrapper` | 실제 구현은 `src/state/session/*`, `src/adapters/browser/session/*`가 소유. 내부 import 금지 |
 | `src/state/createWorld.js` | `createPlayWorld` re-export | `keep-public-wrapper` | 내부 import 금지, domain 경로가 SSOT. 일부 source test 호환이 남아 있음 |
-| `src/state/startLoadoutRuntime.js` | start loadout domain re-export | `keep-public-wrapper` | title/start loadout 공개 경로 호환. 일부 테스트 import가 남아 있음 |
 | `src/input/KeyboardAdapter.js` | browser keyboard adapter facade | `keep-public-wrapper` | 실제 구현은 `src/platform/browser/input/KeyboardAdapter.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/input/GamepadAdapter.js` | browser gamepad adapter facade | `keep-public-wrapper` | 실제 구현은 `src/platform/browser/input/GamepadAdapter.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
 | `src/input/TouchAdapter.js` | browser touch adapter facade | `keep-public-wrapper` | 실제 구현은 `src/platform/browser/input/TouchAdapter.js`가 소유. 테스트/기존 import 호환용 re-export만 유지 |
@@ -60,13 +57,9 @@ Disposition taxonomy:
 | `src/core/runtimeHost.js` | 1 | 0 | 1 | 0 |
 | `src/core/runtimeFeatureFlags.js` | 1 | 0 | 1 | 0 |
 | `src/core/runtimeHooks.js` | 2 | 0 | 2 | 0 |
-| `src/scenes/play/playSceneRuntime.js` | 3 | 0 | 3 | 0 |
-| `src/scenes/play/playSceneOverlays.js` | 4 | 0 | 4 | 0 |
-| `src/scenes/title/titleLoadout.js` | 3 | 0 | 3 | 0 |
 | `src/scenes/play/PlayResultHandler.js` | 2 | 0 | 2 | 0 |
 | `src/state/createSessionState.js` | 5 | 0 | 5 | 0 |
 | `src/state/createWorld.js` | 1 | 0 | 1 | 0 |
-| `src/state/startLoadoutRuntime.js` | 2 | 0 | 2 | 0 |
 | `src/input/KeyboardAdapter.js` | 2 | 0 | 2 | 0 |
 | `src/input/GamepadAdapter.js` | 2 | 0 | 2 | 0 |
 | `src/input/TouchAdapter.js` | 2 | 0 | 2 | 0 |
@@ -87,13 +80,9 @@ Disposition taxonomy:
 - `src/core/runtimeHost.js`: `tests/RuntimeEnv.test.js`
 - `src/core/runtimeFeatureFlags.js`: `tests/RuntimeFeatureFlags.test.js`
 - `src/core/runtimeHooks.js`: `tests/RuntimeHooks.test.js`, `tests/UiStructureSource.test.js`
-- `src/scenes/play/playSceneRuntime.js`: `tests/PlaySceneHelpers.test.js`, `tests/ProfileSource.test.js`, `tests/UiStructureSource.test.js`
-- `src/scenes/play/playSceneOverlays.js`: `tests/InputPauseContracts.test.js`, `tests/PlaySceneHelpers.test.js`, `tests/ResultAndProgressionSource.test.js`, `tests/UiStructureSource.test.js`
-- `src/scenes/title/titleLoadout.js`: `tests/TitleLoadout.test.js`, `tests/TitleSceneContracts.test.js`, `tests/UiQueryServiceBoundaries.test.js`
 - `src/scenes/play/PlayResultHandler.js`: `tests/PlayResultHandler.test.js`, `tests/SceneInfrastructureSource.test.js`
 - `src/state/createSessionState.js`: `tests/MetaApplicationServices.test.js`, `tests/SceneInfrastructureSource.test.js`, `tests/SessionFacade.test.js`, `tests/SessionMigrationFixtures.test.js`, `tests/SessionState.test.js`
 - `src/state/createWorld.js`: `tests/ProfileSource.test.js`
-- `src/state/startLoadoutRuntime.js`: `tests/StartLoadoutRuntime.test.js`, `tests/TitleLoadout.test.js`
 - `src/input/KeyboardAdapter.js`: `tests/ArchitectureOwnerRealignment.test.js`, `tests/InputPauseContracts.test.js`
 - `src/input/GamepadAdapter.js`: `tests/ArchitectureOwnerRealignment.test.js`, `tests/GamepadAdapter.test.js`
 - `src/input/TouchAdapter.js`: `tests/ArchitectureOwnerRealignment.test.js`, `tests/TouchAdapter.test.js`

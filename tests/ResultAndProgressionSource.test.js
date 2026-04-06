@@ -15,7 +15,7 @@ import {
   buildPauseWeaponTooltipContent,
 } from '../src/ui/pause/pauseTooltipContent.js';
 import { ResultView } from '../src/ui/result/ResultView.js';
-import { createResultSceneActions } from '../src/scenes/play/playSceneOverlays.js';
+import { createResultSceneActions } from '../src/app/play/playSceneOverlaysService.js';
 
 console.log('\n[Result/Progression Source]');
 

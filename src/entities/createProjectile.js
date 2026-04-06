@@ -17,6 +17,7 @@
 
 import { generateId }                              from '../utils/ids.js';
 import { PROJECTILE_DEFAULTS, applyEntityFields }  from './entityDefaults.js';
+import { cloneProjectileBehaviorState } from './projectileBehaviorState.js';
 
 /**
  * createProjectile — 투사체 엔티티 생성
@@ -32,6 +33,7 @@ export function createProjectile(config = {}) {
     hitTargets: new Set(),
   };
   applyEntityFields(proj, PROJECTILE_DEFAULTS, config);
+  proj.behaviorState = cloneProjectileBehaviorState(proj.behaviorState);
   return proj;
 }
 
@@ -50,5 +52,5 @@ export function resetProjectile(obj, cfg) {
   obj.hitCount = 0;
   obj.hitTargets.clear();          // Set 재사용 (GC 절약)
   applyEntityFields(obj, PROJECTILE_DEFAULTS, cfg);
+  obj.behaviorState = cloneProjectileBehaviorState(obj.behaviorState);
 }
-

@@ -3,48 +3,56 @@ const DEFAULT_SEQUENCE_COLUMNS = 4;
 
 export const VFX_SOURCE_DEFS = {
   projectiles: {
+    assetId: 'vfx_projectiles_atlas',
     src: '/assets/vfx/projectiles-atlas.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 8,
     height: DEFAULT_CELL * 3,
   },
   effects: {
+    assetId: 'vfx_effects_atlas',
     src: '/assets/vfx/effects-atlas.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
     height: DEFAULT_CELL * 3,
   },
   fire_bolt: {
+    assetId: 'vfx_fire_bolt_sheet',
     src: '/assets/vfx/fire_bolt.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
     height: DEFAULT_CELL * 4,
   },
   fire_bolt_upgrade: {
+    assetId: 'vfx_fire_bolt_upgrade_sheet',
     src: '/assets/vfx/fire_bolt_upgrade.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
     height: DEFAULT_CELL * 4,
   },
   holy_bolt: {
+    assetId: 'vfx_holy_bolt_sheet',
     src: '/assets/vfx/holy_bolt.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
     height: DEFAULT_CELL * 4,
   },
   holy_bolt_upgrade: {
+    assetId: 'vfx_holy_bolt_upgrade_sheet',
     src: '/assets/vfx/holy_bolt_upgrade.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
     height: DEFAULT_CELL * 4,
   },
   ice_bolt: {
+    assetId: 'vfx_ice_bolt_sheet',
     src: '/assets/vfx/ice_bolt.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
     height: DEFAULT_CELL * 4,
   },
   ice_bolt_upgrade: {
+    assetId: 'vfx_ice_bolt_upgrade_sheet',
     src: '/assets/vfx/ice_bolt_upgrade.png',
     cellSize: DEFAULT_CELL,
     width: DEFAULT_CELL * 4,
@@ -501,6 +509,13 @@ export function getProjectileSpriteAnimationDef(projectileVisualId) {
   return PROJECTILE_ANIMATION_DEFS[projectileVisualId] ?? null;
 }
 
+export function hasProjectileSpriteVisual(projectileVisualId) {
+  return Boolean(
+    PROJECTILE_ANIMATION_DEFS[projectileVisualId]
+    ?? PROJECTILE_FRAMES[projectileVisualId],
+  );
+}
+
 export function getProjectileSpriteFrame(behaviorId = 'default') {
   return PROJECTILE_FRAMES[behaviorId] ?? null;
 }
@@ -515,6 +530,13 @@ export function getEffectSpriteSequenceDef(effectType) {
 
 export function getEffectSpriteFrame(effectType) {
   return EFFECT_FRAMES[effectType] ?? null;
+}
+
+export function hasEffectSpriteVisual(effectVisualId) {
+  return Boolean(
+    EFFECT_SEQUENCE_DEFS[effectVisualId]
+    ?? EFFECT_FRAMES[effectVisualId],
+  );
 }
 
 export function getEffectSequenceFrame(effectType, sourceFrameIndex) {

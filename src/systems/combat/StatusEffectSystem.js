@@ -206,6 +206,7 @@ export const StatusEffectSystem = {
             hitCount: 0,
             hitTargets: new Set(),
             impactEffectType: null,
+            impactEffectVisualId: null,
             impactBurst: null,
             statusEffectId: null,
             statusEffectChance: 0,

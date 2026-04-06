@@ -70,6 +70,9 @@ export function rangedChase(enemy, { player, deltaTime, spawnQueue = [], rng }) 
       pierce:     cfg.pierce ?? 1,
       maxRange:   420,
       behaviorId: 'targetProjectile',
+      projectileVisualId: cfg.projectileVisualId ?? null,
+      impactEffectType: cfg.impactEffectType ?? null,
+      impactEffectVisualId: cfg.impactEffectVisualId ?? cfg.impactEffectType ?? null,
       ownerId:    enemy.id,
     },
   }));

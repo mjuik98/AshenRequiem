@@ -167,6 +167,13 @@ test('production entity/runtime state avoids underscore-prefixed private slots a
     '../src/systems/combat/BossPhaseSystem.js',
     '../src/behaviors/enemyBehaviors/rangedChase.js',
   ];
+  const hiddenProjectileStateFiles = [
+    '../src/entities/entityDefaults.js',
+    '../src/entities/createProjectile.js',
+    '../src/behaviors/weaponBehaviors/boomerangWeapon.js',
+    '../src/behaviors/weaponBehaviors/ricochetProjectile.js',
+    '../src/systems/combat/ProjectileSystem.js',
+  ];
   const gameplayRandomFiles = [
     '../src/systems/spawn/SpawnSystem.js',
     '../src/systems/combat/DamageSystem.js',
@@ -182,6 +189,15 @@ test('production entity/runtime state avoids underscore-prefixed private slots a
       /\b(enemy|player|projectile|pickup|effect)\._[A-Za-z]/.test(source),
       false,
       `${ref}에 underscore-prefixed entity state가 남아 있음`,
+    );
+  });
+
+  hiddenProjectileStateFiles.forEach((ref) => {
+    const source = readProjectSource(ref);
+    assert.equal(
+      /_lastClearAngle|_lastRicochetHitCount|_reversed/.test(source),
+      false,
+      `${ref}에 underscore-prefixed projectile state가 남아 있음`,
     );
   });
 
@@ -226,11 +242,11 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const pipelineBuilderSource = readProjectSource('../src/core/PipelineBuilder.js');
   const upgradeSystemSource = readProjectSource('../src/systems/progression/UpgradeSystem.js');
   const codexEventAdapterSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
-  const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+  const titleLoadoutQuerySource = readProjectSource('../src/app/title/titleLoadoutQueryService.js');
   const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
   const titleLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
   const playerSpawnServiceSource = readProjectSource('../src/app/play/playerSpawnApplicationService.js');
-  const startLoadoutRuntimeSource = readProjectSource('../src/state/startLoadoutRuntime.js');
+  const startLoadoutDomainSource = readProjectSource('../src/domain/meta/loadout/startLoadoutDomain.js');
   const unlockProgressRuntimeSource = readProjectSource('../src/domain/meta/progression/unlockProgressRuntime.js');
   const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
   const sessionFacadeSource = readProjectSource('../src/state/sessionFacade.js');
@@ -385,21 +401,27 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    titleLoadoutSource.includes("from '../../app/title/titleLoadoutQueryService.js'"),
-    true,
-    'titleLoadout이 app-layer title loadout query service를 사용하지 않음',
-  );
-
-  assert.equal(
-    /export function getSelectedStartWeaponId/.test(titleLoadoutSource),
+    projectPathExists('../src/scenes/title/titleLoadout.js'),
     false,
-    'titleLoadout에 중복 시작 무기 선택 helper가 남아 있음',
+    'titleLoadout compatibility wrapper가 제거되지 않음',
   );
 
   assert.equal(
-    /buildTitleLoadoutConfig/.test(titleLoadoutSource),
+    titleLoadoutQuerySource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"),
     true,
-    'titleLoadout facade가 buildTitleLoadoutConfig entrypoint를 재노출하지 않음',
+    'titleLoadoutQueryService가 start loadout domain helper를 사용하지 않음',
+  );
+
+  assert.equal(
+    /export function getSelectedStartWeaponId/.test(titleLoadoutQuerySource),
+    false,
+    'titleLoadoutQueryService에 중복 시작 무기 선택 helper가 남아 있음',
+  );
+
+  assert.equal(
+    /buildTitleLoadoutConfig/.test(titleLoadoutQuerySource),
+    true,
+    'titleLoadoutQueryService가 buildTitleLoadoutConfig entrypoint를 제공하지 않음',
   );
 
   assert.equal(
@@ -463,9 +485,9 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    /resolveStartWeaponSelection/.test(titleLoadoutSource),
-    false,
-    'titleLoadout facade가 start weapon selection 구현을 직접 소유하면 안 됨',
+    /resolveStartWeaponSelection/.test(titleLoadoutQuerySource),
+    true,
+    'titleLoadoutQueryService가 start weapon selection helper를 사용하지 않음',
   );
 
   assert.equal(
@@ -493,21 +515,27 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    /import\s+\{\s*getWeaponDataById\s*\}/.test(startLoadoutRuntimeSource),
+    projectPathExists('../src/state/startLoadoutRuntime.js'),
     false,
-    'startLoadoutRuntime이 주입 경계를 우회해 정적 weaponData helper를 import하고 있음',
+    'startLoadoutRuntime compatibility wrapper가 제거되지 않음',
   );
 
   assert.equal(
-    /mergeUnlockedAccessoryIds|mergeUnlockedWeaponIds/.test(startLoadoutRuntimeSource),
+    /import\s+\{\s*getWeaponDataById\s*\}/.test(startLoadoutDomainSource),
     false,
-    'startLoadoutRuntime이 정적 unlock helper에 의존해 데이터 소스 경계를 다시 섞고 있음',
+    'startLoadoutDomain이 주입 경계를 우회해 정적 weaponData helper를 import하고 있음',
   );
 
   assert.equal(
-    /export function resolveStartLoadout/.test(startLoadoutRuntimeSource),
+    /mergeUnlockedAccessoryIds|mergeUnlockedWeaponIds/.test(startLoadoutDomainSource),
     false,
-    'startLoadoutRuntime이 broad start loadout DTO export를 유지하고 있음',
+    'startLoadoutDomain이 정적 unlock helper에 의존해 데이터 소스 경계를 다시 섞고 있음',
+  );
+
+  assert.equal(
+    /export function resolveStartLoadout/.test(startLoadoutDomainSource),
+    false,
+    'startLoadoutDomain이 broad start loadout DTO export를 유지하고 있음',
   );
 
   assert.equal(

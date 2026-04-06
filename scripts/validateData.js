@@ -51,6 +51,7 @@ function getIds(arr) {
 async function loadData() {
   const [
     { enemyData },
+    { bossData },
     { weaponData },
     { upgradeData },
     { waveData },
@@ -61,6 +62,7 @@ async function loadData() {
     { propDropData },
   ] = await Promise.all([
     import('../src/data/enemyData.js'),
+    import('../src/data/bossData.js'),
     import('../src/data/weaponData.js'),
     import('../src/data/upgradeData.js'),
     import('../src/data/waveData.js'),
@@ -73,6 +75,7 @@ async function loadData() {
 
   return {
     enemyData,
+    bossData,
     weaponData,
     upgradeData,
     waveData,
@@ -222,6 +225,8 @@ async function main() {
   const coreReport = validateCoreGameData({
     upgradeData: data.upgradeData,
     weaponData: data.weaponData,
+    enemyData: data.enemyData,
+    bossData: data.bossData,
     waveData: data.waveData,
     stageData: data.stageData,
     assetManifest: data.assetManifest,

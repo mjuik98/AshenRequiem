@@ -101,6 +101,9 @@ export function circleDash(enemy, { player, deltaTime, spawnQueue = [] }) {
             pierce:     projCfg.pierce,
             maxRange:   PROJECTILE_RANGE,
             behaviorId: 'targetProjectile',
+            projectileVisualId: projCfg.projectileVisualId ?? null,
+            impactEffectType: projCfg.impactEffectType ?? null,
+            impactEffectVisualId: projCfg.impactEffectVisualId ?? projCfg.impactEffectType ?? null,
             ownerId:    enemy.id,
           },
         }));

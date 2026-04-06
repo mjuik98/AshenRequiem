@@ -1,4 +1,11 @@
 import { AIM_PATTERN } from './constants/aiming.js';
+import {
+  VFX_SOURCE_DEFS,
+  getProjectileSpriteAnimationDef,
+  getProjectileSpriteFrame,
+  getEffectSpriteSequenceDef,
+  getEffectSpriteFrame,
+} from '../renderer/sprites/vfxSpriteManifest.js';
 
 function collectDuplicateIdErrors(items, label) {
   const ids = items.map((entry) => entry.id);
@@ -103,28 +110,83 @@ function validateStageBackground(stage = {}) {
   return errors;
 }
 
-export function validateCoreGameData({
-  upgradeData = [],
-  weaponData = [],
-  waveData = [],
-  stageData = [],
-  assetManifest = [],
-} = {}) {
+function resolveProjectileSourceKey(projectileVisualId) {
+  return (
+    getProjectileSpriteAnimationDef(projectileVisualId)?.sourceKey
+    ?? getProjectileSpriteFrame(projectileVisualId)?.sourceKey
+    ?? null
+  );
+}
+
+function resolveEffectSourceKey(effectVisualId) {
+  return (
+    getEffectSpriteSequenceDef(effectVisualId)?.sourceKey
+    ?? getEffectSpriteFrame(effectVisualId)?.sourceKey
+    ?? null
+  );
+}
+
+function validateProjectileVisualRef(errors, referencedSourceKeys, ownerLabel, fieldName, projectileVisualId) {
+  if (!projectileVisualId) return;
+  const sourceKey = resolveProjectileSourceKey(projectileVisualId);
+  if (!sourceKey) {
+    errors.push(`[validate] ${ownerLabel} ${fieldName} "${projectileVisualId}"가 VFX catalog에 없음`);
+    return;
+  }
+  referencedSourceKeys.add(sourceKey);
+}
+
+function validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, fieldName, effectVisualId) {
+  if (!effectVisualId) return;
+  const sourceKey = resolveEffectSourceKey(effectVisualId);
+  if (!sourceKey) {
+    errors.push(`[validate] ${ownerLabel} ${fieldName} "${effectVisualId}"가 VFX catalog에 없음`);
+    return;
+  }
+  referencedSourceKeys.add(sourceKey);
+}
+
+function validateReferencedVfxSources(assetManifest = [], referencedSourceKeys = new Set()) {
   const errors = [];
-  const warnings = [];
+  const assetsById = new Map(assetManifest.map((entry) => [entry?.id, entry]));
 
-  errors.push(...collectDuplicateIdErrors(upgradeData, 'upgradeData'));
-  errors.push(...collectDuplicateIdErrors(weaponData, 'weaponData'));
-  errors.push(...collectDuplicateIdErrors(assetManifest, 'assetManifest'));
-  errors.push(...validateAssetManifestEntries(assetManifest));
+  for (const sourceKey of referencedSourceKeys) {
+    const sourceDef = VFX_SOURCE_DEFS[sourceKey];
+    if (!sourceDef) {
+      errors.push(`[validate] VFX source "${sourceKey}" 정의가 없음`);
+      continue;
+    }
 
-  for (const upgrade of upgradeData) {
-    if (!upgrade.weaponId) continue;
-    if (!weaponData.some((weapon) => weapon.id === upgrade.weaponId)) {
-      errors.push(`[validate] upgradeData "${upgrade.id}" → 존재하지 않는 weaponId "${upgrade.weaponId}"`);
+    const assetId = sourceDef.assetId;
+    if (!assetId) {
+      errors.push(`[validate] VFX source "${sourceKey}" assetId가 비어 있음`);
+      continue;
+    }
+
+    const assetEntry = assetsById.get(assetId);
+    if (!assetEntry) {
+      errors.push(`[validate] VFX source "${sourceKey}" → 존재하지 않는 assetManifest "${assetId}"`);
+      continue;
+    }
+
+    if (assetEntry.sourceType !== 'image') {
+      errors.push(`[validate] VFX source "${sourceKey}" asset "${assetId}" sourceType이 image가 아님`);
+    }
+
+    if (typeof assetEntry.files?.src !== 'string' || assetEntry.files.src.length <= 0) {
+      errors.push(`[validate] VFX source "${sourceKey}" asset "${assetId}" files.src가 비어 있음`);
+      continue;
+    }
+
+    if (assetEntry.files.src !== sourceDef.src) {
+      errors.push(`[validate] VFX source "${sourceKey}" asset "${assetId}" files.src가 manifest src와 다름`);
     }
   }
 
+  return errors;
+}
+
+function validateWeaponVisualContracts(weaponData, errors, referencedSourceKeys) {
   for (const weapon of weaponData) {
     if (weapon.maxLevel !== undefined && weapon.maxLevel < 1) {
       errors.push(`[validate] weaponData "${weapon.id}" maxLevel < 1`);
@@ -138,18 +200,45 @@ export function validateCoreGameData({
     if (weapon.aimSpread !== undefined && (!Number.isFinite(weapon.aimSpread) || weapon.aimSpread < 0)) {
       errors.push(`[validate] weaponData "${weapon.id}" aimSpread가 유효하지 않음`);
     }
+
+    validateProjectileVisualRef(errors, referencedSourceKeys, `weaponData "${weapon.id}"`, 'projectileVisualId', weapon.projectileVisualId);
+    validateEffectVisualRef(errors, referencedSourceKeys, `weaponData "${weapon.id}"`, 'impactEffectVisualId', weapon.impactEffectVisualId);
   }
+}
 
-  waveData.forEach((wave, index) => {
-    if (wave.spawnPerSecond < 0) {
-      errors.push(`[validate] waveData[${index}] spawnPerSecond < 0`);
-    }
-    if (wave.from >= wave.to) {
-      errors.push(`[validate] waveData[${index}] from >= to`);
-    }
-  });
+function validateEnemyVisualContracts(enemyData, errors, referencedSourceKeys) {
+  for (const enemy of enemyData) {
+    const projectileConfig = enemy?.projectileConfig;
+    if (!projectileConfig || typeof projectileConfig !== 'object') continue;
+    const ownerLabel = `enemyData "${enemy.id}" projectileConfig`;
+    validateProjectileVisualRef(errors, referencedSourceKeys, ownerLabel, 'projectileVisualId', projectileConfig.projectileVisualId);
+    validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'impactEffectVisualId', projectileConfig.impactEffectVisualId);
+  }
+}
 
-  const assetIds = new Set(assetManifest.map((entry) => entry?.id).filter(Boolean));
+function getBossPhaseActions(phase = {}) {
+  const actions = [];
+  if (phase.phaseAction && typeof phase.phaseAction === 'object') actions.push(phase.phaseAction);
+  if (Array.isArray(phase.phaseActions)) {
+    actions.push(...phase.phaseActions.filter(Boolean));
+  }
+  return actions;
+}
+
+function validateBossVisualContracts(bossData, errors, referencedSourceKeys) {
+  for (const boss of bossData) {
+    for (const phase of boss?.phases ?? []) {
+      for (const action of getBossPhaseActions(phase)) {
+        const ownerLabel = `bossData "${boss.enemyId ?? boss.at ?? 'unknown'}" phaseAction "${action.type ?? 'unknown'}"`;
+        validateProjectileVisualRef(errors, referencedSourceKeys, ownerLabel, 'projectileVisualId', action.projectileVisualId);
+        validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'impactEffectVisualId', action.impactEffectVisualId);
+        validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'effectVisualId', action.effectVisualId);
+      }
+    }
+  }
+}
+
+function validateStageVisualContracts(stageData, errors, referencedSourceKeys, assetIds) {
   for (const stage of stageData) {
     if (!stage?.id) continue;
     errors.push(...validateStageBackground(stage));
@@ -163,7 +252,64 @@ export function validateCoreGameData({
     } else if (!assetIds.has(stage.assets.bossCueKey)) {
       errors.push(`[validate] stageData "${stage.id}" → 존재하지 않는 bossCueKey "${stage.assets.bossCueKey}"`);
     }
+
+    for (const gimmick of stage.gimmicks ?? []) {
+      const ownerLabel = `stageData "${stage.id}" gimmick "${gimmick.id ?? gimmick.type ?? 'unknown'}"`;
+      validateProjectileVisualRef(errors, referencedSourceKeys, ownerLabel, 'projectileVisualId', gimmick.projectileVisualId);
+      validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'impactEffectVisualId', gimmick.impactEffectVisualId);
+      validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'effectVisualId', gimmick.effectVisualId);
+    }
+
+    if (stage.bossEcho) {
+      const ownerLabel = `stageData "${stage.id}" bossEcho "${stage.bossEcho.id ?? stage.bossEcho.type ?? 'unknown'}"`;
+      validateProjectileVisualRef(errors, referencedSourceKeys, ownerLabel, 'projectileVisualId', stage.bossEcho.projectileVisualId);
+      validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'impactEffectVisualId', stage.bossEcho.impactEffectVisualId);
+      validateEffectVisualRef(errors, referencedSourceKeys, ownerLabel, 'effectVisualId', stage.bossEcho.effectVisualId);
+    }
   }
+}
+
+export function validateCoreGameData({
+  upgradeData = [],
+  weaponData = [],
+  enemyData = [],
+  bossData = [],
+  waveData = [],
+  stageData = [],
+  assetManifest = [],
+} = {}) {
+  const errors = [];
+  const warnings = [];
+  const referencedSourceKeys = new Set();
+
+  errors.push(...collectDuplicateIdErrors(upgradeData, 'upgradeData'));
+  errors.push(...collectDuplicateIdErrors(weaponData, 'weaponData'));
+  errors.push(...collectDuplicateIdErrors(assetManifest, 'assetManifest'));
+  errors.push(...validateAssetManifestEntries(assetManifest));
+
+  for (const upgrade of upgradeData) {
+    if (!upgrade.weaponId) continue;
+    if (!weaponData.some((weapon) => weapon.id === upgrade.weaponId)) {
+      errors.push(`[validate] upgradeData "${upgrade.id}" → 존재하지 않는 weaponId "${upgrade.weaponId}"`);
+    }
+  }
+
+  validateWeaponVisualContracts(weaponData, errors, referencedSourceKeys);
+  validateEnemyVisualContracts(enemyData, errors, referencedSourceKeys);
+  validateBossVisualContracts(bossData, errors, referencedSourceKeys);
+
+  waveData.forEach((wave, index) => {
+    if (wave.spawnPerSecond < 0) {
+      errors.push(`[validate] waveData[${index}] spawnPerSecond < 0`);
+    }
+    if (wave.from >= wave.to) {
+      errors.push(`[validate] waveData[${index}] from >= to`);
+    }
+  });
+
+  const assetIds = new Set(assetManifest.map((entry) => entry?.id).filter(Boolean));
+  validateStageVisualContracts(stageData, errors, referencedSourceKeys, assetIds);
+  errors.push(...validateReferencedVfxSources(assetManifest, referencedSourceKeys));
 
   return {
     ok: errors.length === 0,

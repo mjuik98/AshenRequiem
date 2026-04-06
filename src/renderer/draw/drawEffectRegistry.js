@@ -20,6 +20,14 @@
  */
 
 import { sharedVfxSpriteRuntime } from '../sprites/vfxSpriteRuntime.js';
+import { hasEffectSpriteVisual } from '../sprites/vfxSpriteManifest.js';
+
+function drawCatalogedEffectSprite(effect, ctx, camera, spriteRuntime = sharedVfxSpriteRuntime) {
+  const effectVisualId = effect?.effectVisualId ?? effect?.effectType ?? null;
+  if (!effectVisualId || !hasEffectSpriteVisual(effectVisualId)) return false;
+  spriteRuntime?.drawEffectSprite?.(ctx, effect, camera);
+  return true;
+}
 
 // ── draw 구현체들 ─────────────────────────────────────────────────────
 
@@ -81,7 +89,7 @@ function drawLevelFlash(ctx, effect, _camera, dpr) {
  * @param {number} _dpr
  */
 function drawBurst(ctx, effect, camera, _dpr, spriteRuntime = sharedVfxSpriteRuntime) {
-  if (spriteRuntime?.drawEffectSprite?.(ctx, effect, camera)) return;
+  if (drawCatalogedEffectSprite(effect, ctx, camera, spriteRuntime)) return;
   const progress      = Math.min(1, effect.lifetime / effect.maxLifetime);
   const sx            = effect.x - camera.x;
   const sy            = effect.y - camera.y;

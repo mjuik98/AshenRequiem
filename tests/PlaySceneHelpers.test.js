@@ -19,7 +19,7 @@ async function test(name, fn) {
 }
 
 await test('run state helper는 session 메타 기반 런 상태를 world에 적용한다', async () => {
-  const runtime = await import('../src/scenes/play/playSceneRuntime.js');
+  const runtime = await import('../src/app/play/runSessionStateService.js');
   const world = makeWorld({ entities: { player: makePlayer() } });
   runtime.applyRunSessionState(world, {
     meta: {
@@ -37,7 +37,7 @@ await test('run state helper는 session 메타 기반 런 상태를 world에 적
 });
 
 await test('play scene runtime helper는 시작 장비를 generic pending event queue로 큐잉한다', async () => {
-  const runtime = await import('../src/scenes/play/playSceneRuntime.js');
+  const runtime = await import('../src/app/play/runSessionStateService.js');
   const player = makePlayer({
     weapons: [{ id: 'magic_bolt' }],
     accessories: [{ id: 'iron_heart' }],
@@ -79,7 +79,7 @@ await test('play scene runtime helper는 초기 world state 생성 계약을 제
 });
 
 await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', async () => {
-  const overlays = await import('../src/scenes/play/playSceneOverlays.js');
+  const overlays = await import('../src/app/play/playSceneOverlaysService.js');
   const world = makeWorld({ run: { playMode: 'playing' } });
   const transitions = [];
   let pauseHidden = 0;
@@ -114,7 +114,7 @@ await test('pause overlay helper는 resume/forfeit 콜백을 구성한다', asyn
 });
 
 await test('result action helper는 blocked 상태에서 중복 씬 전환을 막는다', async () => {
-  const overlays = await import('../src/scenes/play/playSceneOverlays.js');
+  const overlays = await import('../src/app/play/playSceneOverlaysService.js');
   const changedScenes = [];
   let blocked = false;
 

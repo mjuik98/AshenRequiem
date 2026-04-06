@@ -14,7 +14,7 @@
  *     After (수정):
  *       한 바퀴(2π rad) 회전 완료 시 hitTargets를 clear()
  *       → 회전마다 모든 적에게 재충돌 허용 (연속 피해 의도 충족)
- *       _lastClearAngle로 초기화 기준점 추적 (첫 프레임 안전 처리 포함)
+ *       behaviorState.lastHitResetAngle 로 초기화 기준점 추적 (첫 프레임 안전 처리 포함)
  *
  *   BUG-6: areaBurst 투사체가 플레이어를 따라가지 않는 버그 수정
  *
@@ -31,6 +31,13 @@
  *   FIX(BUG-BOOMERANG): 부메랑 귀환 catch 검사 순서 오류 수정
  *   FIX(BUG-C): 귀환 중 player가 null이면 무한 이동 방지
  */
+import {
+  buildBoomerangBehaviorState,
+  buildOrbitBehaviorState,
+  buildRicochetBehaviorState,
+  ensureProjectileBehaviorState,
+} from '../../entities/projectileBehaviorState.js';
+
 export const ProjectileSystem = {
   update({ world, dt }) {
     const projectiles = world.entities.projectiles;
@@ -44,6 +51,10 @@ export const ProjectileSystem = {
       // ── orbit ────────────────────────────────────────────────────────
       if (p.behaviorId === 'orbit') {
         if (!player) { p.isAlive = false; p.pendingDestroy = true; continue; }
+        const state = ensureProjectileBehaviorState(
+          p,
+          buildOrbitBehaviorState(p.orbitAngle),
+        );
 
         p.orbitAngle += p.orbitSpeed * deltaTime;
         p.x = player.x + Math.cos(p.orbitAngle) * p.orbitRadius;
@@ -52,12 +63,10 @@ export const ProjectileSystem = {
 
         // FIX(BUG-5): 한 바퀴 회전 완료 시 hitTargets 초기화
         // orbit 무기는 회전마다 연속 피해가 의도이므로, 2π rad 회전 후 재충돌 허용
-        // _lastClearAngle이 없으면 현재 각도로 기준점 초기화 (투사체 생성 첫 프레임)
-        if (p._lastClearAngle === undefined) {
-          p._lastClearAngle = p.orbitAngle;
-        } else if (Math.abs(p.orbitAngle - p._lastClearAngle) >= Math.PI * 2) {
+        // behaviorState.lastHitResetAngle이 없으면 현재 각도로 기준점 초기화한다.
+        if (Math.abs(p.orbitAngle - state.lastHitResetAngle) >= Math.PI * 2) {
           p.hitTargets.clear();
-          p._lastClearAngle = p.orbitAngle;
+          state.lastHitResetAngle = p.orbitAngle;
         }
 
         if (p.lifetime >= p.maxLifetime) { p.isAlive = false; p.pendingDestroy = true; }
@@ -90,8 +99,12 @@ export const ProjectileSystem = {
 
       // ── ricochetProjectile ────────────────────────────────────────────
       } else if (p.behaviorId === 'ricochetProjectile') {
-        if (p.hitCount > (p._lastRicochetHitCount ?? 0)) {
-          p._lastRicochetHitCount = p.hitCount;
+        const state = ensureProjectileBehaviorState(
+          p,
+          buildRicochetBehaviorState(),
+        );
+        if (p.hitCount > state.ricochetHitCount) {
+          state.ricochetHitCount = p.hitCount;
 
           if ((p.bounceRemaining ?? 0) > 0) {
             const sourceEnemyId = [...p.hitTargets].at(-1) ?? null;
@@ -133,9 +146,13 @@ export const ProjectileSystem = {
 
       // ── boomerang ────────────────────────────────────────────────────
       } else if (p.behaviorId === 'boomerang') {
+        const state = ensureProjectileBehaviorState(
+          p,
+          buildBoomerangBehaviorState(),
+        );
 
-        // FIX(BUG-BOOMERANG): _reversed 상태일 때 catch 검사를 이동 전에 수행
-        if (p._reversed) {
+        // FIX(BUG-BOOMERANG): reversed 상태일 때 catch 검사를 이동 전에 수행
+        if (state.reversed) {
           // FIX(BUG-C): player 없으면 귀환 불가 → 즉시 소멸
           if (!player) {
             p.isAlive = false;
@@ -171,13 +188,13 @@ export const ProjectileSystem = {
         p.distanceTraveled = (p.distanceTraveled ?? 0) + dist;
 
         // 절반 거리 도달 시 반전 플래그 ON + distanceTraveled 클램프
-        if (!p._reversed && p.distanceTraveled >= p.maxRange / 2) {
-          p._reversed        = true;
+        if (!state.reversed && p.distanceTraveled >= p.maxRange / 2) {
+          state.reversed = true;
           p.distanceTraveled = p.maxRange / 2;
         }
 
         // 발사 방향으로 maxRange를 넘어도 반전이 없으면 소멸 (failsafe)
-        if (!p._reversed && p.distanceTraveled >= p.maxRange) {
+        if (!state.reversed && p.distanceTraveled >= p.maxRange) {
           p.isAlive = false;
           p.pendingDestroy = true;
         }

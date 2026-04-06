@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
-import { shouldEnablePipelineProfiling } from '../src/scenes/play/playSceneRuntime.js';
+import { shouldEnablePipelineProfiling } from '../src/adapters/browser/runtimeFeatureFlags.js';
 import {
   PROFILE_TARGET_FPS,
   PROFILE_WARN_THRESHOLD,

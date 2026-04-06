@@ -14,6 +14,7 @@
 import { getLiveEnemies, findClosestEnemy, buildTargetedDirections, getProjectileLifetimeMult } from './weaponBehaviorUtils.js';
 import { AIM_PATTERN } from '../../data/constants/aiming.js';
 import { spawnProjectile } from '../../domain/play/state/spawnRequest.js';
+import { buildBoomerangBehaviorState } from '../../entities/projectileBehaviorState.js';
 
 /**
  * boomerang — 가장 가까운 적 방향으로 부메랑 투사체 발사
@@ -57,8 +58,11 @@ export function boomerang({ weapon, player, enemies, spawnQueue }) {
         aimSpread:        weapon.aimSpread ?? defaultAimSpread,
         maxRange,
         behaviorId:       'boomerang',
+        projectileVisualId: weapon.projectileVisualId ?? null,
+        impactEffectType: weapon.impactEffectType ?? null,
+        impactEffectVisualId: weapon.impactEffectVisualId ?? weapon.impactEffectType ?? null,
         ownerId:          player.id,
-        _reversed:        false,
+        behaviorState:    buildBoomerangBehaviorState(),
         distanceTraveled: 0,
       },
     }));

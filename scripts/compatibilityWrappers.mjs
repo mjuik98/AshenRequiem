@@ -46,24 +46,6 @@ export const WRAPPER_INVENTORY = [
     notes: '실제 구현은 src/adapters/browser/runtimeHooks.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
   },
   {
-    path: 'src/scenes/play/playSceneRuntime.js',
-    role: 'play scene runtime helper facade',
-    disposition: '`keep-public-wrapper`',
-    notes: '실제 구현은 src/app/play/runSessionStateService.js, src/adapters/browser/runtimeFeatureFlags.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
-  },
-  {
-    path: 'src/scenes/play/playSceneOverlays.js',
-    role: 'play overlay config facade',
-    disposition: '`keep-public-wrapper`',
-    notes: '실제 구현은 src/app/play/playSceneOverlaysService.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
-  },
-  {
-    path: 'src/scenes/title/titleLoadout.js',
-    role: 'title loadout query facade',
-    disposition: '`keep-public-wrapper`',
-    notes: '실제 구현은 src/app/title/titleLoadoutQueryService.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
-  },
-  {
     path: 'src/scenes/play/PlayResultHandler.js',
     role: '`playResultApplicationService` class facade',
     disposition: '`keep-public-wrapper`',
@@ -80,12 +62,6 @@ export const WRAPPER_INVENTORY = [
     role: '`createPlayWorld` re-export',
     disposition: '`keep-public-wrapper`',
     notes: '내부 import 금지, domain 경로가 SSOT',
-  },
-  {
-    path: 'src/state/startLoadoutRuntime.js',
-    role: 'start loadout domain re-export',
-    disposition: '`keep-public-wrapper`',
-    notes: 'title/start loadout 공개 경로 호환',
   },
   {
     path: 'src/input/KeyboardAdapter.js',

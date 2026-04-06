@@ -103,6 +103,69 @@ await test('asset validation accepts standalone VFX sprite sheet entries with pu
   assert.equal(report.ok, true, 'standalone sprite sheet asset entry가 검증을 통과해야 함');
 });
 
+await test('shared validation module rejects missing combat VFX visual ids across weapon/enemy/boss/stage contracts', async () => {
+  const validation = await import('../src/data/gameDataValidation.js');
+  const { assetManifest } = await import('../src/data/assetManifest.js');
+
+  const report = validation.validateCoreGameData({
+    assetManifest,
+    weaponData: [
+      {
+        id: 'bad_weapon',
+        maxLevel: 7,
+        behaviorId: 'targetProjectile',
+        projectileVisualId: 'missing_projectile_visual',
+        impactEffectType: 'burst',
+        impactEffectVisualId: 'missing_effect_visual',
+      },
+    ],
+    enemyData: [
+      {
+        id: 'bad_enemy',
+        projectileConfig: {
+          projectileVisualId: 'missing_enemy_visual',
+          impactEffectType: 'burst',
+          impactEffectVisualId: 'missing_enemy_impact',
+        },
+      },
+    ],
+    bossData: [
+      {
+        at: 10,
+        enemyId: 'boss_seraph',
+        phases: [{
+          hpThreshold: 0.7,
+          phaseActions: [{
+            type: 'projectile_arc',
+            projectileVisualId: 'missing_boss_visual',
+            impactEffectVisualId: 'missing_boss_impact',
+          }],
+        }],
+      },
+    ],
+    stageData: [
+      {
+        id: 'moon_crypt',
+        assets: {
+          backgroundKey: 'stage_bg_moon_crypt',
+          bossCueKey: 'boss_cue_moon_crypt',
+        },
+        gimmicks: [{
+          id: 'bad_gimmick',
+          type: 'hazard_ring',
+          projectileVisualId: 'missing_stage_visual',
+          effectVisualId: 'missing_stage_effect',
+        }],
+      },
+    ],
+  });
+
+  assert.equal(report.ok, false, 'missing combat VFX visual ids는 validation 실패여야 함');
+  assert.equal(report.errors.some((message) => message.includes('projectileVisualId')), true, 'missing projectileVisualId 오류가 필요함');
+  assert.equal(report.errors.some((message) => message.includes('impactEffectVisualId')), true, 'missing impactEffectVisualId 오류가 필요함');
+  assert.equal(report.errors.some((message) => message.includes('effectVisualId')), true, 'missing effectVisualId 오류가 필요함');
+});
+
 await test('shared validation module rejects malformed seamless tile background contracts', async () => {
   const validation = await import('../src/data/gameDataValidation.js');
 

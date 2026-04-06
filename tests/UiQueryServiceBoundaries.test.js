@@ -1,21 +1,23 @@
 import assert from 'node:assert/strict';
 import { createRunner } from './helpers/testRunner.js';
-import { readProjectSource } from './helpers/sourceInspection.js';
+import {
+  projectPathExists,
+  readProjectSource,
+} from './helpers/sourceInspection.js';
 
 console.log('\n[UiQueryServiceBoundaries]');
 
 const { test, summary } = createRunner('UiQueryServiceBoundaries');
 
 test('title loadout query logic is owned by the app-layer service', async () => {
-  const titleLoadout = await import('../src/scenes/title/titleLoadout.js');
   const titleLoadoutQuery = await import('../src/app/title/titleLoadoutQueryService.js');
-  const titleLoadoutSource = readProjectSource('../src/scenes/title/titleLoadout.js');
+  const titleLoadoutQuerySource = readProjectSource('../src/app/title/titleLoadoutQueryService.js');
   const startLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutView.js');
 
-  assert.equal(titleLoadout.buildTitleLoadoutConfig, titleLoadoutQuery.buildTitleLoadoutConfig);
-  assert.equal(titleLoadout.getAvailableStartWeapons, titleLoadoutQuery.getAvailableStartWeapons);
-  assert.equal(titleLoadoutSource.includes("from '../../app/title/titleLoadoutQueryService.js'"), true, 'titleLoadout facade가 app query service를 재노출하지 않음');
-  assert.equal(titleLoadoutSource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"), false, 'titleLoadout facade가 domain helper를 직접 소유하면 안 됨');
+  assert.equal(typeof titleLoadoutQuery.buildTitleLoadoutConfig, 'function');
+  assert.equal(typeof titleLoadoutQuery.getAvailableStartWeapons, 'function');
+  assert.equal(projectPathExists('../src/scenes/title/titleLoadout.js'), false, 'titleLoadout compatibility wrapper가 제거되지 않음');
+  assert.equal(titleLoadoutQuerySource.includes("from '../../domain/meta/loadout/startLoadoutDomain.js'"), true, 'titleLoadoutQueryService가 domain helper를 사용하지 않음');
   assert.equal(startLoadoutViewSource.includes("from '../../app/title/titleLoadoutQueryService.js'"), false, 'StartLoadoutView가 app query service에 직접 결합되면 안 됨');
   assert.equal(startLoadoutViewSource.includes("from '../../domain/meta/loadout/startLoadoutPresentation.js'"), true, 'StartLoadoutView가 stable presentation helper를 사용하지 않음');
 });

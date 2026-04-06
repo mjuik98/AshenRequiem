@@ -399,6 +399,124 @@ test('runtime applies elongated flight sizing and stronger glow metadata for key
   assert.equal(effectCtx.globalAlpha < 1, true, 'burst effect는 진행도에 따라 alpha가 조절되어야 함');
 });
 
+test('runtime honors low-quality sprite draws with reduced glow while keeping cataloged visuals on the sprite path', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  let image = null;
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      image = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      return image;
+    },
+  });
+
+  const calls = [];
+  const ctx = {
+    shadowBlur: 0,
+    shadowColor: '',
+    globalAlpha: 1,
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      calls.push(args);
+    },
+  };
+
+  runtime.drawProjectileSprite(ctx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 32,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 }, { lowQuality: true });
+
+  image.complete = true;
+  image.naturalWidth = 2048;
+  image.on_load?.();
+
+  const drawn = runtime.drawProjectileSprite(ctx, {
+    projectileVisualId: 'magic_bolt',
+    x: 24,
+    y: 36,
+    radius: 8,
+    speed: 200,
+    distanceTraveled: 32,
+    dirX: 1,
+    dirY: 0,
+  }, { x: 0, y: 0 }, { lowQuality: true });
+
+  assert.equal(drawn, true, 'low-quality에서도 cataloged projectile sprite draw가 유지되어야 함');
+  assert.equal(calls.length > 0, true, 'low-quality sprite drawImage 호출이 필요함');
+  assert.equal(ctx.shadowBlur <= 8, true, 'low-quality sprite draw는 glow blur를 줄여야 함');
+});
+
+test('runtime resolves effect sprite frames from effectVisualId before falling back to effectType', async () => {
+  const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
+
+  let image = null;
+  const runtime = createVfxSpriteRuntime({
+    imageFactory() {
+      image = {
+        complete: false,
+        naturalWidth: 0,
+        addEventListener(type, handler) {
+          this[`on_${type}`] = handler;
+        },
+      };
+      return image;
+    },
+  });
+
+  const calls = [];
+  const ctx = {
+    save() {},
+    restore() {},
+    translate() {},
+    rotate() {},
+    drawImage(...args) {
+      calls.push(args);
+    },
+  };
+
+  runtime.drawEffectSprite(ctx, {
+    effectType: 'burst',
+    effectVisualId: 'holy_bolt_impact',
+    x: 0,
+    y: 0,
+    radius: 16,
+    lifetime: 0.39,
+    maxLifetime: 0.4,
+  }, { x: 0, y: 0 });
+
+  image.complete = true;
+  image.naturalWidth = 1024;
+  image.on_load?.();
+
+  runtime.drawEffectSprite(ctx, {
+    effectType: 'burst',
+    effectVisualId: 'holy_bolt_impact',
+    x: 0,
+    y: 0,
+    radius: 16,
+    lifetime: 0.39,
+    maxLifetime: 0.4,
+  }, { x: 0, y: 0 });
+
+  assert.equal(calls.length, 1, 'effectVisualId 기반 drawImage 호출이 필요함');
+  assert.equal(calls[0][2], 768, 'holy_bolt impact 마지막 row를 사용해야 함');
+});
+
 test('runtime lazy-loads standalone projectile/effect sprite sources independently from shared atlases', async () => {
   const { createVfxSpriteRuntime } = await import('../src/renderer/sprites/vfxSpriteRuntime.js');
 

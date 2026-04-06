@@ -8,7 +8,7 @@ import {
   attemptWindowClose,
   createTitleStatusController,
 } from '../src/scenes/title/titleSceneStatus.js';
-import { buildTitleLoadoutConfig } from '../src/scenes/title/titleLoadout.js';
+import { buildTitleLoadoutConfig } from '../src/app/title/titleLoadoutQueryService.js';
 import { TITLE_SCREEN_HTML } from '../src/scenes/title/titleScreenContent.js';
 import { MetaShopView } from '../src/ui/metashop/MetaShopView.js';
 import { SettingsView } from '../src/ui/settings/SettingsView.js';

@@ -14,6 +14,8 @@ export function validateGameData(gameData = {}) {
   const {
     upgradeData,
     weaponData,
+    enemyData,
+    bossData,
     waveData,
     stageData,
     assetManifest,
@@ -21,6 +23,8 @@ export function validateGameData(gameData = {}) {
   const report = validateCoreGameData({
     upgradeData,
     weaponData,
+    enemyData,
+    bossData,
     waveData,
     stageData,
     assetManifest,

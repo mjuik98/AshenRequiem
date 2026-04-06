@@ -188,6 +188,9 @@ export const assetManifest = [
     estimatedBytes: 1352885,
     qualityPolicy: 'scalable',
     sourceType: 'image',
+    files: {
+      src: '/assets/vfx/projectiles-atlas.png',
+    },
     description: 'Animated projectile VFX sprite atlas for magic bolt and arcane nova combat readability.',
   },
   {
@@ -199,6 +202,9 @@ export const assetManifest = [
     estimatedBytes: 389539,
     qualityPolicy: 'scalable',
     sourceType: 'image',
+    files: {
+      src: '/assets/vfx/effects-atlas.png',
+    },
     description: 'Animated impact and burst VFX sprite atlas for combat effects.',
   },
   {

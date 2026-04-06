@@ -190,16 +190,16 @@ await test('pause loadout meta는 linked/synergy/evolution helper로 추가 분�
 
 await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임한다', async () => {
   let levelUpController;
-  let playSceneRuntime;
-  let playSceneOverlays;
+  let runSessionStateService;
+  let playSceneOverlaysService;
   let levelUpInteractions;
   let levelUpStyles;
   let levelUpRuntime;
 
   try {
     levelUpController = await import('../src/scenes/play/levelUpController.js');
-    playSceneRuntime = await import('../src/scenes/play/playSceneRuntime.js');
-    playSceneOverlays = await import('../src/scenes/play/playSceneOverlays.js');
+    runSessionStateService = await import('../src/app/play/runSessionStateService.js');
+    playSceneOverlaysService = await import('../src/app/play/playSceneOverlaysService.js');
     levelUpInteractions = await import('../src/ui/levelup/levelUpViewInteractions.js');
     levelUpStyles = await import('../src/ui/levelup/levelUpViewStyles.js');
     levelUpRuntime = await import('../src/ui/levelup/levelUpViewRuntime.js');
@@ -208,9 +208,9 @@ await test('PlayScene은 level-up 액션을 전용 controller 모듈에 위임�
   }
 
   assert.equal(typeof levelUpController.createLevelUpController, 'function', 'createLevelUpController가 export되지 않음');
-  assert.equal(typeof playSceneRuntime.applyRunSessionState, 'function', 'run state helper가 export되지 않음');
-  assert.equal(typeof playSceneOverlays.createPauseOverlayConfig, 'function', 'pause overlay helper가 export되지 않음');
-  assert.equal(typeof playSceneOverlays.createResultSceneActions, 'function', 'result overlay helper가 export되지 않음');
+  assert.equal(typeof runSessionStateService.applyRunSessionState, 'function', 'run state helper가 export되지 않음');
+  assert.equal(typeof playSceneOverlaysService.createPauseOverlayConfig, 'function', 'pause overlay helper가 export되지 않음');
+  assert.equal(typeof playSceneOverlaysService.createResultSceneActions, 'function', 'result overlay helper가 export되지 않음');
   assert.equal(typeof levelUpInteractions.bindLevelUpCardInteractions, 'function', 'LevelUpView interaction helper가 없음');
   assert.equal(typeof levelUpStyles.ensureLevelUpViewStyles, 'function', 'LevelUpView style helper가 없음');
   assert.equal(typeof levelUpRuntime.bindLevelUpViewRuntime, 'function', 'LevelUpView runtime helper가 없음');
