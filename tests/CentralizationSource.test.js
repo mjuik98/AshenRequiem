@@ -30,6 +30,7 @@ const startLoadoutViewSource = readProjectSource('../src/ui/title/StartLoadoutVi
 const startLoadoutViewRuntimeSource = readProjectSource('../src/ui/title/startLoadoutViewRuntime.js');
 const codexViewSource = readProjectSource('../src/ui/codex/CodexView.js');
 const codexSceneSource = readProjectSource('../src/scenes/CodexScene.js');
+const codexSceneAppSource = readProjectSource('../src/app/meta/codexSceneApplicationService.js');
 const codexHandlerSource = readProjectSource('../src/adapters/play/events/codexEventAdapter.js');
 const playContextSource = readProjectSource('../src/core/PlayContext.js');
 const collisionSystemSource = readProjectSource('../src/systems/combat/CollisionSystem.js');
@@ -168,7 +169,7 @@ test('gameData 접근은 Game 인스턴스 기준으로 일원화된다', () => 
   );
   assert.equal(playSceneSource.includes('GameDataLoader.clone(this.game.gameData)'), false, 'PlayScene이 여전히 gameData 전체 복제를 수행함');
   assert.equal(playSceneSource.includes('GameDataLoader.loadDefault()'), false, 'PlayScene이 여전히 loadDefault를 직접 호출함');
-  assert.equal(codexSceneSource.includes('prepareCodexSceneState'), true, 'CodexScene이 codex application service를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('createCodexSceneApplicationService'), true, 'CodexScene이 scene-facing codex application service를 사용하지 않음');
   assert.equal(codexSceneSource.includes('GameDataLoader.loadDefault()'), false, 'CodexScene이 여전히 loadDefault를 직접 호출함');
 });
 
@@ -330,7 +331,10 @@ test('엔티티 생존 판정은 entityUtils 헬퍼로 통일된다', () => {
 });
 
 test('Codex 메타 초기화는 단일 헬퍼로 중앙화된다', () => {
-  assert.equal(codexSceneSource.includes('prepareCodexSceneState'), true, 'CodexScene이 codex application service를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('createCodexSceneApplicationService'), true, 'CodexScene이 scene-facing codex service를 사용하지 않음');
+  assert.equal(codexSceneSource.includes('prepareCodexSceneState'), false, 'CodexScene이 low-level codex prepare service를 직접 import하면 안 됨');
+  assert.equal(codexSceneAppSource.includes("from './codexApplicationService.js'"), true, 'codex scene application service가 low-level codex service를 사용하지 않음');
+  assert.equal(codexSceneAppSource.includes("from '../session/codexSessionStateService.js'"), false, 'codex scene application service가 session owner service를 직접 import하면 안 됨');
   assert.equal(codexSceneSource.includes('ensureCodexMeta'), false, 'CodexScene이 Codex 메타 헬퍼를 직접 import하면 안 됨');
   assert.equal(codexSceneSource.includes('reconcileSessionUnlocks'), false, 'CodexScene이 unlock 보정 helper를 직접 import하면 안 됨');
   assert.equal(codexHandlerSource.includes('ensureCodexMeta'), true, 'codexHandler가 공통 Codex 메타 헬퍼를 사용하지 않음');
