@@ -9,15 +9,7 @@
  */
 import { SettingsView }    from '../ui/settings/SettingsView.js';
 import { mountUI }         from '../ui/dom/mountUI.js';
-import {
-  exportSettingsSceneSnapshot,
-  importSettingsSceneSnapshot,
-  inspectSettingsSceneStorage,
-  previewSettingsSceneImport,
-  resetSettingsSceneProgress,
-  restoreSettingsSceneBackup,
-  saveSettingsSceneOptions,
-} from '../app/session/settingsSceneApplicationService.js';
+import { createSettingsSceneHandlers } from '../app/session/settingsSceneApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { createSettingsRuntimeDependencies } from './settingsRuntimeDependencies.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
@@ -33,32 +25,16 @@ export class SettingsScene {
   enter() {
     this._nav.reset();
     const container = mountUI();
+    const handlers = createSettingsSceneHandlers({
+      session: this.game.session,
+      createRuntimeDeps: () => createSettingsRuntimeDependencies(this.game),
+      onRequestClose: () => this._goToTitle(),
+      isNavigating: () => this._nav.isNavigating(),
+    });
     this._view = new SettingsView(container);
     this._view.show(
       this.game.session,
-      {
-        onSave: (newOpts) => this._handleSave(newOpts),
-        onBack: () => this._goToTitle(),
-        onExport: () => exportSettingsSceneSnapshot({ session: this.game.session }),
-        onInspect: () => inspectSettingsSceneStorage({ session: this.game.session }),
-        onPreviewImport: (rawSnapshot) => previewSettingsSceneImport({
-          session: this.game.session,
-          rawSnapshot,
-        }),
-        onImport: (rawSnapshot) => importSettingsSceneSnapshot({
-          session: this.game.session,
-          rawSnapshot,
-          ...this._createRuntimeDeps(),
-        }),
-        onReset: () => resetSettingsSceneProgress({
-          session: this.game.session,
-          ...this._createRuntimeDeps(),
-        }),
-        onRestoreBackup: () => restoreSettingsSceneBackup({
-          session: this.game.session,
-          ...this._createRuntimeDeps(),
-        }),
-      },
+      handlers,
     );
   }
 
@@ -78,24 +54,6 @@ export class SettingsScene {
 
   // ── 내부 처리 ──────────────────────────────────────────────────────────────
 
-  /**
-   * 저장 처리:
-   *   - session.options 병합 + localStorage 저장
-   *   - DPR 변경 즉시 반영 (public resize capability)
-   *
-   * @param {object} newOpts  SettingsView에서 수집된 최신 옵션 객체
-   */
-  _handleSave(newOpts) {
-    if (this._nav.isNavigating()) return;
-    saveSettingsSceneOptions({
-      session: this.game.session,
-      nextOptions: newOpts,
-      ...this._createRuntimeDeps(),
-    });
-
-    this._goToTitle();
-  }
-
   /** TitleScene으로 복귀 */
   async _goToTitle() {
     await this._nav.change(() => {
@@ -104,9 +62,5 @@ export class SettingsScene {
     }, (e) => {
       logRuntimeError('SettingsScene', 'TitleScene 로드 실패:', e);
     });
-  }
-
-  _createRuntimeDeps() {
-    return createSettingsRuntimeDependencies(this.game);
   }
 }

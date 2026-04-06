@@ -28,6 +28,65 @@ function buildSettingsSceneResult({
   };
 }
 
+function resolveSettingsRuntimeDeps(createRuntimeDeps) {
+  if (typeof createRuntimeDeps !== 'function') return {};
+  return createRuntimeDeps() ?? {};
+}
+
+export function createSettingsSceneHandlers({
+  session,
+  createRuntimeDeps,
+  onRequestClose = null,
+  isNavigating = () => false,
+} = {}) {
+  return {
+    onSave(newOpts) {
+      if (isNavigating()) return null;
+      const resolvedOptions = saveSettingsSceneOptions({
+        session,
+        nextOptions: newOpts,
+        ...resolveSettingsRuntimeDeps(createRuntimeDeps),
+      });
+      onRequestClose?.();
+      return resolvedOptions;
+    },
+    onBack() {
+      return onRequestClose?.();
+    },
+    onExport() {
+      return exportSettingsSceneSnapshot({ session });
+    },
+    onInspect() {
+      return inspectSettingsSceneStorage({ session });
+    },
+    onPreviewImport(rawSnapshot) {
+      return previewSettingsSceneImport({
+        session,
+        rawSnapshot,
+      });
+    },
+    onImport(rawSnapshot) {
+      return importSettingsSceneSnapshot({
+        session,
+        rawSnapshot,
+        ...resolveSettingsRuntimeDeps(createRuntimeDeps),
+      });
+    },
+    onReset() {
+      return resetSettingsSceneProgress({
+        session,
+        ...resolveSettingsRuntimeDeps(createRuntimeDeps),
+      });
+    },
+    onRestoreBackup() {
+      return restoreSettingsSceneBackup({
+        session,
+        ...resolveSettingsRuntimeDeps(createRuntimeDeps),
+      });
+    },
+  };
+}
+
 export function exportSettingsSceneSnapshot({ session } = {}) {
   return exportSessionSnapshotImpl({ session });
 }
