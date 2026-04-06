@@ -52,6 +52,12 @@ export const WRAPPER_INVENTORY = [
     notes: '테스트/기존 import 호환 경로. `createPlayResultHandler()` / `processPlayResult()` thin helper export 제공',
   },
   {
+    path: 'src/state/createSessionState.js',
+    role: 'session state + browser persistence compatibility barrel',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/state/session/*, src/adapters/browser/session/*가 소유. 내부 import 금지',
+  },
+  {
     path: 'src/state/createWorld.js',
     role: '`createPlayWorld` re-export',
     disposition: '`keep-public-wrapper`',

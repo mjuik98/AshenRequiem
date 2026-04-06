@@ -7,6 +7,7 @@ export default [
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
+          '**/state/createSessionState.js',
           '**/state/createWorld.js',
           '**/state/startLoadoutRuntime.js',
           '**/state/sessionMeta.js',
@@ -58,6 +59,16 @@ export default [
           '**/renderer/**',
           '**/adapters/browser/**',
           '**/scenes/**',
+        ],
+      }],
+    },
+  },
+  {
+    files: ['src/utils/**/*.js', 'src/math/**/*.js', 'src/core/GameConfig.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          '**/adapters/browser/**',
         ],
       }],
     },

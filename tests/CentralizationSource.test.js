@@ -338,9 +338,15 @@ test('메타 씬은 app 계층 service를 통해 세션 규칙을 호출한다',
 });
 
 test('SettingsScene은 runtime dependency helper로 앱 서비스 인수를 조립한다', () => {
+  const settingsSceneAppSource = readProjectSource('../src/app/session/settingsSceneApplicationService.js');
+
   assert.equal(settingsRuntimeDepsSource.includes('createSettingsRuntimeDependencies'), true, 'settings runtime deps helper가 없음');
   assert.equal(settingsRuntimeDepsSource.includes('accessibilityRuntimeFactory'), true, 'settings runtime deps helper가 accessibility runtime factory를 주입받지 않음');
   assert.equal(settingsSceneSource.includes("from './settingsRuntimeDependencies.js'"), true, 'SettingsScene이 settings runtime deps helper를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes("from '../app/session/settingsSceneApplicationService.js'"), true, 'SettingsScene이 session-owned settings scene service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes("from '../app/meta/settingsApplicationService.js'"), false, 'SettingsScene이 meta facade 경로를 직접 import하면 안 됨');
+  assert.equal(settingsSceneAppSource.includes("from './sessionSnapshotQueryService.js'"), true, 'settings scene application service가 session query owner를 사용하지 않음');
+  assert.equal(settingsSceneAppSource.includes("from './sessionSnapshotCommandService.js'"), true, 'settings scene application service가 session command owner를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('createDocumentAccessibilityRuntime()'), false, 'SettingsScene에 accessibility runtime 생성 중복이 남아 있음');
 });
 

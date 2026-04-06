@@ -17,7 +17,7 @@ export class PipelineBuilder {
   /**
    * @param {object}                                  services   (session 제외)
    * @param {import('../systems/event/EventRegistry.js').EventRegistry} eventRegistry
-   * @param {import('../state/createSessionState.js').SessionState|null} session
+   * @param {import('../state/session/sessionMigrations.js').SessionState|null} session
    * @param {object|null}                             [profiler]
    * @param {Function|null}                           [registerEventHandlersImpl]
    */

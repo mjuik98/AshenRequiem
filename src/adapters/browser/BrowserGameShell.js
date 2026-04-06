@@ -4,7 +4,7 @@ import {
   createGameResizeHandler,
   syncGameCanvasSize,
 } from './gameCanvasRuntime.js';
-import { createDocumentAccessibilityRuntime } from '../../ui/shared/accessibilityRuntime.js';
+import { createDocumentAccessibilityRuntime } from './accessibilityRuntime.js';
 
 export function createBrowserGameShell({
   host = globalThis,

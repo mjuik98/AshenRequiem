@@ -13,7 +13,7 @@ export function processPlayResult(session, world, {
 
 export class PlayResultHandler {
   /**
-   * @param {import('../../state/createSessionState.js').SessionState} session
+   * @param {import('../../state/session/sessionMigrations.js').SessionState} session
    */
   constructor(session, {
     createServiceImpl = createPlayResultApplicationService,

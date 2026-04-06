@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { ROOT_DIR, collectSourceImports, walkFiles, toProjectRelative } from './importGraph.mjs';
 
 export const SHIM_IMPORT_PATTERNS = [
+  'src/state/createSessionState.js',
   'src/state/createWorld.js',
   'src/state/startLoadoutRuntime.js',
   'src/state/sessionMeta.js',
@@ -228,6 +229,22 @@ function findRuntimeLoggerBrowserViolations(imports) {
     }));
 }
 
+function findSharedOwnerBrowserViolations(imports) {
+  return imports
+    .filter(({ sourceFile }) => (
+      sourceFile.startsWith('src/utils/')
+      || sourceFile.startsWith('src/math/')
+      || sourceFile === 'src/core/GameConfig.js'
+    ))
+    .filter(({ targetFile }) => targetFile.startsWith('src/adapters/browser/'))
+    .map(({ sourceFile, targetFile }) => ({
+      rule: 'shared-owner-browser',
+      sourceFile,
+      targetFile,
+      message: `shared owner must stay browser-agnostic: ${sourceFile} -> ${targetFile}`,
+    }));
+}
+
 function findSettingsFacadeBrowserViolations(imports) {
   return imports
     .filter(({ sourceFile }) => (
@@ -290,6 +307,7 @@ export function collectBoundaryViolations() {
     ...findPipelineProfilerBrowserViolations(sourceImports),
     ...findPlayContextRuntimeBrowserViolations(sourceImports),
     ...findRuntimeLoggerBrowserViolations(sourceImports),
+    ...findSharedOwnerBrowserViolations(sourceImports),
     ...findSettingsFacadeBrowserViolations(sourceImports),
     ...findSessionSnapshotHelperBrowserViolations(sourceImports),
     ...findInternalSceneLoaderFacadeViolations(sourceImports),

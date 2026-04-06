@@ -7,11 +7,11 @@
  *   파일 하단에 migrateSession(), CURRENT_STORAGE_VERSION 등
  *   SessionState 관련 코드가 혼재해 있었음.
  *   → 파일명과 책임이 불일치.
- *   → SessionState 마이그레이션 로직이 두 곳(createSessionState.js 포함)에 존재.
+ *   → SessionState 마이그레이션 로직이 두 곳(legacy barrel 포함)에 존재.
  *
  * After (수정):
  *   NullSoundSystem 클래스만 존재. SessionState 코드는 전부
- *   src/state/createSessionState.js 로 이동됨 (단일 진실의 원천).
+ *   src/state/session/sessionMigrations.js 로 이동됨 (단일 진실의 원천).
  *
  * 사용법 (PlayContext.create() 에서):
  *   import { NullSoundSystem } from '../systems/sound/NullSoundSystem.js';
