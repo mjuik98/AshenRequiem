@@ -98,13 +98,16 @@ console.log('\n[CentralizationSource]');
 
 test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
   assert.equal(playSceneSource.includes('applySessionOptionsToRuntime'), true, 'PlayScene이 session runtime application service를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('saveSettingsSceneOptions'), true, 'SettingsScene이 scene-facing settings save service를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('previewSettingsSceneImport'), true, 'SettingsScene이 scene-facing settings preview service를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('importSettingsSceneSnapshot'), true, 'SettingsScene이 scene-facing settings import service를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('inspectSettingsSceneStorage'), true, 'SettingsScene이 scene-facing settings inspect service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('createSettingsSceneHandlers'), true, 'SettingsScene이 scene-facing settings handler factory를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), false, 'SettingsScene이 세션 저장 facade를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('applySessionOptionsToRuntime'), false, 'SettingsScene이 옵션 적용 helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('saveSettingsSceneOptions'), false, 'SettingsScene이 low-level settings save helper를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('previewSessionSnapshotImport'), false, 'SettingsScene이 low-level snapshot preview owner를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('previewSettingsSceneImport'), false, 'SettingsScene이 low-level settings preview helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('importSettingsSceneSnapshot'), false, 'SettingsScene이 low-level settings import helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('resetSettingsSceneProgress'), false, 'SettingsScene이 low-level settings reset helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('restoreSettingsSceneBackup'), false, 'SettingsScene이 low-level settings restore helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('inspectSettingsSceneStorage'), false, 'SettingsScene이 low-level settings inspect helper를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('importSessionSnapshot'), false, 'SettingsScene이 low-level snapshot command owner를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('resetSessionProgress'), false, 'SettingsScene이 low-level reset helper를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('restoreStoredSessionSnapshot'), false, 'SettingsScene이 low-level restore helper를 직접 import하면 안 됨');
@@ -362,6 +365,7 @@ test('SettingsScene은 runtime dependency helper로 앱 서비스 인수를 조�
   assert.equal(settingsSceneSource.includes("from './settingsRuntimeDependencies.js'"), true, 'SettingsScene이 settings runtime deps helper를 사용하지 않음');
   assert.equal(settingsSceneSource.includes("from '../app/session/settingsSceneApplicationService.js'"), true, 'SettingsScene이 session-owned settings scene service를 사용하지 않음');
   assert.equal(settingsSceneSource.includes("from '../app/meta/settingsApplicationService.js'"), false, 'SettingsScene이 meta facade 경로를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('createSettingsSceneHandlers'), true, 'SettingsScene이 scene-facing settings handler factory를 사용하지 않음');
   assert.equal(settingsSceneAppSource.includes("from './sessionSnapshotQueryService.js'"), true, 'settings scene application service가 session query owner를 사용하지 않음');
   assert.equal(settingsSceneAppSource.includes("from './sessionSnapshotCommandService.js'"), true, 'settings scene application service가 session command owner를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('createDocumentAccessibilityRuntime()'), false, 'SettingsScene에 accessibility runtime 생성 중복이 남아 있음');

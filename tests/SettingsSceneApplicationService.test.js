@@ -26,6 +26,7 @@ test('settings scene application service는 scene-facing snapshot handlers를 �
   const service = getServiceModule();
   const source = readProjectSource('../src/app/session/settingsSceneApplicationService.js');
 
+  assert.equal(typeof service.createSettingsSceneHandlers, 'function', 'createSettingsSceneHandlers helper가 없음');
   assert.equal(typeof service.exportSettingsSceneSnapshot, 'function', 'exportSettingsSceneSnapshot helper가 없음');
   assert.equal(typeof service.saveSettingsSceneOptions, 'function', 'saveSettingsSceneOptions helper가 없음');
   assert.equal(typeof service.previewSettingsSceneImport, 'function', 'previewSettingsSceneImport helper가 없음');
