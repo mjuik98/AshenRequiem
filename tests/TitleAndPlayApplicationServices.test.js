@@ -150,6 +150,52 @@ test('title loadout helpers는 run option normalization과 result shaping을 분
   });
 });
 
+test('title scene application service는 title runtime seam 위에 action orchestration을 조립한다', async () => {
+  const { readProjectSource } = await import('./helpers/sourceInspection.js');
+  const titleSceneAppSource = readProjectSource('../src/app/title/titleSceneApplicationService.js');
+  const {
+    createTitleSceneApplicationService,
+  } = await import('../src/app/title/titleSceneApplicationService.js');
+
+  assert.equal(
+    titleSceneAppSource.includes("from '../../utils/runtimeIssue.js'"),
+    true,
+    'title scene application service가 runtime issue helper를 사용하지 않음',
+  );
+  assert.equal(
+    titleSceneAppSource.includes("from '../../utils/runtimeLogger.js'"),
+    true,
+    'title scene application service가 runtime logger를 사용하지 않음',
+  );
+  assert.equal(
+    titleSceneAppSource.includes("from '../../scenes/title/titleSceneStatus.js'"),
+    false,
+    'title scene application service가 scene runtime helper를 직접 import하면 안 됨',
+  );
+
+  const seen = [];
+  const service = createTitleSceneApplicationService({
+    openStartLoadout: () => {
+      seen.push('start');
+      return 'opened';
+    },
+    pulseFlash: () => {
+      seen.push('flash');
+    },
+    setMessage: (message) => {
+      seen.push(message);
+    },
+  });
+
+  const result = await service.startGame();
+  assert.equal(result, 'opened', 'title scene application service가 start action을 재사용하지 않음');
+  assert.deepEqual(
+    seen,
+    ['flash', '시작 무기 선택 중…', 'start'],
+    'title scene application service가 start action 상태 흐름을 조립하지 않음',
+  );
+});
+
 test('play result application service는 세션 기준 runtime snapshot을 캡처해 결과 처리를 수행한다', async () => {
   const {
     capturePlayResultRuntimeState,

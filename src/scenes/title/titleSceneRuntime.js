@@ -1,5 +1,7 @@
+import { createTitleSceneApplicationService } from '../../app/title/titleSceneApplicationService.js';
 import {
   ensureTitleLoadoutView,
+  isTitleStartLoadoutOpen,
   openTitleStartLoadout,
 } from './titleLoadoutFlow.js';
 import { bindTitleSceneInput } from './titleSceneInput.js';
@@ -92,26 +94,31 @@ export function bindTitleSceneEvents(scene, {
   const liveEl = runtimeTarget.shellRefs?.live ?? runtimeTarget.root?.querySelector('#title-live');
   const flashEl = runtimeTarget.shellRefs?.flash ?? runtimeTarget.root?.querySelector('#title-flash');
   const { pulseFlash, setMessage } = createTitleStatusControllerImpl(liveEl, flashEl);
-
-  const startGame = () => {
-    pulseFlash();
-    setMessage('시작 무기 선택 중…');
-    openTitleStartLoadoutImpl(scene, { setMessage, pulseFlash });
-  };
-
-  bindTitleActionButtons(scene, {
+  const titleSceneService = createTitleSceneApplicationService({
     pulseFlash,
     setMessage,
+    changeScene: (nextScene) => {
+      scene?.game?.sceneManager?.changeScene(nextScene);
+    },
+    changeWithGuard: (...args) => runtimeTarget.nav?.change?.(...args),
+    isStartLoadoutOpen: () => isTitleStartLoadoutOpen(scene),
+    openStartLoadout: ({ setMessage: nextSetMessage, pulseFlash: nextPulseFlash } = {}) => openTitleStartLoadoutImpl(scene, {
+      setMessage: nextSetMessage ?? setMessage,
+      pulseFlash: nextPulseFlash ?? pulseFlash,
+    }),
+    createMetaShopScene: () => createMetaShopSceneImpl(scene.game),
+    createCodexScene: () => createCodexSceneImpl(scene.game, 'title'),
+    createSettingsScene: () => createSettingsSceneImpl(scene.game),
+    attemptWindowClose: (options) => attemptWindowCloseImpl(options),
     windowRef,
-    attemptWindowCloseImpl,
-    openTitleStartLoadoutImpl,
-    createMetaShopSceneImpl,
-    createCodexSceneImpl,
-    createSettingsSceneImpl,
+  });
+
+  bindTitleActionButtons(scene, {
+    onAction: (action) => titleSceneService.runAction(action),
   });
 
   bindTitleSceneInput(scene, {
-    startGame,
+    startGame: () => titleSceneService.startGame(),
     windowRef,
   });
 }
