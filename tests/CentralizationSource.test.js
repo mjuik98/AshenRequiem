@@ -58,6 +58,7 @@ const activeRunAppSource = readProjectSource('../src/app/play/activeRunApplicati
 const settingsAppSource = readProjectSource('../src/app/meta/settingsApplicationService.js');
 const settingsRuntimeDepsSource = readProjectSource('../src/scenes/settingsRuntimeDependencies.js');
 const metaShopAppSource = readProjectSource('../src/app/meta/metaShopApplicationService.js');
+const metaShopSceneAppSource = readProjectSource('../src/app/meta/metaShopSceneApplicationService.js');
 const titleLoadoutAppSource = readProjectSource('../src/app/title/titleLoadoutApplicationService.js');
 const playContextRuntimeSource = readProjectSource('../src/core/playContextRuntime.js');
 const bootstrapBrowserGameSource = readProjectSource('../src/app/bootstrap/bootstrapBrowserGame.js');
@@ -336,9 +337,13 @@ test('Codex 메타 초기화는 단일 헬퍼로 중앙화된다', () => {
 });
 
 test('메타 씬은 app 계층 service를 통해 세션 규칙을 호출한다', () => {
-  assert.equal(metaShopSceneSource.includes('purchaseMetaShopUpgrade'), true, 'MetaShopScene이 meta shop application service를 사용하지 않음');
+  assert.equal(metaShopSceneSource.includes('createMetaShopSceneApplicationService'), true, 'MetaShopScene이 scene-facing meta shop service를 사용하지 않음');
+  assert.equal(metaShopSceneSource.includes('purchaseMetaShopUpgrade'), false, 'MetaShopScene이 low-level meta shop purchase helper를 직접 import하면 안 됨');
   assert.equal(metaShopSceneSource.includes('purchasePermanentUpgradeAndSave'), false, 'MetaShopScene이 세션 facade를 직접 import하면 안 됨');
   assert.equal(metaShopSceneSource.includes('getPermanentUpgradeById'), false, 'MetaShopScene이 업그레이드 데이터 조회를 직접 수행하면 안 됨');
+  assert.equal(metaShopSceneAppSource.includes("from './metaShopApplicationService.js'"), true, 'meta shop scene application service가 low-level meta shop service를 사용하지 않음');
+  assert.equal(metaShopSceneAppSource.includes("from '../session/sessionPersistenceService.js'"), false, 'meta shop scene application service가 세션 저장 구현에 직접 결합하면 안 됨');
+  assert.equal(metaShopSceneAppSource.includes("from '../../domain/meta/metashop/metaShopPurchaseDomain.js'"), false, 'meta shop scene application service가 purchase domain helper를 직접 import하면 안 됨');
   assert.equal(titleLoadoutFlowSource.includes('createTitleLoadoutApplicationService'), true, 'titleLoadoutFlow가 title loadout application service를 사용하지 않음');
   assert.equal(titleLoadoutFlowSource.includes('setSelectedStartWeaponAndSave'), false, 'titleLoadoutFlow가 session facade를 직접 import하면 안 됨');
   assert.equal(playResultHandlerSource.includes('createPlayResultApplicationService'), true, 'PlayResultHandler가 play result application service를 사용하지 않음');

@@ -6,7 +6,7 @@
  */
 import { MetaShopView }            from '../ui/metashop/MetaShopView.js';
 import { mountUI }                 from '../ui/dom/mountUI.js';
-import { purchaseMetaShopUpgrade } from '../app/meta/metaShopApplicationService.js';
+import { createMetaShopSceneApplicationService } from '../app/meta/metaShopSceneApplicationService.js';
 import { createSceneNavigationGuard } from './sceneNavigation.js';
 import { logRuntimeError } from '../utils/runtimeLogger.js';
 
@@ -16,17 +16,23 @@ export class MetaShopScene {
     this.sceneId = 'MetaShopScene';
     this._view = null;
     this._nav  = createSceneNavigationGuard();
+    this._service = null;
   }
 
   enter() {
     this._nav.reset();
+    this._service = createMetaShopSceneApplicationService({
+      session: this.game.session,
+      gameData: this.game.gameData,
+    });
+    const { session, viewOptions } = this._service.getViewPayload();
     const container = mountUI();
     this._view = new MetaShopView(container);
     this._view.show(
-      this.game.session,
+      session,
       (id) => this._handlePurchase(id),
       ()   => this._goToTitle(),
-      { gameData: this.game.gameData },
+      viewOptions,
     );
   }
 
@@ -41,18 +47,19 @@ export class MetaShopScene {
   exit() {
     this._view?.destroy();
     this._view = null;
+    this._service = null;
   }
 
   // ── 내부 처리 ──────────────────────────────────────────────────────
 
   _handlePurchase(upgradeId) {
-    const result = purchaseMetaShopUpgrade(this.game.session, upgradeId, {
-      gameData: this.game.gameData,
-    });
+    const result = this._service?.purchaseUpgrade(upgradeId);
 
-    if (result.success) {
-      this._view.refresh(this.game.session, { gameData: this.game.gameData });
+    if (result?.shouldRefresh) {
+      this._view.refresh(result.session, result.viewOptions);
     }
+
+    return result;
   }
 
   /** 메인화면(TitleScene)으로 복귀 */
