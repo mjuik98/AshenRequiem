@@ -12,6 +12,7 @@ test('settings application service는 session snapshot owner services를 통해 
   const settingsCommandSource = readProjectSource('../src/app/meta/settingsCommandService.js');
   const sessionSnapshotQuerySource = readProjectSource('../src/app/session/sessionSnapshotQueryService.js');
   const sessionSnapshotCommandSource = readProjectSource('../src/app/session/sessionSnapshotCommandService.js');
+  const sessionRepositoryPortSource = readProjectSource('../src/app/session/sessionRepositoryPort.js');
   const sessionSnapshotPreviewSource = readProjectSource('../src/app/session/sessionSnapshotPreview.js');
   const sessionSnapshotCodecSource = readProjectSource('../src/app/session/sessionSnapshotCodec.js');
   const sessionSnapshotMutationSource = readProjectSource('../src/app/session/sessionSnapshotMutationService.js');
@@ -29,9 +30,10 @@ test('settings application service는 session snapshot owner services를 통해 
   assert.equal(settingsAppSource.includes("from './settingsCommandService.js'"), true, 'settings application facade가 command service를 사용하지 않음');
   assert.equal(settingsQuerySource.includes("from '../session/sessionSnapshotQueryService.js'"), true, 'settings query service가 session snapshot query owner를 재노출하지 않음');
   assert.equal(settingsCommandSource.includes("from '../session/sessionSnapshotCommandService.js'"), true, 'settings command service가 session snapshot command owner를 재노출하지 않음');
-  assert.equal(sessionSnapshotQuerySource.includes("from '../../adapters/browser/session/sessionRepository.js'"), true, 'session snapshot query service가 adapter-owned session repository를 사용하지 않음');
+  assert.equal(sessionRepositoryPortSource.includes("from '../../adapters/browser/session/sessionRepository.js'"), true, 'sessionRepositoryPort가 adapter-owned session repository를 연결하지 않음');
+  assert.equal(sessionSnapshotQuerySource.includes("from './sessionRepositoryPort.js'"), true, 'session snapshot query service가 local session repository port를 사용하지 않음');
   assert.equal(sessionSnapshotQuerySource.includes("from './sessionSnapshotPreview.js'"), true, 'session snapshot query service가 preview helper를 사용하지 않음');
-  assert.equal(sessionSnapshotCommandSource.includes("from '../../adapters/browser/session/sessionRepository.js'"), true, 'session snapshot command service가 adapter-owned session repository를 사용하지 않음');
+  assert.equal(sessionSnapshotCommandSource.includes("from './sessionRepositoryPort.js'"), true, 'session snapshot command service가 local session repository port를 사용하지 않음');
   assert.equal(sessionSnapshotCommandSource.includes("from './sessionSnapshotCodec.js'"), true, 'session snapshot command service가 codec helper를 사용하지 않음');
   assert.equal(sessionSnapshotCommandSource.includes("from './sessionSnapshotMutationService.js'"), true, 'session snapshot command service가 mutation helper를 사용하지 않음');
   assert.equal(sessionSnapshotMutationSource.includes("from './sessionSnapshotCodec.js'"), true, 'session snapshot mutation service가 codec helper를 사용하지 않음');

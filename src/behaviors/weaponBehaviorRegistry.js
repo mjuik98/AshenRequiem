@@ -19,6 +19,7 @@ import { omnidirectional } from './weaponBehaviors/omnidirectional.js';
 import { laserBeam } from './weaponBehaviors/laserBeam.js';
 import { groundZone } from './weaponBehaviors/groundZone.js';
 import { ricochetProjectile } from './weaponBehaviors/ricochetProjectile.js';
+import { logRuntimeWarn } from '../utils/runtimeLogger.js';
 
 /** @type {Map<string, Function>} */
 export const weaponBehaviorRegistry = new Map([
@@ -43,7 +44,7 @@ export const weaponBehaviorRegistry = new Map([
 export function getWeaponBehavior(behaviorId) {
   const fn = weaponBehaviorRegistry.get(behaviorId);
   if (!fn) {
-    console.warn(`[weaponBehaviorRegistry] 알 수 없는 behaviorId: "${behaviorId}" — targetProjectile로 폴백`);
+    logRuntimeWarn('weaponBehaviorRegistry', `알 수 없는 behaviorId: "${behaviorId}" — targetProjectile로 폴백`);
     return targetProjectile;
   }
   return fn;

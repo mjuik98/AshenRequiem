@@ -5,6 +5,7 @@
  */
 
 import { EVENT_TYPES } from '../../data/constants/events.js';
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 export { EVENT_TYPES };
 
@@ -23,7 +24,7 @@ export class EventRegistry {
    */
   register(eventType, handlerFn) {
     if (!EVENT_TYPES.includes(eventType)) {
-      console.warn(`[EventRegistry] 알 수 없는 이벤트 타입: "${eventType}"`);
+      logRuntimeWarn('EventRegistry', `알 수 없는 이벤트 타입: "${eventType}"`);
     }
     if (!this._handlers.has(eventType)) this._handlers.set(eventType, []);
     this._handlers.get(eventType).push(handlerFn);

@@ -33,6 +33,7 @@ import { swarm }       from './swarm.js';
 import { dash }        from './dash.js';
 import { circleDash }  from './circleDash.js';
 import { rangedChase } from './rangedChase.js';
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 const registry = {
   chase,
@@ -68,11 +69,11 @@ export function getEnemyBehavior(behaviorId) {
  */
 export function registerEnemyBehavior(id, handler) {
   if (typeof handler !== 'function') {
-    console.warn(`[enemyBehaviorRegistry] handler는 함수여야 합니다: ${id}`);
+    logRuntimeWarn('enemyBehaviorRegistry', `handler는 함수여야 합니다: ${id}`);
     return;
   }
   if (registry[id]) {
-    console.warn(`[enemyBehaviorRegistry] 이미 등록된 id를 덮어씁니다: ${id}`);
+    logRuntimeWarn('enemyBehaviorRegistry', `이미 등록된 id를 덮어씁니다: ${id}`);
   }
   registry[id] = handler;
 }

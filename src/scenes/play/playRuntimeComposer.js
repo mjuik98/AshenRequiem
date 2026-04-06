@@ -1,7 +1,7 @@
 import { mountUI } from '../../ui/dom/mountUI.js';
 import { buildPlayRuntime as buildPlayRuntimeBase } from '../../core/PlayRuntimeBuilder.js';
 import { PlayUI } from './PlayUI.js';
-import { shouldEnablePipelineProfiling } from './playSceneRuntime.js';
+import { shouldEnablePipelineProfiling } from '../../adapters/browser/runtimeFeatureFlags.js';
 
 export function buildPlayRuntime({
   shouldEnableProfilingImpl = shouldEnablePipelineProfiling,

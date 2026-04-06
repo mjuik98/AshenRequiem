@@ -19,6 +19,11 @@
  * 프로덕션 빌드에서는 호출하지 않아야 한다 (Vite tree-shaking 대상).
  */
 
+import {
+  logRuntimeError,
+  logRuntimeWarn,
+} from '../utils/runtimeLogger.js';
+
 /** Vite DEV 환경 여부 (빌드 시 false로 tree-shake됨) */
 const IS_DEV = typeof import.meta !== 'undefined'
   ? (import.meta.env?.DEV ?? false)
@@ -67,18 +72,18 @@ export function assertEnemyContract(enemy) {
 
   for (const field of ENEMY_REQUIRED_FIELDS) {
     if (enemy[field] === undefined) {
-      console.error(`[Contract] ${label}: 필수 필드 "${field}" 누락`);
+      logRuntimeError('Contract', `${label}: 필수 필드 "${field}" 누락`);
     }
   }
 
   for (const [deprecated, correct] of Object.entries(ENEMY_DEPRECATED_FIELDS)) {
     if (deprecated in enemy) {
-      console.warn(`[Contract] ${label}: deprecated 필드 "${deprecated}" 사용. → "${correct}" 사용 권장`);
+      logRuntimeWarn('Contract', `${label}: deprecated 필드 "${deprecated}" 사용. → "${correct}" 사용 권장`);
     }
   }
 
   if (enemy.hp !== undefined && enemy.maxHp !== undefined && enemy.hp > enemy.maxHp) {
-    console.warn(`[Contract] ${label}: hp(${enemy.hp}) > maxHp(${enemy.maxHp})`);
+    logRuntimeWarn('Contract', `${label}: hp(${enemy.hp}) > maxHp(${enemy.maxHp})`);
   }
 }
 
@@ -93,7 +98,7 @@ export function assertPlayerContract(player) {
 
   for (const field of PLAYER_REQUIRED_FIELDS) {
     if (player[field] === undefined) {
-      console.error(`[Contract] ${label}: 필수 필드 "${field}" 누락`);
+      logRuntimeError('Contract', `${label}: 필수 필드 "${field}" 누락`);
     }
   }
 }
@@ -109,12 +114,12 @@ export function assertProjectileContract(proj) {
 
   for (const field of PROJECTILE_REQUIRED_FIELDS) {
     if (proj[field] === undefined) {
-      console.error(`[Contract] ${label}: 필수 필드 "${field}" 누락`);
+      logRuntimeError('Contract', `${label}: 필수 필드 "${field}" 누락`);
     }
   }
 
   if (proj.hitTargets !== undefined && !(proj.hitTargets instanceof Set)) {
-    console.error(`[Contract] ${label}: hitTargets는 Set이어야 함 (실제: ${typeof proj.hitTargets})`);
+    logRuntimeError('Contract', `${label}: hitTargets는 Set이어야 함 (실제: ${typeof proj.hitTargets})`);
   }
 }
 

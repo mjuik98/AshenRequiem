@@ -123,6 +123,7 @@
 
 ### resolved settings session snapshot services
 - `sessionSnapshotQueryService`, `sessionSnapshotCommandService`, `sessionSnapshotPreview`, `sessionSnapshotCodec`, `sessionSnapshotMutationService`의 실제 owner는 이제 `src/app/session/*`다.
+- browser-backed persistence/query default 구현은 `src/app/session/sessionRepositoryPort.js`가 묶고, 실제 browser repository 연결은 이 seam 하나로만 통과한다.
 - `src/app/meta/settingsQueryService.js`, `settingsCommandService.js`는 thin facade만 유지한다.
 - `SettingsScene`의 scene-facing entrypoint는 `src/app/session/settingsSceneApplicationService.js`가 맡고, scene가 직접 만들던 settings data-panel result payload, 오류 매핑, `SettingsView` callback assembly도 이 service가 소유한다. `src/app/meta/settingsApplicationService.js`는 compatibility facade만 유지한다.
 - 새 settings snapshot/import-export/reset 로직은 `src/app/meta/*`가 아니라 session owner 하위에 둔다.
@@ -152,6 +153,16 @@
 - `src/app/title/titleLoadoutApplicationService.js`는 low-level 저장과 PlayScene 생성 orchestration만 맡고, `titleLoadoutQueryService.js`는 payload shaping만 담당한다.
 - `src/scenes/title/titleLoadoutFlow.js`는 더 이상 payload/callback assembly를 소유하지 않고, view loader와 open-state helper만 유지한다.
 
+### resolved browser input adapters
+- browser-specific 입력 adapter owner는 `src/platform/browser/input/*`다.
+- `src/input/KeyboardAdapter.js`, `GamepadAdapter.js`, `TouchAdapter.js`, `touchHudRuntime.js`는 테스트/기존 import 호환용 wrapper만 유지한다.
+- `src/input/InputState.js`, `InputManager.js`, `keyBindings.js` 같은 browser-agnostic 입력 primitive는 기존 `src/input/*`에 둔다.
+
+### resolved permanent upgrade applicator
+- 실제 영구 업그레이드 적용 로직 owner는 `src/domain/play/progression/permanentUpgradeApplicator.js`다.
+- `src/data/permanentUpgradeApplicator.js`는 테스트/기존 import 호환용 wrapper만 유지한다.
+- app/play와 data facade는 compatibility wrapper가 아니라 play domain owner를 직접 본다.
+
 ### compatibility wrapper inventory
 - `docs/compatibility-wrappers.md`에 없는 새 wrapper는 만들지 않는다.
 - 새 wrapper가 정말 필요하면 문서와 guard를 함께 갱신한다.
@@ -167,6 +178,7 @@
 | `src/systems/*` | `play` | frame pipeline systems |
 | `src/app/meta/*` | `meta` | settings/codex/metashop orchestration |
 | `src/domain/meta/*` | `meta` | read models and meta rules |
+| `src/platform/browser/input/*` | `platform` | browser-specific input adapters and touch HUD runtime |
 | `src/data/*` | `catalog` | shipped catalog + validation inputs |
 | `src/adapters/browser/*` | `platform` | browser/runtime integration |
 | `src/utils/*` | `shared` | pure helper or shared facade only |

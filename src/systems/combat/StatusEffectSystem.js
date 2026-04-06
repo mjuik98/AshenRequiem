@@ -27,6 +27,7 @@ import { statusEffectRegistry }  from '../../data/statusEffectRegistry.js';
 import { generateId }            from '../../utils/ids.js';
 import { isLive }                from '../../utils/entityUtils.js';
 import { chance }                from '../../utils/random.js';
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 export const StatusEffectSystem = {
   update({ world }) {
@@ -119,7 +120,7 @@ export const StatusEffectSystem = {
   _applyEffect(entity, effectId, events) {
     const def = getStatusEffectData(effectId);
     if (!def) {
-      console.warn(`[StatusEffectSystem] 알 수 없는 effectId: ${effectId}`);
+      logRuntimeWarn('StatusEffectSystem', `알 수 없는 effectId: ${effectId}`);
       return;
     }
 

@@ -2,9 +2,7 @@ import { PlayContext } from '../../core/PlayContext.js';
 import { prepareStartRunState } from '../../app/play/startRunApplicationService.js';
 import { normalizeSessionOptions } from '../../state/sessionOptions.js';
 import { buildPlayRuntime } from './playRuntimeComposer.js';
-import {
-  shouldEnablePipelineProfiling,
-} from './playSceneRuntime.js';
+import { shouldEnablePipelineProfiling } from '../../adapters/browser/runtimeFeatureFlags.js';
 
 export function createPlaySceneWorldState({
   session,

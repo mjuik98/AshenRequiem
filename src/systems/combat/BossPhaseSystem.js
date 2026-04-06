@@ -3,6 +3,8 @@
  *
  * FIX(BUG-6): enemyId vs enemyDataId 필드명 불일치 수정
  */
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
+
 export const BossPhaseSystem = {
   update({ world, data: { bossData } }) {
     if (!bossData || !world.queues.events.bossPhaseChanged) return;
@@ -22,7 +24,7 @@ export const BossPhaseSystem = {
       }
 
       if (!enemy.maxHp || enemy.maxHp <= 0) {
-        console.warn(`[BossPhaseSystem] ${enemy.enemyDataId} maxHp 미설정 — 페이즈 검사 스킵`);
+        logRuntimeWarn('BossPhaseSystem', `${enemy.enemyDataId} maxHp 미설정 — 페이즈 검사 스킵`);
         continue;
       }
 

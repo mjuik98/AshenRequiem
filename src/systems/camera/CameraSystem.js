@@ -1,3 +1,5 @@
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
+
 /**
  * src/systems/camera/CameraSystem.js — 플레이어 중심 카메라 (위치 계산 전담)
  *
@@ -21,9 +23,9 @@ export const CameraSystem = {
     // P3: camera 메타 미설정 방어 (WorldTickSystem 실행 순서 이상 감지용)
     // WorldTickSystem(priority 0)이 정상 실행되면 width/height가 반드시 설정됨
     if (!camera.width || !camera.height) {
-      console.warn(
-        '[CameraSystem] camera.width/height가 설정되지 않았습니다. '
-        + 'WorldTickSystem(priority 0)의 실행 순서를 확인하세요.'
+      logRuntimeWarn(
+        'CameraSystem',
+        'camera.width/height가 설정되지 않았습니다. WorldTickSystem(priority 0)의 실행 순서를 확인하세요.',
       );
       return;
     }

@@ -24,6 +24,10 @@ import {
   getLiveEffects 
 } from '../utils/entityUtils.js';
 import { buildCurseSnapshot } from '../data/curseScaling.js';
+import {
+  logRuntimeError,
+  logRuntimeWarn,
+} from '../utils/runtimeLogger.js';
 
 export const EntityManager = {
 
@@ -73,7 +77,7 @@ export const EntityManager = {
           if (entity) world.entities.effects.push(entity);
           break;
         default:
-          console.warn('[EntityManager] 알 수 없는 spawnQueue 타입:', req.type);
+          logRuntimeWarn('EntityManager', '알 수 없는 spawnQueue 타입', req.type);
       }
     }
     world.queues.spawnQueue.length = 0;
@@ -114,7 +118,7 @@ export const EntityManager = {
     const check = (label, arr) => {
       for (const item of arr) {
         if (isDead(item)) {
-          console.error(`[EntityManager] assertClean 실패: ${label}에 dead 객체가 남아 있습니다.`, item);
+          logRuntimeError('EntityManager', `assertClean 실패: ${label}에 dead 객체가 남아 있습니다.`, item);
         }
       }
     };

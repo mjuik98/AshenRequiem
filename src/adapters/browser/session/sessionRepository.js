@@ -18,6 +18,7 @@ import {
   restoreStoredSessionSnapshot,
 } from './sessionRecoveryPolicy.js';
 import { resolveSessionStorage } from './sessionStorageDriver.js';
+import { logRuntimeWarn } from '../../../utils/runtimeLogger.js';
 
 let repositoryOverride;
 
@@ -60,7 +61,7 @@ export function createLocalSessionRepository(options = {}) {
         storage.setItem(storageKeys.primary, serialized);
         storage.setItem(storageKeys.backup, serialized);
       } catch (error) {
-        console.warn('[SessionState] 저장 실패:', error);
+        logRuntimeWarn('SessionState', '저장 실패', error);
       }
     },
 

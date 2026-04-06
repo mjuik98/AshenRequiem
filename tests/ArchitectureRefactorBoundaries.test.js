@@ -40,4 +40,21 @@ test('RenderSystem은 브라우저 runtime adapter 대신 주입된 clock servic
   assert.equal(source.includes('services.nowSeconds'), true, 'RenderSystem이 주입된 nowSeconds clock service를 사용해야 함');
 });
 
+test('session repository port는 browser repository owner를 app/session seam으로 감싼다', async () => {
+  const port = await import('../src/app/session/sessionRepositoryPort.js');
+  const browserRepository = await import('../src/adapters/browser/session/sessionRepository.js');
+  const persistenceSource = readProjectSource('../src/app/session/sessionPersistenceService.js');
+  const querySource = readProjectSource('../src/app/session/sessionSnapshotQueryService.js');
+  const commandSource = readProjectSource('../src/app/session/sessionSnapshotCommandService.js');
+
+  assert.equal(port.saveSessionState, browserRepository.saveSessionState, 'sessionRepositoryPort가 browser owner save helper를 재노출하지 않음');
+  assert.equal(port.serializeSessionState, browserRepository.serializeSessionState, 'sessionRepositoryPort가 browser owner serialize helper를 재노출하지 않음');
+  assert.equal(port.parseSessionState, browserRepository.parseSessionState, 'sessionRepositoryPort가 browser owner parse helper를 재노출하지 않음');
+  assert.equal(port.inspectStoredSessionSnapshots, browserRepository.inspectStoredSessionSnapshots, 'sessionRepositoryPort가 browser owner inspect helper를 재노출하지 않음');
+  assert.equal(port.restoreStoredSessionSnapshot, browserRepository.restoreStoredSessionSnapshot, 'sessionRepositoryPort가 browser owner restore helper를 재노출하지 않음');
+  assert.equal(persistenceSource.includes("from './sessionRepositoryPort.js'"), true, 'sessionPersistenceService가 local repository port를 사용하지 않음');
+  assert.equal(querySource.includes("from './sessionRepositoryPort.js'"), true, 'sessionSnapshotQueryService가 local repository port를 사용하지 않음');
+  assert.equal(commandSource.includes("from './sessionRepositoryPort.js'"), true, 'sessionSnapshotCommandService가 local repository port를 사용하지 않음');
+});
+
 summary();

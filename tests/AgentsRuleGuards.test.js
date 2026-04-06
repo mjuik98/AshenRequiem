@@ -235,6 +235,7 @@ test('scene and progression infrastructure stay decoupled from system internals'
   const worldTickSystemSource = readProjectSource('../src/systems/core/WorldTickSystem.js');
   const sessionFacadeSource = readProjectSource('../src/state/sessionFacade.js');
   const sessionPersistenceServiceSource = readProjectSource('../src/app/session/sessionPersistenceService.js');
+  const sessionRepositoryPortSource = readProjectSource('../src/app/session/sessionRepositoryPort.js');
   const loadoutSelectionWriteServiceSource = readProjectSource('../src/app/session/loadoutSelectionWriteService.js');
   const codexAppSource = readProjectSource('../src/app/meta/codexApplicationService.js');
   const codexSessionStateServiceSource = readProjectSource('../src/app/session/codexSessionStateService.js');
@@ -618,9 +619,15 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    sessionPersistenceServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    sessionRepositoryPortSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
     true,
-    'sessionPersistenceService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+    'sessionRepositoryPort가 adapter-owned session repository 모듈을 연결하지 않음',
+  );
+
+  assert.equal(
+    sessionPersistenceServiceSource.includes("from './sessionRepositoryPort.js'"),
+    true,
+    'sessionPersistenceService가 local session repository port를 사용하지 않음',
   );
 
   assert.equal(
@@ -642,15 +649,15 @@ test('scene and progression infrastructure stay decoupled from system internals'
   );
 
   assert.equal(
-    sessionSnapshotQueryServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    sessionSnapshotQueryServiceSource.includes("from './sessionRepositoryPort.js'"),
     true,
-    'sessionSnapshotQueryService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+    'sessionSnapshotQueryService가 local session repository port를 사용하지 않음',
   );
 
   assert.equal(
-    sessionSnapshotCommandServiceSource.includes("from '../../adapters/browser/session/sessionRepository.js'"),
+    sessionSnapshotCommandServiceSource.includes("from './sessionRepositoryPort.js'"),
     true,
-    'sessionSnapshotCommandService가 adapter-owned session repository 모듈을 직접 사용하지 않음',
+    'sessionSnapshotCommandService가 local session repository port를 사용하지 않음',
   );
 
   assert.equal(

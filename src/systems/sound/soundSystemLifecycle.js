@@ -1,10 +1,11 @@
 import { createSoundGraph, disconnectSoundGraph } from './soundGraph.js';
 import { resetSoundSystemRuntime } from './soundSystemState.js';
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 export function initSoundSystemContext(target, {
   createAudioContext = target?._createAudioContext,
   createGraph = createSoundGraph,
-  warn = (...args) => console.warn(...args),
+  warn = (message, ...args) => logRuntimeWarn('SoundSystem', message, ...args),
 } = {}) {
   if (target._ctx) return target._ctx;
 
@@ -24,7 +25,7 @@ export function initSoundSystemContext(target, {
     target._syncVolumes(0);
     return target._ctx;
   } catch {
-    warn('[SoundSystem] AudioContext 미지원 - 사운드 비활성화');
+    warn('AudioContext 미지원 - 사운드 비활성화');
     target._enabled = false;
     target._ctx = null;
     return null;

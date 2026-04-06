@@ -46,6 +46,24 @@ export const WRAPPER_INVENTORY = [
     notes: '실제 구현은 src/adapters/browser/runtimeHooks.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
   },
   {
+    path: 'src/scenes/play/playSceneRuntime.js',
+    role: 'play scene runtime helper facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/app/play/runSessionStateService.js, src/adapters/browser/runtimeFeatureFlags.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/scenes/play/playSceneOverlays.js',
+    role: 'play overlay config facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/app/play/playSceneOverlaysService.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/scenes/title/titleLoadout.js',
+    role: 'title loadout query facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/app/title/titleLoadoutQueryService.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
     path: 'src/scenes/play/PlayResultHandler.js',
     role: '`playResultApplicationService` class facade',
     disposition: '`keep-public-wrapper`',
@@ -68,6 +86,30 @@ export const WRAPPER_INVENTORY = [
     role: 'start loadout domain re-export',
     disposition: '`keep-public-wrapper`',
     notes: 'title/start loadout 공개 경로 호환',
+  },
+  {
+    path: 'src/input/KeyboardAdapter.js',
+    role: 'browser keyboard adapter facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/platform/browser/input/KeyboardAdapter.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/input/GamepadAdapter.js',
+    role: 'browser gamepad adapter facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/platform/browser/input/GamepadAdapter.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/input/TouchAdapter.js',
+    role: 'browser touch adapter facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/platform/browser/input/TouchAdapter.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/input/touchHudRuntime.js',
+    role: 'browser touch HUD runtime facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/platform/browser/input/touchHudRuntime.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
   },
   {
     path: 'src/state/sessionMeta.js',
@@ -98,6 +140,12 @@ export const WRAPPER_INVENTORY = [
     role: 'browser session storage facade',
     disposition: '`keep-public-wrapper`',
     notes: '실제 구현은 src/adapters/browser/session/sessionStorage.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
+  },
+  {
+    path: 'src/data/permanentUpgradeApplicator.js',
+    role: 'permanent upgrade applicator facade',
+    disposition: '`keep-public-wrapper`',
+    notes: '실제 구현은 src/domain/play/progression/permanentUpgradeApplicator.js가 소유. 테스트/기존 import 호환용 re-export만 유지',
   },
 ];
 

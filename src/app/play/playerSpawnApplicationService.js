@@ -1,4 +1,4 @@
-import { applyPermanentUpgrades as applyPermanentUpgradesToPlayer } from '../../data/permanentUpgradeApplicator.js';
+import { applyPermanentUpgrades as applyPermanentUpgradesToPlayer } from '../../domain/play/progression/permanentUpgradeApplicator.js';
 import {
   buildPlayerStartAccessories,
   buildPlayerStartWeapons,

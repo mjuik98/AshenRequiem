@@ -1,3 +1,5 @@
+import { logRuntimeWarn } from '../utils/runtimeLogger.js';
+
 /**
  * Pipeline — 등록형 게임 파이프라인
  *
@@ -59,7 +61,7 @@ export class Pipeline {
    */
   register(system, { priority = 0, enabled = true } = {}) {
     if (!system || typeof system.update !== 'function') {
-      console.warn('[Pipeline] register: system.update()가 없습니다.', system);
+      logRuntimeWarn('Pipeline', 'register: system.update()가 없습니다.', system);
       return this;
     }
     this._entries.push({ system, priority, enabled });
@@ -85,7 +87,7 @@ export class Pipeline {
   setEnabled(system, enabled) {
     const entry = this._entries.find(e => e.system === system);
     if (entry) entry.enabled = enabled;
-    else console.warn('[Pipeline] setEnabled: 등록되지 않은 시스템입니다.', system);
+    else logRuntimeWarn('Pipeline', 'setEnabled: 등록되지 않은 시스템입니다.', system);
   }
 
   /**

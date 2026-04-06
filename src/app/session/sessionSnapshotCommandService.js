@@ -1,7 +1,7 @@
 import {
   parseSessionState,
   restoreStoredSessionSnapshot as restoreStoredSessionSnapshotImpl,
-} from '../../adapters/browser/session/sessionRepository.js';
+} from './sessionRepositoryPort.js';
 import { updateSessionOptionsAndSave } from './sessionPersistenceService.js';
 import { applySessionOptionsToRuntime } from './sessionRuntimeApplicationService.js';
 import { buildResetState } from './sessionSnapshotCodec.js';

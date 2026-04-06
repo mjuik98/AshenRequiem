@@ -10,6 +10,7 @@
 import { generateId }            from '../utils/ids.js';
 import { getEnemyDataById }      from '../data/enemyData.js';
 import { assertEnemyContract }   from './validateEntity.js';
+import { logRuntimeWarn } from '../utils/runtimeLogger.js';
 
 function applyCurseSnapshot(enemy, curseSnapshot) {
   if (!curseSnapshot || enemy.isProp) return;
@@ -57,7 +58,7 @@ export function createEnemy(enemyId = 'zombie', x = 0, y = 0, runtimeConfig = {}
   const data = getEnemyDataById(enemyId);
 
   if (!data) {
-    console.warn(`[createEnemy] Unknown enemy id: "${enemyId}"`);
+    logRuntimeWarn('createEnemy', `Unknown enemy id: "${enemyId}"`);
     return null;
   }
 
@@ -108,7 +109,7 @@ export function resetEnemy(enemy, config) {
   const { enemyId, x, y, curseSnapshot } = config;
   const data = getEnemyDataById(enemyId);
   if (!data) {
-    console.warn(`[resetEnemy] Unknown enemy id: "${enemyId}"`);
+    logRuntimeWarn('createEnemy', `Unknown enemy id: "${enemyId}"`);
     return null;
   }
 

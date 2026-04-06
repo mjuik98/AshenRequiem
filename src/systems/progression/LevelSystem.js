@@ -9,6 +9,7 @@
 import { getXpForLevel }                       from '../../data/constants.js';
 import { transitionPlayMode, PlayMode }         from '../../state/PlayMode.js';
 import { UpgradeSystem }                        from './UpgradeSystem.js';
+import { logRuntimeWarn } from '../../utils/runtimeLogger.js';
 
 export const LevelSystem = {
   update({ world, data }) {
@@ -30,7 +31,7 @@ export const LevelSystem = {
           rng: world.runtime.rng,
         }, data);
       } catch (e) {
-        console.warn('[LevelSystem] generateChoices 실패:', e.message);
+        logRuntimeWarn('LevelSystem', 'generateChoices 실패', e.message);
         world.progression.pendingLevelUpChoices = [];
       }
 
@@ -54,7 +55,7 @@ export const LevelSystem = {
           rng: world.runtime.rng,
         }, data);
       } catch (e) {
-        console.warn('[LevelSystem] chest reward generateChoices 실패:', e.message);
+        logRuntimeWarn('LevelSystem', 'chest reward generateChoices 실패', e.message);
         world.progression.pendingLevelUpChoices = [];
       }
 

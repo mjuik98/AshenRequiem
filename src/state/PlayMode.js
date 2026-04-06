@@ -1,3 +1,5 @@
+import { logRuntimeWarn } from '../utils/runtimeLogger.js';
+
 /**
  * src/state/PlayMode.js — playMode 상태 전이 규칙 집중화
  *
@@ -58,12 +60,11 @@ export function transitionPlayMode(world, nextMode) {
   const allowed = ALLOWED_TRANSITIONS[currentMode];
 
   if (!allowed) {
-    console.warn(
-      `[PlayMode] 알 수 없는 현재 상태: "${currentMode}"`,
-    );
+    logRuntimeWarn('PlayMode', `알 수 없는 현재 상태: "${currentMode}"`);
   } else if (!allowed.includes(nextMode)) {
-    console.warn(
-      `[PlayMode] 허용되지 않은 전이: "${currentMode}" → "${nextMode}"`,
+    logRuntimeWarn(
+      'PlayMode',
+      `허용되지 않은 전이: "${currentMode}" → "${nextMode}"`,
       `허용 전이: [${allowed.join(', ')}]`,
     );
   }

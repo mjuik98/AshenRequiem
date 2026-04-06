@@ -2,7 +2,7 @@ import {
   inspectStoredSessionSnapshots as inspectStoredSessionSnapshotsImpl,
   parseSessionState,
   serializeSessionState,
-} from '../../adapters/browser/session/sessionRepository.js';
+} from './sessionRepositoryPort.js';
 import { buildSessionPreviewDiff, buildSessionPreviewSummary } from './sessionSnapshotPreview.js';
 
 export function exportSessionSnapshot({ session } = {}) {
