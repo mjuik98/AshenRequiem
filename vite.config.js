@@ -61,9 +61,4 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
-
-  // 테스트/스크립트는 번들 대상에서 제외
-  optimizeDeps: {
-    exclude: ['scripts', 'tests'],
-  },
 });

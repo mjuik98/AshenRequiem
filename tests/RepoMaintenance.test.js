@@ -54,6 +54,25 @@ test('README는 유지보수 관점의 폴더 구조와 환경 변수 계약을 
   assert.equal(readmeSource.includes('## 환경 변수 및 디버그 플래그'), true, 'README에 환경 변수 섹션이 없음');
   assert.equal(readmeSource.includes('TEST_JOBS'), true, 'README가 test runner 환경 변수를 설명하지 않음');
   assert.equal(readmeSource.includes('ASHEN_SMOKE_DEBUG'), true, 'README가 smoke debug 환경 변수를 설명하지 않음');
+  assert.equal(readmeSource.includes('?profilePipeline'), true, 'README가 pipeline profile query flag를 설명하지 않음');
+  assert.equal(readmeSource.includes('?forceTouchHud'), true, 'README가 touch HUD query flag를 설명하지 않음');
+  assert.equal(readmeSource.includes('__ASHEN_RUNTIME_DEBUG__'), true, 'README가 runtime debug scope flag를 설명하지 않음');
+  assert.equal(readmeSource.includes('__ASHEN_DEBUG_RUNTIME__'), true, 'README가 runtime hook global flag를 설명하지 않음');
+});
+
+test('repo는 local scratch 로그와 superpowers 작업 문서를 tracked 상태로 남기지 않는다', () => {
+  assert.equal(projectPathExists('../progress.md'), false, 'legacy progress log가 아직 남아 있음');
+  assert.equal(projectPathExists('../status.txt'), false, 'legacy status log가 아직 남아 있음');
+  assert.equal(
+    projectPathExists('../docs/superpowers/plans/2026-03-28-game-studio-operability-push.md'),
+    false,
+    'tracked superpowers plan scratch 문서가 아직 남아 있음',
+  );
+  assert.equal(
+    projectPathExists('../docs/superpowers/specs/2026-03-31-ashen-gothic-seamless-background-design.md'),
+    false,
+    'tracked superpowers spec scratch 문서가 아직 남아 있음',
+  );
 });
 
 summary();

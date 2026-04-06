@@ -11,6 +11,8 @@
 | `scripts/runTests.js` | Node 기반 테스트 배치 실행기 | `npm test`, `npm run test:watch` |
 | `scripts/validateData.js` | game data/catalog 정합성 검증 | `npm run validate`, `npm test`(`pretest`) |
 | `scripts/profile.js` | 파이프라인 프로파일/예산 검증 | `npm run profile:*`, `npm run verify*` |
+| `scripts/architectureSnapshot.mjs` | architecture-current generated section snapshot 출력 | `npm run architecture:snapshot` |
+| `scripts/compatibilityWrappers.mjs` | compatibility wrapper inventory snapshot 출력 | `npm run compatibility:wrappers`, `scripts/checkArchitectureDocs.mjs` |
 | `scripts/encounterReport.mjs` | encounter/stage authoring report 생성 | `npm run encounter:report` |
 | `scripts/browser-smoke/runDeterministicSmoke.mjs` | deterministic smoke 본 실행기 | `scripts/browser-smoke/runSmokeAgainstPreview.mjs`가 child process로 호출 |
 
@@ -18,6 +20,7 @@
 
 - zero-import만으로 package script entrypoint를 dead code로 판정하지 않는다.
 - `runDeterministicSmoke.mjs`처럼 child-process로 호출되는 스크립트는 caller가 import graph에 보이지 않아도 유지 이유를 문서에 남긴다.
+- docs snapshot 계열 스크립트(`architectureSnapshot`, `compatibilityWrappers`)는 routine verify에서 항상 실행되지는 않아도 checked-in 문서 SSOT의 생성 기준이므로 유지 이유를 문서에 남긴다.
 - 새 entrypoint를 추가하면 `package.json` 또는 호출 경로와 함께 이 문서를 갱신한다.
 
 ## Internal Helper Scripts

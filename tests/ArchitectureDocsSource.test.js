@@ -81,6 +81,8 @@ test('README links the snapshot workflow and keeps verify command terminology al
 
 test('maintenance script inventory documents internal helpers and manual-only tools separately', () => {
   assert.equal(maintenanceScriptsSource.includes('Maintenance Scripts'), true, 'maintenance script inventory 문서 헤더가 없음');
+  assert.equal(maintenanceScriptsSource.includes('scripts/architectureSnapshot.mjs'), true, 'architectureSnapshot tool 역할이 문서화되지 않음');
+  assert.equal(maintenanceScriptsSource.includes('scripts/compatibilityWrappers.mjs'), true, 'compatibilityWrappers tool 역할이 문서화되지 않음');
   assert.equal(maintenanceScriptsSource.includes('scripts/importGraph.mjs'), true, 'importGraph helper 역할이 문서화되지 않음');
   assert.equal(maintenanceScriptsSource.includes('scripts/checkCycles.mjs'), true, 'checkCycles helper 역할이 문서화되지 않음');
   assert.equal(maintenanceScriptsSource.includes('scripts/addTsCheck.js'), true, 'addTsCheck tool 역할이 문서화되지 않음');
