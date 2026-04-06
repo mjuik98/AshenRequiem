@@ -132,6 +132,11 @@
 - `src/app/meta/metaShopApplicationService.js`는 purchase rule 계산을 직접 소유하지 않고, domain helper + session persistence orchestration만 담당한다.
 - 새 meta shop purchase validation/cost rule은 app 계층이 아니라 meta domain 하위에 둔다.
 
+### resolved meta shop scene service
+- `MetaShopScene`의 scene-facing entrypoint는 이제 `src/app/meta/metaShopSceneApplicationService.js`다.
+- `src/app/meta/metaShopApplicationService.js`는 low-level purchase orchestration만 맡고, scene가 직접 들고 있던 refresh payload와 성공/실패 해석은 scene service가 소유한다.
+- 새 meta shop scene payload shaping이나 refresh 판단은 `MetaShopScene`이 아니라 `src/app/meta/metaShopSceneApplicationService.js`에 둔다.
+
 ### compatibility wrapper inventory
 - `docs/compatibility-wrappers.md`에 없는 새 wrapper는 만들지 않는다.
 - 새 wrapper가 정말 필요하면 문서와 guard를 함께 갱신한다.
