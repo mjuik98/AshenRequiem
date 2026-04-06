@@ -17,6 +17,7 @@ function createEmptyRuntimeState() {
     uiState: null,
     gameData: null,
     levelUpController: null,
+    lastUiIssue: null,
     accessibilityRuntime: null,
     devicePixelRatioReader: defaultDevicePixelRatioReader,
   };
@@ -73,6 +74,7 @@ export function getPlaySceneDebugSurface(runtimeState = null) {
     ui: runtimeState?.ui ?? null,
     gameData: runtimeState?.gameData ?? null,
     levelUpController: runtimeState?.levelUpController ?? null,
+    lastUiIssue: runtimeState?.lastUiIssue ?? null,
   };
 }
 

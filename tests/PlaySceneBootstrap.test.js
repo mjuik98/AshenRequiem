@@ -160,4 +160,53 @@ test('bootstrapPlaySceneRuntime는 startup 조립을 한 곳에서 수행한다'
   assert.equal(runtime.devicePixelRatioReader, runtimeServices.devicePixelRatioReader);
 });
 
+test('bootstrapPlaySceneRuntime는 overlay load failure callback seam을 runtime builder에 전달한다', () => {
+  const { bootstrapPlaySceneRuntime } = getBootstrapApi();
+  const onOverlayLoadFailure = () => {};
+  const calls = [];
+
+  bootstrapPlaySceneRuntime({
+    game: {
+      session: { options: {} },
+      gameData: {},
+      input: {},
+      canvas: {},
+      renderer: {},
+    },
+    onOverlayLoadFailure,
+    buildPlayRuntimeImpl(options) {
+      calls.push(options);
+      return {
+        world: {},
+        ui: null,
+        ctx: null,
+        pipeline: null,
+        pipelineCtx: null,
+        systems: null,
+      };
+    },
+  });
+
+  assert.equal(calls.length, 1, 'bootstrap helper가 runtime builder를 호출하지 않음');
+  assert.equal(calls[0].onOverlayLoadFailure, onOverlayLoadFailure, 'overlay load failure seam이 runtime builder까지 전달되지 않음');
+});
+
+test('play scene runtime state debug surface는 마지막 UI issue snapshot을 노출한다', () => {
+  const runtimeState = getRuntimeStateApi();
+  const debugSurface = runtimeState.getPlaySceneDebugSurface({
+    ui: { id: 'ui' },
+    gameData: { id: 'game-data' },
+    levelUpController: { id: 'level-up' },
+    lastUiIssue: {
+      overlayKind: 'result',
+      message: '결과 화면을 불러오지 못했습니다.',
+    },
+  });
+
+  assert.deepEqual(debugSurface.lastUiIssue, {
+    overlayKind: 'result',
+    message: '결과 화면을 불러오지 못했습니다.',
+  });
+});
+
 summary();

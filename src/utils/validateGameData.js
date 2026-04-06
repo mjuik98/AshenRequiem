@@ -1,4 +1,13 @@
 import { validateCoreGameData } from '../data/gameDataValidation.js';
+import {
+  logRuntimeError,
+  logRuntimeInfo,
+  logRuntimeWarn,
+} from './runtimeLogger.js';
+
+function normalizeValidationMessage(message) {
+  return String(message).replace(/^\[validate\]\s*/, '');
+}
 
 /** validateGameData — 초기화 시 데이터 무결성 검증 */
 export function validateGameData(gameData = {}) {
@@ -16,9 +25,11 @@ export function validateGameData(gameData = {}) {
     stageData,
     assetManifest,
   });
-  report.errors.forEach((message) => console.error(message));
-  report.warnings.forEach((message) => console.warn(message));
+  report.errors.forEach((message) => logRuntimeError('validate', normalizeValidationMessage(message)));
+  report.warnings.forEach((message) => logRuntimeWarn('validate', normalizeValidationMessage(message)));
 
-  if (report.ok) console.debug('[validate] 모든 데이터 무결성 검증 통과');
+  if (report.ok) {
+    logRuntimeInfo('validate', '모든 데이터 무결성 검증 통과');
+  }
   return report.ok;
 }

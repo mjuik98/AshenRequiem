@@ -18,14 +18,19 @@ import {
   loadResultViewModule,
 } from '../overlayViewLoaders.js';
 import { logRuntimeError } from '../../utils/runtimeLogger.js';
+import { buildModuleLoadFailureMessage } from '../../utils/runtimeIssue.js';
 
 export class PlayUI {
-  constructor(container, loaders = {}) {
+  constructor(container, {
+    onOverlayLoadFailure = null,
+    ...loaders
+  } = {}) {
     this._container = container;
     this._hud          = new HudView(container);
     this._bossHud      = new BossHudView(container);
     this._bossAnnounce = new BossAnnouncementView(container);
     this._evoAnnounce  = new WeaponEvolutionAnnounceView(container);
+    this._onOverlayLoadFailure = onOverlayLoadFailure;
 
     this._destroyed = false;
     this._pauseOverlay = this._createPauseOverlay(loaders.loadPauseViewModule ?? loadPauseViewModule);
@@ -120,7 +125,7 @@ export class PlayUI {
       showView: (view, config) => view.show(config),
       hideView: (view) => view?.hide?.(),
       isVisible: (view) => view?.isVisible?.() || false,
-      onError: (error) => logRuntimeError('PlayUI', 'PauseView 로드 실패:', error),
+      onError: (error) => this._reportOverlayLoadFailure('pause', '일시정지', 'PauseView', error),
     });
   }
 
@@ -141,7 +146,7 @@ export class PlayUI {
           view.el.innerHTML = '';
         }
       },
-      onError: (error) => logRuntimeError('PlayUI', 'ResultView 로드 실패:', error),
+      onError: (error) => this._reportOverlayLoadFailure('result', '결과', 'ResultView', error),
     });
   }
 
@@ -152,7 +157,20 @@ export class PlayUI {
       createView: (LevelUpView) => new LevelUpView(this._container),
       showView: (view, config) => view.show(config),
       hideView: (view) => view?.hide?.(),
-      onError: (error) => logRuntimeError('PlayUI', 'LevelUpView 로드 실패:', error),
+      onError: (error) => this._reportOverlayLoadFailure('level-up', '레벨 업', 'LevelUpView', error),
     });
+  }
+
+  _reportOverlayLoadFailure(overlayKind, label, viewName, error) {
+    const issue = {
+      overlayKind,
+      label,
+      viewName,
+      message: buildModuleLoadFailureMessage(label, error),
+      error,
+    };
+    logRuntimeError('PlayUI', `${viewName} 로드 실패:`, error);
+    this._onOverlayLoadFailure?.(issue);
+    return issue;
   }
 }

@@ -1,6 +1,6 @@
 # Current Architecture Snapshot
 
-Last verified against code: 2026-04-05
+Last verified against code: 2026-04-06
 
 이 문서는 현재 코드베이스의 구현 사실을 기록한다. 지속적으로 강제할 설계 규칙은 `AGENTS.md`를 따르고, 새 코드 배치/owner 판단은 `docs/module-map.md`를 기준으로 한다.
 
@@ -10,6 +10,7 @@ Last verified against code: 2026-04-05
 - `src/app/bootstrap/createSceneFactory.js`는 `TitleScene`만 정적 import하고 `PlayScene`, `MetaShopScene`, `SettingsScene`, `CodexScene`은 dynamic import로 생성한다. 초기 entry chunk는 title shell 위주로 유지하고, 전투/메타/UI surface는 실제 진입 시점까지 지연 로드된다.
 - `GameApp`은 더 이상 browser runtime hook 구현을 직접 import하지 않는다. debug/runtime hook 등록 해제는 `bootstrapBrowserGame()`이 `src/adapters/browser/runtimeHooks.js`를 주입해 소유하고, runtime hook은 `PlayScene.getDebugSurface()` explicit contract를 통해 UI/controller snapshot만 읽는다. `PlayScene` 내부 bootstrap state, overlay controller, debug surface 조립은 `src/scenes/play/playSceneRuntimeState.js`가 담당한다.
 - `src/scenes/sceneLoaders.js`는 더 이상 내부 runtime의 scene transition SSOT가 아니다. scene 구현은 injected `sceneFactory`를 사용하고, `sceneLoaders.js`는 테스트/호환용 facade만 유지한다. `PlayUI`의 lazy overlay import는 `src/scenes/overlayViewLoaders.js`가 별도 소유한다.
+- 동적 import/overlay fetch 실패 문구의 shared SSOT는 `src/utils/runtimeIssue.js`다. `titleSceneNavigation`과 `PlayUI`는 이 helper로 module-load failure를 공통 분류하고, `PlayUI`는 scene-facing `onOverlayLoadFailure` seam으로 마지막 UI issue snapshot을 `playSceneRuntimeState.lastUiIssue`에 남긴다.
 - `src/core/Game.js`는 더 이상 메인 엔트리의 직접 부트스트랩이 아니라 호환 facade 역할만 맡는다.
 - `BrowserGameShell`은 legacy `game._resizeCanvas` shim과 함께 public `game.runtimeCapabilities.resizeCanvas` contract를 주입한다. Settings 계층은 이 공개 capability를 우선 사용하고, legacy shim은 호환 경로로만 유지한다.
 - 타이틀 화면에서는 게임 시작, 영구 업그레이드 상점, 도감, 설정으로 진입할 수 있다.
@@ -36,6 +37,7 @@ Last verified against code: 2026-04-05
 - stage catalog는 `assets.backgroundKey`, `assets.bossCueKey`, `assets.stageFxKey`를 통해 first-class asset manifest key를 참조하며, `GameDataLoader.loadDefault()`는 `assetManifest`도 함께 적재한다.
 - asset manifest entry는 이제 stable key 외에도 `preloadGroup`, `budgetTier`, `estimatedBytes`, `qualityPolicy`, `sourceType` shipping metadata를 가진다. stage background image asset은 `files.baseSrc/overlaySrc/overlayAlpha` metadata도 함께 소유하며, `gameDataValidation`은 잘못된 preload/budget/quality/source policy와 background file metadata를 함께 검증한다.
 - `GameApp.start()`의 startup validation은 이제 `upgradeData`, `weaponData`, `waveData`뿐 아니라 실제 shipped runtime catalog인 `stageData`, `assetManifest`까지 함께 전달한다. `src/utils/validateGameData.js`는 이 전체 catalog 세트를 `validateCoreGameData()`로 위임한다.
+- runtime validation/session recovery/migration warning은 더 이상 운영 경로에서 직접 `console.*`를 호출하지 않는다. `validateGameData`, `src/adapters/browser/session/sessionRecoveryPolicy.js`, `sessionMigrations`는 공통 `runtimeLogger` facade를 통해 로그를 남긴다.
 - stage background는 더 이상 `CanvasRenderer` 내부의 단순 fill/grid만으로 고정되지 않는다. checked-in `stageData.background`는 `mode/tileSize/palette/layers` 토큰과 `assets.backgroundKey`만 유지하고, `GameDataLoader`가 asset manifest file metadata를 hydrate해 runtime `background.images` shape를 만든다. `CanvasRenderer`는 `src/renderer/background/createStageBackgroundRenderer.js` runtime에 seamless tile 렌더링을 위임한 뒤 legacy grid 경로로만 폴백한다.
 - 투사체/이펙트 렌더러는 `src/renderer/sprites/vfxSpriteManifest.js`와 `src/renderer/sprites/vfxSpriteRuntime.js`를 통해 raster sprite source를 lazy-load한다. shared atlas(`projectiles`, `effects`)와 standalone 4x4 sheet source를 함께 지원하며, `magic_bolt` / `arcane_nova` / `piercing_spear` / `astral_pike` / `holy_bolt` / `holy_bolt_upgrade` / `ice_bolt` / `ice_bolt_upgrade`는 무기별 animated projectile/effect sequence를 우선 사용한다. source가 준비되지 않았거나 정의되지 않은 behavior/effect는 기존 vector draw registry 경로로 폴백한다.
 - combat VFX image source는 `public/assets/vfx/projectiles-atlas.png`, `public/assets/vfx/effects-atlas.png`, `public/assets/vfx/fire_bolt.png`, `public/assets/vfx/fire_bolt_upgrade.png`, `public/assets/vfx/holy_bolt.png`, `public/assets/vfx/holy_bolt_upgrade.png`, `public/assets/vfx/ice_bolt.png`, `public/assets/vfx/ice_bolt_upgrade.png`에 위치하며 `assetManifest`에서 atlas key와 standalone sprite-sheet key로 관리된다.
@@ -172,6 +174,7 @@ Detected top-level scene modules in `src/scenes/`:
 - 무기 진화와 관련 알림: `WeaponEvolutionSystem`, `weaponEvolutionEventAdapter`, `WeaponEvolutionAnnounceView`, `weaponEvolutionAnnounceMarkup`, `weaponEvolutionAnnounceStyles`
 - 설정과 런타임 옵션 반영: `SettingsScene`, `sessionRuntimeApplicationService`, `SoundSystem`, renderer quality controls
 - delegated overlay/runtime shell: `StartLoadoutView`, `LevelUpView`, `ResultView`, `SettingsView`, `MetaShopView`, `CodexView`
+- shared runtime issue + overlay failure snapshot: `runtimeIssue`, `PlayUI.onOverlayLoadFailure`, `playSceneRuntimeState.lastUiIssue`
 - 세션 스냅샷 export/import/reset: `SettingsScene`, `settingsApplicationService`, `src/adapters/browser/session/sessionRepository.js`, `sessionStorageDriver`
 - 세션 저장 슬롯 inspection/backup restore: `SettingsScene`, `settingsApplicationService`, `src/adapters/browser/session/sessionRepository.js`, `sessionStorageDriver`
 - 세션 import preview/diff: `SettingsScene`, `settingsApplicationService`

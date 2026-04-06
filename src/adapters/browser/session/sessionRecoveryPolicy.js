@@ -11,6 +11,7 @@ import {
   parseSessionState,
   serializeSessionState,
 } from '../../../state/session/sessionStateCodec.js';
+import { logRuntimeWarn } from '../../../utils/runtimeLogger.js';
 import { resolveSessionStorage } from './sessionStorageDriver.js';
 
 function buildSnapshotSummary(session = null) {
@@ -152,11 +153,11 @@ export function loadSessionWithRecovery({
 
   try {
     if (primaryResult.error) {
-      console.warn('[SessionState] 불러오기 실패, 기본값 사용:', primaryResult.error);
+      logRuntimeWarn('SessionState', '불러오기 실패, 기본값 사용:', primaryResult.error);
     }
     return createSessionStateImpl();
   } catch (error) {
-    console.warn('[SessionState] 불러오기 실패, 기본값 사용:', error);
+    logRuntimeWarn('SessionState', '불러오기 실패, 기본값 사용:', error);
     return createSessionStateImpl();
   }
 }

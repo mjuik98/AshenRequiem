@@ -45,7 +45,7 @@
   - non-platform helper는 browser adapter를 직접 import하지 않는다.
 
 ### `shared`
-- 책임: 여러 owner가 공통으로 사용하는 순수 helper, config, ids, random, logging facade.
+- 책임: 여러 owner가 공통으로 사용하는 순수 helper, config, ids, random, logging/runtime issue facade.
 - 현재 owner 경로:
   - `src/utils/*`
   - `src/math/*`
@@ -53,6 +53,7 @@
 - 규칙:
   - `shared`는 platform owner를 직접 import하지 않는다.
   - 환경별 동작 차이는 bootstrap이나 adapter에서 주입한다.
+  - 동적 import 실패 분류/복구 문구 같은 runtime issue formatting도 `shared` helper에서만 공통화한다.
 
 ### `compat`
 - 책임: 외부 공개 경로나 테스트 안정성을 위한 temporary compatibility wrapper.
