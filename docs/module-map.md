@@ -124,7 +124,7 @@
 ### resolved settings session snapshot services
 - `sessionSnapshotQueryService`, `sessionSnapshotCommandService`, `sessionSnapshotPreview`, `sessionSnapshotCodec`, `sessionSnapshotMutationService`의 실제 owner는 이제 `src/app/session/*`다.
 - `src/app/meta/settingsQueryService.js`, `settingsCommandService.js`는 thin facade만 유지한다.
-- `SettingsScene`의 scene-facing entrypoint는 `src/app/session/settingsSceneApplicationService.js`가 맡고, `src/app/meta/settingsApplicationService.js`는 compatibility facade만 유지한다.
+- `SettingsScene`의 scene-facing entrypoint는 `src/app/session/settingsSceneApplicationService.js`가 맡고, scene가 직접 만들던 settings data-panel result payload와 오류 매핑도 이 service가 소유한다. `src/app/meta/settingsApplicationService.js`는 compatibility facade만 유지한다.
 - 새 settings snapshot/import-export/reset 로직은 `src/app/meta/*`가 아니라 session owner 하위에 둔다.
 
 ### resolved meta shop purchase helper

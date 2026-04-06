@@ -96,9 +96,17 @@ console.log('\n[CentralizationSource]');
 
 test('씬과 UI는 공통 세션 옵션 모듈을 사용한다', () => {
   assert.equal(playSceneSource.includes('applySessionOptionsToRuntime'), true, 'PlayScene이 session runtime application service를 사용하지 않음');
-  assert.equal(settingsSceneSource.includes('saveSettingsAndApplyRuntime'), true, 'SettingsScene이 settings application service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('saveSettingsSceneOptions'), true, 'SettingsScene이 scene-facing settings save service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('previewSettingsSceneImport'), true, 'SettingsScene이 scene-facing settings preview service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('importSettingsSceneSnapshot'), true, 'SettingsScene이 scene-facing settings import service를 사용하지 않음');
+  assert.equal(settingsSceneSource.includes('inspectSettingsSceneStorage'), true, 'SettingsScene이 scene-facing settings inspect service를 사용하지 않음');
   assert.equal(settingsSceneSource.includes('updateSessionOptionsAndSave'), false, 'SettingsScene이 세션 저장 facade를 직접 import하면 안 됨');
   assert.equal(settingsSceneSource.includes('applySessionOptionsToRuntime'), false, 'SettingsScene이 옵션 적용 helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('previewSessionSnapshotImport'), false, 'SettingsScene이 low-level snapshot preview owner를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('importSessionSnapshot'), false, 'SettingsScene이 low-level snapshot command owner를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('resetSessionProgress'), false, 'SettingsScene이 low-level reset helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('restoreStoredSessionSnapshot'), false, 'SettingsScene이 low-level restore helper를 직접 import하면 안 됨');
+  assert.equal(settingsSceneSource.includes('inspectStoredSessionSnapshots'), false, 'SettingsScene이 low-level inspect helper를 직접 import하면 안 됨');
   assert.equal(
     settingsViewSource.includes('SESSION_OPTION_DEFAULTS') || settingsViewRuntimeSource.includes('SESSION_OPTION_DEFAULTS'),
     true,
